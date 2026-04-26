@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
   - name: consultations
     description: Patient consultation management
   - name: conditions
@@ -173,6 +175,27 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Consultation"
+
+  /auth/pharmacist-login:
+    post:
+      operationId: pharmacistLogin
+      tags: [auth]
+      summary: Pharmacist login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PharmacistLoginInput"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PharmacistAuthResponse"
+        "401":
+          description: Invalid credentials
 
   /dashboard/stats:
     get:
@@ -376,6 +399,34 @@ components:
           nullable: true
       required:
         - action
+
+    PharmacistLoginInput:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+
+    PharmacistAuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        pharmacistName:
+          type: string
+        pharmacistId:
+          type: string
+        role:
+          type: string
+      required:
+        - token
+        - pharmacistName
+        - pharmacistId
+        - role
 
     DashboardStats:
       type: object

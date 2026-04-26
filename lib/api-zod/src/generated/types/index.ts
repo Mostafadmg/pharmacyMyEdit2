@@ -25,3 +25,5 @@ export * from "./listConsultationsStatus";
 export * from "./newConsultationInput";
 export * from "./newConsultationInputAnswers";
 export * from "./newConsultationInputPatientSex";
+export * from "./pharmacistAuthResponse";
+export * from "./pharmacistLoginInput";

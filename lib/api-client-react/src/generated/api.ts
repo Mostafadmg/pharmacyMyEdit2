@@ -26,6 +26,8 @@ import type {
   ListConsultations200,
   ListConsultationsParams,
   NewConsultationInput,
+  PharmacistAuthResponse,
+  PharmacistLoginInput,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -630,6 +632,92 @@ export const useReviewConsultation = <
   TContext
 > => {
   return useMutation(getReviewConsultationMutationOptions(options));
+};
+
+/**
+ * @summary Pharmacist login
+ */
+export const getPharmacistLoginUrl = () => {
+  return `/api/auth/pharmacist-login`;
+};
+
+export const pharmacistLogin = async (
+  pharmacistLoginInput: PharmacistLoginInput,
+  options?: RequestInit,
+): Promise<PharmacistAuthResponse> => {
+  return customFetch<PharmacistAuthResponse>(getPharmacistLoginUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(pharmacistLoginInput),
+  });
+};
+
+export const getPharmacistLoginMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pharmacistLogin>>,
+    TError,
+    { data: BodyType<PharmacistLoginInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof pharmacistLogin>>,
+  TError,
+  { data: BodyType<PharmacistLoginInput> },
+  TContext
+> => {
+  const mutationKey = ["pharmacistLogin"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof pharmacistLogin>>,
+    { data: BodyType<PharmacistLoginInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return pharmacistLogin(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PharmacistLoginMutationResult = NonNullable<
+  Awaited<ReturnType<typeof pharmacistLogin>>
+>;
+export type PharmacistLoginMutationBody = BodyType<PharmacistLoginInput>;
+export type PharmacistLoginMutationError = ErrorType<void>;
+
+/**
+ * @summary Pharmacist login
+ */
+export const usePharmacistLogin = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pharmacistLogin>>,
+    TError,
+    { data: BodyType<PharmacistLoginInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof pharmacistLogin>>,
+  TError,
+  { data: BodyType<PharmacistLoginInput> },
+  TContext
+> => {
+  return useMutation(getPharmacistLoginMutationOptions(options));
 };
 
 /**

@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/pharmacist-app/"
+title = "PharmaCare Pharmacist App"
+version = "1.0.0"
+id = "artifacts/pharmacist-app"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/pharmacist-app/" ]
+localPort = 25344
+
+[services.development]
+run = "pnpm --filter @workspace/pharmacist-app run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/pharmacist-app", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/pharmacist-app", "run", "serve" ]
+
+[services.env]
+PORT = "25344"
+BASE_PATH = "/pharmacist-app/"

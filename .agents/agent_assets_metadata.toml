@@ -12,3 +12,9 @@ id = "ir1Cz9SWx0MgilFFoPaDH"
 uri = "file://artifacts/pharmacy/public/images/medical-bg.png"
 type = "image"
 title = "Abstract clean medical background"
+
+[[generated]]
+id = "NU5K22bt6FY8v5co7iucz"
+uri = "file://artifacts/pharmacist-app/assets/images/icon.png"
+type = "image"
+title = "pharmacist-app-icon"

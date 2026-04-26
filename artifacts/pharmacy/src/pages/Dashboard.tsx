@@ -112,18 +112,25 @@ export default function Dashboard() {
         <div className="p-6 border-t border-white/10 bg-black/20">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-primary font-bold">
-              Dr
+              {(localStorage.getItem("pharmacist_name") ?? "P").charAt(0)}
             </div>
             <div>
-              <p className="font-semibold text-sm">Pharmacist User</p>
-              <p className="text-xs text-white/60">GPhC: 2043516</p>
+              <p className="font-semibold text-sm">{localStorage.getItem("pharmacist_name") ?? "Pharmacist"}</p>
+              <p className="text-xs text-white/60">{localStorage.getItem("pharmacist_role") ?? "Pharmacist Prescriber (GPhC)"}</p>
             </div>
           </div>
-          <Link href="/">
-            <Button variant="ghost" className="w-full justify-start text-white/70 hover:text-white hover:bg-white/10">
-              <LogOut className="w-4 h-4 mr-2" /> Exit to Public Site
-            </Button>
-          </Link>
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-white/70 hover:text-white hover:bg-white/10"
+            onClick={() => {
+              localStorage.removeItem("pharmacist_token");
+              localStorage.removeItem("pharmacist_name");
+              localStorage.removeItem("pharmacist_role");
+              window.location.href = "/";
+            }}
+          >
+            <LogOut className="w-4 h-4 mr-2" /> Sign Out
+          </Button>
         </div>
       </aside>
 

@@ -220,6 +220,21 @@ export const ReviewConsultationResponse = zod.object({
 });
 
 /**
+ * @summary Pharmacist login
+ */
+export const PharmacistLoginBody = zod.object({
+  username: zod.string(),
+  password: zod.string(),
+});
+
+export const PharmacistLoginResponse = zod.object({
+  token: zod.string(),
+  pharmacistName: zod.string(),
+  pharmacistId: zod.string(),
+  role: zod.string(),
+});
+
+/**
  * @summary Get pharmacist dashboard statistics
  */
 export const GetDashboardStatsResponse = zod.object({

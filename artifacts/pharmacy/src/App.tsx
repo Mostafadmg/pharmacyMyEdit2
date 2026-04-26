@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,8 +12,19 @@ import Consultation from "./pages/Consultation";
 import TrackConsultation from "./pages/TrackConsultation";
 import Dashboard from "./pages/Dashboard";
 import ReviewConsultation from "./pages/ReviewConsultation";
+import PharmacistLogin from "./pages/PharmacistLogin";
 
 const queryClient = new QueryClient();
+
+function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  const [, navigate] = useLocation();
+  const token = localStorage.getItem("pharmacist_token");
+  if (!token) {
+    navigate("/dashboard/login");
+    return null;
+  }
+  return <Component />;
+}
 
 function Router() {
   return (
@@ -23,8 +34,9 @@ function Router() {
       <Route path="/conditions/:id" component={ConditionDetail} />
       <Route path="/consult/:conditionId" component={Consultation} />
       <Route path="/track" component={TrackConsultation} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/dashboard/consultation/:id" component={ReviewConsultation} />
+      <Route path="/dashboard/login" component={PharmacistLogin} />
+      <Route path="/dashboard">{() => <ProtectedRoute component={Dashboard} />}</Route>
+      <Route path="/dashboard/consultation/:id">{() => <ProtectedRoute component={ReviewConsultation} />}</Route>
       <Route component={NotFound} />
     </Switch>
   );

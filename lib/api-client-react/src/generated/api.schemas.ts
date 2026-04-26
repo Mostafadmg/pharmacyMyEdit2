@@ -123,6 +123,18 @@ export interface ConsultationReviewInput {
   referralInfo?: string | null;
 }
 
+export interface PharmacistLoginInput {
+  username: string;
+  password: string;
+}
+
+export interface PharmacistAuthResponse {
+  token: string;
+  pharmacistName: string;
+  pharmacistId: string;
+  role: string;
+}
+
 export type DashboardStatsByConditionCategoryItem = {
   category: string;
   count: number;
