@@ -332,6 +332,80 @@ export default function ConsultationDetail() {
             </View>
           </View>
 
+          {/* GPhC Compliance */}
+          {(() => {
+            const c: any = consultation;
+            const flags: string[] = Array.isArray(c.riskFlags) ? c.riskFlags : [];
+            const cat = c.riskCategory || "standard";
+            const catColor = cat === "high" ? colors.destructive : cat === "medium" ? "#D97706" : colors.success;
+            return (
+              <View style={styles.section}>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                  <Text style={styles.sectionTitle}>GPhC Compliance</Text>
+                  <View style={{ backgroundColor: catColor + "22", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+                    <Text style={{ color: catColor, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      {cat} risk
+                    </Text>
+                  </View>
+                </View>
+
+                {flags.length > 0 ? (
+                  <View style={[styles.infoCard, { backgroundColor: "#FEF2F2", borderColor: "#FCA5A5", borderWidth: 1 }]}>
+                    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
+                      <Feather name="alert-triangle" size={14} color={colors.destructive} />
+                      <Text style={{ fontSize: 12, fontWeight: "700", color: colors.destructive, marginLeft: 6, textTransform: "uppercase" }}>
+                        Auto-detected flags ({flags.length})
+                      </Text>
+                    </View>
+                    {flags.map((f) => (
+                      <Text key={f} style={{ fontSize: 13, color: "#991B1B", marginTop: 2 }}>
+                        • {f.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                      </Text>
+                    ))}
+                  </View>
+                ) : (
+                  <View style={[styles.infoCard, { backgroundColor: "#ECFDF5", borderColor: "#A7F3D0", borderWidth: 1, flexDirection: "row", alignItems: "center" }]}>
+                    <Feather name="check-circle" size={14} color={colors.success} />
+                    <Text style={{ fontSize: 13, color: "#065F46", marginLeft: 8 }}>No automated flags detected</Text>
+                  </View>
+                )}
+
+                <View style={[styles.infoCard, { marginTop: 8 }]}>
+                  <InfoRow icon="shield" label="Identity" value={c.identityVerificationMethod || "Photo ID"} colors={colors} />
+                  <InfoRow icon="user" label="GP" value={c.gpName || "Not provided"} colors={colors} />
+                  {c.gpSurgery && <InfoRow icon="briefcase" label="Surgery" value={c.gpSurgery} colors={colors} />}
+                  {c.deliveryAddressLine1 && (
+                    <InfoRow
+                      icon="map-pin"
+                      label="Delivery"
+                      value={`${c.deliveryAddressLine1}, ${c.deliveryCity || ""} ${c.deliveryPostcode || ""}`.trim()}
+                      colors={colors}
+                    />
+                  )}
+                  {c.bmi && (
+                    <InfoRow
+                      icon="activity"
+                      label="BMI"
+                      value={`${Number(c.bmi).toFixed(1)} (${c.weightKg}kg / ${c.heightCm}cm)`}
+                      colors={colors}
+                    />
+                  )}
+                  <InfoRow
+                    icon="check-square"
+                    label="Consents"
+                    value={[
+                      c.consentDataProcessing && "Data",
+                      c.consentToTreatment && "Treatment",
+                      c.consentToDelivery && "Delivery",
+                      c.consentShareWithGp && "Share-GP",
+                    ].filter(Boolean).join(", ") || "None recorded"}
+                    colors={colors}
+                  />
+                </View>
+              </View>
+            );
+          })()}
+
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Questionnaire Answers</Text>
             {Object.entries(answers).map(([key, val]) => (

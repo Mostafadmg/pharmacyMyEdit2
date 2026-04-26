@@ -23,7 +23,13 @@ import {
   CheckCircle2,
   Calendar,
   Mail,
-  ShieldAlert
+  ShieldAlert,
+  ShieldCheck,
+  Stethoscope,
+  Truck,
+  MapPin,
+  Send,
+  Scale
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -123,6 +129,50 @@ export default function ReviewConsultation() {
   }
 
   const isPending = consultation.status === "pending" || consultation.status === "red_flag";
+  const c = consultation as any;
+  const riskFlags: string[] = Array.isArray(c.riskFlags) ? c.riskFlags : [];
+  const riskCategory: string = c.riskCategory || "standard";
+
+  const formatRiskFlag = (flag: string) =>
+    flag.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+
+  const authHeaders = (): Record<string, string> => {
+    const token = localStorage.getItem("pharmacist_token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  const handleShareWithGp = async () => {
+    if (!id) return;
+    try {
+      const base = (import.meta as any).env?.BASE_URL?.replace(/\/$/, "") || "";
+      const res = await fetch(`${base}/api/compliance/consultations/${id}/share-with-gp`, {
+        method: "PUT",
+        headers: authHeaders(),
+      });
+      if (!res.ok) throw new Error("Failed");
+      toast.success("Marked as shared with patient's GP");
+      queryClient.invalidateQueries({ queryKey: getGetConsultationQueryKey(id) });
+    } catch {
+      toast.error("Failed to mark as shared with GP");
+    }
+  };
+
+  const handleUpdateDelivery = async (status: string) => {
+    if (!id) return;
+    try {
+      const base = (import.meta as any).env?.BASE_URL?.replace(/\/$/, "") || "";
+      const res = await fetch(`${base}/api/compliance/consultations/${id}/delivery`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      toast.success(`Delivery status updated to "${status}"`);
+      queryClient.invalidateQueries({ queryKey: getGetConsultationQueryKey(id) });
+    } catch {
+      toast.error("Failed to update delivery status");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-muted/30 pb-20 font-sans">
@@ -235,6 +285,196 @@ export default function ReviewConsultation() {
                     </div>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* GPhC Compliance & Risk Card */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+            <Card className={`border-none shadow-md overflow-hidden rounded-2xl ${riskCategory === 'high' ? 'ring-2 ring-red-300' : ''}`}>
+              <CardHeader className={`py-5 ${riskCategory === 'high' ? 'bg-red-600' : riskCategory === 'medium' ? 'bg-amber-500' : 'bg-emerald-600'} text-white`}>
+                <CardTitle className="text-xl flex items-center justify-between font-bold">
+                  <span className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5" />
+                    GPhC Compliance & Risk Assessment
+                  </span>
+                  <Badge className="bg-white/20 text-white border border-white/30 uppercase font-bold tracking-wider px-3 py-1">
+                    {riskCategory} risk
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-6">
+                {/* Risk flags */}
+                {riskFlags.length > 0 ? (
+                  <div className="rounded-xl border-2 border-red-200 bg-red-50 p-4">
+                    <p className="text-xs font-bold text-red-800 uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4" /> Auto-detected Safeguarding Flags ({riskFlags.length})
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {riskFlags.map((flag) => (
+                        <Badge key={flag} className="bg-red-100 text-red-900 border border-red-300 font-medium px-3 py-1.5">
+                          {formatRiskFlag(flag)}
+                        </Badge>
+                      ))}
+                    </div>
+                    <p className="text-xs text-red-700 mt-3 italic">
+                      Per GPhC guidance, these flags require careful clinical judgement before supplying any medication.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex items-center gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                    <p className="text-sm text-emerald-800 font-medium">No automated safeguarding flags detected.</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Identity */}
+                  <div className="rounded-xl border border-border p-4 bg-slate-50/50">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4" /> Identity Verification
+                    </p>
+                    <p className="text-sm text-secondary font-medium">
+                      Method: <span className="font-semibold">{c.identityVerificationMethod || "Photo ID"}</span>
+                    </p>
+                    {c.identityVerificationRef && (
+                      <p className="text-xs text-muted-foreground mt-1 font-mono">
+                        Ref: {c.identityVerificationRef}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Patient confirmed identity at submission per GPhC requirements.
+                    </p>
+                  </div>
+
+                  {/* GP Details */}
+                  <div className="rounded-xl border border-border p-4 bg-slate-50/50">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <Stethoscope className="w-4 h-4" /> Patient's GP
+                    </p>
+                    {c.gpName || c.gpSurgery ? (
+                      <>
+                        <p className="text-sm text-secondary font-medium">{c.gpName || "Not provided"}</p>
+                        <p className="text-xs text-muted-foreground">{c.gpSurgery || ""}</p>
+                        {c.gpAddress && <p className="text-xs text-muted-foreground mt-1">{c.gpAddress}</p>}
+                        {c.gpPhone && <p className="text-xs text-muted-foreground">Tel: {c.gpPhone}</p>}
+                      </>
+                    ) : (
+                      <p className="text-sm text-amber-700 font-medium italic">Patient declined to provide GP details</p>
+                    )}
+                  </div>
+
+                  {/* Delivery */}
+                  <div className="rounded-xl border border-border p-4 bg-slate-50/50">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4" /> Delivery Address
+                    </p>
+                    {c.deliveryAddressLine1 ? (
+                      <>
+                        <p className="text-sm text-secondary font-medium">{c.deliveryAddressLine1}</p>
+                        {c.deliveryAddressLine2 && <p className="text-sm text-secondary">{c.deliveryAddressLine2}</p>}
+                        <p className="text-sm text-secondary">
+                          {c.deliveryCity}{c.deliveryCity && c.deliveryPostcode ? ", " : ""}{c.deliveryPostcode}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">Not yet provided</p>
+                    )}
+                  </div>
+
+                  {/* Weight verification (only for weight management) */}
+                  {(c.weightKg || c.heightCm || c.bmi) && (
+                    <div className="rounded-xl border border-border p-4 bg-slate-50/50">
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <Scale className="w-4 h-4" /> Weight Verification
+                      </p>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Weight</p>
+                          <p className="text-sm font-bold text-secondary">{c.weightKg ? `${c.weightKg} kg` : "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Height</p>
+                          <p className="text-sm font-bold text-secondary">{c.heightCm ? `${c.heightCm} cm` : "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">BMI</p>
+                          <p className="text-sm font-bold text-secondary">{c.bmi ? Number(c.bmi).toFixed(1) : "—"}</p>
+                        </div>
+                      </div>
+                      {c.weightVerificationMethod && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Verified via: <span className="font-semibold">{c.weightVerificationMethod}</span>
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Consents */}
+                <div className="rounded-xl border border-border p-4">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
+                    Patient Consents (recorded at submission)
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                    {[
+                      ["consentDataProcessing", "Data processing"],
+                      ["consentToTreatment", "Pharmacist treatment decision"],
+                      ["consentToDelivery", "Tracked delivery"],
+                      ["consentShareWithGp", "Share details with GP"],
+                    ].map(([key, label]) => (
+                      <div key={key} className="flex items-center gap-2">
+                        {c[key] ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-slate-400" />
+                        )}
+                        <span className={c[key] ? "text-secondary" : "text-muted-foreground"}>{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Pharmacist actions */}
+                {!isPending && (
+                  <div className="border-t pt-5 space-y-3">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                      Post-supply actions
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleShareWithGp}
+                        disabled={!!c.sharedWithGpAt}
+                        className="rounded-full"
+                      >
+                        <Send className="w-4 h-4 mr-2" />
+                        {c.sharedWithGpAt
+                          ? `Shared ${format(new Date(c.sharedWithGpAt), "d MMM yyyy")}`
+                          : "Mark shared with GP"}
+                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Truck className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-xs font-medium text-muted-foreground">Delivery:</span>
+                        <Badge variant="outline" className="capitalize">
+                          {c.deliveryStatus || "pending"}
+                        </Badge>
+                      </div>
+                      {["dispatched", "delivered"].map((s) => (
+                        <Button
+                          key={s}
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleUpdateDelivery(s)}
+                          className="rounded-full text-xs capitalize"
+                        >
+                          Mark {s}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>

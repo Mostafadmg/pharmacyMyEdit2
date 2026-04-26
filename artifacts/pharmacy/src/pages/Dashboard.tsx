@@ -21,7 +21,8 @@ import {
   Settings,
   LogOut,
   ChevronRight,
-  Pill
+  Pill,
+  MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -94,6 +95,15 @@ export default function Dashboard() {
                 Patients
               </div>
             </button>
+            <Link href="/dashboard/complaints" className="block">
+              <button className="w-full flex items-center justify-between text-white/70 hover:bg-white/5 hover:text-white font-medium rounded-xl p-3 transition-colors">
+                <div className="flex items-center gap-3">
+                  <MessageSquare className="w-5 h-5" />
+                  Complaints
+                </div>
+                <ChevronRight className="w-4 h-4 opacity-50" />
+              </button>
+            </Link>
             <button className="w-full flex items-center justify-between text-white/70 hover:bg-white/5 hover:text-white font-medium rounded-xl p-3 transition-colors">
               <div className="flex items-center gap-3">
                 <FileText className="w-5 h-5" />

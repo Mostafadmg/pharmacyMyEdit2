@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
-import { useGetCondition, useCreateConsultation, getGetConditionQueryKey, NewConsultationInputPatientSex } from "@workspace/api-client-react";
+import { useGetCondition, getGetConditionQueryKey, NewConsultationInputPatientSex } from "@workspace/api-client-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, ShieldCheck, CheckCircle2, UploadCloud, AlertCircle,
   AlertTriangle, XCircle, ChevronRight, Eye, EyeOff, User, Mail,
-  Lock, MapPin, Phone, LogIn,
+  Lock, MapPin, Phone, LogIn, Stethoscope, FileCheck2, Truck,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getConditionQuestions, type EligibilityQuestion, type ClinicalQuestion } from "@/data/conditionQuestions";
@@ -26,8 +26,21 @@ const STEPS = {
   MEDICAL: 3,
   PHOTO: 4,
   ACCOUNT: 5,
-  REVIEW: 6,
+  GP_DETAILS: 6,
+  REVIEW: 7,
 } as const;
+
+// Conditions where the medicines need extra GPhC safeguards (4.2j)
+const HIGH_RISK_CONDITION_IDS = new Set<string>([
+  "weight-loss", "weight_loss", "weight-management",
+  "erectile-dysfunction", "premature-ejaculation",
+  "asthma", "hayfever-asthma",
+  "anxiety", "insomnia",
+  "uti", "urinary-tract-infection",
+  "thrush", "bacterial-vaginosis",
+  "chlamydia", "acne",
+]);
+const WEIGHT_MGMT_IDS = new Set<string>(["weight-loss", "weight_loss", "weight-management"]);
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 function calculateAge(dob: string): number {
@@ -106,7 +119,7 @@ export default function Consultation() {
   const { conditionId } = useParams();
   const [_, setLocation] = useLocation();
 
-  const [step, setStep] = useState(STEPS.ELIGIBILITY);
+  const [step, setStep] = useState<number>(STEPS.ELIGIBILITY);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedRef, setSubmittedRef] = useState("");
 
@@ -158,34 +171,43 @@ export default function Consultation() {
   const [regLoading, setRegLoading] = useState(false);
   const [accountErrors, setAccountErrors] = useState<Record<string, string>>({});
 
-  // ── Consent ─────────────────────────────────────────────
-  const [hasConsented, setHasConsented] = useState(false);
+  // ── GP / regular prescriber details (GPhC 4.2k) ─────────
+  const [hasRegularGp, setHasRegularGp] = useState<"" | "yes" | "no">("");
+  const [gpName, setGpName] = useState("");
+  const [gpSurgery, setGpSurgery] = useState("");
+  const [gpAddress, setGpAddress] = useState("");
+  const [gpPhone, setGpPhone] = useState("");
+  const [consentShareWithGp, setConsentShareWithGp] = useState<"" | "yes" | "no">("");
+  const [gpErrors, setGpErrors] = useState<Record<string, string>>({});
+
+  // ── Identity confirmation (GPhC 4.2e) ────────────────────
+  const [identityRef, setIdentityRef] = useState("");
+
+  // ── Weight management verification (GPhC 4.2l) ───────────
+  const [verifiedHeight, setVerifiedHeight] = useState<string>("");
+  const [verifiedWeight, setVerifiedWeight] = useState<string>("");
+
+  // ── Granular consent (Principle 4.1) ─────────────────────
+  const [consentTreatment, setConsentTreatment] = useState(false);
+  const [consentDelivery, setConsentDelivery] = useState(false);
+  const [consentDataProcessing, setConsentDataProcessing] = useState(false);
+  const [consentIdentityConfirmed, setConsentIdentityConfirmed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const { data: condition, isLoading } = useGetCondition(conditionId || "", {
     query: { enabled: !!conditionId, queryKey: getGetConditionQueryKey(conditionId || "") },
   });
 
-  const createMutation = useCreateConsultation({
-    mutation: {
-      onSuccess: (data) => {
-        setSubmittedRef(data.id.toUpperCase().slice(0, 8));
-        setIsSubmitted(true);
-        window.scrollTo(0, 0);
-      },
-      onError: () => { toast.error("Failed to submit. Please check your connection and try again."); },
-    },
-  });
-
   const questions = conditionId ? getConditionQuestions(conditionId) : null;
   const requiresPhoto = condition?.requiresPhoto ?? false;
+  const isHighRisk = conditionId ? HIGH_RISK_CONDITION_IDS.has(conditionId) : false;
+  const isWeightMgmt = conditionId ? WEIGHT_MGMT_IDS.has(conditionId) : false;
 
   // ─── Step count / progress ─────────────────────────────────────────────────
-  const totalSteps = requiresPhoto ? 6 : 5;
+  // visual order: ELIGIBILITY, CLINICAL, MEDICAL, [PHOTO], ACCOUNT, GP_DETAILS, REVIEW
+  const totalSteps = requiresPhoto ? 7 : 6;
   function visualStep(s: number) {
-    // Steps: ELIGIBILITY=1, CLINICAL=2, MEDICAL=3, [PHOTO=4,] ACCOUNT=5[or4], REVIEW=6[or5]
-    if (!requiresPhoto) {
-      if (s >= STEPS.PHOTO) return s - 1;
-    }
+    if (!requiresPhoto && s >= STEPS.PHOTO) return s - 1;
     return s;
   }
   const progressPct = Math.round((visualStep(step) / totalSteps) * 100);
@@ -200,7 +222,8 @@ export default function Consultation() {
     if (step === STEPS.MEDICAL) { goTo(STEPS.CLINICAL); return; }
     if (step === STEPS.PHOTO) { goTo(STEPS.MEDICAL); return; }
     if (step === STEPS.ACCOUNT) { goTo(requiresPhoto ? STEPS.PHOTO : STEPS.MEDICAL); return; }
-    if (step === STEPS.REVIEW) { goTo(STEPS.ACCOUNT); return; }
+    if (step === STEPS.GP_DETAILS) { goTo(STEPS.ACCOUNT); return; }
+    if (step === STEPS.REVIEW) { goTo(STEPS.GP_DETAILS); return; }
   }
 
   // ─── Step 1: Eligibility ───────────────────────────────────────────────────
@@ -404,32 +427,81 @@ export default function Consultation() {
     if (!addrLine1.trim() || !addrCity.trim() || !addrPostcode.trim()) {
       if (!validateAddress()) return;
     }
+
+    // Try to pre-fill GP details from patient profile
+    fetch(`${getBase()}/api/compliance/patient/gp-details`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(r => r.json()).then(d => {
+      if (d?.gpName && !gpName) setGpName(d.gpName);
+      if (d?.gpSurgery && !gpSurgery) setGpSurgery(d.gpSurgery);
+      if (d?.gpAddress && !gpAddress) setGpAddress(d.gpAddress);
+      if (d?.gpPhone && !gpPhone) setGpPhone(d.gpPhone);
+      if (d?.gpName) setHasRegularGp("yes");
+    }).catch(() => {});
+
+    goTo(STEPS.GP_DETAILS);
+  }
+
+  // ─── Step 6: GP details ────────────────────────────────────────────────────
+  function handleGpNext() {
+    const errors: Record<string, string> = {};
+    if (!hasRegularGp) errors.hasRegularGp = "Please tell us whether you have a regular GP.";
+    if (hasRegularGp === "yes") {
+      if (!gpName.trim()) errors.gpName = "Your GP's name is required.";
+      if (!gpSurgery.trim()) errors.gpSurgery = "Surgery name is required.";
+      if (!consentShareWithGp) errors.consentShareWithGp = "Please confirm whether we can share details with your GP.";
+    }
+    if (isWeightMgmt) {
+      const h = parseInt(verifiedHeight, 10);
+      const w = parseInt(verifiedWeight, 10);
+      if (!h || h < 100 || h > 250) errors.verifiedHeight = "A valid height in cm is required (100–250).";
+      if (!w || w < 30 || w > 350) errors.verifiedWeight = "A valid weight in kg is required (30–350).";
+    }
+    if (!identityRef.trim() || identityRef.trim().length < 4) {
+      errors.identityRef = "Please add an identity reference (e.g. NHS number or photo-ID number).";
+    }
+    setGpErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    // Persist GP details to the patient profile
+    const token = localStorage.getItem("patient_token");
+    if (token && hasRegularGp === "yes") {
+      fetch(`${getBase()}/api/compliance/patient/gp-details`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          gpName: gpName.trim(), gpSurgery: gpSurgery.trim(),
+          gpAddress: gpAddress.trim(), gpPhone: gpPhone.trim(),
+        }),
+      }).catch(() => {});
+    }
     goTo(STEPS.REVIEW);
   }
 
   // ─── Submit ────────────────────────────────────────────────────────────────
-  function submitConsultation() {
-    if (!conditionId || !hasConsented) {
-      if (!hasConsented) toast.error("Please accept the consent declaration to continue.");
+  async function submitConsultation() {
+    if (!conditionId) return;
+    if (!consentTreatment || !consentDelivery || !consentDataProcessing || !consentIdentityConfirmed) {
+      toast.error("Please tick every consent box before submitting.");
       return;
     }
 
-    const age = patientDob ? calculateAge(patientDob) : 30;
+    setSubmitting(true);
+    try {
+      const age = patientDob ? calculateAge(patientDob) : 30;
+      const deliveryAddress = [addrLine1, addrLine2, addrCity, addrPostcode].filter(Boolean).join(", ");
 
-    const answersPayload: Record<string, string> = {};
-    if (questions) {
-      for (const q of questions.clinicalQuestions) {
-        const val = clinicalAnswers[q.id];
-        if (Array.isArray(val)) answersPayload[q.id] = val.join(", ");
-        else if (val) answersPayload[q.id] = val as string;
+      const answersPayload: Record<string, string> = {};
+      if (questions) {
+        for (const q of questions.clinicalQuestions) {
+          const val = clinicalAnswers[q.id];
+          if (Array.isArray(val)) answersPayload[q.id] = val.join(", ");
+          else if (val) answersPayload[q.id] = val as string;
+        }
       }
-    }
+      answersPayload._deliveryAddress = deliveryAddress;
 
-    // Include delivery address in answers
-    answersPayload._deliveryAddress = [addrLine1, addrLine2, addrCity, addrPostcode].filter(Boolean).join(", ");
-
-    createMutation.mutate({
-      data: {
+      const body = {
         conditionId,
         patientName,
         patientEmail,
@@ -440,8 +512,41 @@ export default function Consultation() {
         medicalHistory: noMedicalHistory ? "None" : medicalHistory.trim(),
         answers: answersPayload,
         hasPhoto: requiresPhoto,
-      },
-    });
+        identityVerificationMethod: "online_reference",
+        identityVerificationRef: identityRef.trim(),
+        hasRegularGp: hasRegularGp === "yes",
+        gpName: hasRegularGp === "yes" ? gpName.trim() : null,
+        gpSurgery: hasRegularGp === "yes" ? gpSurgery.trim() : null,
+        gpAddress: hasRegularGp === "yes" ? gpAddress.trim() : null,
+        gpPhone: hasRegularGp === "yes" ? gpPhone.trim() : null,
+        consentShareWithGp: consentShareWithGp === "yes",
+        consentToTreatment: consentTreatment,
+        consentToDelivery: consentDelivery,
+        consentDataProcessing,
+        preferredDeliveryMethod: "royal_mail_tracked",
+        deliveryAddress,
+        verifiedHeightCm: isWeightMgmt && verifiedHeight ? parseInt(verifiedHeight, 10) : undefined,
+        verifiedWeightKg: isWeightMgmt && verifiedWeight ? parseInt(verifiedWeight, 10) : undefined,
+      };
+
+      const res = await fetch(`${getBase()}/api/compliance/consultations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Failed to submit. Please try again.");
+        return;
+      }
+      setSubmittedRef(String(data.id || "").toUpperCase().slice(0, 8));
+      setIsSubmitted(true);
+      window.scrollTo(0, 0);
+    } catch (err) {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   // ─── Loading ───────────────────────────────────────────────────────────────
@@ -572,8 +677,8 @@ export default function Consultation() {
 
   // ─── Progress bar labels ───────────────────────────────────────────────────
   const stepLabels = requiresPhoto
-    ? ["Safety Check", "Symptoms", "Medical", "Photo", "Account", "Review"]
-    : ["Safety Check", "Symptoms", "Medical", "Account", "Review"];
+    ? ["Safety Check", "Symptoms", "Medical", "Photo", "Account", "GP Details", "Review"]
+    : ["Safety Check", "Symptoms", "Medical", "Account", "GP Details", "Review"];
   const currentStepLabel = stepLabels[visualStep(step) - 1] || "";
 
   // ─── Address fields (shared between register & logged-in) ─────────────────
@@ -944,7 +1049,7 @@ export default function Consultation() {
                   <div className="pt-4 border-t border-border/50 flex flex-col-reverse sm:flex-row justify-between gap-3">
                     <Button type="button" variant="outline" className="h-12 px-8 rounded-full font-bold border-2" onClick={goBack}>Back</Button>
                     <Button type="button" size="lg" onClick={handleAccountNext} className="h-12 px-10 rounded-full font-bold bg-primary hover:bg-primary/90 shadow-md">
-                      Continue to Review <ChevronRight className="w-5 h-5 ml-1" />
+                      Continue <ChevronRight className="w-5 h-5 ml-1" />
                     </Button>
                   </div>
                 )}
@@ -952,7 +1057,134 @@ export default function Consultation() {
             </StepWrapper>
           )}
 
-          {/* ── Step 6: Review & Submit ───────────────────────────────────── */}
+          {/* ── Step 6: GP details + identity verification ──────────────── */}
+          {step === STEPS.GP_DETAILS && (
+            <StepWrapper stepKey="gp-details">
+              <div className="mb-8">
+                <div className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full mb-3">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Required for safe prescribing (GPhC)
+                </div>
+                <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-2">Your GP &amp; identity</h2>
+                <p className="text-base text-muted-foreground">We use this information to keep your medical records joined-up and to verify who you are before any medicine can be supplied.</p>
+              </div>
+
+              {isHighRisk && (
+                <Card className="border-amber-200 bg-amber-50 rounded-2xl mb-6">
+                  <CardContent className="p-5 flex gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-700 mt-0.5 shrink-0" />
+                    <div className="text-sm text-amber-900">
+                      <p className="font-bold mb-1">This medicine needs extra safeguards</p>
+                      <p>Your prescriber will only supply it after careful clinical review. Sharing the details below makes that review more reliable and helps prevent harm.</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card className="border-border/50 shadow-sm rounded-2xl">
+                <CardContent className="p-7 md:p-9 space-y-7">
+                  {/* GP yes/no */}
+                  <div className="space-y-3">
+                    <Label className="text-sm font-bold text-secondary flex items-center gap-2"><Stethoscope className="w-4 h-4 text-primary" /> Do you have a regular GP in the UK?</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {(["yes", "no"] as const).map(v => (
+                        <RadioCard key={v} value={v} label={v === "yes" ? "Yes — registered with a GP" : "No regular GP"} selected={hasRegularGp === v} onSelect={() => { setHasRegularGp(v); setGpErrors(p => ({ ...p, hasRegularGp: "" })); }} />
+                      ))}
+                    </div>
+                    <FieldError msg={gpErrors.hasRegularGp} />
+                  </div>
+
+                  {hasRegularGp === "yes" && (
+                    <div className="space-y-5 pt-2 border-t border-border/40">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-secondary">GP's full name</Label>
+                          <Input value={gpName} onChange={e => { setGpName(e.target.value); setGpErrors(p => ({ ...p, gpName: "" })); }} placeholder="e.g. Dr Sarah Khan" className={`h-12 rounded-xl bg-muted/20 ${gpErrors.gpName ? "border-red-500" : ""}`} />
+                          <FieldError msg={gpErrors.gpName} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-secondary">Surgery / practice name</Label>
+                          <Input value={gpSurgery} onChange={e => { setGpSurgery(e.target.value); setGpErrors(p => ({ ...p, gpSurgery: "" })); }} placeholder="e.g. The Old Vicarage Surgery" className={`h-12 rounded-xl bg-muted/20 ${gpErrors.gpSurgery ? "border-red-500" : ""}`} />
+                          <FieldError msg={gpErrors.gpSurgery} />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold text-secondary">Surgery address <span className="font-normal text-muted-foreground">(optional)</span></Label>
+                        <Input value={gpAddress} onChange={e => setGpAddress(e.target.value)} placeholder="Street, town, postcode" className="h-12 rounded-xl bg-muted/20" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold text-secondary">Surgery phone <span className="font-normal text-muted-foreground">(optional)</span></Label>
+                        <Input value={gpPhone} onChange={e => setGpPhone(e.target.value)} placeholder="e.g. 020 7946 0123" className="h-12 rounded-xl bg-muted/20" />
+                      </div>
+
+                      <div className="space-y-3 pt-2">
+                        <Label className="text-sm font-bold text-secondary">May we share details of your treatment with your GP?</Label>
+                        <div className="grid grid-cols-2 gap-3">
+                          {(["yes", "no"] as const).map(v => (
+                            <RadioCard key={v} value={v} label={v === "yes" ? "Yes, please share" : "No, do not share"} selected={consentShareWithGp === v} onSelect={() => { setConsentShareWithGp(v); setGpErrors(p => ({ ...p, consentShareWithGp: "" })); }} />
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Sharing helps keep your medical record up to date and prevents harmful interactions with other treatments. You can withdraw your consent at any time.</p>
+                        <FieldError msg={gpErrors.consentShareWithGp} />
+                      </div>
+                    </div>
+                  )}
+
+                  {hasRegularGp === "no" && (
+                    <Card className="bg-amber-50 border-amber-200 rounded-2xl">
+                      <CardContent className="p-5 text-sm text-amber-900 flex gap-3">
+                        <AlertTriangle className="w-5 h-5 text-amber-700 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="font-bold mb-1">Not having a regular GP is a safety flag</p>
+                          <p>Your prescriber will review your consultation more carefully and may decline to prescribe. They may direct you to your nearest NHS service first.</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Weight management verification */}
+                  {isWeightMgmt && (
+                    <div className="space-y-4 pt-5 border-t border-border/40">
+                      <Label className="text-sm font-bold text-secondary flex items-center gap-2">
+                        <FileCheck2 className="w-4 h-4 text-primary" /> Verified height &amp; weight
+                      </Label>
+                      <p className="text-xs text-muted-foreground -mt-2">For weight management treatments we are required to record height and weight that have been measured (not estimated).</p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-xs font-semibold text-muted-foreground">Height (cm)</Label>
+                          <Input type="number" inputMode="numeric" min={100} max={250} value={verifiedHeight} onChange={e => { setVerifiedHeight(e.target.value); setGpErrors(p => ({ ...p, verifiedHeight: "" })); }} className={`h-12 rounded-xl bg-muted/20 ${gpErrors.verifiedHeight ? "border-red-500" : ""}`} />
+                          <FieldError msg={gpErrors.verifiedHeight} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs font-semibold text-muted-foreground">Weight (kg)</Label>
+                          <Input type="number" inputMode="numeric" min={30} max={350} value={verifiedWeight} onChange={e => { setVerifiedWeight(e.target.value); setGpErrors(p => ({ ...p, verifiedWeight: "" })); }} className={`h-12 rounded-xl bg-muted/20 ${gpErrors.verifiedWeight ? "border-red-500" : ""}`} />
+                          <FieldError msg={gpErrors.verifiedWeight} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Identity reference */}
+                  <div className="space-y-3 pt-5 border-t border-border/40">
+                    <Label className="text-sm font-bold text-secondary flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-primary" /> Identity reference
+                    </Label>
+                    <p className="text-xs text-muted-foreground -mt-2">We are required to verify your identity before supplying any P or POM medicine. Please provide your NHS number, passport number, or driving licence number.</p>
+                    <Input value={identityRef} onChange={e => { setIdentityRef(e.target.value); setGpErrors(p => ({ ...p, identityRef: "" })); }} placeholder="e.g. NHS 943 476 5919" className={`h-12 rounded-xl bg-muted/20 ${gpErrors.identityRef ? "border-red-500" : ""}`} />
+                    <FieldError msg={gpErrors.identityRef} />
+                  </div>
+
+                  <div className="pt-4 border-t border-border/50 flex flex-col-reverse sm:flex-row justify-between gap-3">
+                    <Button type="button" variant="outline" className="h-12 px-8 rounded-full font-bold border-2" onClick={goBack}>Back</Button>
+                    <Button type="button" size="lg" onClick={handleGpNext} className="h-12 px-10 rounded-full font-bold bg-primary hover:bg-primary/90 shadow-md">
+                      Continue to Review <ChevronRight className="w-5 h-5 ml-1" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </StepWrapper>
+          )}
+
+          {/* ── Step 7: Review & Submit ───────────────────────────────────── */}
           {step === STEPS.REVIEW && (
             <StepWrapper stepKey="review">
               <div className="mb-8">
@@ -1022,27 +1254,83 @@ export default function Consultation() {
                   </CardContent>
                 </Card>
 
-                {/* Consent */}
+                {/* GP & identity */}
                 <Card className="border-border/50 shadow-sm rounded-2xl overflow-hidden">
-                  <CardContent className="p-7 space-y-5">
-                    <h3 className="font-bold text-secondary text-base">Declaration & Consent</h3>
-                    <div className={`flex items-start gap-4 p-5 border-2 rounded-2xl cursor-pointer transition-colors ${hasConsented ? "border-primary bg-primary/5" : "border-border/50 hover:bg-muted/10"}`} onClick={() => setHasConsented(!hasConsented)}>
-                      <Checkbox checked={hasConsented} onCheckedChange={v => setHasConsented(!!v)} className="w-5 h-5 border-2 mt-0.5 shrink-0" onClick={e => e.stopPropagation()} />
+                  <div className="flex items-center justify-between px-7 py-4 border-b border-border/50">
+                    <h3 className="font-bold text-secondary">GP &amp; Identity</h3>
+                    <Button variant="ghost" size="sm" className="text-primary font-bold hover:bg-primary/10 rounded-full px-3 h-8 text-sm" onClick={() => { goTo(STEPS.GP_DETAILS); scrollTop(); }}>Edit</Button>
+                  </div>
+                  <CardContent className="p-7">
+                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                       <div>
-                        <p className="font-bold text-secondary text-sm">I confirm all information I have provided is accurate and complete.</p>
-                        <p className="text-muted-foreground text-xs mt-1 leading-relaxed">I understand that providing false or incomplete information could be harmful to my health. I consent to PharmaCare's pharmacist reviewing my data to make a prescribing decision, in accordance with their privacy policy.</p>
+                        <dt className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Regular GP</dt>
+                        <dd className="font-semibold text-secondary">{hasRegularGp === "yes" ? `${gpName}${gpSurgery ? `, ${gpSurgery}` : ""}` : "No regular GP"}</dd>
                       </div>
-                    </div>
+                      <div>
+                        <dt className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Share with GP</dt>
+                        <dd className="font-semibold text-secondary">{hasRegularGp === "yes" ? (consentShareWithGp === "yes" ? "Yes — please share" : "No — do not share") : "N/A"}</dd>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <dt className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Identity reference</dt>
+                        <dd className="font-mono font-semibold text-secondary">{identityRef}</dd>
+                      </div>
+                      {isWeightMgmt && (
+                        <div className="sm:col-span-2">
+                          <dt className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Verified height &amp; weight</dt>
+                          <dd className="font-semibold text-secondary">{verifiedHeight} cm &middot; {verifiedWeight} kg</dd>
+                        </div>
+                      )}
+                    </dl>
+                  </CardContent>
+                </Card>
+
+                {/* Consent — GPhC granular */}
+                <Card className="border-border/50 shadow-sm rounded-2xl overflow-hidden">
+                  <CardContent className="p-7 space-y-4">
+                    <h3 className="font-bold text-secondary text-base">Your declarations</h3>
+                    <p className="text-xs text-muted-foreground -mt-1">Each of these is required by professional pharmacy standards before we can supply medicine.</p>
+
+                    {[
+                      {
+                        v: consentIdentityConfirmed, set: setConsentIdentityConfirmed,
+                        title: "I confirm my identity and that all information I have provided is accurate.",
+                        sub: "I understand that providing false or incomplete information could be harmful to my health and may result in refusal to supply.",
+                      },
+                      {
+                        v: consentTreatment, set: setConsentTreatment,
+                        title: "I consent to a UK-registered pharmacist independent prescriber making a prescribing decision based on this consultation.",
+                        sub: "I understand they may approve, request more information, refer me, or decline to prescribe.",
+                      },
+                      {
+                        v: consentDelivery, set: setConsentDelivery,
+                        title: "I consent to medicine being dispatched to the delivery address shown above using a tracked carrier.",
+                        sub: "I will receive tracking details by email and confirm I am able to receive medicine at this address safely and securely.",
+                      },
+                      {
+                        v: consentDataProcessing, set: setConsentDataProcessing,
+                        title: "I have read and understood the Privacy & Data Policy and consent to my health data being processed for this purpose.",
+                        sub: "Records are kept for the periods required by UK pharmacy law. I can contact the DPO at any time to exercise my data rights.",
+                      },
+                    ].map((c, i) => (
+                      <div key={i} className={`flex items-start gap-4 p-4 border-2 rounded-2xl cursor-pointer transition-colors ${c.v ? "border-primary bg-primary/5" : "border-border/50 hover:bg-muted/10"}`} onClick={() => c.set(!c.v)}>
+                        <Checkbox checked={c.v} onCheckedChange={x => c.set(!!x)} className="w-5 h-5 border-2 mt-0.5 shrink-0" onClick={e => e.stopPropagation()} />
+                        <div>
+                          <p className="font-bold text-secondary text-sm">{c.title}</p>
+                          <p className="text-muted-foreground text-xs mt-1 leading-relaxed">{c.sub}</p>
+                        </div>
+                      </div>
+                    ))}
+
                     <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 flex gap-3">
                       <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                       <p className="text-xs text-amber-800 leading-relaxed font-medium"><strong>Important:</strong> If you are experiencing a medical emergency, call <strong>999</strong>. For urgent advice, call <strong>NHS 111</strong>.</p>
                     </div>
                     <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-2">
                       <Button type="button" variant="outline" className="h-12 px-8 rounded-full font-bold border-2" onClick={goBack}>Back</Button>
-                      <Button type="button" size="lg" onClick={submitConsultation} disabled={!hasConsented || createMutation.isPending}
-                        className={`h-12 px-10 rounded-full font-bold shadow-md transition-all ${hasConsented ? "bg-accent hover:bg-accent/90 text-accent-foreground hover:-translate-y-0.5" : "bg-muted text-muted-foreground cursor-not-allowed"}`}
+                      <Button type="button" size="lg" onClick={submitConsultation} disabled={submitting || !consentTreatment || !consentDelivery || !consentDataProcessing || !consentIdentityConfirmed}
+                        className={`h-12 px-10 rounded-full font-bold shadow-md transition-all ${(consentTreatment && consentDelivery && consentDataProcessing && consentIdentityConfirmed) ? "bg-accent hover:bg-accent/90 text-accent-foreground hover:-translate-y-0.5" : "bg-muted text-muted-foreground cursor-not-allowed"}`}
                       >
-                        {createMutation.isPending
+                        {submitting
                           ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Submitting...</span>
                           : "Submit Consultation"
                         }
