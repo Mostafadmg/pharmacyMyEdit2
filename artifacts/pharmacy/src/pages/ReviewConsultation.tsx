@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { 
   useGetConsultation, 
@@ -29,7 +29,13 @@ import {
   Truck,
   MapPin,
   Send,
-  Scale
+  Scale,
+  StickyNote,
+  Plus,
+  Pencil,
+  Trash2,
+  Save,
+  X as XIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +55,35 @@ export default function ReviewConsultation() {
   const [reviewNote, setReviewNote] = useState("");
   const [prescriptionDetails, setPrescriptionDetails] = useState("");
   const [referralDetails, setReferralDetails] = useState("");
+
+  type PatientNote = {
+    id: string;
+    patientEmail: string;
+    note: string;
+    createdBy: string;
+    updatedBy: string | null;
+    createdAt: string;
+    updatedAt: string;
+  };
+  const [patientNotes, setPatientNotes] = useState<PatientNote[]>([]);
+  const [loadingPatientNotes, setLoadingPatientNotes] = useState(false);
+  const [newPatientNote, setNewPatientNote] = useState("");
+  const [savingPatientNote, setSavingPatientNote] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingNoteText, setEditingNoteText] = useState("");
+
+  const authHeaders = (extra?: Record<string, string>): Record<string, string> => {
+    const token = typeof localStorage !== "undefined" ? localStorage.getItem("pharmacist_token") : null;
+    return {
+      ...(extra ?? {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+  };
+
+  const pharmacistName =
+    typeof localStorage !== "undefined"
+      ? localStorage.getItem("pharmacist_name") ?? "Pharmacist"
+      : "Pharmacist";
   
   const { data: consultation, isLoading } = useGetConsultation(id || "", {
     query: { enabled: !!id, queryKey: getGetConsultationQueryKey(id || "") }
@@ -66,6 +101,89 @@ export default function ReviewConsultation() {
       }
     }
   });
+
+  useEffect(() => {
+    const email = (consultation as { patientEmail?: string } | undefined)?.patientEmail;
+    if (!email) return;
+    let cancelled = false;
+    (async () => {
+      setLoadingPatientNotes(true);
+      try {
+        const res = await fetch(`/api/patient-notes/${encodeURIComponent(email)}`, {
+          headers: authHeaders(),
+        });
+        const json = await res.json();
+        if (!cancelled) setPatientNotes(json.notes ?? []);
+      } catch {
+        // ignore
+      } finally {
+        if (!cancelled) setLoadingPatientNotes(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [(consultation as { patientEmail?: string } | undefined)?.patientEmail]);
+
+  async function handleAddPatientNote() {
+    const text = newPatientNote.trim();
+    const email = (consultation as { patientEmail?: string } | undefined)?.patientEmail;
+    if (!text || !email) return;
+    setSavingPatientNote(true);
+    try {
+      const res = await fetch(`/api/patient-notes`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ patientEmail: email, note: text }),
+      });
+      if (!res.ok) throw new Error("failed");
+      const json = await res.json();
+      setPatientNotes((prev) => [json.note, ...prev]);
+      setNewPatientNote("");
+      toast.success("Note shared with all prescribers");
+    } catch {
+      toast.error("Failed to save note");
+    } finally {
+      setSavingPatientNote(false);
+    }
+  }
+
+  async function handleSavePatientNoteEdit() {
+    if (!editingNoteId || !editingNoteText.trim()) return;
+    setSavingPatientNote(true);
+    try {
+      const res = await fetch(`/api/patient-notes/${editingNoteId}`, {
+        method: "PUT",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ note: editingNoteText.trim() }),
+      });
+      if (!res.ok) throw new Error("failed");
+      const json = await res.json();
+      setPatientNotes((prev) => prev.map((n) => (n.id === editingNoteId ? json.note : n)));
+      setEditingNoteId(null);
+      setEditingNoteText("");
+      toast.success("Note updated");
+    } catch {
+      toast.error("Failed to update note");
+    } finally {
+      setSavingPatientNote(false);
+    }
+  }
+
+  async function handleDeletePatientNote(noteId: string) {
+    if (!confirm("Delete this note?")) return;
+    try {
+      const res = await fetch(`/api/patient-notes/${noteId}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (!res.ok) throw new Error("failed");
+      setPatientNotes((prev) => prev.filter((n) => n.id !== noteId));
+      toast.success("Note removed");
+    } catch {
+      toast.error("Failed to delete note");
+    }
+  }
 
   const handleReview = (action: typeof ConsultationReviewInputAction[keyof typeof ConsultationReviewInputAction]) => {
     if (!id) return;
@@ -136,10 +254,6 @@ export default function ReviewConsultation() {
   const formatRiskFlag = (flag: string) =>
     flag.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 
-  const authHeaders = (): Record<string, string> => {
-    const token = localStorage.getItem("pharmacist_token");
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  };
 
   const handleShareWithGp = async () => {
     if (!id) return;
@@ -163,7 +277,7 @@ export default function ReviewConsultation() {
       const base = (import.meta as any).env?.BASE_URL?.replace(/\/$/, "") || "";
       const res = await fetch(`${base}/api/compliance/consultations/${id}/delivery`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ status }),
       });
       if (!res.ok) throw new Error("Failed");
@@ -731,6 +845,157 @@ export default function ReviewConsultation() {
                     </Dialog>
                   </div>
                 </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-md rounded-2xl overflow-hidden" data-testid="card-shared-notes">
+            <CardHeader className="bg-muted/30 pb-4">
+              <CardTitle className="text-lg font-bold text-secondary flex items-center gap-2">
+                <StickyNote className="w-4 h-4 text-primary" />
+                Shared prescriber notes
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Visible to every prescriber on web and mobile. Each entry is timestamped and signed.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4">
+              <div className="space-y-2">
+                <Textarea
+                  value={newPatientNote}
+                  onChange={(e) => setNewPatientNote(e.target.value)}
+                  placeholder="Add a note for other prescribers about this patient…"
+                  rows={3}
+                  className="rounded-xl"
+                  data-testid="textarea-shared-note"
+                />
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    onClick={handleAddPatientNote}
+                    disabled={!newPatientNote.trim() || savingPatientNote}
+                    className="rounded-full bg-primary"
+                    data-testid="button-add-shared-note"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" />
+                    {savingPatientNote ? "Saving…" : "Add note"}
+                  </Button>
+                </div>
+              </div>
+
+              {loadingPatientNotes ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-16 rounded-xl" />
+                  <Skeleton className="h-16 rounded-xl" />
+                </div>
+              ) : patientNotes.length === 0 ? (
+                <div className="text-center py-6 text-xs text-muted-foreground border border-dashed border-border rounded-xl">
+                  No shared notes yet for this patient.
+                </div>
+              ) : (
+                <ul className="space-y-2.5" data-testid="list-shared-notes">
+                  {patientNotes.map((n) => {
+                    const isEditing = editingNoteId === n.id;
+                    const isOwn = n.createdBy === pharmacistName;
+                    const wasEdited = n.updatedAt && n.updatedAt !== n.createdAt;
+                    return (
+                      <li
+                        key={n.id}
+                        className="rounded-xl border border-border bg-white p-3"
+                        data-testid={`shared-note-${n.id}`}
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-1.5">
+                          <div className="min-w-0">
+                            <div className="font-semibold text-secondary text-sm truncate">
+                              {n.createdBy}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">
+                              {format(new Date(n.createdAt), "PPp")}
+                              {wasEdited && (
+                                <span className="ml-1 italic">
+                                  · edited{n.updatedBy ? ` by ${n.updatedBy}` : ""}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {!isEditing && isOwn && (
+                            <div className="flex gap-1 shrink-0">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6"
+                                onClick={() => {
+                                  setEditingNoteId(n.id);
+                                  setEditingNoteText(n.note);
+                                }}
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6 text-red-600 hover:text-red-700"
+                                onClick={() => handleDeletePatientNote(n.id)}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        {isEditing ? (
+                          <div className="space-y-2">
+                            <Textarea
+                              value={editingNoteText}
+                              onChange={(e) => setEditingNoteText(e.target.value)}
+                              rows={3}
+                              className="rounded-xl text-sm"
+                            />
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="rounded-full h-7"
+                                onClick={() => {
+                                  setEditingNoteId(null);
+                                  setEditingNoteText("");
+                                }}
+                              >
+                                <XIcon className="w-3 h-3 mr-1" /> Cancel
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="rounded-full h-7 bg-primary"
+                                disabled={!editingNoteText.trim() || savingPatientNote}
+                                onClick={handleSavePatientNoteEdit}
+                              >
+                                <Save className="w-3 h-3 mr-1" /> Save
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-secondary whitespace-pre-wrap leading-relaxed">
+                            {n.note}
+                          </p>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+
+              {(consultation as { patientEmail?: string } | undefined)?.patientEmail && (
+                <Link
+                  href={`/dashboard/patients/${encodeURIComponent(
+                    (consultation as { patientEmail?: string }).patientEmail!,
+                  )}`}
+                >
+                  <a
+                    className="block text-xs font-semibold text-primary hover:underline text-center pt-1"
+                    data-testid="link-open-patient-profile"
+                  >
+                    Open full patient profile →
+                  </a>
+                </Link>
               )}
             </CardContent>
           </Card>

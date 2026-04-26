@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, consultationsTable, conditionsTable } from "@workspace/db";
+import { requirePharmacist } from "../middlewares/auth";
 import {
   ListConsultationsQueryParams,
   ListConsultationsResponse,
@@ -108,8 +109,10 @@ router.post("/consultations", async (req, res): Promise<void> => {
   res.status(201).json(GetConsultationResponse.parse(consultation));
 });
 
-router.get("/consultations/patient/:email", async (req, res): Promise<void> => {
-  const email = decodeURIComponent(req.params.email ?? "");
+router.get("/consultations/patient/:email", requirePharmacist, async (req, res): Promise<void> => {
+  const rawEmail = req.params.email;
+  const emailParam = Array.isArray(rawEmail) ? rawEmail[0] : rawEmail;
+  const email = decodeURIComponent(emailParam ?? "");
   if (!email) {
     res.status(400).json({ error: "Email is required" });
     return;

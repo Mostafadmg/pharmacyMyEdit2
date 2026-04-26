@@ -19,6 +19,14 @@ import { useGetConsultation, useReviewConsultation, getGetConsultationQueryKey, 
 import { useQueryClient } from "@tanstack/react-query";
 import { useColors } from "@/hooks/useColors";
 import { format, formatDistanceToNow } from "date-fns";
+import { currentToken } from "@/context/AuthContext";
+
+function authHeaders(extra?: Record<string, string>): Record<string, string> {
+  return {
+    ...(extra ?? {}),
+    ...(currentToken ? { Authorization: `Bearer ${currentToken}` } : {}),
+  };
+}
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "Pending Review",
@@ -122,7 +130,9 @@ export default function ConsultationDetail() {
   async function loadHistory(email: string) {
     setHistoryLoading(true);
     try {
-      const res = await fetch(`${apiBase}/api/consultations/patient/${encodeURIComponent(email)}`);
+      const res = await fetch(`${apiBase}/api/consultations/patient/${encodeURIComponent(email)}`, {
+        headers: authHeaders(),
+      });
       const json = await res.json();
       setPatientHistory(json.consultations ?? []);
     } catch {
@@ -135,7 +145,9 @@ export default function ConsultationDetail() {
   async function loadNotes(email: string) {
     setNotesLoading(true);
     try {
-      const res = await fetch(`${apiBase}/api/patient-notes/${encodeURIComponent(email)}`);
+      const res = await fetch(`${apiBase}/api/patient-notes/${encodeURIComponent(email)}`, {
+        headers: authHeaders(),
+      });
       const json = await res.json();
       setPatientNotes(json.notes ?? []);
     } catch {
@@ -160,11 +172,10 @@ export default function ConsultationDetail() {
     try {
       const res = await fetch(`${apiBase}/api/patient-notes`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           patientEmail: consultation.patientEmail,
           note: newNote.trim(),
-          createdBy: pharmacistName,
         }),
       });
       const json = await res.json();
@@ -184,8 +195,8 @@ export default function ConsultationDetail() {
     try {
       const res = await fetch(`${apiBase}/api/patient-notes/${editingNote.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ note: editText.trim(), updatedBy: pharmacistName }),
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ note: editText.trim() }),
       });
       const json = await res.json();
       setPatientNotes(prev => prev.map(n => n.id === editingNote.id ? json.note : n));
@@ -205,7 +216,10 @@ export default function ConsultationDetail() {
       {
         text: "Delete", style: "destructive", onPress: async () => {
           try {
-            await fetch(`${apiBase}/api/patient-notes/${noteId}`, { method: "DELETE" });
+            await fetch(`${apiBase}/api/patient-notes/${noteId}`, {
+              method: "DELETE",
+              headers: authHeaders(),
+            });
             setPatientNotes(prev => prev.filter(n => n.id !== noteId));
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           } catch {

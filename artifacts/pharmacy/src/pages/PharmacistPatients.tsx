@@ -227,20 +227,27 @@ export default function PharmacistPatients() {
                       data-testid={`row-patient-${p.email}`}
                     >
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center shrink-0">
-                            {getInitials(p.name)}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-secondary truncate">{p.name}</p>
-                            <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                              <Mail className="w-3 h-3" /> {p.email}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {p.age} yrs · {p.sex}
-                            </p>
-                          </div>
-                        </div>
+                        <Link href={`/dashboard/patients/${encodeURIComponent(p.email)}`}>
+                          <a
+                            className="flex items-center gap-3 group"
+                            data-testid={`link-patient-${p.email}`}
+                          >
+                            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center shrink-0">
+                              {getInitials(p.name)}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-secondary truncate group-hover:text-primary transition-colors">
+                                {p.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                                <Mail className="w-3 h-3" /> {p.email}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {p.age} yrs · {p.sex}
+                              </p>
+                            </div>
+                          </a>
+                        </Link>
                       </td>
                       <td className="px-6 py-4 text-secondary">{p.lastConditionName}</td>
                       <td className="px-6 py-4">
@@ -270,14 +277,24 @@ export default function PharmacistPatients() {
                         <div className="text-xs">{format(new Date(p.lastSubmittedAt), "PPp")}</div>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <Link href={`/dashboard/consultation/${p.lastConsultationId}`}>
-                          <a
-                            className="inline-flex items-center gap-1 text-primary font-semibold hover:underline"
-                            data-testid={`link-open-latest-${p.email}`}
-                          >
-                            Open latest <ArrowRight className="w-4 h-4" />
-                          </a>
-                        </Link>
+                        <div className="flex items-center justify-end gap-3">
+                          <Link href={`/dashboard/patients/${encodeURIComponent(p.email)}`}>
+                            <a
+                              className="inline-flex items-center gap-1 text-secondary font-semibold hover:underline"
+                              data-testid={`link-view-patient-${p.email}`}
+                            >
+                              View patient
+                            </a>
+                          </Link>
+                          <Link href={`/dashboard/consultation/${p.lastConsultationId}`}>
+                            <a
+                              className="inline-flex items-center gap-1 text-primary font-semibold hover:underline"
+                              data-testid={`link-open-latest-${p.email}`}
+                            >
+                              Open latest <ArrowRight className="w-4 h-4" />
+                            </a>
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))}
