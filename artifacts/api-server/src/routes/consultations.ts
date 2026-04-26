@@ -99,6 +99,7 @@ router.post("/consultations", async (req, res): Promise<void> => {
       answers: data.answers,
       hasRedFlag,
       hasPhoto: data.hasPhoto,
+      photoUrls: Array.isArray(data.photoUrls) ? data.photoUrls : [],
       isPregnant: data.isPregnant ?? null,
       allergies: data.allergies ?? null,
       currentMedications: data.currentMedications ?? null,

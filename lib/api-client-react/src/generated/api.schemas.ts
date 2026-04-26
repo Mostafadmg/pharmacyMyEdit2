@@ -73,6 +73,7 @@ export interface Consultation {
   answers: ConsultationAnswers;
   hasRedFlag: boolean;
   hasPhoto: boolean;
+  photoUrls?: string[];
   pharmacistNote?: string | null;
   prescription?: string | null;
   referralInfo?: string | null;
@@ -100,6 +101,7 @@ export interface NewConsultationInput {
   conditionId: string;
   answers: NewConsultationInputAnswers;
   hasPhoto: boolean;
+  photoUrls?: string[];
   isPregnant?: boolean | null;
   allergies?: string | null;
   currentMedications?: string | null;

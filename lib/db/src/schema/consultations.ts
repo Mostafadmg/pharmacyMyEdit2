@@ -63,6 +63,9 @@ export const consultationsTable = pgTable("consultations", {
   clinicalDecisionRationale: text("clinical_decision_rationale"),
   reviewedBy: text("reviewed_by"), // pharmacist username
 
+  // ─── Patient-uploaded photos (data URLs or stored URLs) ───
+  photoUrls: jsonb("photo_urls").notNull().default([]),
+
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
   reviewedAt: timestamp("reviewed_at", { withTimezone: true }),

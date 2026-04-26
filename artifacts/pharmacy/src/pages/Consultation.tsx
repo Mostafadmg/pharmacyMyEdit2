@@ -183,6 +183,84 @@ export default function Consultation() {
   // ── Identity confirmation (GPhC 4.2e) ────────────────────
   const [identityRef, setIdentityRef] = useState("");
 
+  // ── UK postcode lookup state ────────────────────────────
+  const [postcodeLookupLoading, setPostcodeLookupLoading] = useState(false);
+  const [postcodeLookupError, setPostcodeLookupError] = useState<string | null>(null);
+  const [postcodeLookupResult, setPostcodeLookupResult] = useState<string | null>(null);
+
+  // ── Photo upload state ──────────────────────────────────
+  const [photoDataUrls, setPhotoDataUrls] = useState<string[]>([]);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
+  async function handlePostcodeLookup() {
+    const cleaned = addrPostcode.trim().toUpperCase();
+    if (!cleaned) {
+      setPostcodeLookupError("Please enter a postcode first.");
+      setPostcodeLookupResult(null);
+      return;
+    }
+    setPostcodeLookupLoading(true);
+    setPostcodeLookupError(null);
+    setPostcodeLookupResult(null);
+    try {
+      const res = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(cleaned)}`);
+      if (!res.ok) {
+        setPostcodeLookupError("We couldn't find that postcode.");
+        return;
+      }
+      const data = await res.json();
+      const r = data?.result;
+      if (!r) {
+        setPostcodeLookupError("No match found for that postcode.");
+        return;
+      }
+      const town = r.post_town || r.parish || r.admin_district || "";
+      if (town) setAddrCity(town);
+      setAddrPostcode(r.postcode || cleaned);
+      setPostcodeLookupResult(`${town}${r.admin_district && r.admin_district !== town ? ", " + r.admin_district : ""}`);
+      setAccountErrors(p => ({ ...p, addrCity: "", addrPostcode: "" }));
+    } catch {
+      setPostcodeLookupError("Network error looking up postcode.");
+    } finally {
+      setPostcodeLookupLoading(false);
+    }
+  }
+
+  function handlePhotoFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    const max = 10 * 1024 * 1024; // 10MB per file
+    const allowed = ["image/jpeg", "image/png", "image/heic", "image/webp"];
+    const accepted: File[] = [];
+    setPhotoError(null);
+    for (const f of Array.from(files)) {
+      if (!allowed.includes(f.type) && !/\.(jpe?g|png|heic|webp)$/i.test(f.name)) {
+        setPhotoError("Please upload JPEG, PNG, HEIC or WebP images only.");
+        continue;
+      }
+      if (f.size > max) {
+        setPhotoError(`"${f.name}" is over 10MB and was skipped.`);
+        continue;
+      }
+      accepted.push(f);
+    }
+    Promise.all(
+      accepted.map(f => new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("read failed"));
+        reader.readAsDataURL(f);
+      }))
+    ).then(urls => {
+      setPhotoDataUrls(prev => [...prev, ...urls].slice(0, 6));
+    }).catch(() => {
+      setPhotoError("There was a problem reading one of your photos. Please try again.");
+    });
+  }
+
+  function removePhoto(index: number) {
+    setPhotoDataUrls(prev => prev.filter((_, i) => i !== index));
+  }
+
   // ── Weight management verification (GPhC 4.2l) ───────────
   const [verifiedHeight, setVerifiedHeight] = useState<string>("");
   const [verifiedWeight, setVerifiedWeight] = useState<string>("");
@@ -457,9 +535,6 @@ export default function Consultation() {
       if (!h || h < 100 || h > 250) errors.verifiedHeight = "A valid height in cm is required (100–250).";
       if (!w || w < 30 || w > 350) errors.verifiedWeight = "A valid weight in kg is required (30–350).";
     }
-    if (!identityRef.trim() || identityRef.trim().length < 4) {
-      errors.identityRef = "Please add an identity reference (e.g. NHS number or photo-ID number).";
-    }
     setGpErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
@@ -511,7 +586,8 @@ export default function Consultation() {
         currentMedications: noMedications ? "None" : medications.trim(),
         medicalHistory: noMedicalHistory ? "None" : medicalHistory.trim(),
         answers: answersPayload,
-        hasPhoto: requiresPhoto,
+        hasPhoto: requiresPhoto && photoDataUrls.length > 0,
+        photoUrls: photoDataUrls,
         identityVerificationMethod: "online_reference",
         identityVerificationRef: identityRef.trim(),
         hasRegularGp: hasRegularGp === "yes",
@@ -682,6 +758,8 @@ export default function Consultation() {
   const currentStepLabel = stepLabels[visualStep(step) - 1] || "";
 
   // ─── Address fields (shared between register & logged-in) ─────────────────
+  // NOTE: Returns JSX directly — never wrap as <Component/> inside another
+  // component or React will remount inputs on every keystroke.
   function AddressFields() {
     return (
       <div className="space-y-5 pt-5 border-t border-border/50">
@@ -690,31 +768,54 @@ export default function Consultation() {
         </div>
         <p className="text-sm text-muted-foreground -mt-3">Where should we send your medication?</p>
 
+        {/* UK postcode lookup */}
+        <div className="space-y-2">
+          <Label className="text-sm font-bold text-secondary">Find your address</Label>
+          <div className="flex gap-2">
+            <Input
+              value={addrPostcode}
+              onChange={e => { setAddrPostcode(e.target.value.toUpperCase()); setAccountErrors(p => ({ ...p, addrPostcode: "" })); }}
+              placeholder="Enter postcode, e.g. SW1A 1AA"
+              className={`h-12 text-base rounded-xl bg-muted/20 font-mono uppercase ${accountErrors.addrPostcode ? "border-red-500" : ""}`}
+              data-testid="input-postcode"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className="h-12 rounded-xl border-2 font-bold whitespace-nowrap"
+              disabled={postcodeLookupLoading}
+              onClick={handlePostcodeLookup}
+              data-testid="button-postcode-lookup"
+            >
+              {postcodeLookupLoading ? "Searching…" : "Find address"}
+            </Button>
+          </div>
+          {postcodeLookupError && (
+            <p className="text-xs text-amber-700 font-medium">{postcodeLookupError} You can fill the address in manually below.</p>
+          )}
+          {postcodeLookupResult && (
+            <p className="text-xs text-green-700 font-medium">Found: {postcodeLookupResult}. Edit the fields below if needed.</p>
+          )}
+          <FieldError msg={accountErrors.addrPostcode} />
+        </div>
+
         <div className="space-y-2">
           <Label className="text-sm font-bold text-secondary">Address Line 1</Label>
           <Input value={addrLine1} onChange={e => { setAddrLine1(e.target.value); setAccountErrors(p => ({ ...p, addrLine1: "" })); }}
-            placeholder="e.g. 12 High Street" className={`h-12 text-base rounded-xl bg-muted/20 ${accountErrors.addrLine1 ? "border-red-500" : ""}`} />
+            placeholder="e.g. 12 High Street" className={`h-12 text-base rounded-xl bg-muted/20 ${accountErrors.addrLine1 ? "border-red-500" : ""}`} data-testid="input-address-line1" />
           <FieldError msg={accountErrors.addrLine1} />
         </div>
 
         <div className="space-y-2">
           <Label className="text-sm font-bold text-secondary">Address Line 2 <span className="font-normal text-muted-foreground">(optional)</span></Label>
-          <Input value={addrLine2} onChange={e => setAddrLine2(e.target.value)} placeholder="e.g. Flat 3, Apartment name" className="h-12 text-base rounded-xl bg-muted/20" />
+          <Input value={addrLine2} onChange={e => setAddrLine2(e.target.value)} placeholder="e.g. Flat 3, Apartment name" className="h-12 text-base rounded-xl bg-muted/20" data-testid="input-address-line2" />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label className="text-sm font-bold text-secondary">Town / City</Label>
-            <Input value={addrCity} onChange={e => { setAddrCity(e.target.value); setAccountErrors(p => ({ ...p, addrCity: "" })); }}
-              placeholder="e.g. London" className={`h-12 text-base rounded-xl bg-muted/20 ${accountErrors.addrCity ? "border-red-500" : ""}`} />
-            <FieldError msg={accountErrors.addrCity} />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-sm font-bold text-secondary">Postcode</Label>
-            <Input value={addrPostcode} onChange={e => { setAddrPostcode(e.target.value.toUpperCase()); setAccountErrors(p => ({ ...p, addrPostcode: "" })); }}
-              placeholder="e.g. SW1A 1AA" className={`h-12 text-base rounded-xl bg-muted/20 font-mono uppercase ${accountErrors.addrPostcode ? "border-red-500" : ""}`} />
-            <FieldError msg={accountErrors.addrPostcode} />
-          </div>
+        <div className="space-y-2">
+          <Label className="text-sm font-bold text-secondary">Town / City</Label>
+          <Input value={addrCity} onChange={e => { setAddrCity(e.target.value); setAccountErrors(p => ({ ...p, addrCity: "" })); }}
+            placeholder="e.g. London" className={`h-12 text-base rounded-xl bg-muted/20 ${accountErrors.addrCity ? "border-red-500" : ""}`} data-testid="input-city" />
+          <FieldError msg={accountErrors.addrCity} />
         </div>
       </div>
     );
@@ -860,17 +961,54 @@ export default function Consultation() {
             <StepWrapper stepKey="photo">
               <div className="mb-8">
                 <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-2">Upload photos</h2>
-                <p className="text-base text-muted-foreground">Our pharmacist needs to see the affected area to prescribe safely.</p>
+                <p className="text-base text-muted-foreground">Our pharmacist needs to see the affected area to prescribe safely. You can add up to 6 photos.</p>
               </div>
               <div className="bg-white rounded-3xl shadow-sm border border-border/50 p-8">
-                <div className="border-2 border-dashed border-primary/40 rounded-2xl p-14 text-center bg-primary/5 cursor-pointer hover:bg-primary/8 transition-colors group">
+                <label
+                  htmlFor="photo-upload-input"
+                  className="block border-2 border-dashed border-primary/40 rounded-2xl p-10 text-center bg-primary/5 cursor-pointer hover:bg-primary/8 transition-colors group"
+                  data-testid="label-photo-upload"
+                >
                   <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-5 shadow-sm group-hover:scale-105 transition-transform">
                     <UploadCloud className="w-10 h-10 text-primary" />
                   </div>
-                  <h3 className="text-lg font-bold text-secondary mb-2">Click to upload or drag & drop</h3>
-                  <p className="text-muted-foreground text-sm mb-5">JPEG or PNG, up to 10MB each</p>
-                  <Button variant="outline" className="border-2 border-primary text-primary hover:bg-primary/10 rounded-full px-8 font-bold">Select Files</Button>
-                </div>
+                  <h3 className="text-lg font-bold text-secondary mb-2">Click to select photos</h3>
+                  <p className="text-muted-foreground text-sm mb-5">JPEG, PNG, HEIC or WebP — up to 10MB each</p>
+                  <span className="inline-flex items-center justify-center border-2 border-primary text-primary hover:bg-primary/10 rounded-full px-8 font-bold h-11">Select photos</span>
+                  <input
+                    id="photo-upload-input"
+                    type="file"
+                    accept="image/jpeg,image/png,image/heic,image/webp"
+                    multiple
+                    className="sr-only"
+                    onChange={e => handlePhotoFiles(e.target.files)}
+                    data-testid="input-photo-upload"
+                  />
+                </label>
+
+                {photoError && (
+                  <p className="mt-3 text-sm text-red-600 font-medium" data-testid="text-photo-error">{photoError}</p>
+                )}
+
+                {photoDataUrls.length > 0 && (
+                  <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3" data-testid="grid-photo-previews">
+                    {photoDataUrls.map((url, i) => (
+                      <div key={i} className="relative group rounded-xl overflow-hidden border border-border/50 bg-muted/20">
+                        <img src={url} alt={`Photo ${i + 1}`} className="w-full h-32 object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(i)}
+                          className="absolute top-1.5 right-1.5 bg-white/90 hover:bg-white text-red-600 rounded-full p-1 shadow"
+                          aria-label={`Remove photo ${i + 1}`}
+                          data-testid={`button-remove-photo-${i}`}
+                        >
+                          <XCircle className="w-5 h-5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div className="mt-6 bg-amber-50 p-5 rounded-2xl flex gap-4 border border-amber-100">
                   <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                   <p className="text-sm text-amber-800 font-medium leading-relaxed">Please ensure the area is well-lit and in focus. All images are encrypted and only accessed by our clinical team.</p>
@@ -878,7 +1016,7 @@ export default function Consultation() {
                 <div className="pt-6 border-t border-border/50 mt-6 flex flex-col-reverse sm:flex-row justify-between gap-3">
                   <Button type="button" variant="outline" className="h-12 px-8 rounded-full font-bold border-2" onClick={goBack}>Back</Button>
                   <Button type="button" size="lg" onClick={() => goTo(STEPS.ACCOUNT)} className="h-12 px-10 rounded-full font-bold bg-primary hover:bg-primary/90 shadow-md">
-                    Continue <ChevronRight className="w-5 h-5 ml-1" />
+                    {photoDataUrls.length > 0 ? "Continue" : "Skip photos"} <ChevronRight className="w-5 h-5 ml-1" />
                   </Button>
                 </div>
               </div>
@@ -918,7 +1056,7 @@ export default function Consultation() {
                         Not you?
                       </button>
                     </div>
-                    <AddressFields />
+                    {AddressFields()}
                   </>
                 ) : (
                   /* ── NOT LOGGED IN: Sign in / Register tabs ─────────────── */
@@ -1029,7 +1167,7 @@ export default function Consultation() {
                           </div>
                         </div>
 
-                        <AddressFields />
+                        {AddressFields()}
 
                         <Button type="button" onClick={handleRegister} disabled={regLoading} className="w-full h-12 rounded-xl font-bold bg-secondary text-white hover:bg-secondary/90">
                           {regLoading ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Creating account...</span> : "Create Account & Continue"}
@@ -1163,14 +1301,14 @@ export default function Consultation() {
                     </div>
                   )}
 
-                  {/* Identity reference */}
+                  {/* Identity reference (optional — pharmacist may request later) */}
                   <div className="space-y-3 pt-5 border-t border-border/40">
                     <Label className="text-sm font-bold text-secondary flex items-center gap-2">
                       <ShieldCheck className="w-4 h-4 text-primary" /> Identity reference
+                      <span className="text-xs font-normal text-muted-foreground ml-1">(optional)</span>
                     </Label>
-                    <p className="text-xs text-muted-foreground -mt-2">We are required to verify your identity before supplying any P or POM medicine. Please provide your NHS number, passport number, or driving licence number.</p>
-                    <Input value={identityRef} onChange={e => { setIdentityRef(e.target.value); setGpErrors(p => ({ ...p, identityRef: "" })); }} placeholder="e.g. NHS 943 476 5919" className={`h-12 rounded-xl bg-muted/20 ${gpErrors.identityRef ? "border-red-500" : ""}`} />
-                    <FieldError msg={gpErrors.identityRef} />
+                    <p className="text-xs text-muted-foreground -mt-2">If you have your NHS number, passport, or driving licence to hand, you can add it now to speed up review. Otherwise, our pharmacist will ask you for it later if needed.</p>
+                    <Input value={identityRef} onChange={e => { setIdentityRef(e.target.value); setGpErrors(p => ({ ...p, identityRef: "" })); }} placeholder="e.g. NHS 943 476 5919 (optional)" className="h-12 rounded-xl bg-muted/20" />
                   </div>
 
                   <div className="pt-4 border-t border-border/50 flex flex-col-reverse sm:flex-row justify-between gap-3">

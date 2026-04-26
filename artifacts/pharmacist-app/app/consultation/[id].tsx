@@ -5,6 +5,7 @@ import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -68,6 +69,16 @@ interface PatientNote {
   updatedAt: string;
 }
 
+interface ConsultationNote {
+  id: string;
+  consultationId: string;
+  note: string;
+  createdBy: string;
+  updatedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface PatientConsultation {
   id: string;
   conditionName: string;
@@ -102,6 +113,17 @@ export default function ConsultationDetail() {
   const [savingNote, setSavingNote] = useState(false);
   const [editingNote, setEditingNote] = useState<PatientNote | null>(null);
   const [editText, setEditText] = useState("");
+
+  // Consultation-level notes
+  const [consultationNotes, setConsultationNotes] = useState<ConsultationNote[]>([]);
+  const [cNotesLoading, setCNotesLoading] = useState(false);
+  const [newCNote, setNewCNote] = useState("");
+  const [savingCNote, setSavingCNote] = useState(false);
+  const [editingCNote, setEditingCNote] = useState<ConsultationNote | null>(null);
+  const [editCText, setEditCText] = useState("");
+
+  // Photo lightbox
+  const [lightboxPhotoUrl, setLightboxPhotoUrl] = useState<string | null>(null);
 
   const { data: consultation, isLoading } = useGetConsultation(id ?? "", {
     query: { enabled: !!id, queryKey: getGetConsultationQueryKey(id ?? "") },
@@ -157,14 +179,103 @@ export default function ConsultationDetail() {
     }
   }
 
+  async function loadConsultationNotes(consultationId: string) {
+    setCNotesLoading(true);
+    try {
+      const res = await fetch(`${apiBase}/api/consultation-notes/${encodeURIComponent(consultationId)}`, {
+        headers: authHeaders(),
+      });
+      const json = await res.json();
+      setConsultationNotes(json.notes ?? []);
+    } catch {
+      // ignore
+    } finally {
+      setCNotesLoading(false);
+    }
+  }
+
   useEffect(() => {
     if (consultation?.patientEmail && activeTab === "History") {
       loadHistory(consultation.patientEmail);
     }
-    if (consultation?.patientEmail && activeTab === "Notes") {
-      loadNotes(consultation.patientEmail);
+    if (activeTab === "Notes") {
+      if (consultation?.patientEmail) loadNotes(consultation.patientEmail);
+      if (id) loadConsultationNotes(id);
     }
-  }, [activeTab, consultation?.patientEmail]);
+  }, [activeTab, consultation?.patientEmail, id]);
+
+  async function handleAddCNote() {
+    if (!newCNote.trim() || !id) return;
+    setSavingCNote(true);
+    try {
+      const res = await fetch(`${apiBase}/api/consultation-notes`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ consultationId: id, note: newCNote.trim() }),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || `Request failed: ${res.status}`);
+      }
+      const json = await res.json();
+      setConsultationNotes(prev => [json.note, ...prev]);
+      setNewCNote("");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {
+      Alert.alert("Error", "Failed to save note.");
+    } finally {
+      setSavingCNote(false);
+    }
+  }
+
+  async function handleSaveCEdit() {
+    if (!editingCNote || !editCText.trim()) return;
+    setSavingCNote(true);
+    try {
+      const res = await fetch(`${apiBase}/api/consultation-notes/${editingCNote.id}`, {
+        method: "PUT",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ note: editCText.trim() }),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || `Request failed: ${res.status}`);
+      }
+      const json = await res.json();
+      setConsultationNotes(prev => prev.map(n => n.id === editingCNote.id ? json.note : n));
+      setEditingCNote(null);
+      setEditCText("");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {
+      Alert.alert("Error", "Failed to update note.");
+    } finally {
+      setSavingCNote(false);
+    }
+  }
+
+  async function handleDeleteCNote(noteId: string) {
+    Alert.alert("Delete Note", "Remove this note permanently?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete", style: "destructive", onPress: async () => {
+          try {
+            const res = await fetch(`${apiBase}/api/consultation-notes/${noteId}`, {
+              method: "DELETE",
+              headers: authHeaders(),
+            });
+            if (!res.ok) {
+              const errBody = await res.json().catch(() => ({}));
+              throw new Error(errBody.error || `Request failed: ${res.status}`);
+            }
+            setConsultationNotes(prev => prev.filter(n => n.id !== noteId));
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          } catch {
+            Alert.alert("Error", "Failed to delete note.");
+          }
+        }
+      },
+    ]);
+  }
 
   async function handleAddNote() {
     if (!newNote.trim() || !consultation?.patientEmail) return;
@@ -337,12 +448,35 @@ export default function ConsultationDetail() {
             <View style={styles.infoCard}>
               <InfoRow icon="activity" label="Condition" value={consultation.conditionName} colors={colors} />
               <InfoRow icon="calendar" label="Submitted" value={format(createdDate, "d MMM yyyy, HH:mm")} colors={colors} />
-              {consultation.hasPhoto && (
-                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
-                  <Feather name="camera" size={14} color={colors.primary} />
-                  <Text style={{ fontSize: 13, color: colors.primary, fontWeight: "600", marginLeft: 6 }}>Photo submitted</Text>
-                </View>
-              )}
+              {(() => {
+                const photos: string[] = ((consultation as any).photoUrls ?? []).filter(Boolean);
+                if (!consultation.hasPhoto && photos.length === 0) return null;
+                return (
+                  <View style={{ marginTop: 8 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+                      <Feather name="camera" size={14} color={colors.primary} />
+                      <Text style={{ fontSize: 13, color: colors.primary, fontWeight: "600", marginLeft: 6 }}>
+                        {photos.length} photo{photos.length === 1 ? "" : "s"} submitted
+                      </Text>
+                    </View>
+                    {photos.length > 0 && (
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                        {photos.map((url, i) => (
+                          <Pressable
+                            key={i}
+                            onPress={() => { Haptics.selectionAsync(); setLightboxPhotoUrl(url); }}
+                          >
+                            <Image
+                              source={{ uri: url }}
+                              style={{ width: 110, height: 110, borderRadius: 12, backgroundColor: colors.muted }}
+                            />
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+                    )}
+                  </View>
+                );
+              })()}
             </View>
           </View>
 
@@ -584,21 +718,99 @@ export default function ConsultationDetail() {
       {activeTab === "Notes" && (
         <View style={{ flex: 1 }}>
           <ScrollView
-            contentContainerStyle={[styles.scrollContent, { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 160 }]}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 240 }]}
             showsVerticalScrollIndicator={false}
-            onLayout={() => {
-              if (!patientNotes.length && !notesLoading) {
-                loadNotes(consultation.patientEmail);
-              }
-            }}
           >
-            <Text style={styles.sectionTitle}>Account notes — visible to all pharmacists</Text>
-            {notesLoading && <ActivityIndicator color={colors.primary} style={{ marginTop: 24 }} />}
+            {/* ── Consultation notes (this consultation only) ── */}
+            <View style={{ marginBottom: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <Text style={styles.sectionTitle}>This consultation</Text>
+              <View style={{ backgroundColor: colors.primary + "22", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
+                <Text style={{ fontSize: 10, color: colors.primary, fontWeight: "700", letterSpacing: 0.5 }}>EPISODE</Text>
+              </View>
+            </View>
+            <Text style={{ fontSize: 12, color: colors.mutedForeground, marginBottom: 12 }}>
+              Notes for this consultation only. Use for follow-ups and observations specific to this episode.
+            </Text>
+            <View style={[styles.addNoteInline, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+              <TextInput
+                style={[styles.addNoteInputInline, { color: colors.foreground }]}
+                placeholder="Add a note for this consultation…"
+                placeholderTextColor={colors.mutedForeground}
+                value={newCNote}
+                onChangeText={setNewCNote}
+                multiline
+              />
+              <Pressable
+                onPress={handleAddCNote}
+                disabled={savingCNote || !newCNote.trim()}
+                style={[styles.addNoteBtnInline, { backgroundColor: colors.primary }, (!newCNote.trim() || savingCNote) && { opacity: 0.5 }]}
+              >
+                {savingCNote ? <ActivityIndicator size="small" color="#fff" /> : <Feather name="plus" size={16} color="#fff" />}
+              </Pressable>
+            </View>
+            {cNotesLoading && <ActivityIndicator color={colors.primary} style={{ marginTop: 12 }} />}
+            {!cNotesLoading && consultationNotes.length === 0 && (
+              <View style={[styles.emptyWrapInline, { borderColor: colors.border }]}>
+                <Text style={[styles.emptySubtitle, { textAlign: "center" }]}>No consultation notes yet</Text>
+              </View>
+            )}
+            {!cNotesLoading && consultationNotes.map(n => {
+              const isOwn = n.createdBy === pharmacistName;
+              return (
+                <View key={n.id} style={styles.noteCard}>
+                  <View style={styles.noteCardHeader}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.noteCardAuthor}>{n.updatedBy ? `${n.updatedBy} (edited)` : n.createdBy}</Text>
+                      <Text style={styles.noteCardDate}>{formatDistanceToNow(new Date(n.updatedAt), { addSuffix: true })}</Text>
+                    </View>
+                    {isOwn && (
+                      <>
+                        <Pressable onPress={() => { setEditingCNote(n); setEditCText(n.note); }} style={styles.noteAction}>
+                          <Feather name="edit-2" size={14} color={colors.primary} />
+                        </Pressable>
+                        <Pressable onPress={() => handleDeleteCNote(n.id)} style={[styles.noteAction, { marginLeft: 4 }]}>
+                          <Feather name="trash-2" size={14} color={colors.destructive} />
+                        </Pressable>
+                      </>
+                    )}
+                  </View>
+                  <Text style={styles.noteCardText}>{n.note}</Text>
+                </View>
+              );
+            })}
+
+            {/* ── Patient notes (across all consultations) ── */}
+            <View style={{ height: 24 }} />
+            <View style={{ marginBottom: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <Text style={styles.sectionTitle}>Patient profile</Text>
+              <View style={{ backgroundColor: colors.muted, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
+                <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "700", letterSpacing: 0.5 }}>ACROSS ALL VISITS</Text>
+              </View>
+            </View>
+            <Text style={{ fontSize: 12, color: colors.mutedForeground, marginBottom: 12 }}>
+              Notes about this patient across all their consultations. Visible to every prescriber.
+            </Text>
+            <View style={[styles.addNoteInline, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+              <TextInput
+                style={[styles.addNoteInputInline, { color: colors.foreground }]}
+                placeholder="Add a note about this patient…"
+                placeholderTextColor={colors.mutedForeground}
+                value={newNote}
+                onChangeText={setNewNote}
+                multiline
+              />
+              <Pressable
+                onPress={handleAddNote}
+                disabled={savingNote || !newNote.trim()}
+                style={[styles.addNoteBtnInline, { backgroundColor: colors.primary }, (!newNote.trim() || savingNote) && { opacity: 0.5 }]}
+              >
+                {savingNote ? <ActivityIndicator size="small" color="#fff" /> : <Feather name="plus" size={16} color="#fff" />}
+              </Pressable>
+            </View>
+            {notesLoading && <ActivityIndicator color={colors.primary} style={{ marginTop: 12 }} />}
             {!notesLoading && patientNotes.length === 0 && (
-              <View style={styles.emptyWrap}>
-                <Feather name="file-text" size={36} color={colors.mutedForeground} />
-                <Text style={styles.emptyTitle}>No notes yet</Text>
-                <Text style={styles.emptySubtitle}>Add notes about this patient below</Text>
+              <View style={[styles.emptyWrapInline, { borderColor: colors.border }]}>
+                <Text style={[styles.emptySubtitle, { textAlign: "center" }]}>No patient notes yet</Text>
               </View>
             )}
             {!notesLoading && patientNotes.map(n => (
@@ -608,43 +820,65 @@ export default function ConsultationDetail() {
                     <Text style={styles.noteCardAuthor}>{n.updatedBy ? `${n.updatedBy} (edited)` : n.createdBy}</Text>
                     <Text style={styles.noteCardDate}>{formatDistanceToNow(new Date(n.updatedAt), { addSuffix: true })}</Text>
                   </View>
-                  <Pressable onPress={() => { setEditingNote(n); setEditText(n.note); }} style={styles.noteAction}>
-                    <Feather name="edit-2" size={14} color={colors.primary} />
-                  </Pressable>
-                  <Pressable onPress={() => handleDeleteNote(n.id)} style={[styles.noteAction, { marginLeft: 4 }]}>
-                    <Feather name="trash-2" size={14} color={colors.destructive} />
-                  </Pressable>
+                  {n.createdBy === pharmacistName && (
+                    <>
+                      <Pressable onPress={() => { setEditingNote(n); setEditText(n.note); }} style={styles.noteAction}>
+                        <Feather name="edit-2" size={14} color={colors.primary} />
+                      </Pressable>
+                      <Pressable onPress={() => handleDeleteNote(n.id)} style={[styles.noteAction, { marginLeft: 4 }]}>
+                        <Feather name="trash-2" size={14} color={colors.destructive} />
+                      </Pressable>
+                    </>
+                  )}
                 </View>
                 <Text style={styles.noteCardText}>{n.note}</Text>
               </View>
             ))}
           </ScrollView>
-
-          {/* Add note footer */}
-          <View style={[styles.addNoteBar, { paddingBottom: Platform.OS === "web" ? 20 : insets.bottom + 12 }]}>
-            <TextInput
-              style={styles.addNoteInput}
-              placeholder="Write a note about this patient..."
-              placeholderTextColor={colors.mutedForeground}
-              value={newNote}
-              onChangeText={setNewNote}
-              multiline
-              numberOfLines={2}
-              textAlignVertical="top"
-            />
-            <Pressable
-              onPress={handleAddNote}
-              disabled={savingNote || !newNote.trim()}
-              style={[styles.addNoteBtn, (!newNote.trim() || savingNote) && { opacity: 0.5 }]}
-            >
-              {savingNote
-                ? <ActivityIndicator size="small" color="#fff" />
-                : <Feather name="send" size={18} color="#fff" />
-              }
-            </Pressable>
-          </View>
         </View>
       )}
+
+      {/* Photo lightbox modal */}
+      <Modal visible={!!lightboxPhotoUrl} transparent animationType="fade" onRequestClose={() => setLightboxPhotoUrl(null)}>
+        <Pressable style={[styles.modalOverlay, { backgroundColor: "rgba(0,0,0,0.92)" }]} onPress={() => setLightboxPhotoUrl(null)}>
+          {lightboxPhotoUrl && (
+            <Image source={{ uri: lightboxPhotoUrl }} style={{ width: "100%", height: "85%", resizeMode: "contain" }} />
+          )}
+          <View style={{ position: "absolute", top: insets.top + 12, right: 16, backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 22, width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+            <Feather name="x" size={22} color="#fff" />
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* Edit consultation note modal */}
+      <Modal visible={!!editingCNote} transparent animationType="fade" onRequestClose={() => setEditingCNote(null)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setEditingCNote(null)}>
+          <Pressable style={[styles.modalCard, { backgroundColor: colors.card }]} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Edit Consultation Note</Text>
+            <TextInput
+              style={[styles.textarea, { marginBottom: 16 }]}
+              value={editCText}
+              onChangeText={setEditCText}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+              placeholderTextColor={colors.mutedForeground}
+              autoFocus
+            />
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <Pressable style={[styles.modalBtn, { backgroundColor: colors.muted, flex: 1 }]} onPress={() => setEditingCNote(null)}>
+                <Text style={{ color: colors.foreground, fontWeight: "600" }}>Cancel</Text>
+              </Pressable>
+              <Pressable style={[styles.modalBtn, { backgroundColor: colors.primary, flex: 1 }]} onPress={handleSaveCEdit} disabled={savingCNote}>
+                {savingCNote
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Text style={{ color: "#fff", fontWeight: "700" }}>Save</Text>
+                }
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Edit note modal */}
       <Modal visible={!!editingNote} transparent animationType="fade" onRequestClose={() => setEditingNote(null)}>
@@ -776,6 +1010,10 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
     addNoteBar: { position: "absolute", bottom: 0, left: 0, right: 0, flexDirection: "row", gap: 10, padding: 12, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.border, alignItems: "flex-end" },
     addNoteInput: { flex: 1, backgroundColor: colors.background, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 12, fontSize: 14, color: colors.foreground, minHeight: 48, maxHeight: 90 },
     addNoteBtn: { width: 48, height: 48, borderRadius: 12, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
+    addNoteInline: { flexDirection: "row", gap: 8, padding: 10, borderRadius: 12, borderWidth: 1, alignItems: "flex-end", marginBottom: 12 },
+    addNoteInputInline: { flex: 1, fontSize: 14, minHeight: 36, maxHeight: 100, padding: 6 },
+    addNoteBtnInline: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+    emptyWrapInline: { padding: 18, borderRadius: 12, borderStyle: "dashed", borderWidth: 1, marginBottom: 8 },
     modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center", padding: 24 },
     modalCard: { width: "100%", borderRadius: 20, padding: 20, maxWidth: 480 },
     modalTitle: { fontSize: 17, fontWeight: "700" as const, color: colors.foreground, marginBottom: 14 },

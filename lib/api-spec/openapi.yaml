@@ -378,6 +378,10 @@ components:
           type: boolean
         hasPhoto:
           type: boolean
+        photoUrls:
+          type: array
+          items:
+            type: string
         pharmacistNote:
           type: string
           nullable: true
@@ -431,6 +435,10 @@ components:
           additionalProperties: true
         hasPhoto:
           type: boolean
+        photoUrls:
+          type: array
+          items:
+            type: string
         isPregnant:
           type: boolean
           nullable: true

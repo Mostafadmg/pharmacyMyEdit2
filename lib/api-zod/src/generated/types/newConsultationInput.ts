@@ -16,6 +16,7 @@ export interface NewConsultationInput {
   conditionId: string;
   answers: NewConsultationInputAnswers;
   hasPhoto: boolean;
+  photoUrls?: string[];
   isPregnant?: boolean | null;
   allergies?: string | null;
   currentMedications?: string | null;

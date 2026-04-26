@@ -72,6 +72,25 @@ export default function ReviewConsultation() {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingNoteText, setEditingNoteText] = useState("");
 
+  type ConsultationNote = {
+    id: string;
+    consultationId: string;
+    note: string;
+    createdBy: string;
+    updatedBy: string | null;
+    createdAt: string;
+    updatedAt: string;
+  };
+  const [consultationNotes, setConsultationNotes] = useState<ConsultationNote[]>([]);
+  const [loadingConsultationNotes, setLoadingConsultationNotes] = useState(false);
+  const [newConsultationNote, setNewConsultationNote] = useState("");
+  const [savingConsultationNote, setSavingConsultationNote] = useState(false);
+  const [editingConsultNoteId, setEditingConsultNoteId] = useState<string | null>(null);
+  const [editingConsultNoteText, setEditingConsultNoteText] = useState("");
+
+  // Photo lightbox
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
   const authHeaders = (extra?: Record<string, string>): Record<string, string> => {
     const token = typeof localStorage !== "undefined" ? localStorage.getItem("pharmacist_token") : null;
     return {
@@ -167,6 +186,88 @@ export default function ReviewConsultation() {
       toast.error("Failed to update note");
     } finally {
       setSavingPatientNote(false);
+    }
+  }
+
+  // ── Consultation-level notes (timeline tied to THIS consultation) ──
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    (async () => {
+      setLoadingConsultationNotes(true);
+      try {
+        const res = await fetch(`/api/consultation-notes/${encodeURIComponent(id)}`, {
+          headers: authHeaders(),
+        });
+        const json = await res.json();
+        if (!cancelled) setConsultationNotes(json.notes ?? []);
+      } catch {
+        // ignore
+      } finally {
+        if (!cancelled) setLoadingConsultationNotes(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  async function handleAddConsultationNote() {
+    const text = newConsultationNote.trim();
+    if (!text || !id) return;
+    setSavingConsultationNote(true);
+    try {
+      const res = await fetch(`/api/consultation-notes`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ consultationId: id, note: text }),
+      });
+      if (!res.ok) throw new Error("failed");
+      const json = await res.json();
+      setConsultationNotes((prev) => [json.note, ...prev]);
+      setNewConsultationNote("");
+      toast.success("Note added to this consultation");
+    } catch {
+      toast.error("Failed to save note");
+    } finally {
+      setSavingConsultationNote(false);
+    }
+  }
+
+  async function handleSaveConsultationNoteEdit() {
+    if (!editingConsultNoteId || !editingConsultNoteText.trim()) return;
+    setSavingConsultationNote(true);
+    try {
+      const res = await fetch(`/api/consultation-notes/${editingConsultNoteId}`, {
+        method: "PUT",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ note: editingConsultNoteText.trim() }),
+      });
+      if (!res.ok) throw new Error("failed");
+      const json = await res.json();
+      setConsultationNotes((prev) => prev.map((n) => (n.id === editingConsultNoteId ? json.note : n)));
+      setEditingConsultNoteId(null);
+      setEditingConsultNoteText("");
+      toast.success("Note updated");
+    } catch {
+      toast.error("Failed to update note");
+    } finally {
+      setSavingConsultationNote(false);
+    }
+  }
+
+  async function handleDeleteConsultationNote(noteId: string) {
+    if (!confirm("Delete this consultation note?")) return;
+    try {
+      const res = await fetch(`/api/consultation-notes/${noteId}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (!res.ok) throw new Error("failed");
+      setConsultationNotes((prev) => prev.filter((n) => n.id !== noteId));
+      toast.success("Note removed");
+    } catch {
+      toast.error("Failed to delete note");
     }
   }
 
@@ -620,27 +721,42 @@ export default function ReviewConsultation() {
                     );
                   })}
                   
-                  {consultation.hasPhoto && (
-                    <div className="p-6 md:p-8 bg-blue-50/30">
-                      <div className="flex flex-col md:flex-row gap-4 md:gap-8">
-                        <div className="md:w-1/3 shrink-0">
-                          <p className="font-semibold text-secondary/80 text-sm flex items-center gap-2">
-                            <FileText className="w-4 h-4" /> Patient Uploaded Photos
-                          </p>
-                        </div>
-                        <div className="md:w-2/3">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="aspect-square bg-muted/50 rounded-xl border border-border flex items-center justify-center text-muted-foreground font-medium flex-col gap-3 hover:bg-muted transition-colors cursor-pointer group">
-                              <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                                <FileText className="w-6 h-6 text-primary" />
+                  {(() => {
+                    const photos = ((consultation as { photoUrls?: string[] }).photoUrls ?? []).filter(Boolean);
+                    if (!consultation.hasPhoto && photos.length === 0) return null;
+                    return (
+                      <div className="p-6 md:p-8 bg-blue-50/30" data-testid="section-patient-photos">
+                        <div className="flex flex-col md:flex-row gap-4 md:gap-8">
+                          <div className="md:w-1/3 shrink-0">
+                            <p className="font-semibold text-secondary/80 text-sm flex items-center gap-2">
+                              <FileText className="w-4 h-4" /> Patient Uploaded Photos
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">{photos.length} photo{photos.length === 1 ? "" : "s"} attached</p>
+                          </div>
+                          <div className="md:w-2/3">
+                            {photos.length === 0 ? (
+                              <p className="text-sm text-muted-foreground italic">No photos uploaded.</p>
+                            ) : (
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                {photos.map((url, i) => (
+                                  <button
+                                    key={i}
+                                    type="button"
+                                    onClick={() => setLightboxUrl(url)}
+                                    className="aspect-square bg-muted/50 rounded-xl border border-border overflow-hidden hover:ring-2 hover:ring-primary/40 transition-all"
+                                    data-testid={`button-photo-${i}`}
+                                    aria-label={`View photo ${i + 1}`}
+                                  >
+                                    <img src={url} alt={`Patient photo ${i + 1}`} className="w-full h-full object-cover" />
+                                  </button>
+                                ))}
                               </div>
-                              View Photo 1
-                            </div>
+                            )}
                           </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               </CardContent>
             </Card>
@@ -686,14 +802,18 @@ export default function ReviewConsultation() {
                 <>
                   <div className="space-y-3">
                     <Label htmlFor="clinical-notes" className="text-sm font-bold text-secondary flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-primary" /> Clinical Notes (Internal)
+                      <FileText className="w-4 h-4 text-primary" /> Decision rationale
                     </Label>
+                    <p className="text-xs text-muted-foreground -mt-1">
+                      Briefly justify this clinical decision. Saved with the action below as part of the GPhC audit trail. For ongoing observations and follow-ups, use the <span className="font-semibold">Consultation notes</span> panel below.
+                    </p>
                     <Textarea 
                       id="clinical-notes"
-                      placeholder="Add your clinical reasoning here..." 
+                      placeholder="e.g. Symptoms consistent with mild allergic rhinitis. No red flags. Approving cetirizine 10mg." 
                       className="min-h-[120px] resize-none rounded-xl focus-visible:ring-primary/30"
                       value={reviewNote}
                       onChange={(e) => setReviewNote(e.target.value)}
+                      data-testid="textarea-decision-rationale"
                     />
                   </div>
 
@@ -849,14 +969,128 @@ export default function ReviewConsultation() {
             </CardContent>
           </Card>
 
+          {/* ── Consultation notes (timeline tied to THIS consultation) ── */}
+          <Card className="border-none shadow-md rounded-2xl overflow-hidden" data-testid="card-consultation-notes">
+            <CardHeader className="bg-primary/5 pb-4">
+              <CardTitle className="text-lg font-bold text-secondary flex items-center gap-2">
+                <StickyNote className="w-4 h-4 text-primary" />
+                Consultation notes
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Notes for <span className="font-semibold">this consultation only</span>. Use for follow-up observations, dose adjustments, or anything specific to this episode.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4">
+              <div className="space-y-2">
+                <Textarea
+                  value={newConsultationNote}
+                  onChange={(e) => setNewConsultationNote(e.target.value)}
+                  placeholder="Add a note for this consultation…"
+                  rows={3}
+                  className="rounded-xl"
+                  data-testid="textarea-consultation-note"
+                />
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    onClick={handleAddConsultationNote}
+                    disabled={!newConsultationNote.trim() || savingConsultationNote}
+                    className="rounded-full bg-primary"
+                    data-testid="button-add-consultation-note"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" />
+                    {savingConsultationNote ? "Saving…" : "Add note"}
+                  </Button>
+                </div>
+              </div>
+
+              {loadingConsultationNotes ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-16 rounded-xl" />
+                </div>
+              ) : consultationNotes.length === 0 ? (
+                <div className="text-center py-6 text-xs text-muted-foreground border border-dashed border-border rounded-xl">
+                  No consultation notes yet.
+                </div>
+              ) : (
+                <ul className="space-y-2.5" data-testid="list-consultation-notes">
+                  {consultationNotes.map((n) => {
+                    const isEditing = editingConsultNoteId === n.id;
+                    const isOwn = n.createdBy === pharmacistName;
+                    const wasEdited = n.updatedAt && n.updatedAt !== n.createdAt;
+                    return (
+                      <li key={n.id} className="rounded-xl border border-border bg-white p-3" data-testid={`consultation-note-${n.id}`}>
+                        <div className="flex items-start justify-between gap-2 mb-1.5">
+                          <div className="min-w-0">
+                            <div className="font-semibold text-secondary text-sm truncate">{n.createdBy}</div>
+                            <div className="text-[11px] text-muted-foreground">
+                              {format(new Date(n.createdAt), "PPp")}
+                              {wasEdited && (
+                                <span className="ml-1 italic">· edited{n.updatedBy ? ` by ${n.updatedBy}` : ""}</span>
+                              )}
+                            </div>
+                          </div>
+                          {!isEditing && isOwn && (
+                            <div className="flex gap-1 shrink-0">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6"
+                                onClick={() => { setEditingConsultNoteId(n.id); setEditingConsultNoteText(n.note); }}
+                                data-testid={`button-edit-consultation-note-${n.id}`}
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6 text-red-600 hover:text-red-700"
+                                onClick={() => handleDeleteConsultationNote(n.id)}
+                                data-testid={`button-delete-consultation-note-${n.id}`}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        {isEditing ? (
+                          <div className="space-y-2">
+                            <Textarea
+                              value={editingConsultNoteText}
+                              onChange={(e) => setEditingConsultNoteText(e.target.value)}
+                              rows={3}
+                              className="rounded-xl text-sm"
+                            />
+                            <div className="flex gap-2 justify-end">
+                              <Button size="sm" variant="outline" className="rounded-full h-7"
+                                onClick={() => { setEditingConsultNoteId(null); setEditingConsultNoteText(""); }}>
+                                <XIcon className="w-3 h-3 mr-1" /> Cancel
+                              </Button>
+                              <Button size="sm" className="rounded-full h-7 bg-primary"
+                                onClick={handleSaveConsultationNoteEdit} disabled={savingConsultationNote}>
+                                <Save className="w-3 h-3 mr-1" /> Save
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-secondary whitespace-pre-wrap leading-relaxed">{n.note}</p>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
           <Card className="border-none shadow-md rounded-2xl overflow-hidden" data-testid="card-shared-notes">
             <CardHeader className="bg-muted/30 pb-4">
               <CardTitle className="text-lg font-bold text-secondary flex items-center gap-2">
                 <StickyNote className="w-4 h-4 text-primary" />
-                Shared prescriber notes
+                Shared patient notes
               </CardTitle>
               <CardDescription className="text-xs">
-                Visible to every prescriber on web and mobile. Each entry is timestamped and signed.
+                Notes about the <span className="font-semibold">patient</span> across all their consultations. Visible to every prescriber.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-5 space-y-4">
@@ -1001,6 +1235,19 @@ export default function ReviewConsultation() {
           </Card>
         </motion.div>
       </main>
+
+      {/* Photo lightbox */}
+      <Dialog open={!!lightboxUrl} onOpenChange={(open) => { if (!open) setLightboxUrl(null); }}>
+        <DialogContent className="max-w-4xl bg-black/95 border-none p-2">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Patient photo</DialogTitle>
+            <DialogDescription>Full-size view of patient-uploaded photo.</DialogDescription>
+          </DialogHeader>
+          {lightboxUrl && (
+            <img src={lightboxUrl} alt="Patient photo" className="w-full max-h-[85vh] object-contain rounded-lg" />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

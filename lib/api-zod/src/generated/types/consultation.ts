@@ -21,6 +21,7 @@ export interface Consultation {
   answers: ConsultationAnswers;
   hasRedFlag: boolean;
   hasPhoto: boolean;
+  photoUrls?: string[];
   pharmacistNote?: string | null;
   prescription?: string | null;
   referralInfo?: string | null;
