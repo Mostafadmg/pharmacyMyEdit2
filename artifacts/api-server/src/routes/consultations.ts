@@ -12,6 +12,7 @@ import {
 } from "@workspace/api-zod";
 import { eq, desc, count, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { sendConsultationOutcomeEmail } from "../utils/email";
 
 const router: IRouter = Router();
 
@@ -167,6 +168,17 @@ router.post("/consultations/:id/review", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Consultation not found" });
     return;
   }
+
+  sendConsultationOutcomeEmail({
+    patientName: updated.patientName,
+    patientEmail: updated.patientEmail,
+    conditionName: updated.conditionName,
+    status: updated.status,
+    pharmacistNote: updated.pharmacistNote,
+    prescription: updated.prescription,
+    referralInfo: updated.referralInfo,
+    consultationId: updated.id,
+  }).catch((err) => console.error("Email send failed:", err));
 
   res.json(ReviewConsultationResponse.parse(updated));
 });

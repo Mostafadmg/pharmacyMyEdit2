@@ -135,6 +135,24 @@ export interface PharmacistAuthResponse {
   role: string;
 }
 
+export interface PatientRegisterInput {
+  name: string;
+  email: string;
+  password: string;
+}
+
+export interface PatientLoginInput {
+  email: string;
+  password: string;
+}
+
+export interface PatientAuthResponse {
+  token: string;
+  patientId: string;
+  name: string;
+  email: string;
+}
+
 export type DashboardStatsByConditionCategoryItem = {
   category: string;
   count: number;
@@ -176,6 +194,10 @@ export const ListConsultationsStatus = {
 export type ListConsultations200 = {
   consultations: Consultation[];
   total: number;
+};
+
+export type GetPatientConsultations200 = {
+  consultations: Consultation[];
 };
 
 export type GetRecentConsultationsParams = {

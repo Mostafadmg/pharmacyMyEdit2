@@ -1,11 +1,26 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, Plus } from "lucide-react";
+import { Menu, X, Plus, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Header() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [patientName, setPatientName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const name = localStorage.getItem("patient_name");
+    setPatientName(name);
+    const handler = () => setPatientName(localStorage.getItem("patient_name"));
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, [location]);
+
+  const handlePatientLogout = () => {
+    ["patient_token", "patient_name", "patient_email", "patient_id"].forEach(k => localStorage.removeItem(k));
+    setPatientName(null);
+    navigate("/");
+  };
 
   const navLinks = [
     { name: "Conditions", href: "/conditions" },
@@ -45,7 +60,27 @@ export default function Header() {
               </Link>
             ))}
             
-            <div className="pl-2 border-l border-border h-8 flex items-center">
+            <div className="pl-2 border-l border-border h-8 flex items-center gap-2">
+              {patientName ? (
+                <div className="flex items-center gap-2">
+                  <Link href="/my-consultations" className="flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary transition-colors px-3 py-1.5 rounded-full hover:bg-primary/5">
+                    <User className="w-4 h-4" />
+                    {patientName.split(" ")[0]}
+                  </Link>
+                  <button
+                    onClick={handlePatientLogout}
+                    className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted"
+                    title="Sign out"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <Link href="/my-account/login" className="text-sm font-medium text-foreground hover:text-primary transition-colors px-3 py-1.5 rounded-full hover:bg-primary/5 flex items-center gap-1.5">
+                  <User className="w-4 h-4" />
+                  My Account
+                </Link>
+              )}
               <Button 
                 asChild 
                 className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold rounded-full px-6 shadow-sm hover:shadow transition-all duration-300"
@@ -82,7 +117,37 @@ export default function Header() {
                 {link.name}
               </Link>
             ))}
-            <div className="mt-4 px-4 pb-2">
+            <div className="border-t border-border mt-2 pt-3 px-0">
+              {patientName ? (
+                <>
+                  <Link
+                    href="/my-consultations"
+                    className="flex items-center gap-2 px-4 py-3 rounded-xl text-base font-medium text-foreground hover:bg-muted"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <User className="w-4 h-4" />
+                    My Consultations ({patientName.split(" ")[0]})
+                  </Link>
+                  <button
+                    onClick={() => { handlePatientLogout(); setIsMobileMenuOpen(false); }}
+                    className="flex items-center gap-2 px-4 py-3 rounded-xl text-base font-medium text-muted-foreground hover:bg-muted w-full text-left"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href="/my-account/login"
+                  className="flex items-center gap-2 px-4 py-3 rounded-xl text-base font-medium text-foreground hover:bg-muted"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <User className="w-4 h-4" />
+                  My Account
+                </Link>
+              )}
+            </div>
+            <div className="px-4 pb-2">
               <Button 
                 asChild 
                 className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-bold rounded-xl h-12"

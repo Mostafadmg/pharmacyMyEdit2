@@ -235,6 +235,68 @@ export const PharmacistLoginResponse = zod.object({
 });
 
 /**
+ * @summary Patient account registration
+ */
+export const PatientRegisterBody = zod.object({
+  name: zod.string(),
+  email: zod.string(),
+  password: zod.string(),
+});
+
+/**
+ * @summary Patient login
+ */
+export const PatientLoginBody = zod.object({
+  email: zod.string(),
+  password: zod.string(),
+});
+
+export const PatientLoginResponse = zod.object({
+  token: zod.string(),
+  patientId: zod.string(),
+  name: zod.string(),
+  email: zod.string(),
+});
+
+/**
+ * @summary Get all consultations for the authenticated patient
+ */
+export const GetPatientConsultationsHeader = zod.object({
+  Authorization: zod.string(),
+});
+
+export const GetPatientConsultationsResponse = zod.object({
+  consultations: zod.array(
+    zod.object({
+      id: zod.string(),
+      patientName: zod.string(),
+      patientEmail: zod.string(),
+      patientAge: zod.number(),
+      patientSex: zod.enum(["male", "female", "other"]),
+      conditionId: zod.string(),
+      conditionName: zod.string(),
+      status: zod.enum([
+        "pending",
+        "approved",
+        "rejected",
+        "more_info_needed",
+        "referred",
+        "red_flag",
+      ]),
+      answers: zod.record(zod.string(), zod.unknown()),
+      hasRedFlag: zod.boolean(),
+      hasPhoto: zod.boolean(),
+      pharmacistNote: zod.string().nullish(),
+      prescription: zod.string().nullish(),
+      referralInfo: zod.string().nullish(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+      reviewedAt: zod.coerce.date().nullish(),
+    }),
+  ),
+});
+
+/**
  * @summary Get pharmacist dashboard statistics
  */
 export const GetDashboardStatsResponse = zod.object({

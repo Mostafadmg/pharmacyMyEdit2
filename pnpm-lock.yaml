@@ -172,6 +172,9 @@ importers:
       '@workspace/db':
         specifier: workspace:*
         version: link:../../lib/db
+      bcryptjs:
+        specifier: ^3.0.3
+        version: 3.0.3
       cookie-parser:
         specifier: ^1.4.7
         version: 1.4.7
@@ -184,6 +187,9 @@ importers:
       express:
         specifier: ^5
         version: 5.2.1
+      nodemailer:
+        specifier: ^8.0.6
+        version: 8.0.6
       pino:
         specifier: ^9
         version: 9.14.0
@@ -191,6 +197,9 @@ importers:
         specifier: ^10
         version: 10.5.0
     devDependencies:
+      '@types/bcryptjs':
+        specifier: ^3.0.0
+        version: 3.0.0
       '@types/cookie-parser':
         specifier: ^1.4.10
         version: 1.4.10(@types/express@5.0.6)
@@ -203,6 +212,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 25.3.5
+      '@types/nodemailer':
+        specifier: ^8.0.0
+        version: 8.0.0
       esbuild:
         specifier: 0.27.3
         version: 0.27.3
@@ -2514,6 +2526,10 @@ packages:
   '@types/babel__traverse@7.28.0':
     resolution: {integrity: sha512-8PvcXf70gTDZBgt9ptxJ8elBeBjcLOAcOtoO/mPJjtji1+CdGbHgm77om1GrsPxsiE+uXIpNSK64UYaIwQXd4Q==}
 
+  '@types/bcryptjs@3.0.0':
+    resolution: {integrity: sha512-WRZOuCuaz8UcZZE4R5HXTco2goQSI2XxjGY3hbM/xDvwmqFWd4ivooImsMx65OKM6CtNKbnZ5YL+YwAwK7c1dg==}
+    deprecated: This is a stub types definition. bcryptjs provides its own type definitions, so you do not need this installed.
+
   '@types/body-parser@1.19.6':
     resolution: {integrity: sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==}
 
@@ -2596,6 +2612,9 @@ packages:
 
   '@types/node@25.3.5':
     resolution: {integrity: sha512-oX8xrhvpiyRCQkG1MFchB09f+cXftgIXb3a7UUa4Y3wpmZPw5tyZGTLWhlESOLq1Rq6oDlc8npVU2/9xiCuXMA==}
+
+  '@types/nodemailer@8.0.0':
+    resolution: {integrity: sha512-fyf8jWULsCo0d0BuoQ75i6IeoHs47qcqxWc7yUdUcV0pOZGjUTTOvwdG1PRXUDqN/8A64yQdQdnA2pZgcdi+cA==}
 
   '@types/pg@8.18.0':
     resolution: {integrity: sha512-gT+oueVQkqnj6ajGJXblFR4iavIXWsGAFCk3dP4Kki5+a9R4NMt0JARdk6s8cUKcfUoqP5dAtDSLU8xYUTFV+Q==}
@@ -2842,6 +2861,10 @@ packages:
   baseline-browser-mapping@2.10.0:
     resolution: {integrity: sha512-lIyg0szRfYbiy67j9KN8IyeD7q7hcmqnJ1ddWmNt19ItGpNN64mnllmxUNFIOdOm6by97jlL6wfpTTJrmnjWAA==}
     engines: {node: '>=6.0.0'}
+    hasBin: true
+
+  bcryptjs@3.0.3:
+    resolution: {integrity: sha512-GlF5wPWnSa/X5LKM1o0wz0suXIINz1iHRLvTS+sLyi7XPbe5ycmYI3DlZqVGZZtDgl4DmasFg7gOB3JYbphV5g==}
     hasBin: true
 
   better-opn@3.0.2:
@@ -4539,6 +4562,10 @@ packages:
 
   node-releases@2.0.36:
     resolution: {integrity: sha512-TdC8FSgHz8Mwtw9g5L4gR/Sh9XhSP/0DEkQxfEFXOpiul5IiHgHan2VhYYb6agDSfp4KuvltmGApc8HMgUrIkA==}
+
+  nodemailer@8.0.6:
+    resolution: {integrity: sha512-Nm2XeuDwwy2wi5A+8jPWwQwNzcjNjhWdE3pVLoXEusxJqCnAPAgnBGkSmiLknbnWuOF9qraRpYZjfxqtKZ4tPw==}
+    engines: {node: '>=6.0.0'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -8321,6 +8348,10 @@ snapshots:
     dependencies:
       '@babel/types': 7.29.0
 
+  '@types/bcryptjs@3.0.0':
+    dependencies:
+      bcryptjs: 3.0.3
+
   '@types/body-parser@1.19.6':
     dependencies:
       '@types/connect': 3.4.38
@@ -8415,6 +8446,10 @@ snapshots:
   '@types/node@25.3.5':
     dependencies:
       undici-types: 7.18.2
+
+  '@types/nodemailer@8.0.0':
+    dependencies:
+      '@types/node': 25.3.5
 
   '@types/pg@8.18.0':
     dependencies:
@@ -8715,6 +8750,8 @@ snapshots:
   base64-js@1.5.1: {}
 
   baseline-browser-mapping@2.10.0: {}
+
+  bcryptjs@3.0.3: {}
 
   better-opn@3.0.2:
     dependencies:
@@ -10550,6 +10587,8 @@ snapshots:
   node-int64@0.4.0: {}
 
   node-releases@2.0.36: {}
+
+  nodemailer@8.0.6: {}
 
   normalize-path@3.0.0: {}
 

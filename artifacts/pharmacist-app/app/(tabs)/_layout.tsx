@@ -17,12 +17,12 @@ function NativeTabLayout() {
   return (
     <NativeTabs>
       <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: "tray", selected: "tray.fill" }} />
-        <Label>Queue</Label>
+        <Icon sf={{ default: "clock", selected: "clock.fill" }} />
+        <Label>Pending</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="flags">
-        <Icon sf={{ default: "exclamationmark.triangle", selected: "exclamationmark.triangle.fill" }} />
-        <Label>Urgent</Label>
+        <Icon sf={{ default: "checkmark.circle", selected: "checkmark.circle.fill" }} />
+        <Label>Reviewed</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile">
         <Icon sf={{ default: "person.circle", selected: "person.circle.fill" }} />
@@ -76,24 +76,24 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Queue",
+          title: "Pending",
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="tray" tintColor={color} size={24} />
+              <SymbolView name="clock" tintColor={color} size={24} />
             ) : (
-              <Feather name="inbox" size={22} color={color} />
+              <Feather name="clock" size={22} color={color} />
             ),
         }}
       />
       <Tabs.Screen
         name="flags"
         options={{
-          title: "Urgent",
+          title: "Reviewed",
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="exclamationmark.triangle" tintColor={color} size={24} />
+              <SymbolView name="checkmark.circle" tintColor={color} size={24} />
             ) : (
-              <Feather name="alert-triangle" size={22} color={color} />
+              <Feather name="check-circle" size={22} color={color} />
             ),
         }}
       />

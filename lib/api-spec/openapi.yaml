@@ -197,6 +197,76 @@ paths:
         "401":
           description: Invalid credentials
 
+  /auth/patient-register:
+    post:
+      operationId: patientRegister
+      tags: [auth]
+      summary: Patient account registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatientRegisterInput"
+      responses:
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientAuthResponse"
+        "409":
+          description: Email already registered
+
+  /auth/patient-login:
+    post:
+      operationId: patientLogin
+      tags: [auth]
+      summary: Patient login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatientLoginInput"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientAuthResponse"
+        "401":
+          description: Invalid credentials
+
+  /patient/consultations:
+    get:
+      operationId: getPatientConsultations
+      tags: [patients]
+      summary: Get all consultations for the authenticated patient
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Patient consultations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  consultations:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Consultation"
+                required:
+                  - consultations
+        "401":
+          description: Unauthorized
+
   /dashboard/stats:
     get:
       operationId: getDashboardStats
@@ -427,6 +497,48 @@ components:
         - pharmacistName
         - pharmacistId
         - role
+
+    PatientRegisterInput:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - name
+        - email
+        - password
+
+    PatientLoginInput:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    PatientAuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        patientId:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+      required:
+        - token
+        - patientId
+        - name
+        - email
 
     DashboardStats:
       type: object
