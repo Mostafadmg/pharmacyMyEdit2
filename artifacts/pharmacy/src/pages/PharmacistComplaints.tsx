@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { format } from "date-fns";
 import {
-  ArrowLeft,
   AlertTriangle,
   CheckCircle2,
   Clock,
@@ -34,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import PharmacistLayout from "@/components/layout/PharmacistLayout";
 
 type Complaint = {
   id: string;
@@ -141,39 +141,29 @@ export default function PharmacistComplaints() {
   const openCount = complaints.filter((c) => c.status === "open").length;
 
   return (
-    <div className="min-h-screen bg-muted/30 pb-20 font-sans">
-      <header className="bg-secondary text-white py-4 px-6 sticky top-0 z-50 shadow-md">
-        <div className="container mx-auto flex items-center justify-between max-w-7xl">
-          <Link href="/dashboard">
-            <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
-              <ArrowLeft className="w-4 h-4 mr-2" /> Dashboard
-            </Button>
-          </Link>
-          <h1 className="text-lg font-bold">Complaints Management</h1>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={load}
-            className="text-white hover:bg-white/10"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </Button>
-        </div>
-      </header>
-
-      <div className="container mx-auto max-w-7xl px-6 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h2 className="text-3xl font-serif font-bold text-secondary mb-2">
+    <PharmacistLayout current="complaints">
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col md:flex-row md:items-end md:justify-between gap-4"
+      >
+        <div>
+          <h1 className="text-3xl md:text-4xl font-serif font-bold text-secondary tracking-tight">
             Patient Complaints
-          </h2>
-          <p className="text-muted-foreground">
+          </h1>
+          <p className="text-muted-foreground mt-2 text-lg">
             Acknowledge within 3 working days and resolve within 28 days per GPhC complaints policy.
           </p>
-        </motion.div>
+        </div>
+        <Button
+          variant="outline"
+          onClick={load}
+          className="bg-white border-border text-secondary rounded-full shadow-sm"
+          data-testid="button-refresh-complaints"
+        >
+          <RefreshCw className="w-4 h-4 mr-2" /> Refresh
+        </Button>
+      </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <Card className="rounded-2xl border-none shadow-sm">
@@ -291,7 +281,6 @@ export default function PharmacistComplaints() {
             })}
           </div>
         )}
-      </div>
 
       <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
         <DialogContent className="max-w-2xl">
@@ -359,6 +348,6 @@ export default function PharmacistComplaints() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </PharmacistLayout>
   );
 }
