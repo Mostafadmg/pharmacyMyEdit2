@@ -85,6 +85,7 @@ export default function Consultation() {
     defaultValues: {
       patientName: "",
       patientEmail: "",
+      patientAge: undefined,
       patientSex: "male",
       isPregnant: false,
     },
@@ -570,28 +571,22 @@ export default function Consultation() {
                 <div className="bg-white p-8 rounded-3xl shadow-sm border border-border/50 space-y-6">
                   <h3 className="font-bold text-xl text-secondary mb-4">Terms & Consent</h3>
                   <div className="bg-muted/30 p-6 rounded-2xl">
-                    <FormField 
-                      name="consent" 
-                      render={() => (
-                        <FormItem className="flex flex-row items-start space-x-4 space-y-0 cursor-pointer">
-                          <FormControl>
-                            <Checkbox 
-                              checked={hasConsented} 
-                              onCheckedChange={(val) => setHasConsented(!!val)} 
-                              className="w-6 h-6 border-2 mt-1"
-                            />
-                          </FormControl>
-                          <div className="space-y-2 leading-relaxed">
-                            <FormLabel className="text-base font-bold text-secondary cursor-pointer block">
-                              I confirm that the information I have provided is accurate and truthful.
-                            </FormLabel>
-                            <p className="text-muted-foreground text-sm">
-                              I understand that omitting or providing false medical information can be harmful to my health. I consent to the pharmacist reviewing my data to make a prescribing decision.
-                            </p>
-                          </div>
-                        </FormItem>
-                      )} 
-                    />
+                    <div className="flex flex-row items-start space-x-4 space-y-0 cursor-pointer" onClick={() => setHasConsented(!hasConsented)}>
+                      <Checkbox 
+                        checked={hasConsented} 
+                        onCheckedChange={(val) => setHasConsented(!!val)} 
+                        className="w-6 h-6 border-2 mt-1"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <div className="space-y-2 leading-relaxed">
+                        <Label className="text-base font-bold text-secondary cursor-pointer block">
+                          I confirm that the information I have provided is accurate and truthful.
+                        </Label>
+                        <p className="text-muted-foreground text-sm">
+                          I understand that omitting or providing false medical information can be harmful to my health. I consent to the pharmacist reviewing my data to make a prescribing decision.
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="pt-6 flex flex-col-reverse sm:flex-row justify-between gap-4 border-t border-border/50">
