@@ -109,8 +109,10 @@ export default function ConsultationDetail() {
   const answers = consultation.answers as Record<string, string>;
   const createdDate = new Date(consultation.createdAt);
 
+  const topPad = Platform.OS === "web" ? 67 : insets.top;
+
   return (
-    <View style={[styles.container, { paddingTop: Platform.OS === "web" ? 67 : 0 }]}>
+    <View style={[styles.container, { paddingTop: topPad }]}>
       {consultation.hasRedFlag && (
         <View style={styles.redFlagBanner}>
           <Feather name="alert-triangle" size={16} color="#fff" />
