@@ -1,5 +1,32 @@
 import nodemailer from "nodemailer";
 
+async function sendViaResend(data: {
+  from: string;
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}): Promise<void> {
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: data.from,
+      to: [data.to],
+      subject: data.subject,
+      html: data.html,
+      text: data.text,
+    }),
+  });
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Resend API error ${response.status}: ${body}`);
+  }
+}
+
 interface ConsultationEmailData {
   patientName: string;
   patientEmail: string;
@@ -226,29 +253,53 @@ export async function sendConsultationOutcomeEmail(data: ConsultationEmailData):
   const { patientEmail, patientName, conditionName, status, consultationId } = data;
   const statusInfo = getStatusInfo(status);
   const html = buildEmailHtml(data);
+  const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@pharmacare.co.uk";
+  const subject = `${statusInfo.icon} Your PharmaCare consultation update — ${conditionName}`;
+  const text = `Dear ${patientName},\n\nYour consultation for ${conditionName} has been ${statusInfo.label}.\n\n${data.pharmacistNote ? `Pharmacist note: ${data.pharmacistNote}\n\n` : ""}${data.prescription ? `Prescription: ${data.prescription}\n\n` : ""}${data.referralInfo ? `Referral: ${data.referralInfo}\n\n` : ""}Track your consultation at: ${process.env.APP_URL || "https://pharmacare.replit.app"}/my-consultations\n\nPharmaCare Team\n\nIf this is a medical emergency, call 999. For urgent advice, call NHS 111.`;
 
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.log(`\n📧 [EMAIL NOT SENT - SMTP not configured]\n  To: ${patientEmail}\n  Subject: Your PharmaCare consultation has been reviewed\n  Status: ${status}\n  Consultation ID: ${consultationId}\n  Configure SMTP_HOST, SMTP_USER, SMTP_PASS env vars to enable email sending.\n`);
+  // Try Resend first (no SMTP setup required, free tier available)
+  if (process.env.RESEND_API_KEY) {
+    await sendViaResend({
+      from: `PharmaCare <${fromAddress}>`,
+      to: patientEmail,
+      subject,
+      html,
+      text,
+    });
+    console.log(`📧 [Resend] Email sent to ${patientEmail} for consultation ${consultationId} (status: ${status})`);
     return;
   }
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || "587"),
-    secure: process.env.SMTP_SECURE === "true",
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
+  // Fall back to SMTP (Nodemailer)
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || "587"),
+      secure: process.env.SMTP_SECURE === "true",
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+    await transporter.sendMail({
+      from: `"PharmaCare" <${fromAddress}>`,
+      to: patientEmail,
+      subject,
+      html,
+      text,
+    });
+    console.log(`📧 [SMTP] Email sent to ${patientEmail} for consultation ${consultationId} (status: ${status})`);
+    return;
+  }
 
-  await transporter.sendMail({
-    from: `"PharmaCare" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
-    to: patientEmail,
-    subject: `${statusInfo.icon} Your PharmaCare consultation update — ${conditionName}`,
-    html,
-    text: `Dear ${patientName},\n\nYour consultation for ${conditionName} has been ${statusInfo.label}.\n\n${data.pharmacistNote ? `Pharmacist note: ${data.pharmacistNote}\n\n` : ""}${data.prescription ? `Prescription: ${data.prescription}\n\n` : ""}${data.referralInfo ? `Referral: ${data.referralInfo}\n\n` : ""}Track your order at: ${process.env.APP_URL || "https://pharmacare.replit.app"}/my-consultations\n\nPharmaCare Team`,
-  });
+  // No email provider configured — log for development
+  console.log(`\n📧 [EMAIL NOT SENT — no provider configured]
+  To:      ${patientEmail}
+  Subject: ${subject}
+  Status:  ${status}
+  Ref:     ${consultationId}
 
-  console.log(`📧 Email sent to ${patientEmail} for consultation ${consultationId} (status: ${status})`);
+  To send real emails, add one of:
+  • RESEND_API_KEY  (resend.com — free, no domain setup needed for testing)
+  • SMTP_HOST + SMTP_USER + SMTP_PASS  (any SMTP provider)\n`);
 }

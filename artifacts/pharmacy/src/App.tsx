@@ -1,3 +1,4 @@
+import React, { useEffect } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -22,10 +23,14 @@ const queryClient = new QueryClient();
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const [, navigate] = useLocation();
   const token = localStorage.getItem("pharmacist_token");
-  if (!token) {
-    navigate("/dashboard/login");
-    return null;
-  }
+
+  useEffect(() => {
+    if (!token) {
+      navigate("/dashboard/login");
+    }
+  }, [token, navigate]);
+
+  if (!token) return null;
   return <Component />;
 }
 

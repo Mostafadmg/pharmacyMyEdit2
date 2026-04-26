@@ -21,13 +21,26 @@ A full-stack UK digital pharmacy platform providing online minor ailment consult
 - **Forms**: react-hook-form + zodResolver
 - **Animations**: Framer Motion
 
+## Consultation Form
+
+The consultation form (`artifacts/pharmacy/src/pages/Consultation.tsx`) uses a 5 or 6 step flow (6 when photo required):
+1. **Safety Check** — condition-specific eligibility screening (blocking questions)
+2. **About You** — personal details (name, email, age, sex, pregnancy)
+3. **Symptoms** — 4–6 condition-specific clinical questions (radio, checkbox_group, textarea)
+4. **Medical Background** — allergies, medications, medical history (with "none" checkboxes)
+5. **Photo Upload** — shown only when `condition.requiresPhoto = true`
+6. **Review & Submit** — full summary with edit links, consent checkbox, submit
+
+Condition-specific questions are defined in `artifacts/pharmacy/src/data/conditionQuestions.ts` — covers all 27 conditions with tailored eligibility screening and clinical questions.
+
 ## Features
 
 ### Patient-facing
 - Landing page with hero, how-it-works, categories, trust badges
 - Browse 27 treatable conditions grouped by category
 - Condition detail pages with eligibility info
-- Multi-step consultation form with red-flag detection
+- Condition-specific step-by-step consultation (MedExpress/Pharmacy2U style)
+- Eligibility blocking (red flag screening, unfit answers show "Not suitable" page)
 - Patient consultation tracking (by email)
 
 ### Pharmacist Dashboard
