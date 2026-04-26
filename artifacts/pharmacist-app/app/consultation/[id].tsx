@@ -339,7 +339,7 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
       paddingVertical: 10,
     },
     redFlagText: { color: "#fff", fontWeight: "700" as const, fontSize: 13 },
-    scrollContent: { padding: 16, gap: 0 },
+    scrollContent: { paddingTop: 20, paddingHorizontal: 16, paddingBottom: 16, gap: 0 },
     statusRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
     statusBadge: { borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 },
     statusBadgeText: { fontWeight: "700" as const, fontSize: 13 },

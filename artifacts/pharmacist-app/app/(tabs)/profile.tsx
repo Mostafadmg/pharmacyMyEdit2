@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { isLiquidGlassAvailable } from "expo-glass-effect";
 import React from "react";
 import {
   Alert,
@@ -20,6 +21,8 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { pharmacistName, role, logout } = useAuth();
   const { data: stats } = useGetDashboardStats();
+  const nativeTabs = Platform.OS !== "web" && isLiquidGlassAvailable();
+  const topPad = Platform.OS === "web" ? 67 : nativeTabs ? insets.top + 8 : 0;
   const styles = makeStyles(colors);
 
   function handleLogout() {
@@ -45,7 +48,7 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView
-      style={[styles.container, { paddingTop: Platform.OS === "web" ? 67 : 0 }]}
+      style={[styles.container, { paddingTop: topPad }]}
       contentContainerStyle={[
         styles.content,
         { paddingBottom: Platform.OS === "web" ? 34 + 84 : insets.bottom + 100 },

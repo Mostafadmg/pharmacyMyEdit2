@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
+import { isLiquidGlassAvailable } from "expo-glass-effect";
 import React, { useEffect, useRef } from "react";
 import {
   ActivityIndicator,
@@ -83,8 +84,11 @@ export default function QueueScreen() {
     );
   }
 
+  const nativeTabs = Platform.OS !== "web" && isLiquidGlassAvailable();
+  const topPad = Platform.OS === "web" ? 67 : nativeTabs ? insets.top + 8 : 0;
+
   return (
-    <View style={[styles.container, { paddingTop: Platform.OS === "web" ? 67 : 0 }]}>
+    <View style={[styles.container, { paddingTop: topPad }]}>
       <FlatList
         data={sortedConsultations}
         keyExtractor={item => item.id}

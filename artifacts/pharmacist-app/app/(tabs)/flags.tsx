@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
@@ -27,6 +28,8 @@ export default function FlagsScreen() {
   );
 
   const consultations = data?.consultations ?? [];
+  const nativeTabs = Platform.OS !== "web" && isLiquidGlassAvailable();
+  const topPad = Platform.OS === "web" ? 67 : nativeTabs ? insets.top + 8 : 0;
 
   const styles = makeStyles(colors);
 
@@ -39,7 +42,7 @@ export default function FlagsScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: Platform.OS === "web" ? 67 : 0 }]}>
+    <View style={[styles.container, { paddingTop: topPad }]}>
       <FlatList
         data={consultations}
         keyExtractor={item => item.id}
