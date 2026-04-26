@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { useGetCondition, useCreateConsultation, getGetConditionQueryKey, NewConsultationInputPatientSex } from "@workspace/api-client-react";
 import Header from "@/components/layout/Header";
@@ -9,30 +9,62 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { ArrowLeft, ShieldCheck, CheckCircle2, UploadCloud, AlertCircle, AlertTriangle, XCircle, ChevronRight } from "lucide-react";
+import {
+  ArrowLeft, ShieldCheck, CheckCircle2, UploadCloud, AlertCircle,
+  AlertTriangle, XCircle, ChevronRight, Eye, EyeOff, User, Mail,
+  Lock, MapPin, Phone, LogIn,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getConditionQuestions, type EligibilityQuestion, type ClinicalQuestion } from "@/data/conditionQuestions";
 
 // ─── Step definitions ──────────────────────────────────────────────────────
 const STEPS = {
   ELIGIBILITY: 1,
-  PERSONAL: 2,
-  CLINICAL: 3,
-  MEDICAL: 4,
-  PHOTO: 5,
+  CLINICAL: 2,
+  MEDICAL: 3,
+  PHOTO: 4,
+  ACCOUNT: 5,
   REVIEW: 6,
 } as const;
 
-// ─── Sub-components ─────────────────────────────────────────────────────────
+// ─── Helpers ───────────────────────────────────────────────────────────────
+function calculateAge(dob: string): number {
+  const birth = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return age;
+}
 
+function getBase() {
+  return (import.meta.env.BASE_URL as string).replace(/\/$/, "");
+}
+
+function savePatientToStorage(data: {
+  token: string; patientId: string; name: string; email: string;
+  dateOfBirth?: string | null; sex?: string | null; phone?: string | null;
+  addressLine1?: string | null; addressLine2?: string | null;
+  city?: string | null; postcode?: string | null;
+}) {
+  localStorage.setItem("patient_token", data.token);
+  localStorage.setItem("patient_id", data.patientId);
+  localStorage.setItem("patient_name", data.name);
+  localStorage.setItem("patient_email", data.email);
+  if (data.dateOfBirth) localStorage.setItem("patient_dob", data.dateOfBirth);
+  if (data.sex) localStorage.setItem("patient_sex", data.sex);
+  if (data.addressLine1) localStorage.setItem("patient_address1", data.addressLine1);
+  if (data.addressLine2) localStorage.setItem("patient_address2", data.addressLine2);
+  if (data.city) localStorage.setItem("patient_city", data.city);
+  if (data.postcode) localStorage.setItem("patient_postcode", data.postcode);
+}
+
+// ─── Sub-components ─────────────────────────────────────────────────────────
 function RadioCard({ value, label, selected, onSelect }: { value: string; label: string; selected: boolean; onSelect: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onSelect}
+    <button type="button" onClick={onSelect}
       className={`w-full flex items-center gap-4 p-4 border-2 rounded-xl text-left transition-all duration-150 cursor-pointer ${selected ? "border-primary bg-primary/5 shadow-sm" : "border-border/60 hover:border-primary/40 hover:bg-muted/10"}`}
     >
       <div className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${selected ? "border-primary bg-primary" : "border-muted-foreground/40"}`}>
@@ -45,9 +77,7 @@ function RadioCard({ value, label, selected, onSelect }: { value: string; label:
 
 function CheckboxCard({ value, label, checked, onToggle }: { value: string; label: string; checked: boolean; onToggle: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onToggle}
+    <button type="button" onClick={onToggle}
       className={`w-full flex items-center gap-4 p-4 border-2 rounded-xl text-left transition-all duration-150 cursor-pointer ${checked ? "border-primary bg-primary/5 shadow-sm" : "border-border/60 hover:border-primary/40 hover:bg-muted/10"}`}
     >
       <div className={`w-5 h-5 rounded border-2 shrink-0 flex items-center justify-center transition-colors ${checked ? "border-primary bg-primary" : "border-muted-foreground/40"}`}>
@@ -58,15 +88,14 @@ function CheckboxCard({ value, label, checked, onToggle }: { value: string; labe
   );
 }
 
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return <p className="text-sm text-red-600 font-medium flex items-center gap-1.5 mt-1"><AlertCircle className="w-3.5 h-3.5 shrink-0" />{msg}</p>;
+}
+
 function StepWrapper({ children, stepKey }: { children: React.ReactNode; stepKey: string }) {
   return (
-    <motion.div
-      key={stepKey}
-      initial={{ opacity: 0, x: 24 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -24 }}
-      transition={{ duration: 0.25 }}
-    >
+    <motion.div key={stepKey} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.22 }}>
       {children}
     </motion.div>
   );
@@ -81,23 +110,15 @@ export default function Consultation() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedRef, setSubmittedRef] = useState("");
 
-  // Eligibility
+  // ── Eligibility ─────────────────────────────────────────
   const [eligibilityAnswers, setEligibilityAnswers] = useState<Record<string, string>>({});
   const [blocked, setBlocked] = useState<{ message: string } | null>(null);
 
-  // Personal details
-  const [patientName, setPatientName] = useState("");
-  const [patientEmail, setPatientEmail] = useState("");
-  const [patientAge, setPatientAge] = useState("");
-  const [patientSex, setPatientSex] = useState<"male" | "female" | "">("");
-  const [isPregnant, setIsPregnant] = useState(false);
-  const [personalErrors, setPersonalErrors] = useState<Record<string, string>>({});
-
-  // Clinical questions (dynamic per condition)
+  // ── Clinical questions ──────────────────────────────────
   const [clinicalAnswers, setClinicalAnswers] = useState<Record<string, string | string[]>>({});
   const [clinicalErrors, setClinicalErrors] = useState<Record<string, string>>({});
 
-  // Medical history
+  // ── Medical history ─────────────────────────────────────
   const [allergies, setAllergies] = useState("");
   const [noAllergies, setNoAllergies] = useState(false);
   const [medications, setMedications] = useState("");
@@ -106,7 +127,38 @@ export default function Consultation() {
   const [noMedicalHistory, setNoMedicalHistory] = useState(false);
   const [medicalErrors, setMedicalErrors] = useState<Record<string, string>>({});
 
-  // Consent
+  // ── Account & delivery ──────────────────────────────────
+  const [accountTab, setAccountTab] = useState<"signin" | "register">("register");
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem("patient_token"));
+  // Logged-in patient info (pre-filled from localStorage)
+  const [patientName, setPatientName] = useState(() => localStorage.getItem("patient_name") || "");
+  const [patientEmail, setPatientEmail] = useState(() => localStorage.getItem("patient_email") || "");
+  const [patientDob, setPatientDob] = useState(() => localStorage.getItem("patient_dob") || "");
+  const [patientSex, setPatientSex] = useState<"male" | "female" | "">(() => (localStorage.getItem("patient_sex") as "male" | "female") || "");
+  // Delivery address
+  const [addrLine1, setAddrLine1] = useState(() => localStorage.getItem("patient_address1") || "");
+  const [addrLine2, setAddrLine2] = useState(() => localStorage.getItem("patient_address2") || "");
+  const [addrCity, setAddrCity] = useState(() => localStorage.getItem("patient_city") || "");
+  const [addrPostcode, setAddrPostcode] = useState(() => localStorage.getItem("patient_postcode") || "");
+  // Sign in fields
+  const [signInEmail, setSignInEmail] = useState("");
+  const [signInPassword, setSignInPassword] = useState("");
+  const [showSignInPass, setShowSignInPass] = useState(false);
+  const [signInErrors, setSignInErrors] = useState<Record<string, string>>({});
+  const [signInLoading, setSignInLoading] = useState(false);
+  // Register fields
+  const [regName, setRegName] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regDob, setRegDob] = useState("");
+  const [regSex, setRegSex] = useState<"male" | "female" | "">("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regConfirm, setRegConfirm] = useState("");
+  const [showRegPass, setShowRegPass] = useState(false);
+  const [regErrors, setRegErrors] = useState<Record<string, string>>({});
+  const [regLoading, setRegLoading] = useState(false);
+  const [accountErrors, setAccountErrors] = useState<Record<string, string>>({});
+
+  // ── Consent ─────────────────────────────────────────────
   const [hasConsented, setHasConsented] = useState(false);
 
   const { data: condition, isLoading } = useGetCondition(conditionId || "", {
@@ -120,78 +172,52 @@ export default function Consultation() {
         setIsSubmitted(true);
         window.scrollTo(0, 0);
       },
-      onError: () => {
-        toast.error("Failed to submit consultation. Please check your connection and try again.");
-      },
+      onError: () => { toast.error("Failed to submit. Please check your connection and try again."); },
     },
   });
 
   const questions = conditionId ? getConditionQuestions(conditionId) : null;
-
-  // ─── Step counting ─────────────────────────────────────────────────────────
   const requiresPhoto = condition?.requiresPhoto ?? false;
-  const totalSteps = requiresPhoto ? 6 : 5;
 
+  // ─── Step count / progress ─────────────────────────────────────────────────
+  const totalSteps = requiresPhoto ? 6 : 5;
   function visualStep(s: number) {
-    // Map internal step numbers to visual steps (skip PHOTO if not required)
-    if (!requiresPhoto && s >= STEPS.PHOTO) return s - 1;
+    // Steps: ELIGIBILITY=1, CLINICAL=2, MEDICAL=3, [PHOTO=4,] ACCOUNT=5[or4], REVIEW=6[or5]
+    if (!requiresPhoto) {
+      if (s >= STEPS.PHOTO) return s - 1;
+    }
     return s;
   }
-
   const progressPct = Math.round((visualStep(step) / totalSteps) * 100);
 
-  // ─── Navigation helpers ────────────────────────────────────────────────────
+  // ─── Navigation ────────────────────────────────────────────────────────────
   function scrollTop() { window.scrollTo({ top: 0, behavior: "smooth" }); }
-  function goNext(s: number) { setStep(s); scrollTop(); }
+  function goTo(s: number) { setStep(s); scrollTop(); }
 
   function goBack() {
     if (step === STEPS.ELIGIBILITY) return;
-    if (step === STEPS.REVIEW && !requiresPhoto) return goNext(STEPS.MEDICAL);
-    if (step === STEPS.REVIEW && requiresPhoto) return goNext(STEPS.PHOTO);
-    if (step === STEPS.PHOTO) return goNext(STEPS.MEDICAL);
-    setStep(s => s - 1);
-    scrollTop();
+    if (step === STEPS.CLINICAL) { goTo(STEPS.ELIGIBILITY); return; }
+    if (step === STEPS.MEDICAL) { goTo(STEPS.CLINICAL); return; }
+    if (step === STEPS.PHOTO) { goTo(STEPS.MEDICAL); return; }
+    if (step === STEPS.ACCOUNT) { goTo(requiresPhoto ? STEPS.PHOTO : STEPS.MEDICAL); return; }
+    if (step === STEPS.REVIEW) { goTo(STEPS.ACCOUNT); return; }
   }
 
   // ─── Step 1: Eligibility ───────────────────────────────────────────────────
   function handleEligibilityNext() {
     if (!questions) return;
     for (const q of questions.eligibilityQuestions) {
-      if (!eligibilityAnswers[q.id]) {
-        toast.error("Please answer all questions before continuing.");
-        return;
-      }
-      if (eligibilityAnswers[q.id] === q.blockingAnswer) {
-        setBlocked({ message: q.blockingMessage });
-        scrollTop();
-        return;
-      }
+      if (!eligibilityAnswers[q.id]) { toast.error("Please answer all questions before continuing."); return; }
+      if (eligibilityAnswers[q.id] === q.blockingAnswer) { setBlocked({ message: q.blockingMessage }); scrollTop(); return; }
     }
-    goNext(STEPS.PERSONAL);
+    goTo(STEPS.CLINICAL);
   }
 
-  // ─── Step 2: Personal details ──────────────────────────────────────────────
-  function validatePersonal() {
-    const errors: Record<string, string> = {};
-    if (!patientName.trim() || patientName.trim().length < 2) errors.patientName = "Please enter your full name.";
-    if (!patientEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(patientEmail)) errors.patientEmail = "Please enter a valid email address.";
-    const ageNum = parseInt(patientAge);
-    if (!patientAge || isNaN(ageNum) || ageNum < 18 || ageNum > 120) errors.patientAge = "You must be 18 or over to use this service.";
-    if (!patientSex) errors.patientSex = "Please select your sex at birth.";
-    setPersonalErrors(errors);
-    return Object.keys(errors).length === 0;
-  }
-
-  function handlePersonalNext() {
-    if (validatePersonal()) goNext(STEPS.CLINICAL);
-  }
-
-  // ─── Step 3: Clinical questions ────────────────────────────────────────────
+  // ─── Step 2: Clinical questions ────────────────────────────────────────────
   function setClinicalAnswer(id: string, value: string) {
     setClinicalAnswers(prev => ({ ...prev, [id]: value }));
     setClinicalErrors(prev => { const e = { ...prev }; delete e[id]; return e; });
   }
-
   function toggleClinicalCheckbox(id: string, value: string) {
     setClinicalAnswers(prev => {
       const current = (prev[id] as string[]) || [];
@@ -200,7 +226,6 @@ export default function Consultation() {
     });
     setClinicalErrors(prev => { const e = { ...prev }; delete e[id]; return e; });
   }
-
   function validateClinical() {
     if (!questions) return true;
     const errors: Record<string, string> = {};
@@ -215,25 +240,171 @@ export default function Consultation() {
     setClinicalErrors(errors);
     return Object.keys(errors).length === 0;
   }
-
   function handleClinicalNext() {
-    if (validateClinical()) goNext(STEPS.MEDICAL);
+    if (validateClinical()) goTo(STEPS.MEDICAL);
   }
 
-  // ─── Step 4: Medical history ───────────────────────────────────────────────
+  // ─── Step 3: Medical history ───────────────────────────────────────────────
   function validateMedical() {
     const errors: Record<string, string> = {};
-    if (!noAllergies && !allergies.trim()) errors.allergies = "Please list any allergies, or check the box if you have none.";
-    if (!noMedications && !medications.trim()) errors.medications = "Please list any current medications, or check the box if you take none.";
+    if (!noAllergies && !allergies.trim()) errors.allergies = "Please list any drug allergies, or check the box if you have none.";
+    if (!noMedications && !medications.trim()) errors.medications = "Please list your current medications, or check the box if you take none.";
     if (!noMedicalHistory && !medicalHistory.trim()) errors.medicalHistory = "Please describe your medical history, or check the box if none.";
     setMedicalErrors(errors);
     return Object.keys(errors).length === 0;
   }
-
   function handleMedicalNext() {
     if (!validateMedical()) return;
-    if (requiresPhoto) goNext(STEPS.PHOTO);
-    else goNext(STEPS.REVIEW);
+    goTo(requiresPhoto ? STEPS.PHOTO : STEPS.ACCOUNT);
+  }
+
+  // ─── Step 5: Account / sign-in ────────────────────────────────────────────
+  function validateAddress() {
+    const errors: Record<string, string> = {};
+    if (!addrLine1.trim()) errors.addrLine1 = "Address line 1 is required.";
+    if (!addrCity.trim()) errors.addrCity = "Town or city is required.";
+    if (!addrPostcode.trim()) errors.addrPostcode = "Postcode is required.";
+    setAccountErrors(prev => ({ ...prev, ...errors }));
+    return Object.keys(errors).length === 0;
+  }
+
+  async function handleSignIn() {
+    const errors: Record<string, string> = {};
+    if (!signInEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signInEmail)) errors.signInEmail = "Valid email required.";
+    if (!signInPassword) errors.signInPassword = "Password required.";
+    setSignInErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    setSignInLoading(true);
+    try {
+      const res = await fetch(`${getBase()}/api/auth/patient-login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: signInEmail, password: signInPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setSignInErrors({ signInEmail: data.error || "Sign in failed" }); return; }
+
+      savePatientToStorage(data);
+      setPatientName(data.name);
+      setPatientEmail(data.email);
+      setPatientDob(data.dateOfBirth || "");
+      setPatientSex((data.sex as "male" | "female") || "");
+      setAddrLine1(data.addressLine1 || "");
+      setAddrLine2(data.addressLine2 || "");
+      setAddrCity(data.city || "");
+      setAddrPostcode(data.postcode || "");
+      setIsLoggedIn(true);
+      toast.success(`Welcome back, ${data.name.split(" ")[0]}!`);
+    } finally {
+      setSignInLoading(false);
+    }
+  }
+
+  async function handleRegister() {
+    const errors: Record<string, string> = {};
+    if (!regName.trim() || regName.trim().length < 2) errors.regName = "Full name is required.";
+    if (!regEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regEmail)) errors.regEmail = "Valid email required.";
+    if (!regDob) errors.regDob = "Date of birth is required.";
+    else {
+      const age = calculateAge(regDob);
+      if (age < 18) errors.regDob = "You must be 18 or over to use this service.";
+      if (age > 120) errors.regDob = "Please enter a valid date of birth.";
+    }
+    if (!regSex) errors.regSex = "Please select your sex at birth.";
+    if (!regPassword || regPassword.length < 8) errors.regPassword = "Password must be at least 8 characters.";
+    if (regPassword !== regConfirm) errors.regConfirm = "Passwords do not match.";
+    setRegErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+    if (!validateAddress()) return;
+
+    setRegLoading(true);
+    try {
+      const res = await fetch(`${getBase()}/api/auth/patient-register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: regName.trim(),
+          email: regEmail.trim(),
+          password: regPassword,
+          dateOfBirth: regDob,
+          sex: regSex,
+          addressLine1: addrLine1.trim(),
+          addressLine2: addrLine2.trim() || undefined,
+          city: addrCity.trim(),
+          postcode: addrPostcode.trim().toUpperCase(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.error?.includes("already exists")) {
+          setRegErrors({ regEmail: data.error });
+        } else {
+          toast.error(data.error || "Registration failed");
+        }
+        return;
+      }
+
+      savePatientToStorage(data);
+      setPatientName(data.name);
+      setPatientEmail(data.email);
+      setPatientDob(data.dateOfBirth || "");
+      setPatientSex((data.sex as "male" | "female") || "");
+      setAddrLine1(data.addressLine1 || addrLine1.trim());
+      setAddrLine2(data.addressLine2 || addrLine2.trim());
+      setAddrCity(data.city || addrCity.trim());
+      setAddrPostcode(data.postcode || addrPostcode.trim().toUpperCase());
+      setIsLoggedIn(true);
+      toast.success("Account created successfully!");
+    } finally {
+      setRegLoading(false);
+    }
+  }
+
+  async function handleAccountNext() {
+    if (!isLoggedIn) {
+      // They need to sign in or register first
+      if (accountTab === "signin") {
+        await handleSignIn();
+        // After sign in, only proceed if now logged in
+        if (!localStorage.getItem("patient_token")) return;
+      } else {
+        await handleRegister();
+        if (!localStorage.getItem("patient_token")) return;
+      }
+    } else {
+      // Already logged in — just validate address and optionally update profile
+      if (!validateAddress()) return;
+
+      // Save address to profile
+      const token = localStorage.getItem("patient_token");
+      if (token) {
+        fetch(`${getBase()}/api/auth/patient-profile`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            addressLine1: addrLine1.trim(),
+            addressLine2: addrLine2.trim() || undefined,
+            city: addrCity.trim(),
+            postcode: addrPostcode.trim().toUpperCase(),
+          }),
+        }).then(r => r.json()).then(d => {
+          if (d.addressLine1) {
+            localStorage.setItem("patient_address1", d.addressLine1);
+            localStorage.setItem("patient_city", d.city || "");
+            localStorage.setItem("patient_postcode", d.postcode || "");
+          }
+        }).catch(() => {});
+      }
+    }
+
+    // Check again in case of async state update
+    const token = localStorage.getItem("patient_token");
+    if (!token) return;
+    if (!addrLine1.trim() || !addrCity.trim() || !addrPostcode.trim()) {
+      if (!validateAddress()) return;
+    }
+    goTo(STEPS.REVIEW);
   }
 
   // ─── Submit ────────────────────────────────────────────────────────────────
@@ -243,27 +414,27 @@ export default function Consultation() {
       return;
     }
 
-    // Flatten clinical answers for submission
+    const age = patientDob ? calculateAge(patientDob) : 30;
+
     const answersPayload: Record<string, string> = {};
     if (questions) {
       for (const q of questions.clinicalQuestions) {
         const val = clinicalAnswers[q.id];
-        if (Array.isArray(val)) {
-          answersPayload[q.id] = val.join(", ");
-        } else if (val) {
-          answersPayload[q.id] = val as string;
-        }
+        if (Array.isArray(val)) answersPayload[q.id] = val.join(", ");
+        else if (val) answersPayload[q.id] = val as string;
       }
     }
+
+    // Include delivery address in answers
+    answersPayload._deliveryAddress = [addrLine1, addrLine2, addrCity, addrPostcode].filter(Boolean).join(", ");
 
     createMutation.mutate({
       data: {
         conditionId,
-        patientName: patientName.trim(),
-        patientEmail: patientEmail.trim(),
-        patientAge: parseInt(patientAge),
-        patientSex: patientSex as NewConsultationInputPatientSex,
-        isPregnant: patientSex === "female" ? isPregnant : undefined,
+        patientName,
+        patientEmail,
+        patientAge: age,
+        patientSex: (patientSex || "female") as NewConsultationInputPatientSex,
         allergies: noAllergies ? "None" : allergies.trim(),
         currentMedications: noMedications ? "None" : medications.trim(),
         medicalHistory: noMedicalHistory ? "None" : medicalHistory.trim(),
@@ -273,7 +444,7 @@ export default function Consultation() {
     });
   }
 
-  // ─── Loading / not found ───────────────────────────────────────────────────
+  // ─── Loading ───────────────────────────────────────────────────────────────
   if (isLoading || !condition || !questions) {
     return (
       <div className="min-h-screen bg-background flex flex-col font-sans">
@@ -281,7 +452,6 @@ export default function Consultation() {
         <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-12">
           <Skeleton className="h-3 w-full mb-10 rounded-full" />
           <Skeleton className="h-10 w-2/3 mb-4" />
-          <Skeleton className="h-5 w-1/2 mb-10" />
           <Skeleton className="h-80 w-full rounded-3xl" />
         </main>
       </div>
@@ -299,52 +469,35 @@ export default function Consultation() {
           >
             <CheckCircle2 className="w-14 h-14 text-green-600" />
           </motion.div>
-          <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}
-            className="text-4xl md:text-5xl font-serif font-bold text-secondary mb-4"
-          >
+          <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="text-4xl md:text-5xl font-serif font-bold text-secondary mb-4">
             Consultation Submitted
           </motion.h1>
-          <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}
-            className="text-lg text-muted-foreground mb-4"
-          >
+          <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="text-lg text-muted-foreground mb-2">
             Reference: <span className="font-mono font-bold text-secondary">{submittedRef}</span>
           </motion.p>
-          <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25 }}
-            className="text-base text-muted-foreground mb-10"
-          >
-            Our pharmacists are reviewing your details. This typically takes under 2 hours during working hours. You will receive an email update at <strong className="text-secondary">{patientEmail}</strong>.
+          <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25 }} className="text-base text-muted-foreground mb-10">
+            Our pharmacists are reviewing your details — typically within 2 hours during working hours. You'll receive an email at <strong className="text-secondary">{patientEmail}</strong>.
           </motion.p>
-
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
             <Card className="bg-white border-border/50 mb-8 text-left shadow-lg rounded-3xl overflow-hidden">
               <div className="h-2 w-full bg-gradient-to-r from-primary to-accent" />
-              <CardContent className="p-8">
-                <h3 className="text-xl font-bold text-secondary mb-6 flex items-center gap-3">
-                  <AlertCircle className="w-6 h-6 text-primary" /> What happens next?
-                </h3>
-                <ul className="space-y-5 text-muted-foreground">
-                  <li className="flex gap-4">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0 text-sm">1</div>
-                    <div className="pt-1">A qualified pharmacist will review your consultation and send a decision to <strong className="text-secondary">{patientEmail}</strong>.</div>
-                  </li>
-                  <li className="flex gap-4">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0 text-sm">2</div>
-                    <div className="pt-1">If approved, your prescription will be dispensed and dispatched to your address.</div>
-                  </li>
-                  <li className="flex gap-4">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0 text-sm">3</div>
-                    <div className="pt-1">Track your consultation status anytime in your patient portal.</div>
-                  </li>
-                </ul>
+              <CardContent className="p-8 space-y-5">
+                <h3 className="text-xl font-bold text-secondary flex items-center gap-3"><AlertCircle className="w-6 h-6 text-primary" /> What happens next?</h3>
+                {[
+                  ["1", "A qualified pharmacist will review your consultation and email the outcome to you."],
+                  ["2", "If approved, your prescription will be dispensed and dispatched to your delivery address."],
+                  ["3", "Track your consultation status anytime in your patient portal."],
+                ].map(([n, text]) => (
+                  <div key={n} className="flex gap-4">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0 text-sm">{n}</div>
+                    <div className="pt-1 text-muted-foreground text-sm">{text}</div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" asChild className="rounded-full px-10 h-14 text-base font-bold bg-primary">
-                <Link href="/my-consultations">View My Portal</Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild className="rounded-full px-10 h-14 text-base font-bold border-2">
-                <Link href="/">Return to Homepage</Link>
-              </Button>
+              <Button size="lg" asChild className="rounded-full px-10 h-14 text-base font-bold bg-primary"><Link href="/my-consultations">View My Portal</Link></Button>
+              <Button size="lg" variant="outline" asChild className="rounded-full px-10 h-14 text-base font-bold border-2"><Link href="/">Return to Homepage</Link></Button>
             </div>
           </motion.div>
         </main>
@@ -363,40 +516,25 @@ export default function Consultation() {
             <AlertTriangle className="w-12 h-12 text-amber-600" />
           </div>
           <h1 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-4">Not suitable for online treatment</h1>
-          <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-            Based on your answers, an online consultation is not appropriate for your current symptoms.
-          </p>
-          <Card className="bg-amber-50 border-amber-200 text-left rounded-2xl mb-8">
-            <CardContent className="p-6">
-              <p className="text-amber-900 font-medium leading-relaxed">{blocked.message}</p>
-            </CardContent>
-          </Card>
+          <p className="text-lg text-muted-foreground mb-8 leading-relaxed">Based on your answers, an online consultation is not appropriate for your current symptoms.</p>
+          <Card className="bg-amber-50 border-amber-200 text-left rounded-2xl mb-6"><CardContent className="p-6"><p className="text-amber-900 font-medium leading-relaxed">{blocked.message}</p></CardContent></Card>
           <Card className="bg-white border-border/50 text-left rounded-2xl mb-8">
-            <CardContent className="p-6 space-y-4">
+            <CardContent className="p-6 space-y-3">
               <h3 className="font-bold text-secondary text-lg">Get the right care now</h3>
-              <div className="flex items-center gap-3 p-3 bg-red-50 rounded-xl">
-                <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center text-white font-bold shrink-0">999</div>
-                <div>
-                  <p className="font-bold text-secondary text-sm">Life-threatening emergency</p>
-                  <p className="text-muted-foreground text-sm">Call 999 immediately</p>
+              {[
+                { num: "999", color: "red", title: "Life-threatening emergency", desc: "Call 999 immediately" },
+                { num: "111", color: "blue", title: "Urgent medical advice", desc: "Call or visit NHS 111 online" },
+              ].map(item => (
+                <div key={item.num} className={`flex items-center gap-3 p-3 bg-${item.color}-50 rounded-xl`}>
+                  <div className={`w-10 h-10 bg-${item.color}-600 rounded-full flex items-center justify-center text-white font-bold shrink-0 text-sm`}>{item.num}</div>
+                  <div><p className="font-bold text-secondary text-sm">{item.title}</p><p className="text-muted-foreground text-sm">{item.desc}</p></div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl">
-                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold shrink-0">111</div>
-                <div>
-                  <p className="font-bold text-secondary text-sm">Urgent medical advice</p>
-                  <p className="text-muted-foreground text-sm">Call or visit NHS 111 online</p>
-                </div>
-              </div>
+              ))}
             </CardContent>
           </Card>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="outline" className="rounded-full px-8 h-12 font-bold border-2" onClick={() => { setBlocked(null); setEligibilityAnswers({}); scrollTop(); }}>
-              Go back
-            </Button>
-            <Button asChild className="rounded-full px-8 h-12 font-bold bg-secondary">
-              <Link href="/conditions">Browse other conditions</Link>
-            </Button>
+            <Button variant="outline" className="rounded-full px-8 h-12 font-bold border-2" onClick={() => { setBlocked(null); setEligibilityAnswers({}); scrollTop(); }}>Go back</Button>
+            <Button asChild className="rounded-full px-8 h-12 font-bold bg-secondary"><Link href="/conditions">Browse other conditions</Link></Button>
           </div>
         </main>
         <Footer />
@@ -404,71 +542,88 @@ export default function Consultation() {
     );
   }
 
-  // ─── Helpers to render clinical question ───────────────────────────────────
+  // ─── Render clinical question ──────────────────────────────────────────────
   function renderClinicalQuestion(q: ClinicalQuestion) {
     const answer = clinicalAnswers[q.id];
     const error = clinicalErrors[q.id];
-
     return (
       <div key={q.id} className="space-y-3">
         <div>
           <p className="text-base font-bold text-secondary">{q.text}</p>
           {q.subtext && <p className="text-sm text-muted-foreground mt-1">{q.subtext}</p>}
         </div>
-
         {q.type === "radio" && q.options && (
           <div className="space-y-2">
-            {q.options.map(opt => (
-              <RadioCard key={opt.value} value={opt.value} label={opt.label}
-                selected={answer === opt.value}
-                onSelect={() => setClinicalAnswer(q.id, opt.value)}
-              />
-            ))}
+            {q.options.map(opt => <RadioCard key={opt.value} value={opt.value} label={opt.label} selected={answer === opt.value} onSelect={() => setClinicalAnswer(q.id, opt.value)} />)}
           </div>
         )}
-
         {q.type === "checkbox_group" && q.options && (
           <div className="space-y-2">
-            {q.options.map(opt => (
-              <CheckboxCard key={opt.value} value={opt.value} label={opt.label}
-                checked={Array.isArray(answer) && answer.includes(opt.value)}
-                onToggle={() => toggleClinicalCheckbox(q.id, opt.value)}
-              />
-            ))}
+            {q.options.map(opt => <CheckboxCard key={opt.value} value={opt.value} label={opt.label} checked={Array.isArray(answer) && answer.includes(opt.value)} onToggle={() => toggleClinicalCheckbox(q.id, opt.value)} />)}
           </div>
         )}
-
         {q.type === "textarea" && (
-          <Textarea
-            value={(answer as string) || ""}
-            onChange={e => setClinicalAnswer(q.id, e.target.value)}
-            placeholder="Type your answer here..."
-            className="min-h-[110px] text-base rounded-xl bg-muted/20 resize-none"
-          />
+          <Textarea value={(answer as string) || ""} onChange={e => setClinicalAnswer(q.id, e.target.value)} placeholder="Type your answer here..." className="min-h-[110px] text-base rounded-xl bg-muted/20 resize-none" />
         )}
-
-        {error && <p className="text-sm text-red-600 font-medium flex items-center gap-1.5"><AlertCircle className="w-4 h-4" />{error}</p>}
+        {error && <FieldError msg={error} />}
       </div>
     );
   }
 
-  // ─── Header progress bar ───────────────────────────────────────────────────
+  // ─── Progress bar labels ───────────────────────────────────────────────────
   const stepLabels = requiresPhoto
-    ? ["Safety Check", "About You", "Symptoms", "Medical", "Photo", "Review"]
-    : ["Safety Check", "About You", "Symptoms", "Medical", "Review"];
-
+    ? ["Safety Check", "Symptoms", "Medical", "Photo", "Account", "Review"]
+    : ["Safety Check", "Symptoms", "Medical", "Account", "Review"];
   const currentStepLabel = stepLabels[visualStep(step) - 1] || "";
+
+  // ─── Address fields (shared between register & logged-in) ─────────────────
+  function AddressFields() {
+    return (
+      <div className="space-y-5 pt-5 border-t border-border/50">
+        <div className="flex items-center gap-2 text-sm font-bold text-secondary">
+          <MapPin className="w-4 h-4 text-primary" /> Delivery Address
+        </div>
+        <p className="text-sm text-muted-foreground -mt-3">Where should we send your medication?</p>
+
+        <div className="space-y-2">
+          <Label className="text-sm font-bold text-secondary">Address Line 1</Label>
+          <Input value={addrLine1} onChange={e => { setAddrLine1(e.target.value); setAccountErrors(p => ({ ...p, addrLine1: "" })); }}
+            placeholder="e.g. 12 High Street" className={`h-12 text-base rounded-xl bg-muted/20 ${accountErrors.addrLine1 ? "border-red-500" : ""}`} />
+          <FieldError msg={accountErrors.addrLine1} />
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-sm font-bold text-secondary">Address Line 2 <span className="font-normal text-muted-foreground">(optional)</span></Label>
+          <Input value={addrLine2} onChange={e => setAddrLine2(e.target.value)} placeholder="e.g. Flat 3, Apartment name" className="h-12 text-base rounded-xl bg-muted/20" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-bold text-secondary">Town / City</Label>
+            <Input value={addrCity} onChange={e => { setAddrCity(e.target.value); setAccountErrors(p => ({ ...p, addrCity: "" })); }}
+              placeholder="e.g. London" className={`h-12 text-base rounded-xl bg-muted/20 ${accountErrors.addrCity ? "border-red-500" : ""}`} />
+            <FieldError msg={accountErrors.addrCity} />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-bold text-secondary">Postcode</Label>
+            <Input value={addrPostcode} onChange={e => { setAddrPostcode(e.target.value.toUpperCase()); setAccountErrors(p => ({ ...p, addrPostcode: "" })); }}
+              placeholder="e.g. SW1A 1AA" className={`h-12 text-base rounded-xl bg-muted/20 font-mono uppercase ${accountErrors.addrPostcode ? "border-red-500" : ""}`} />
+            <FieldError msg={accountErrors.addrPostcode} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       {/* Sticky progress header */}
       <header className="bg-white border-b border-border/50 py-4 px-6 sticky top-0 z-50 shadow-sm">
         <div className="max-w-3xl mx-auto flex items-center justify-between mb-3">
-          <Link href={`/conditions/${condition.id}`}
-            className="text-muted-foreground hover:text-secondary flex items-center text-sm font-medium transition-colors group"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Cancel
-          </Link>
+          <button onClick={goBack} className="text-muted-foreground hover:text-secondary flex items-center text-sm font-medium transition-colors group">
+            <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+            {step === STEPS.ELIGIBILITY ? <Link href={`/conditions/${condition.id}`}>Cancel</Link> : "Back"}
+          </button>
           <div className="text-secondary font-bold text-base hidden sm:block">{condition.name}</div>
           <div className="flex items-center gap-1.5 text-xs font-bold text-green-700 bg-green-50 px-3 py-1.5 rounded-full">
             <ShieldCheck className="w-3.5 h-3.5" /> Secure
@@ -488,7 +643,7 @@ export default function Consultation() {
       <main className="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 py-10 md:py-14">
         <AnimatePresence mode="wait">
 
-          {/* ── Step 1: Eligibility / Safety Check ───────────────────────── */}
+          {/* ── Step 1: Safety Check ──────────────────────────────────────── */}
           {step === STEPS.ELIGIBILITY && (
             <StepWrapper stepKey="eligibility">
               <div className="mb-8">
@@ -496,9 +651,8 @@ export default function Consultation() {
                   <ShieldCheck className="w-4 h-4" /> Safety Check
                 </div>
                 <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-2">Before we begin</h2>
-                <p className="text-base text-muted-foreground">Please answer honestly — these questions help ensure this service is safe for you.</p>
+                <p className="text-base text-muted-foreground">Answer honestly — these questions ensure this service is safe for you.</p>
               </div>
-
               <div className="bg-white rounded-3xl shadow-sm border border-border/50 p-8 space-y-8">
                 {questions.eligibilityQuestions.map((q: EligibilityQuestion) => (
                   <div key={q.id} className="space-y-3">
@@ -506,19 +660,13 @@ export default function Consultation() {
                     {q.subtext && <p className="text-sm text-muted-foreground">{q.subtext}</p>}
                     <div className="grid grid-cols-2 gap-3">
                       {["yes", "no"].map(v => (
-                        <RadioCard key={v} value={v} label={v === "yes" ? "Yes" : "No"}
-                          selected={eligibilityAnswers[q.id] === v}
-                          onSelect={() => setEligibilityAnswers(prev => ({ ...prev, [q.id]: v }))}
-                        />
+                        <RadioCard key={v} value={v} label={v === "yes" ? "Yes" : "No"} selected={eligibilityAnswers[q.id] === v} onSelect={() => setEligibilityAnswers(prev => ({ ...prev, [q.id]: v }))} />
                       ))}
                     </div>
                   </div>
                 ))}
-
                 <div className="pt-4 border-t border-border/50">
-                  <Button type="button" size="lg" onClick={handleEligibilityNext}
-                    className="w-full sm:w-auto h-14 px-10 rounded-full text-base font-bold bg-primary hover:bg-primary/90 shadow-md float-right"
-                  >
+                  <Button type="button" size="lg" onClick={handleEligibilityNext} className="w-full sm:w-auto h-14 px-10 rounded-full text-base font-bold bg-primary hover:bg-primary/90 shadow-md float-right">
                     Continue <ChevronRight className="w-5 h-5 ml-1" />
                   </Button>
                 </div>
@@ -526,106 +674,15 @@ export default function Consultation() {
             </StepWrapper>
           )}
 
-          {/* ── Step 2: Personal Details ──────────────────────────────────── */}
-          {step === STEPS.PERSONAL && (
-            <StepWrapper stepKey="personal">
-              <div className="mb-8">
-                <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-2">About you</h2>
-                <p className="text-base text-muted-foreground">We need to confirm your identity to prescribe medication safely.</p>
-              </div>
-
-              <div className="bg-white rounded-3xl shadow-sm border border-border/50 p-8 space-y-6">
-                <div className="space-y-2">
-                  <Label className="text-sm font-bold text-secondary">Full Legal Name</Label>
-                  <Input
-                    value={patientName}
-                    onChange={e => { setPatientName(e.target.value); setPersonalErrors(p => ({ ...p, patientName: "" })); }}
-                    placeholder="e.g. Jane Smith"
-                    className={`h-13 text-base rounded-xl bg-muted/20 ${personalErrors.patientName ? "border-red-500" : ""}`}
-                  />
-                  {personalErrors.patientName && <p className="text-sm text-red-600 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" />{personalErrors.patientName}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-bold text-secondary">Email Address</Label>
-                  <p className="text-xs text-muted-foreground">Your consultation outcome and any prescriptions will be sent here.</p>
-                  <Input
-                    type="email"
-                    value={patientEmail}
-                    onChange={e => { setPatientEmail(e.target.value); setPersonalErrors(p => ({ ...p, patientEmail: "" })); }}
-                    placeholder="jane@example.com"
-                    className={`h-13 text-base rounded-xl bg-muted/20 ${personalErrors.patientEmail ? "border-red-500" : ""}`}
-                  />
-                  {personalErrors.patientEmail && <p className="text-sm text-red-600 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" />{personalErrors.patientEmail}</p>}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-bold text-secondary">Age</Label>
-                    <Input
-                      type="number"
-                      min={18}
-                      max={120}
-                      value={patientAge}
-                      onChange={e => { setPatientAge(e.target.value); setPersonalErrors(p => ({ ...p, patientAge: "" })); }}
-                      placeholder="Enter your age"
-                      className={`h-13 text-base rounded-xl bg-muted/20 ${personalErrors.patientAge ? "border-red-500" : ""}`}
-                    />
-                    {personalErrors.patientAge && <p className="text-sm text-red-600 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" />{personalErrors.patientAge}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-bold text-secondary">Sex at Birth</Label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {(["male", "female"] as const).map(s => (
-                        <RadioCard key={s} value={s} label={s.charAt(0).toUpperCase() + s.slice(1)}
-                          selected={patientSex === s}
-                          onSelect={() => { setPatientSex(s); setPersonalErrors(p => ({ ...p, patientSex: "" })); }}
-                        />
-                      ))}
-                    </div>
-                    {personalErrors.patientSex && <p className="text-sm text-red-600 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" />{personalErrors.patientSex}</p>}
-                  </div>
-                </div>
-
-                <AnimatePresence>
-                  {patientSex === "female" && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
-                      <div
-                        className={`flex items-start gap-4 p-5 border-2 rounded-2xl cursor-pointer transition-colors ${isPregnant ? "border-primary bg-primary/5" : "border-border/50 hover:bg-muted/10"}`}
-                        onClick={() => setIsPregnant(!isPregnant)}
-                      >
-                        <Checkbox checked={isPregnant} onCheckedChange={v => setIsPregnant(!!v)} className="w-5 h-5 border-2 mt-0.5" onClick={e => e.stopPropagation()} />
-                        <div>
-                          <p className="font-bold text-secondary text-sm">I am currently pregnant or breastfeeding</p>
-                          <p className="text-xs text-muted-foreground mt-1">Some medications are not suitable during pregnancy or breastfeeding.</p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <div className="pt-4 border-t border-border/50 flex flex-col-reverse sm:flex-row justify-between gap-3">
-                  <Button type="button" variant="outline" className="h-12 px-8 rounded-full font-bold border-2" onClick={goBack}>Back</Button>
-                  <Button type="button" size="lg" onClick={handlePersonalNext} className="h-12 px-10 rounded-full font-bold bg-primary hover:bg-primary/90 shadow-md">
-                    Continue <ChevronRight className="w-5 h-5 ml-1" />
-                  </Button>
-                </div>
-              </div>
-            </StepWrapper>
-          )}
-
-          {/* ── Step 3: Clinical Questions ────────────────────────────────── */}
+          {/* ── Step 2: Clinical Questions ────────────────────────────────── */}
           {step === STEPS.CLINICAL && (
             <StepWrapper stepKey="clinical">
               <div className="mb-8">
                 <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-2">Your {condition.name} symptoms</h2>
-                <p className="text-base text-muted-foreground">These questions help our pharmacist make a safe prescribing decision for you.</p>
+                <p className="text-base text-muted-foreground">These help our pharmacist make a safe prescribing decision.</p>
               </div>
-
               <div className="bg-white rounded-3xl shadow-sm border border-border/50 p-8 space-y-8">
                 {questions.clinicalQuestions.map(renderClinicalQuestion)}
-
                 <div className="pt-4 border-t border-border/50 flex flex-col-reverse sm:flex-row justify-between gap-3">
                   <Button type="button" variant="outline" className="h-12 px-8 rounded-full font-bold border-2" onClick={goBack}>Back</Button>
                   <Button type="button" size="lg" onClick={handleClinicalNext} className="h-12 px-10 rounded-full font-bold bg-primary hover:bg-primary/90 shadow-md">
@@ -636,73 +693,51 @@ export default function Consultation() {
             </StepWrapper>
           )}
 
-          {/* ── Step 4: Medical History ───────────────────────────────────── */}
+          {/* ── Step 3: Medical History ───────────────────────────────────── */}
           {step === STEPS.MEDICAL && (
             <StepWrapper stepKey="medical">
               <div className="mb-8">
                 <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-2">Medical background</h2>
-                <p className="text-base text-muted-foreground">This helps our pharmacist ensure the treatment is safe and appropriate for you.</p>
+                <p className="text-base text-muted-foreground">Helps our pharmacist ensure the treatment is safe for you.</p>
               </div>
-
               <div className="bg-white rounded-3xl shadow-sm border border-border/50 p-8 space-y-8">
                 {/* Allergies */}
                 <div className="space-y-3">
                   <Label className="text-base font-bold text-secondary">Do you have any allergies to medications?</Label>
-                  <p className="text-sm text-muted-foreground">Include drug allergies and any reactions to medication ingredients.</p>
-                  <Textarea
-                    value={allergies}
-                    onChange={e => { setAllergies(e.target.value); setMedicalErrors(p => ({ ...p, allergies: "" })); }}
-                    disabled={noAllergies}
-                    placeholder="e.g. Penicillin – causes rash and swelling..."
-                    className={`min-h-[100px] text-base rounded-xl resize-none transition-opacity ${noAllergies ? "opacity-40 bg-muted" : "bg-muted/20"} ${medicalErrors.allergies ? "border-red-500" : ""}`}
-                  />
-                  <div className="flex items-center gap-3 p-3 bg-muted/10 rounded-xl cursor-pointer hover:bg-muted/20 transition-colors"
-                    onClick={() => { setNoAllergies(!noAllergies); setAllergies(""); setMedicalErrors(p => ({ ...p, allergies: "" })); }}
-                  >
-                    <Checkbox checked={noAllergies} onCheckedChange={v => { setNoAllergies(!!v); setAllergies(""); setMedicalErrors(p => ({ ...p, allergies: "" })); }} className="w-4 h-4 border-2" onClick={e => e.stopPropagation()} />
+                  <p className="text-sm text-muted-foreground">Include all drug allergies and any reactions to medication ingredients.</p>
+                  <Textarea value={allergies} onChange={e => { setAllergies(e.target.value); setMedicalErrors(p => ({ ...p, allergies: "" })); }} disabled={noAllergies}
+                    placeholder="e.g. Penicillin – causes rash..." className={`min-h-[90px] text-base rounded-xl resize-none transition-opacity ${noAllergies ? "opacity-40 bg-muted" : "bg-muted/20"} ${medicalErrors.allergies ? "border-red-500" : ""}`} />
+                  <div className="flex items-center gap-3 p-3 bg-muted/10 rounded-xl cursor-pointer hover:bg-muted/20 transition-colors" onClick={() => { setNoAllergies(!noAllergies); setAllergies(""); setMedicalErrors(p => ({ ...p, allergies: "" })); }}>
+                    <Checkbox checked={noAllergies} onCheckedChange={v => { setNoAllergies(!!v); setAllergies(""); }} className="w-4 h-4 border-2" onClick={e => e.stopPropagation()} />
                     <Label className="text-sm font-semibold text-secondary cursor-pointer">I have no known drug allergies</Label>
                   </div>
-                  {medicalErrors.allergies && <p className="text-sm text-red-600 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" />{medicalErrors.allergies}</p>}
+                  <FieldError msg={medicalErrors.allergies} />
                 </div>
 
                 {/* Medications */}
                 <div className="space-y-3 pt-4 border-t border-border/50">
-                  <Label className="text-base font-bold text-secondary">Are you currently taking any other medication?</Label>
-                  <p className="text-sm text-muted-foreground">Include all prescription medicines, over-the-counter drugs, vitamins and herbal supplements.</p>
-                  <Textarea
-                    value={medications}
-                    onChange={e => { setMedications(e.target.value); setMedicalErrors(p => ({ ...p, medications: "" })); }}
-                    disabled={noMedications}
-                    placeholder="e.g. Lisinopril 10mg daily, Paracetamol when needed..."
-                    className={`min-h-[100px] text-base rounded-xl resize-none transition-opacity ${noMedications ? "opacity-40 bg-muted" : "bg-muted/20"} ${medicalErrors.medications ? "border-red-500" : ""}`}
-                  />
-                  <div className="flex items-center gap-3 p-3 bg-muted/10 rounded-xl cursor-pointer hover:bg-muted/20 transition-colors"
-                    onClick={() => { setNoMedications(!noMedications); setMedications(""); setMedicalErrors(p => ({ ...p, medications: "" })); }}
-                  >
-                    <Checkbox checked={noMedications} onCheckedChange={v => { setNoMedications(!!v); setMedications(""); setMedicalErrors(p => ({ ...p, medications: "" })); }} className="w-4 h-4 border-2" onClick={e => e.stopPropagation()} />
+                  <Label className="text-base font-bold text-secondary">Are you currently taking any medication?</Label>
+                  <p className="text-sm text-muted-foreground">Include all prescription drugs, over-the-counter medicines, vitamins and herbal supplements.</p>
+                  <Textarea value={medications} onChange={e => { setMedications(e.target.value); setMedicalErrors(p => ({ ...p, medications: "" })); }} disabled={noMedications}
+                    placeholder="e.g. Lisinopril 10mg daily..." className={`min-h-[90px] text-base rounded-xl resize-none transition-opacity ${noMedications ? "opacity-40 bg-muted" : "bg-muted/20"} ${medicalErrors.medications ? "border-red-500" : ""}`} />
+                  <div className="flex items-center gap-3 p-3 bg-muted/10 rounded-xl cursor-pointer hover:bg-muted/20 transition-colors" onClick={() => { setNoMedications(!noMedications); setMedications(""); setMedicalErrors(p => ({ ...p, medications: "" })); }}>
+                    <Checkbox checked={noMedications} onCheckedChange={v => { setNoMedications(!!v); setMedications(""); }} className="w-4 h-4 border-2" onClick={e => e.stopPropagation()} />
                     <Label className="text-sm font-semibold text-secondary cursor-pointer">I am not currently taking any medication</Label>
                   </div>
-                  {medicalErrors.medications && <p className="text-sm text-red-600 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" />{medicalErrors.medications}</p>}
+                  <FieldError msg={medicalErrors.medications} />
                 </div>
 
                 {/* Medical history */}
                 <div className="space-y-3 pt-4 border-t border-border/50">
                   <Label className="text-base font-bold text-secondary">Do you have any ongoing medical conditions?</Label>
                   <p className="text-sm text-muted-foreground">E.g. diabetes, heart disease, kidney disease, epilepsy, asthma, mental health conditions.</p>
-                  <Textarea
-                    value={medicalHistory}
-                    onChange={e => { setMedicalHistory(e.target.value); setMedicalErrors(p => ({ ...p, medicalHistory: "" })); }}
-                    disabled={noMedicalHistory}
-                    placeholder="e.g. Type 2 diabetes, well-controlled. High blood pressure."
-                    className={`min-h-[100px] text-base rounded-xl resize-none transition-opacity ${noMedicalHistory ? "opacity-40 bg-muted" : "bg-muted/20"} ${medicalErrors.medicalHistory ? "border-red-500" : ""}`}
-                  />
-                  <div className="flex items-center gap-3 p-3 bg-muted/10 rounded-xl cursor-pointer hover:bg-muted/20 transition-colors"
-                    onClick={() => { setNoMedicalHistory(!noMedicalHistory); setMedicalHistory(""); setMedicalErrors(p => ({ ...p, medicalHistory: "" })); }}
-                  >
-                    <Checkbox checked={noMedicalHistory} onCheckedChange={v => { setNoMedicalHistory(!!v); setMedicalHistory(""); setMedicalErrors(p => ({ ...p, medicalHistory: "" })); }} className="w-4 h-4 border-2" onClick={e => e.stopPropagation()} />
+                  <Textarea value={medicalHistory} onChange={e => { setMedicalHistory(e.target.value); setMedicalErrors(p => ({ ...p, medicalHistory: "" })); }} disabled={noMedicalHistory}
+                    placeholder="e.g. Type 2 diabetes, well-controlled..." className={`min-h-[90px] text-base rounded-xl resize-none transition-opacity ${noMedicalHistory ? "opacity-40 bg-muted" : "bg-muted/20"} ${medicalErrors.medicalHistory ? "border-red-500" : ""}`} />
+                  <div className="flex items-center gap-3 p-3 bg-muted/10 rounded-xl cursor-pointer hover:bg-muted/20 transition-colors" onClick={() => { setNoMedicalHistory(!noMedicalHistory); setMedicalHistory(""); setMedicalErrors(p => ({ ...p, medicalHistory: "" })); }}>
+                    <Checkbox checked={noMedicalHistory} onCheckedChange={v => { setNoMedicalHistory(!!v); setMedicalHistory(""); }} className="w-4 h-4 border-2" onClick={e => e.stopPropagation()} />
                     <Label className="text-sm font-semibold text-secondary cursor-pointer">I have no significant medical history</Label>
                   </div>
-                  {medicalErrors.medicalHistory && <p className="text-sm text-red-600 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" />{medicalErrors.medicalHistory}</p>}
+                  <FieldError msg={medicalErrors.medicalHistory} />
                 </div>
 
                 <div className="pt-4 border-t border-border/50 flex flex-col-reverse sm:flex-row justify-between gap-3">
@@ -715,14 +750,13 @@ export default function Consultation() {
             </StepWrapper>
           )}
 
-          {/* ── Step 5: Photo Upload (conditional) ───────────────────────── */}
+          {/* ── Step 4: Photo Upload (conditional) ───────────────────────── */}
           {step === STEPS.PHOTO && requiresPhoto && (
             <StepWrapper stepKey="photo">
               <div className="mb-8">
                 <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-2">Upload photos</h2>
                 <p className="text-base text-muted-foreground">Our pharmacist needs to see the affected area to prescribe safely.</p>
               </div>
-
               <div className="bg-white rounded-3xl shadow-sm border border-border/50 p-8">
                 <div className="border-2 border-dashed border-primary/40 rounded-2xl p-14 text-center bg-primary/5 cursor-pointer hover:bg-primary/8 transition-colors group">
                   <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-5 shadow-sm group-hover:scale-105 transition-transform">
@@ -732,18 +766,188 @@ export default function Consultation() {
                   <p className="text-muted-foreground text-sm mb-5">JPEG or PNG, up to 10MB each</p>
                   <Button variant="outline" className="border-2 border-primary text-primary hover:bg-primary/10 rounded-full px-8 font-bold">Select Files</Button>
                 </div>
-
-                <div className="mt-6 bg-amber-50 p-5 rounded-2xl text-amber-800 flex gap-4 border border-amber-100">
-                  <AlertCircle className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" />
-                  <p className="text-sm font-medium leading-relaxed">Please ensure the area is well-lit and in focus. Avoid including your face or other identifiable features if possible. All images are encrypted and accessed only by our clinical team.</p>
+                <div className="mt-6 bg-amber-50 p-5 rounded-2xl flex gap-4 border border-amber-100">
+                  <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <p className="text-sm text-amber-800 font-medium leading-relaxed">Please ensure the area is well-lit and in focus. All images are encrypted and only accessed by our clinical team.</p>
                 </div>
-
                 <div className="pt-6 border-t border-border/50 mt-6 flex flex-col-reverse sm:flex-row justify-between gap-3">
                   <Button type="button" variant="outline" className="h-12 px-8 rounded-full font-bold border-2" onClick={goBack}>Back</Button>
-                  <Button type="button" size="lg" onClick={() => goNext(STEPS.REVIEW)} className="h-12 px-10 rounded-full font-bold bg-primary hover:bg-primary/90 shadow-md">
-                    Continue to Review <ChevronRight className="w-5 h-5 ml-1" />
+                  <Button type="button" size="lg" onClick={() => goTo(STEPS.ACCOUNT)} className="h-12 px-10 rounded-full font-bold bg-primary hover:bg-primary/90 shadow-md">
+                    Continue <ChevronRight className="w-5 h-5 ml-1" />
                   </Button>
                 </div>
+              </div>
+            </StepWrapper>
+          )}
+
+          {/* ── Step 5: Account & Delivery ────────────────────────────────── */}
+          {step === STEPS.ACCOUNT && (
+            <StepWrapper stepKey="account">
+              <div className="mb-8">
+                <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-2">
+                  {isLoggedIn ? "Delivery details" : "Create your account"}
+                </h2>
+                <p className="text-base text-muted-foreground">
+                  {isLoggedIn
+                    ? `Signed in as ${patientName}. Where should we send your medication?`
+                    : "Almost there. Create a free account so you can track your consultation and receive updates."
+                  }
+                </p>
+              </div>
+
+              <div className="bg-white rounded-3xl shadow-sm border border-border/50 p-8 space-y-6">
+
+                {/* ── LOGGED IN: Just show profile summary + address ─────── */}
+                {isLoggedIn ? (
+                  <>
+                    <div className="bg-slate-50 rounded-2xl p-5 flex items-center gap-4 border border-border/50">
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <User className="w-6 h-6 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-secondary">{patientName}</p>
+                        <p className="text-sm text-muted-foreground">{patientEmail}</p>
+                        {patientDob && <p className="text-sm text-muted-foreground">DOB: {new Date(patientDob).toLocaleDateString("en-GB")}</p>}
+                      </div>
+                      <button onClick={() => { localStorage.removeItem("patient_token"); setIsLoggedIn(false); setPatientName(""); setPatientEmail(""); setPatientDob(""); setPatientSex(""); }} className="ml-auto text-xs text-muted-foreground hover:text-secondary underline">
+                        Not you?
+                      </button>
+                    </div>
+                    <AddressFields />
+                  </>
+                ) : (
+                  /* ── NOT LOGGED IN: Sign in / Register tabs ─────────────── */
+                  <>
+                    {/* Tabs */}
+                    <div className="flex border-b border-border/50 -mx-8 px-8 gap-0">
+                      {([["register", "Create Account"], ["signin", "Sign In"]] as const).map(([tab, label]) => (
+                        <button key={tab} type="button" onClick={() => setAccountTab(tab)}
+                          className={`flex-1 pb-3 text-sm font-bold transition-colors border-b-2 -mb-px ${accountTab === tab ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-secondary"}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {accountTab === "signin" ? (
+                      /* ── Sign In ──────────────────────── */
+                      <div className="space-y-5 pt-2">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-secondary">Email Address</Label>
+                          <div className="relative">
+                            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+                            <Input type="email" value={signInEmail} onChange={e => { setSignInEmail(e.target.value); setSignInErrors(p => ({ ...p, signInEmail: "" })); }}
+                              placeholder="jane@example.com" className={`pl-10 h-12 text-base rounded-xl bg-muted/20 ${signInErrors.signInEmail ? "border-red-500" : ""}`} />
+                          </div>
+                          <FieldError msg={signInErrors.signInEmail} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-secondary">Password</Label>
+                          <div className="relative">
+                            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+                            <Input type={showSignInPass ? "text" : "password"} value={signInPassword} onChange={e => { setSignInPassword(e.target.value); setSignInErrors(p => ({ ...p, signInPassword: "" })); }}
+                              placeholder="Your password" className={`pl-10 pr-10 h-12 text-base rounded-xl bg-muted/20 ${signInErrors.signInPassword ? "border-red-500" : ""}`} />
+                            <button type="button" onClick={() => setShowSignInPass(!showSignInPass)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-secondary">
+                              {showSignInPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
+                          <FieldError msg={signInErrors.signInPassword} />
+                        </div>
+
+                        <Button type="button" onClick={handleSignIn} disabled={signInLoading} className="w-full h-12 rounded-xl font-bold bg-secondary text-white hover:bg-secondary/90">
+                          {signInLoading ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Signing in...</span> : <span className="flex items-center gap-2"><LogIn className="w-4 h-4" /> Sign In</span>}
+                        </Button>
+                      </div>
+                    ) : (
+                      /* ── Create Account ────────────────── */
+                      <div className="space-y-5 pt-2">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-secondary">Full Legal Name</Label>
+                          <div className="relative">
+                            <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+                            <Input value={regName} onChange={e => { setRegName(e.target.value); setRegErrors(p => ({ ...p, regName: "" })); }}
+                              placeholder="e.g. Jane Smith" className={`pl-10 h-12 text-base rounded-xl bg-muted/20 ${regErrors.regName ? "border-red-500" : ""}`} />
+                          </div>
+                          <FieldError msg={regErrors.regName} />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-sm font-bold text-secondary">Date of Birth</Label>
+                            <Input type="date" value={regDob} onChange={e => { setRegDob(e.target.value); setRegErrors(p => ({ ...p, regDob: "" })); }}
+                              max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split("T")[0]}
+                              className={`h-12 text-base rounded-xl bg-muted/20 ${regErrors.regDob ? "border-red-500" : ""}`} />
+                            <FieldError msg={regErrors.regDob} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-bold text-secondary">Sex at Birth</Label>
+                            <div className="grid grid-cols-2 gap-2">
+                              {(["male", "female"] as const).map(s => (
+                                <RadioCard key={s} value={s} label={s === "male" ? "Male" : "Female"} selected={regSex === s} onSelect={() => { setRegSex(s); setRegErrors(p => ({ ...p, regSex: "" })); }} />
+                              ))}
+                            </div>
+                            <FieldError msg={regErrors.regSex} />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-secondary">Email Address</Label>
+                          <div className="relative">
+                            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+                            <Input type="email" value={regEmail} onChange={e => { setRegEmail(e.target.value); setRegErrors(p => ({ ...p, regEmail: "" })); }}
+                              placeholder="jane@example.com" className={`pl-10 h-12 text-base rounded-xl bg-muted/20 ${regErrors.regEmail ? "border-red-500" : ""}`} />
+                          </div>
+                          <FieldError msg={regErrors.regEmail} />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-sm font-bold text-secondary">Password</Label>
+                            <div className="relative">
+                              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+                              <Input type={showRegPass ? "text" : "password"} value={regPassword} onChange={e => { setRegPassword(e.target.value); setRegErrors(p => ({ ...p, regPassword: "" })); }}
+                                placeholder="Min. 8 characters" className={`pl-10 pr-10 h-12 text-base rounded-xl bg-muted/20 ${regErrors.regPassword ? "border-red-500" : ""}`} />
+                              <button type="button" onClick={() => setShowRegPass(!showRegPass)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-secondary">
+                                {showRegPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                            </div>
+                            <FieldError msg={regErrors.regPassword} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-bold text-secondary">Confirm Password</Label>
+                            <div className="relative">
+                              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+                              <Input type="password" value={regConfirm} onChange={e => { setRegConfirm(e.target.value); setRegErrors(p => ({ ...p, regConfirm: "" })); }}
+                                placeholder="Repeat password" className={`pl-10 h-12 text-base rounded-xl bg-muted/20 ${regErrors.regConfirm ? "border-red-500" : ""}`} />
+                            </div>
+                            <FieldError msg={regErrors.regConfirm} />
+                          </div>
+                        </div>
+
+                        <AddressFields />
+
+                        <Button type="button" onClick={handleRegister} disabled={regLoading} className="w-full h-12 rounded-xl font-bold bg-secondary text-white hover:bg-secondary/90">
+                          {regLoading ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Creating account...</span> : "Create Account & Continue"}
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Address is shown after sign-in only if not logged in yet */}
+                    {accountTab === "signin" && !isLoggedIn && (
+                      <p className="text-xs text-center text-muted-foreground">Sign in first, then enter your delivery address.</p>
+                    )}
+                  </>
+                )}
+
+                {/* After logged in via sign-in tab, show address + continue */}
+                {isLoggedIn && (
+                  <div className="pt-4 border-t border-border/50 flex flex-col-reverse sm:flex-row justify-between gap-3">
+                    <Button type="button" variant="outline" className="h-12 px-8 rounded-full font-bold border-2" onClick={goBack}>Back</Button>
+                    <Button type="button" size="lg" onClick={handleAccountNext} className="h-12 px-10 rounded-full font-bold bg-primary hover:bg-primary/90 shadow-md">
+                      Continue to Review <ChevronRight className="w-5 h-5 ml-1" />
+                    </Button>
+                  </div>
+                )}
               </div>
             </StepWrapper>
           )}
@@ -753,26 +957,26 @@ export default function Consultation() {
             <StepWrapper stepKey="review">
               <div className="mb-8">
                 <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-2">Review & Submit</h2>
-                <p className="text-base text-muted-foreground">Please review your information carefully before submitting.</p>
+                <p className="text-base text-muted-foreground">Please check everything carefully before submitting your consultation.</p>
               </div>
-
               <div className="space-y-5">
-                {/* Personal details card */}
+
+                {/* Patient details */}
                 <Card className="border-border/50 shadow-sm rounded-2xl overflow-hidden">
                   <div className="flex items-center justify-between px-7 py-4 border-b border-border/50">
-                    <h3 className="font-bold text-secondary">Personal Details</h3>
-                    <Button variant="ghost" size="sm" className="text-primary font-bold hover:bg-primary/10 rounded-full px-3 h-8 text-sm" onClick={() => { setStep(STEPS.PERSONAL); scrollTop(); }}>Edit</Button>
+                    <h3 className="font-bold text-secondary">Your Details</h3>
+                    <Button variant="ghost" size="sm" className="text-primary font-bold hover:bg-primary/10 rounded-full px-3 h-8 text-sm" onClick={() => { goTo(STEPS.ACCOUNT); scrollTop(); }}>Edit</Button>
                   </div>
                   <CardContent className="p-7">
                     <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                       {[
                         { label: "Name", value: patientName },
                         { label: "Email", value: patientEmail },
-                        { label: "Age", value: `${patientAge} years old` },
-                        { label: "Sex", value: patientSex.charAt(0).toUpperCase() + patientSex.slice(1) },
-                        ...(patientSex === "female" ? [{ label: "Pregnant / Breastfeeding", value: isPregnant ? "Yes" : "No" }] : []),
+                        ...(patientDob ? [{ label: "Date of Birth", value: new Date(patientDob).toLocaleDateString("en-GB") }] : []),
+                        ...(patientSex ? [{ label: "Sex at Birth", value: patientSex.charAt(0).toUpperCase() + patientSex.slice(1) }] : []),
+                        { label: "Delivery Address", value: [addrLine1, addrLine2, addrCity, addrPostcode].filter(Boolean).join(", ") },
                       ].map(item => (
-                        <div key={item.label}>
+                        <div key={item.label} className={item.label === "Delivery Address" ? "sm:col-span-2" : ""}>
                           <dt className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">{item.label}</dt>
                           <dd className="font-semibold text-secondary">{item.value}</dd>
                         </div>
@@ -781,22 +985,21 @@ export default function Consultation() {
                   </CardContent>
                 </Card>
 
-                {/* Clinical answers card */}
+                {/* Clinical answers */}
                 <Card className="border-border/50 shadow-sm rounded-2xl overflow-hidden">
                   <div className="flex items-center justify-between px-7 py-4 border-b border-border/50">
-                    <h3 className="font-bold text-secondary">Clinical Questions</h3>
-                    <Button variant="ghost" size="sm" className="text-primary font-bold hover:bg-primary/10 rounded-full px-3 h-8 text-sm" onClick={() => { setStep(STEPS.CLINICAL); scrollTop(); }}>Edit</Button>
+                    <h3 className="font-bold text-secondary">Clinical Answers</h3>
+                    <Button variant="ghost" size="sm" className="text-primary font-bold hover:bg-primary/10 rounded-full px-3 h-8 text-sm" onClick={() => { goTo(STEPS.CLINICAL); scrollTop(); }}>Edit</Button>
                   </div>
                   <CardContent className="p-7">
                     <dl className="space-y-4 text-sm">
                       {questions.clinicalQuestions.map(q => {
                         const val = clinicalAnswers[q.id];
                         if (!val || (Array.isArray(val) && val.length === 0)) return null;
-                        const displayVal = Array.isArray(val) ? val.join(", ") : val;
                         return (
                           <div key={q.id}>
                             <dt className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">{q.text}</dt>
-                            <dd className="font-medium text-secondary">{displayVal}</dd>
+                            <dd className="font-medium text-secondary">{Array.isArray(val) ? val.join(", ") : val as string}</dd>
                           </div>
                         );
                       })}
@@ -804,26 +1007,17 @@ export default function Consultation() {
                   </CardContent>
                 </Card>
 
-                {/* Medical history card */}
+                {/* Medical history */}
                 <Card className="border-border/50 shadow-sm rounded-2xl overflow-hidden">
                   <div className="flex items-center justify-between px-7 py-4 border-b border-border/50">
                     <h3 className="font-bold text-secondary">Medical Background</h3>
-                    <Button variant="ghost" size="sm" className="text-primary font-bold hover:bg-primary/10 rounded-full px-3 h-8 text-sm" onClick={() => { setStep(STEPS.MEDICAL); scrollTop(); }}>Edit</Button>
+                    <Button variant="ghost" size="sm" className="text-primary font-bold hover:bg-primary/10 rounded-full px-3 h-8 text-sm" onClick={() => { goTo(STEPS.MEDICAL); scrollTop(); }}>Edit</Button>
                   </div>
                   <CardContent className="p-7">
                     <dl className="space-y-4 text-sm">
-                      <div>
-                        <dt className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Allergies</dt>
-                        <dd className="font-medium text-secondary">{noAllergies ? "No known drug allergies" : allergies}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Current Medications</dt>
-                        <dd className="font-medium text-secondary">{noMedications ? "Not taking any medication" : medications}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Medical History</dt>
-                        <dd className="font-medium text-secondary">{noMedicalHistory ? "No significant medical history" : medicalHistory}</dd>
-                      </div>
+                      <div><dt className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Allergies</dt><dd className="font-medium text-secondary">{noAllergies ? "No known drug allergies" : allergies}</dd></div>
+                      <div><dt className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Current Medications</dt><dd className="font-medium text-secondary">{noMedications ? "Not taking any medication" : medications}</dd></div>
+                      <div><dt className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Medical History</dt><dd className="font-medium text-secondary">{noMedicalHistory ? "No significant medical history" : medicalHistory}</dd></div>
                     </dl>
                   </CardContent>
                 </Card>
@@ -832,40 +1026,26 @@ export default function Consultation() {
                 <Card className="border-border/50 shadow-sm rounded-2xl overflow-hidden">
                   <CardContent className="p-7 space-y-5">
                     <h3 className="font-bold text-secondary text-base">Declaration & Consent</h3>
-                    <div
-                      className={`flex items-start gap-4 p-5 border-2 rounded-2xl cursor-pointer transition-colors ${hasConsented ? "border-primary bg-primary/5" : "border-border/50 hover:bg-muted/10"}`}
-                      onClick={() => setHasConsented(!hasConsented)}
-                    >
+                    <div className={`flex items-start gap-4 p-5 border-2 rounded-2xl cursor-pointer transition-colors ${hasConsented ? "border-primary bg-primary/5" : "border-border/50 hover:bg-muted/10"}`} onClick={() => setHasConsented(!hasConsented)}>
                       <Checkbox checked={hasConsented} onCheckedChange={v => setHasConsented(!!v)} className="w-5 h-5 border-2 mt-0.5 shrink-0" onClick={e => e.stopPropagation()} />
-                      <div className="space-y-1">
-                        <p className="font-bold text-secondary text-sm">I confirm the information I have provided is accurate and complete.</p>
-                        <p className="text-muted-foreground text-xs leading-relaxed">
-                          I understand that providing false or incomplete information could be harmful to my health. I consent to PharmaCare's pharmacist reviewing my data to make a prescribing decision, in accordance with their privacy policy.
-                        </p>
+                      <div>
+                        <p className="font-bold text-secondary text-sm">I confirm all information I have provided is accurate and complete.</p>
+                        <p className="text-muted-foreground text-xs mt-1 leading-relaxed">I understand that providing false or incomplete information could be harmful to my health. I consent to PharmaCare's pharmacist reviewing my data to make a prescribing decision, in accordance with their privacy policy.</p>
                       </div>
                     </div>
-
                     <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 flex gap-3">
                       <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                      <p className="text-xs text-amber-800 leading-relaxed font-medium">
-                        <strong>Important:</strong> If you are experiencing a medical emergency, do not use this service. Call <strong>999</strong> immediately or <strong>NHS 111</strong> for urgent advice.
-                      </p>
+                      <p className="text-xs text-amber-800 leading-relaxed font-medium"><strong>Important:</strong> If you are experiencing a medical emergency, call <strong>999</strong>. For urgent advice, call <strong>NHS 111</strong>.</p>
                     </div>
-
                     <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-2">
                       <Button type="button" variant="outline" className="h-12 px-8 rounded-full font-bold border-2" onClick={goBack}>Back</Button>
-                      <Button
-                        type="button"
-                        size="lg"
-                        onClick={submitConsultation}
-                        disabled={!hasConsented || createMutation.isPending}
+                      <Button type="button" size="lg" onClick={submitConsultation} disabled={!hasConsented || createMutation.isPending}
                         className={`h-12 px-10 rounded-full font-bold shadow-md transition-all ${hasConsented ? "bg-accent hover:bg-accent/90 text-accent-foreground hover:-translate-y-0.5" : "bg-muted text-muted-foreground cursor-not-allowed"}`}
                       >
-                        {createMutation.isPending ? (
-                          <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Submitting...</span>
-                        ) : (
-                          "Submit Consultation"
-                        )}
+                        {createMutation.isPending
+                          ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Submitting...</span>
+                          : "Submit Consultation"
+                        }
                       </Button>
                     </div>
                   </CardContent>
