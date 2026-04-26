@@ -108,6 +108,20 @@ router.post("/consultations", async (req, res): Promise<void> => {
   res.status(201).json(GetConsultationResponse.parse(consultation));
 });
 
+router.get("/consultations/patient/:email", async (req, res): Promise<void> => {
+  const email = decodeURIComponent(req.params.email ?? "");
+  if (!email) {
+    res.status(400).json({ error: "Email is required" });
+    return;
+  }
+  const consultations = await db
+    .select()
+    .from(consultationsTable)
+    .where(eq(consultationsTable.patientEmail, email))
+    .orderBy(desc(consultationsTable.createdAt));
+  res.json({ consultations, total: consultations.length });
+});
+
 router.get("/consultations/:id", async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = GetConsultationParams.safeParse({ id: raw });

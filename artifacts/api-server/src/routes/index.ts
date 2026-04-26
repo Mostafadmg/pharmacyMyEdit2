@@ -5,6 +5,7 @@ import consultationsRouter from "./consultations";
 import dashboardRouter from "./dashboard";
 import authRouter from "./auth";
 import patientRouter from "./patient";
+import patientNotesRouter from "./patient-notes";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(conditionsRouter);
 router.use(consultationsRouter);
 router.use(dashboardRouter);
 router.use(patientRouter);
+router.use(patientNotesRouter);
 
 export default router;

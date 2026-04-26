@@ -23,7 +23,7 @@ export default function PharmacistLogin() {
     }
     setLoading(true);
     try {
-      const resp = await pharmacistLogin({ data: { username: username.trim(), password } });
+      const resp = await pharmacistLogin({ username: username.trim(), password });
       localStorage.setItem("pharmacist_token", resp.token);
       localStorage.setItem("pharmacist_name", resp.pharmacistName);
       localStorage.setItem("pharmacist_role", resp.role);
