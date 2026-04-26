@@ -1,0 +1,14 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "gQmjBhy5pmn4GJLb0HSoi"
+uri = "file://artifacts/pharmacy/public/images/hero.png"
+type = "image"
+title = "Pharmacist consulting patient with care"
+
+[[generated]]
+id = "ir1Cz9SWx0MgilFFoPaDH"
+uri = "file://artifacts/pharmacy/public/images/medical-bg.png"
+type = "image"
+title = "Abstract clean medical background"

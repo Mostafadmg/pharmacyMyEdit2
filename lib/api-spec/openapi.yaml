@@ -3,13 +3,21 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: PharmaCare Digital Pharmacy API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: consultations
+    description: Patient consultation management
+  - name: conditions
+    description: Medical conditions catalog
+  - name: patients
+    description: Patient management
+  - name: dashboard
+    description: Pharmacist dashboard and stats
 paths:
   /healthz:
     get:
@@ -24,6 +32,183 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /conditions:
+    get:
+      operationId: listConditions
+      tags: [conditions]
+      summary: List all treatable conditions
+      responses:
+        "200":
+          description: List of conditions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Condition"
+
+  /conditions/{id}:
+    get:
+      operationId: getCondition
+      tags: [conditions]
+      summary: Get condition details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Condition details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Condition"
+        "404":
+          description: Not found
+
+  /consultations:
+    get:
+      operationId: listConsultations
+      tags: [consultations]
+      summary: List all consultations (pharmacist view)
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, approved, rejected, more_info_needed, referred, red_flag]
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of consultations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  consultations:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Consultation"
+                  total:
+                    type: integer
+                required:
+                  - consultations
+                  - total
+    post:
+      operationId: createConsultation
+      tags: [consultations]
+      summary: Submit a new consultation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewConsultationInput"
+      responses:
+        "201":
+          description: Consultation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Consultation"
+
+  /consultations/{id}:
+    get:
+      operationId: getConsultation
+      tags: [consultations]
+      summary: Get consultation details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Consultation details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Consultation"
+        "404":
+          description: Not found
+
+  /consultations/{id}/review:
+    post:
+      operationId: reviewConsultation
+      tags: [consultations]
+      summary: Pharmacist reviews a consultation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConsultationReviewInput"
+      responses:
+        "200":
+          description: Review submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Consultation"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get pharmacist dashboard statistics
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /dashboard/recent:
+    get:
+      operationId: getRecentConsultations
+      tags: [dashboard]
+      summary: Get recent consultations for dashboard
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Recent consultations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Consultation"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +219,206 @@ components:
       required:
         - status
 
+    Condition:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+          enum: [skin, womens_health, eye_care, digestive, children_family, pain_minor_illness, allergy, respiratory, ear, urinary]
+        description:
+          type: string
+        onlineEligible:
+          type: boolean
+        requiresPhoto:
+          type: boolean
+        requiresInPerson:
+          type: boolean
+        ageRestrictions:
+          type: string
+          nullable: true
+        redFlags:
+          type: array
+          items:
+            type: string
+        questionsCount:
+          type: integer
+      required:
+        - id
+        - name
+        - category
+        - description
+        - onlineEligible
+        - requiresPhoto
+        - requiresInPerson
+        - redFlags
+        - questionsCount
+
+    Consultation:
+      type: object
+      properties:
+        id:
+          type: string
+        patientName:
+          type: string
+        patientEmail:
+          type: string
+        patientAge:
+          type: integer
+        patientSex:
+          type: string
+          enum: [male, female, other]
+        conditionId:
+          type: string
+        conditionName:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected, more_info_needed, referred, red_flag]
+        answers:
+          type: object
+          additionalProperties: true
+        hasRedFlag:
+          type: boolean
+        hasPhoto:
+          type: boolean
+        pharmacistNote:
+          type: string
+          nullable: true
+        prescription:
+          type: string
+          nullable: true
+        referralInfo:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - id
+        - patientName
+        - patientEmail
+        - patientAge
+        - patientSex
+        - conditionId
+        - conditionName
+        - status
+        - answers
+        - hasRedFlag
+        - hasPhoto
+        - createdAt
+        - updatedAt
+
+    NewConsultationInput:
+      type: object
+      properties:
+        patientName:
+          type: string
+        patientEmail:
+          type: string
+        patientAge:
+          type: integer
+        patientSex:
+          type: string
+          enum: [male, female, other]
+        conditionId:
+          type: string
+        answers:
+          type: object
+          additionalProperties: true
+        hasPhoto:
+          type: boolean
+        isPregnant:
+          type: boolean
+          nullable: true
+        allergies:
+          type: string
+          nullable: true
+        currentMedications:
+          type: string
+          nullable: true
+        medicalHistory:
+          type: string
+          nullable: true
+      required:
+        - patientName
+        - patientEmail
+        - patientAge
+        - patientSex
+        - conditionId
+        - answers
+        - hasPhoto
+
+    ConsultationReviewInput:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [approve, reject, more_info, refer]
+        pharmacistNote:
+          type: string
+          nullable: true
+        prescription:
+          type: string
+          nullable: true
+        referralInfo:
+          type: string
+          nullable: true
+      required:
+        - action
+
+    DashboardStats:
+      type: object
+      properties:
+        totalConsultations:
+          type: integer
+        pendingReview:
+          type: integer
+        approvedToday:
+          type: integer
+        redFlagsToday:
+          type: integer
+        averageReviewTime:
+          type: number
+        byConditionCategory:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+              count:
+                type: integer
+            required:
+              - category
+              - count
+        byStatus:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+              count:
+                type: integer
+            required:
+              - status
+              - count
+      required:
+        - totalConsultations
+        - pendingReview
+        - approvedToday
+        - redFlagsToday
+        - averageReviewTime
+        - byConditionCategory
+        - byStatus

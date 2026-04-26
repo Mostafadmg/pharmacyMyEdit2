@@ -1,0 +1,77 @@
+Website structure I would build for you 💻✨
+Homepage
+
+Hero section:
+
+“Private online pharmacy consultations reviewed by a UK pharmacist prescriber.”
+
+Buttons:
+
+Start a consultation
+View treatments
+Speak to a pharmacist
+
+Trust badges:
+
+UK pharmacist-led
+Secure medical questionnaire
+Prescription-only treatments where appropriate
+Fast pharmacy review
+Clear referral if unsuitable
+Treatment categories
+
+Instead of listing 27 conditions randomly, group them beautifully:
+
+Category	Conditions
+Skin	Acne, eczema/dry skin, fungal infections, scabies, warts/verrucae
+Women’s health	UTI, vaginal thrush
+Eye care	Dry eye, conjunctivitis
+Digestive health	Dyspepsia, constipation, diarrhoea, haemorrhoids
+Children & family	Chickenpox, nappy rash, teething, colic, head lice, threadworms
+Pain & minor illness	Back pain, sore throat, mouth ulcers, cold sores
+Allergy	Allergic rhinitis
+The clinical workflow should look like this
+Patient side
+Choose condition
+Confirm age/sex/pregnancy status
+Answer symptom questions
+Upload photo if needed
+Confirm allergies, PMH, medicines
+Consent to pharmacist review
+Pay or submit consultation
+Receive outcome
+Pharmacist side
+
+You need a clinician dashboard:
+
+Status	Meaning
+New consultation	Needs review
+Red flag detected	Do not supply until reviewed
+Photo required	Patient must upload image
+More info needed	Send patient a question
+Approved	Prescription/supply authorised
+Rejected	Advice/referral given
+Follow-up due	Safety check needed
+
+This is where the mobile app later becomes useful:
+“New UTI consultation submitted — red flag: recurrent symptoms”
+“Acne review awaiting approval”
+“Patient replied to your question”
+
+Very important regulatory points ⚖️
+
+Because you are prescribing remotely, you need:
+
+Registered pharmacy premises if dispensing/supplying medicines
+GPhC-compliant online pharmacy processes
+SOPs for every condition
+Identity checks where appropriate
+Clear safeguarding process
+Clinical record keeping
+Secure GDPR-compliant data storage
+Two-way communication
+Audit trail showing who approved what and when
+Clear exclusion/red-flag criteria
+Escalation/referral pathways
+
+If you provide online primary care/prescribing services in England, CQC may regulate the service depending on how it is structured; CQC says it regulates providers of online primary care services in England where regulated activity is delivered online.
