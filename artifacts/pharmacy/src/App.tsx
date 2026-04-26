@@ -17,6 +17,7 @@ import PharmacistLogin from "./pages/PharmacistLogin";
 import PatientLogin from "./pages/PatientLogin";
 import PatientRegister from "./pages/PatientRegister";
 import MyConsultations from "./pages/MyConsultations";
+import Contact from "./pages/Contact";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ function Router() {
       <Route path="/my-account/login" component={PatientLogin} />
       <Route path="/my-account/register" component={PatientRegister} />
       <Route path="/my-consultations" component={MyConsultations} />
+      <Route path="/contact" component={Contact} />
       <Route component={NotFound} />
     </Switch>
   );

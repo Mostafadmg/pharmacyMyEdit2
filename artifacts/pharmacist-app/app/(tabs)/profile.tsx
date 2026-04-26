@@ -85,6 +85,35 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionLabel}>Support & Contact</Text>
+        <View style={styles.card}>
+          <Pressable onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} style={{ flexDirection: "row", alignItems: "center", padding: 14 }}>
+            <Feather name="phone" size={18} color={colors.primary} />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={{ fontSize: 15, fontWeight: "600" as const, color: colors.secondary }}>Clinical Support</Text>
+              <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 1 }}>0800 123 4567 · Mon–Fri 8am–8pm</Text>
+            </View>
+          </Pressable>
+          <View style={styles.divider} />
+          <Pressable onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} style={{ flexDirection: "row", alignItems: "center", padding: 14 }}>
+            <Feather name="mail" size={18} color={colors.primary} />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={{ fontSize: 15, fontWeight: "600" as const, color: colors.secondary }}>Email Clinical Team</Text>
+              <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 1 }}>clinical@pharmacare.co.uk</Text>
+            </View>
+          </Pressable>
+          <View style={styles.divider} />
+          <View style={{ flexDirection: "row", alignItems: "center", padding: 14 }}>
+            <Feather name="alert-triangle" size={18} color="#EF4444" />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={{ fontSize: 15, fontWeight: "600" as const, color: "#EF4444" }}>Medical Emergency</Text>
+              <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 1 }}>Call 999 · Urgent advice: NHS 111</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.section}>
         <Text style={styles.sectionLabel}>About</Text>
         <View style={styles.card}>
           <InfoRow icon="shield" label="Regulation" value="GPhC Regulated Pharmacy" colors={colors} />

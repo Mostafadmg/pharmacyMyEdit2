@@ -3,11 +3,12 @@ import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Clock, CheckCircle2, XCircle, AlertTriangle, MessageSquare, ExternalLink,
-  LogOut, Plus, ChevronRight, FileText, Pill, RefreshCw, User
+  LogOut, Plus, ChevronRight, FileText, Pill, RefreshCw, User, Ban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { toast } from "sonner";
 
 interface Consultation {
   id: string;
@@ -70,6 +71,14 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
     icon: <ExternalLink className="w-4 h-4" />,
     description: "You have been referred for further care",
   },
+  cancelled: {
+    label: "Cancelled",
+    color: "text-gray-500",
+    bg: "bg-gray-50",
+    border: "border-gray-200",
+    icon: <Ban className="w-4 h-4" />,
+    description: "This consultation was cancelled",
+  },
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -82,21 +91,42 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function ConsultationCard({ consultation, index }: { consultation: Consultation; index: number }) {
+function ConsultationCard({
+  consultation,
+  index,
+  onCancel,
+  cancelling,
+}: {
+  consultation: Consultation;
+  index: number;
+  onCancel: (id: string) => void;
+  cancelling: string | null;
+}) {
   const cfg = STATUS_CONFIG[consultation.status] ?? STATUS_CONFIG.pending;
   const date = new Date(consultation.createdAt).toLocaleDateString("en-GB", {
     day: "numeric", month: "short", year: "numeric",
   });
+  const isPending = consultation.status === "pending" || consultation.status === "red_flag";
+  const barColor = {
+    approved: "bg-emerald-400",
+    rejected: "bg-red-400",
+    referred: "bg-purple-400",
+    red_flag: "bg-red-500",
+    more_info_needed: "bg-blue-400",
+    cancelled: "bg-gray-300",
+  }[consultation.status] ?? "bg-amber-400";
+
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
       transition={{ delay: index * 0.08 }}
       className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group"
     >
-      {/* Status bar */}
-      <div className={`h-1.5 w-full ${consultation.status === "approved" ? "bg-emerald-400" : consultation.status === "rejected" ? "bg-red-400" : consultation.status === "referred" ? "bg-purple-400" : consultation.status === "red_flag" ? "bg-red-500" : consultation.status === "more_info_needed" ? "bg-blue-400" : "bg-amber-400"}`} />
+      <div className={`h-1.5 w-full ${barColor}`} />
 
       <div className="p-6">
         <div className="flex items-start justify-between gap-4 mb-4">
@@ -136,20 +166,67 @@ function ConsultationCard({ consultation, index }: { consultation: Consultation;
           </div>
         )}
 
-        {consultation.status === "pending" || consultation.status === "red_flag" ? (
-          <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+        {isPending && !showCancelConfirm && (
+          <div className="flex items-center justify-between gap-3 pt-3 border-t border-gray-100">
             <div className="flex items-center gap-1.5">
               <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
               <span className="text-xs text-gray-500">Our pharmacist is reviewing your case</span>
             </div>
+            <button
+              type="button"
+              onClick={() => setShowCancelConfirm(true)}
+              className="text-xs text-red-500 hover:text-red-700 font-semibold flex items-center gap-1 px-3 py-1.5 rounded-full hover:bg-red-50 transition-colors"
+            >
+              <Ban className="w-3.5 h-3.5" /> Cancel
+            </button>
           </div>
-        ) : consultation.reviewedAt ? (
+        )}
+
+        {isPending && showCancelConfirm && (
+          <div className="pt-3 border-t border-red-100 bg-red-50 -mx-6 -mb-6 px-6 pb-5 mt-4 rounded-b-2xl">
+            <p className="text-sm font-semibold text-red-700 mb-3">
+              Are you sure you want to cancel this consultation? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="rounded-full border-gray-300 text-gray-600 font-semibold"
+                onClick={() => setShowCancelConfirm(false)}
+              >
+                Keep it
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="rounded-full bg-red-600 hover:bg-red-700 text-white font-semibold"
+                disabled={cancelling === consultation.id}
+                onClick={() => onCancel(consultation.id)}
+              >
+                {cancelling === consultation.id ? (
+                  <span className="flex items-center gap-2"><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Cancelling...</span>
+                ) : (
+                  "Yes, Cancel Consultation"
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {!isPending && consultation.reviewedAt && (
           <div className="pt-2 border-t border-gray-100">
             <p className="text-xs text-gray-400">
               Reviewed {new Date(consultation.reviewedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
             </p>
           </div>
-        ) : null}
+        )}
+
+        {consultation.status === "cancelled" && (
+          <div className="pt-2 border-t border-gray-100">
+            <p className="text-xs text-gray-400">This consultation was cancelled and will not be processed.</p>
+          </div>
+        )}
       </div>
     </motion.div>
   );
@@ -161,16 +238,14 @@ export default function MyConsultations() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "pending" | "completed">("all");
+  const [cancelling, setCancelling] = useState<string | null>(null);
 
   const patientName = localStorage.getItem("patient_name") || "Patient";
   const patientEmail = localStorage.getItem("patient_email") || "";
   const token = localStorage.getItem("patient_token");
 
   useEffect(() => {
-    if (!token) {
-      navigate("/my-account/login");
-      return;
-    }
+    if (!token) { navigate("/my-account/login"); return; }
     fetchConsultations();
   }, [token]);
 
@@ -178,33 +253,50 @@ export default function MyConsultations() {
     setLoading(true);
     setError(null);
     try {
-      const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+      const base = (import.meta.env.BASE_URL as string).replace(/\/$/, "");
       const res = await fetch(`${base}/api/patient/consultations`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
-        if (res.status === 401) {
-          localStorage.removeItem("patient_token");
-          navigate("/my-account/login");
-          return;
-        }
+        if (res.status === 401) { localStorage.removeItem("patient_token"); navigate("/my-account/login"); return; }
         throw new Error("Failed to load consultations");
       }
       const data = await res.json();
       setConsultations(data.consultations || []);
-    } catch (err) {
+    } catch {
       setError("Unable to load your consultations. Please try again.");
     } finally {
       setLoading(false);
     }
   }
 
+  async function handleCancel(id: string) {
+    setCancelling(id);
+    try {
+      const base = (import.meta.env.BASE_URL as string).replace(/\/$/, "");
+      const res = await fetch(`${base}/api/patient/consultations/${id}/cancel`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || "Failed to cancel consultation"); return; }
+      toast.success("Consultation cancelled successfully.");
+      setConsultations(prev => prev.map(c => c.id === id ? { ...c, status: "cancelled" } : c));
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setCancelling(null);
+    }
+  }
+
   const handleLogout = () => {
-    ["patient_token", "patient_name", "patient_email", "patient_id"].forEach(k => localStorage.removeItem(k));
+    ["patient_token", "patient_name", "patient_email", "patient_id",
+      "patient_dob", "patient_sex", "patient_address1", "patient_address2",
+      "patient_city", "patient_postcode"].forEach(k => localStorage.removeItem(k));
     navigate("/");
   };
 
-  const COMPLETED_STATUSES = ["approved", "rejected", "referred", "more_info_needed"];
+  const COMPLETED_STATUSES = ["approved", "rejected", "referred", "more_info_needed", "cancelled"];
   const PENDING_STATUSES = ["pending", "red_flag"];
 
   const filtered = consultations.filter(c => {
@@ -220,7 +312,6 @@ export default function MyConsultations() {
     <div className="min-h-screen bg-gray-50">
       <Header />
 
-      {/* Hero Banner */}
       <div className="bg-gradient-to-br from-[#0F3460] to-[#0A7EA4] text-white">
         <div className="max-w-4xl mx-auto px-6 py-12">
           <div className="flex items-start justify-between gap-4">
@@ -229,80 +320,61 @@ export default function MyConsultations() {
                 <User className="w-4 h-4" />
                 <span>{patientEmail}</span>
               </div>
-              <h1 className="text-3xl font-extrabold mb-2">
-                Hello, {patientName.split(" ")[0]} 👋
-              </h1>
-              <p className="text-white/70 text-base">
-                Track all your consultations and prescription outcomes here.
-              </p>
+              <h1 className="text-3xl font-extrabold mb-2">Hello, {patientName.split(" ")[0]}</h1>
+              <p className="text-white/70 text-base">Track all your consultations and prescription outcomes here.</p>
             </div>
             <div className="flex gap-2 flex-shrink-0">
-              <Button
-                onClick={fetchConsultations}
-                variant="ghost"
-                size="sm"
-                className="text-white/70 hover:text-white hover:bg-white/10 rounded-full"
-              >
+              <Button onClick={fetchConsultations} variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/10 rounded-full">
                 <RefreshCw className="w-4 h-4" />
               </Button>
-              <Button
-                onClick={handleLogout}
-                variant="ghost"
-                size="sm"
-                className="text-white/70 hover:text-white hover:bg-white/10 rounded-full gap-1.5"
-              >
+              <Button onClick={handleLogout} variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/10 rounded-full gap-1.5">
                 <LogOut className="w-4 h-4" />
                 <span className="hidden sm:inline">Sign out</span>
               </Button>
             </div>
           </div>
 
-          {/* Stats */}
           {!loading && (
             <div className="flex gap-4 mt-8">
-              <div className="bg-white/10 backdrop-blur rounded-2xl px-5 py-3 text-center">
-                <div className="text-2xl font-bold">{consultations.length}</div>
-                <div className="text-white/60 text-xs mt-0.5">Total</div>
-              </div>
-              <div className="bg-white/10 backdrop-blur rounded-2xl px-5 py-3 text-center">
-                <div className="text-2xl font-bold">{pendingCount}</div>
-                <div className="text-white/60 text-xs mt-0.5">In review</div>
-              </div>
-              <div className="bg-white/10 backdrop-blur rounded-2xl px-5 py-3 text-center">
-                <div className="text-2xl font-bold">{completedCount}</div>
-                <div className="text-white/60 text-xs mt-0.5">Completed</div>
-              </div>
+              {[
+                { value: consultations.length, label: "Total" },
+                { value: pendingCount, label: "In review" },
+                { value: completedCount, label: "Completed" },
+              ].map(item => (
+                <div key={item.label} className="bg-white/10 backdrop-blur rounded-2xl px-5 py-3 text-center">
+                  <div className="text-2xl font-bold">{item.value}</div>
+                  <div className="text-white/60 text-xs mt-0.5">{item.label}</div>
+                </div>
+              ))}
             </div>
           )}
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-6 py-10">
-        {/* Filter tabs */}
-        <div className="flex items-center gap-2 mb-8">
+        <div className="flex items-center gap-2 mb-8 flex-wrap">
           {(["all", "pending", "completed"] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                filter === f
-                  ? "bg-[#0F3460] text-white shadow-sm"
-                  : "bg-white text-gray-600 border border-gray-200 hover:border-gray-300"
-              }`}
+            <button key={f} onClick={() => setFilter(f)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${filter === f ? "bg-[#0F3460] text-white shadow-sm" : "bg-white text-gray-600 border border-gray-200 hover:border-gray-300"}`}
             >
               {f === "all" ? `All (${consultations.length})` : f === "pending" ? `In Review (${pendingCount})` : `Completed (${completedCount})`}
             </button>
           ))}
           <div className="flex-1" />
-          <Link href="/conditions">
-            <Button size="sm" className="bg-[#E8B84B] hover:bg-[#E8B84B]/90 text-[#0F3460] font-semibold rounded-full gap-1.5 shadow-sm">
-              <Plus className="w-3.5 h-3.5" />
-              New Consultation
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/contact">
+              <Button size="sm" variant="outline" className="text-[#0F3460] border-[#0F3460]/30 font-semibold rounded-full gap-1.5 hover:bg-[#0F3460]/5">
+                <MessageSquare className="w-3.5 h-3.5" /> Contact Us
+              </Button>
+            </Link>
+            <Link href="/conditions">
+              <Button size="sm" className="bg-[#E8B84B] hover:bg-[#E8B84B]/90 text-[#0F3460] font-semibold rounded-full gap-1.5 shadow-sm">
+                <Plus className="w-3.5 h-3.5" /> New Consultation
+              </Button>
+            </Link>
+          </div>
         </div>
 
-        {/* Content */}
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
@@ -330,15 +402,12 @@ export default function MyConsultations() {
               {filter === "all" ? "No consultations yet" : `No ${filter} consultations`}
             </h3>
             <p className="text-gray-500 text-sm mb-6">
-              {filter === "all"
-                ? "Start your first online consultation with our pharmacist."
-                : `You don't have any ${filter} consultations.`}
+              {filter === "all" ? "Start your first online consultation with our pharmacist." : `You don't have any ${filter} consultations.`}
             </p>
             {filter === "all" && (
               <Link href="/conditions">
                 <Button className="bg-[#0F3460] hover:bg-[#0F3460]/90 text-white rounded-full gap-1.5">
-                  <Plus className="w-4 h-4" />
-                  Start a Consultation
+                  <Plus className="w-4 h-4" /> Start a Consultation
                 </Button>
               </Link>
             )}
@@ -347,13 +416,18 @@ export default function MyConsultations() {
           <div className="space-y-4">
             <AnimatePresence>
               {filtered.map((c, i) => (
-                <ConsultationCard key={c.id} consultation={c} index={i} />
+                <ConsultationCard
+                  key={c.id}
+                  consultation={c}
+                  index={i}
+                  onCancel={handleCancel}
+                  cancelling={cancelling}
+                />
               ))}
             </AnimatePresence>
           </div>
         )}
 
-        {/* Important notice */}
         <div className="mt-12 bg-amber-50 border border-amber-200 rounded-2xl p-5">
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
