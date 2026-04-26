@@ -19,7 +19,11 @@ import {
   Activity,
   FileText,
   Clock,
-  Pill
+  Pill,
+  CheckCircle2,
+  Calendar,
+  Mail,
+  ShieldAlert
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +33,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { motion } from "framer-motion";
 
 export default function ReviewConsultation() {
   const { id } = useParams();
@@ -74,33 +78,33 @@ export default function ReviewConsultation() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
-        return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200 text-sm py-1">Pending Review</Badge>;
+        return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200 border-none font-semibold px-3 py-1">Pending Review</Badge>;
       case "approved":
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-green-200 text-sm py-1">Approved</Badge>;
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-200 border-none font-semibold px-3 py-1">Approved</Badge>;
       case "rejected":
-        return <Badge variant="secondary" className="bg-gray-100 text-gray-800 text-sm py-1">Rejected</Badge>;
+        return <Badge variant="secondary" className="bg-slate-100 text-slate-800 hover:bg-slate-200 border-none font-semibold px-3 py-1">Rejected</Badge>;
       case "more_info_needed":
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-200 text-sm py-1">More Info Needed</Badge>;
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 border-none font-semibold px-3 py-1">More Info Needed</Badge>;
       case "referred":
-        return <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100 border-purple-200 text-sm py-1">Referred</Badge>;
+        return <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200 border-none font-semibold px-3 py-1">Referred</Badge>;
       case "red_flag":
-        return <Badge variant="destructive" className="text-sm py-1">Urgent Review</Badge>;
+        return <Badge className="bg-red-100 text-red-800 hover:bg-red-200 border-none font-semibold px-3 py-1 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Urgent</Badge>;
       default:
-        return <Badge variant="outline" className="text-sm py-1">{status}</Badge>;
+        return <Badge variant="outline" className="font-semibold px-3 py-1">{status}</Badge>;
     }
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-muted/30 p-8">
-        <Skeleton className="h-8 w-48 mb-8" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
-            <Skeleton className="h-64 rounded-xl" />
-            <Skeleton className="h-96 rounded-xl" />
+      <div className="min-h-screen bg-muted/30 p-8 font-sans">
+        <Skeleton className="h-8 w-48 mb-8 rounded-lg" />
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          <div className="xl:col-span-2 space-y-8">
+            <Skeleton className="h-40 rounded-2xl" />
+            <Skeleton className="h-96 rounded-2xl" />
           </div>
           <div className="space-y-6">
-            <Skeleton className="h-64 rounded-xl" />
+            <Skeleton className="h-[32rem] rounded-2xl" />
           </div>
         </div>
       </div>
@@ -109,10 +113,10 @@ export default function ReviewConsultation() {
 
   if (!consultation) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 font-sans">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-secondary mb-4">Consultation not found</h2>
-          <Button onClick={() => setLocation("/dashboard")}>Return to Dashboard</Button>
+          <Button onClick={() => setLocation("/dashboard")} className="rounded-full">Return to Dashboard</Button>
         </div>
       </div>
     );
@@ -121,191 +125,247 @@ export default function ReviewConsultation() {
   const isPending = consultation.status === "pending" || consultation.status === "red_flag";
 
   return (
-    <div className="min-h-screen bg-muted/30 pb-20">
-      <header className="bg-secondary text-white py-4 px-6 border-b border-secondary/80 sticky top-0 z-50">
+    <div className="min-h-screen bg-muted/30 pb-20 font-sans">
+      <header className="bg-secondary text-white py-4 px-6 border-b border-secondary/80 sticky top-0 z-50 shadow-md">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center text-white/80 hover:text-white transition-colors">
-            <ArrowLeft className="w-5 h-5 mr-2" />
+          <Link href="/dashboard" className="flex items-center text-white/80 hover:text-white transition-colors font-medium group">
+            <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
             Back to Queue
           </Link>
-          <div className="text-sm font-medium">
-            Consultation ID: <span className="font-mono bg-white/10 px-2 py-1 rounded ml-1">{consultation.id}</span>
+          <div className="text-sm font-medium opacity-80 flex items-center gap-2">
+            ID: <span className="font-mono bg-black/20 px-2 py-1 rounded text-white">{consultation.id.substring(0,8)}</span>
           </div>
         </div>
       </header>
 
       {consultation.hasRedFlag && isPending && (
-        <div className="bg-destructive text-destructive-foreground py-3 px-6 shadow-md relative z-40">
-          <div className="max-w-7xl mx-auto flex items-center justify-center gap-3 font-medium">
-            <AlertTriangle className="w-5 h-5" />
-            Warning: This consultation contains red flags. Please review the patient's medical history carefully.
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-red-600 text-white py-3 px-6 shadow-md relative z-40"
+        >
+          <div className="max-w-7xl mx-auto flex items-center justify-center gap-3 font-semibold">
+            <ShieldAlert className="w-6 h-6 animate-pulse" />
+            WARNING: Red flags detected in patient questionnaire. Review medical history carefully.
           </div>
-        </div>
+        </motion.div>
       )}
 
-      <main className="p-6 md:p-8 max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-3 gap-8">
+      <main className="p-6 md:p-10 max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-3 gap-8 lg:gap-12">
         
-        <div className="xl:col-span-2 space-y-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="xl:col-span-2 space-y-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border pb-6">
             <div>
-              <h1 className="text-3xl font-bold text-secondary mb-2">{consultation.conditionName}</h1>
-              <div className="flex items-center gap-4 text-muted-foreground">
-                <span className="flex items-center"><Clock className="w-4 h-4 mr-1" /> Submitted {format(new Date(consultation.createdAt), 'MMM d, yyyy HH:mm')}</span>
+              <h1 className="text-4xl font-serif font-bold text-secondary mb-3">{consultation.conditionName}</h1>
+              <div className="flex items-center gap-4 text-muted-foreground font-medium">
+                <span className="flex items-center"><Clock className="w-4 h-4 mr-1.5" /> Submitted {format(new Date(consultation.createdAt), 'MMM d, yyyy HH:mm')}</span>
               </div>
             </div>
-            <div>
+            <div className="flex items-center gap-3">
               {getStatusBadge(consultation.status)}
             </div>
           </div>
 
-          <Card className="border-border shadow-sm">
-            <CardHeader className="bg-muted/20 border-b border-border pb-4">
-              <CardTitle className="text-lg flex items-center gap-2 text-secondary">
-                <User className="w-5 h-5 text-primary" />
-                Patient Profile
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
-              <div>
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Full Name</Label>
-                <p className="font-medium text-lg text-secondary">{consultation.patientName}</p>
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Email</Label>
-                <p className="font-medium text-secondary">{consultation.patientEmail}</p>
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Demographics</Label>
-                <p className="font-medium text-secondary">{consultation.patientAge} years old • {consultation.patientSex.charAt(0).toUpperCase() + consultation.patientSex.slice(1)}</p>
-              </div>
-              
-              <div className="md:col-span-2 pt-4 border-t border-border mt-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wider text-destructive font-bold flex items-center gap-1 mb-1">
-                    <AlertTriangle className="w-3 h-3" /> Allergies
-                  </Label>
-                  <p className="font-medium text-secondary">{(consultation.answers as any).allergies || "None reported"}</p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wider text-amber-600 font-bold flex items-center gap-1 mb-1">
-                    <Pill className="w-3 h-3" /> Current Medications
-                  </Label>
-                  <p className="font-medium text-secondary">{(consultation.answers as any).currentMedications || "None reported"}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border shadow-sm">
-            <CardHeader className="bg-muted/20 border-b border-border pb-4">
-              <CardTitle className="text-lg flex items-center gap-2 text-secondary">
-                <Activity className="w-5 h-5 text-primary" />
-                Medical Questionnaire
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y divide-border">
-                {Object.entries(consultation.answers).map(([key, value]) => {
-                  // Skip standard fields we already showed
-                  if (['allergies', 'currentMedications', 'medicalHistory'].includes(key)) return null;
-                  
-                  return (
-                    <div key={key} className="p-6">
-                      <p className="font-medium text-secondary mb-2">{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</p>
-                      <p className="text-muted-foreground">{String(value)}</p>
-                    </div>
-                  );
-                })}
-                
-                {consultation.hasPhoto && (
-                  <div className="p-6 bg-blue-50/50">
-                    <p className="font-medium text-secondary mb-3 flex items-center gap-2">
-                      Patient Uploaded Photos
-                    </p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                      {/* Placeholder for actual photos */}
-                      <div className="aspect-square bg-muted rounded-lg border border-border flex items-center justify-center text-muted-foreground text-sm flex-col gap-2">
-                        <FileText className="w-6 h-6" />
-                        Photo 1
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            <Card className="border-none shadow-md overflow-hidden rounded-2xl">
+              <CardHeader className="bg-primary text-primary-foreground py-5">
+                <CardTitle className="text-xl flex items-center gap-2 font-bold">
+                  <User className="w-5 h-5" />
+                  Patient Profile
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
+                  <div className="p-6 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-lg">
+                        {consultation.patientName.substring(0, 2).toUpperCase()}
                       </div>
-                      <div className="aspect-square bg-muted rounded-lg border border-border flex items-center justify-center text-muted-foreground text-sm flex-col gap-2">
-                        <FileText className="w-6 h-6" />
-                        Photo 2
+                      <div>
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Full Name</p>
+                        <p className="font-semibold text-lg text-secondary">{consultation.patientName}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 mt-4">
+                      <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+                        <Mail className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Email Contact</p>
+                        <p className="font-medium text-secondary">{consultation.patientEmail}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 mt-4">
+                      <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+                        <Calendar className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Demographics</p>
+                        <p className="font-medium text-secondary">{consultation.patientAge} yrs • {consultation.patientSex.charAt(0).toUpperCase() + consultation.patientSex.slice(1)}</p>
                       </div>
                     </div>
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  
+                  <div className="p-6 space-y-6 bg-slate-50/50">
+                    <div>
+                      <Label className="text-xs text-red-600 font-bold uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                        <AlertTriangle className="w-4 h-4" /> Allergies
+                      </Label>
+                      <div className="bg-white p-3 rounded-xl border border-red-100 shadow-sm text-secondary font-medium">
+                        {(consultation.answers as any).allergies || "None reported"}
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-amber-600 font-bold uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                        <Pill className="w-4 h-4" /> Current Medications
+                      </Label>
+                      <div className="bg-white p-3 rounded-xl border border-amber-100 shadow-sm text-secondary font-medium">
+                        {(consultation.answers as any).currentMedications || "None reported"}
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-blue-600 font-bold uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                        <Activity className="w-4 h-4" /> Medical History
+                      </Label>
+                      <div className="bg-white p-3 rounded-xl border border-blue-100 shadow-sm text-secondary font-medium">
+                        {(consultation.answers as any).medicalHistory || "None reported"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+            <Card className="border-none shadow-md overflow-hidden rounded-2xl">
+              <CardHeader className="bg-secondary text-white py-5">
+                <CardTitle className="text-xl flex items-center gap-2 font-bold">
+                  <Activity className="w-5 h-5 text-accent" />
+                  Clinical Questionnaire
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="divide-y divide-border">
+                  {Object.entries(consultation.answers).map(([key, value], idx) => {
+                    if (['allergies', 'currentMedications', 'medicalHistory'].includes(key)) return null;
+                    
+                    const questionStr = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                    
+                    return (
+                      <div key={key} className="p-6 md:p-8 flex flex-col md:flex-row gap-4 md:gap-8 hover:bg-muted/10 transition-colors">
+                        <div className="md:w-1/3 shrink-0">
+                          <p className="font-semibold text-secondary/80 text-sm leading-relaxed">{questionStr}?</p>
+                        </div>
+                        <div className="md:w-2/3">
+                          <p className="text-secondary font-medium text-lg bg-muted/20 p-4 rounded-xl inline-block border border-border/50">{String(value)}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  
+                  {consultation.hasPhoto && (
+                    <div className="p-6 md:p-8 bg-blue-50/30">
+                      <div className="flex flex-col md:flex-row gap-4 md:gap-8">
+                        <div className="md:w-1/3 shrink-0">
+                          <p className="font-semibold text-secondary/80 text-sm flex items-center gap-2">
+                            <FileText className="w-4 h-4" /> Patient Uploaded Photos
+                          </p>
+                        </div>
+                        <div className="md:w-2/3">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="aspect-square bg-muted/50 rounded-xl border border-border flex items-center justify-center text-muted-foreground font-medium flex-col gap-3 hover:bg-muted transition-colors cursor-pointer group">
+                              <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                                <FileText className="w-6 h-6 text-primary" />
+                              </div>
+                              View Photo 1
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
 
         {/* Action Sidebar */}
-        <div className="space-y-6">
-          <Card className={`border-2 ${isPending ? 'border-primary' : 'border-border'} shadow-md sticky top-24`}>
-            <CardHeader className={isPending ? 'bg-primary/5' : 'bg-muted/20'}>
-              <CardTitle className="text-xl text-secondary">Pharmacist Decision</CardTitle>
-              <CardDescription>Review answers and determine the appropriate action.</CardDescription>
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }} 
+          animate={{ opacity: 1, x: 0 }} 
+          transition={{ delay: 0.3 }}
+          className="space-y-6"
+        >
+          <Card className={`border-none shadow-xl rounded-2xl sticky top-24 overflow-hidden ${isPending ? 'ring-2 ring-primary/50' : ''}`}>
+            <CardHeader className={isPending ? 'bg-primary/5 pb-6' : 'bg-muted/30 pb-6'}>
+              <CardTitle className="text-2xl font-serif text-secondary mb-1">Clinical Decision</CardTitle>
+              <CardDescription className="text-sm font-medium">Review answers and determine the appropriate action.</CardDescription>
             </CardHeader>
             
             <CardContent className="p-6 space-y-6">
               {!isPending ? (
-                <div className="space-y-4">
-                  <div className="p-4 rounded-lg bg-muted/30 border border-border">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-1 block">Decision Made</Label>
-                    <div className="mb-4">{getStatusBadge(consultation.status)}</div>
+                <div className="space-y-6">
+                  <div className="p-5 rounded-2xl bg-muted/20 border border-border">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-3 block font-bold">Decision Made</Label>
+                    <div className="mb-6">{getStatusBadge(consultation.status)}</div>
                     
                     {consultation.pharmacistNote && (
-                      <>
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-1 block mt-4">Clinical Notes</Label>
-                        <p className="text-sm text-secondary p-3 bg-white rounded border border-border">{consultation.pharmacistNote}</p>
-                      </>
+                      <div className="mt-6">
+                        <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block font-bold flex items-center gap-2"><FileText className="w-3 h-3"/> Clinical Notes</Label>
+                        <p className="text-sm text-secondary p-4 bg-white rounded-xl border border-border shadow-sm leading-relaxed">{consultation.pharmacistNote}</p>
+                      </div>
                     )}
                     
                     {consultation.prescription && (
-                      <>
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-1 block mt-4">Prescription</Label>
-                        <p className="text-sm text-secondary p-3 bg-white rounded border border-border font-mono">{consultation.prescription}</p>
-                      </>
+                      <div className="mt-6">
+                        <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block font-bold flex items-center gap-2"><Pill className="w-3 h-3"/> Issued Prescription</Label>
+                        <p className="text-sm text-secondary p-4 bg-white rounded-xl border border-border shadow-sm font-mono leading-relaxed">{consultation.prescription}</p>
+                      </div>
                     )}
                   </div>
                 </div>
               ) : (
                 <>
-                  <div className="space-y-2">
-                    <Label htmlFor="clinical-notes">Clinical Notes (Internal)</Label>
+                  <div className="space-y-3">
+                    <Label htmlFor="clinical-notes" className="text-sm font-bold text-secondary flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-primary" /> Clinical Notes (Internal)
+                    </Label>
                     <Textarea 
                       id="clinical-notes"
                       placeholder="Add your clinical reasoning here..." 
-                      className="min-h-[100px] resize-none"
+                      className="min-h-[120px] resize-none rounded-xl focus-visible:ring-primary/30"
                       value={reviewNote}
                       onChange={(e) => setReviewNote(e.target.value)}
                     />
                   </div>
 
-                  <div className="space-y-3 pt-4 border-t border-border">
+                  <div className="space-y-4 pt-6 mt-6 border-t border-border">
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button className="w-full bg-green-600 hover:bg-green-700 text-white" size="lg">
-                          <CheckCircle className="w-4 h-4 mr-2" /> Approve & Prescribe
+                        <Button className="w-full bg-green-600 hover:bg-green-700 text-white rounded-xl h-14 text-base font-bold shadow-md hover:shadow-lg transition-all" size="lg">
+                          <CheckCircle2 className="w-5 h-5 mr-2" /> Approve & Prescribe
                         </Button>
                       </DialogTrigger>
-                      <DialogContent>
+                      <DialogContent className="sm:max-w-[500px] rounded-2xl">
                         <DialogHeader>
-                          <DialogTitle>Issue Prescription</DialogTitle>
-                          <DialogDescription>
-                            Write the prescription details for {consultation.patientName}. This will be sent to the pharmacy for fulfillment.
+                          <DialogTitle className="text-2xl font-serif text-secondary">Issue Prescription</DialogTitle>
+                          <DialogDescription className="text-base">
+                            Write the prescription details for <span className="font-bold text-secondary">{consultation.patientName}</span>.
                           </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="prescription">Prescription Details (Drug, Strength, Dosage, Quantity)</Label>
+                          <div className="space-y-3">
+                            <Label htmlFor="prescription" className="font-bold text-secondary">Prescription Details</Label>
                             <Textarea 
                               id="prescription" 
                               value={prescriptionDetails}
                               onChange={(e) => setPrescriptionDetails(e.target.value)}
                               placeholder="e.g. Amoxicillin 500mg capsules. 1 capsule three times a day for 5 days. Quantity: 15."
-                              className="min-h-[120px]"
+                              className="min-h-[160px] font-mono text-sm rounded-xl focus-visible:ring-green-500/30"
                             />
                           </div>
                         </div>
@@ -313,7 +373,7 @@ export default function ReviewConsultation() {
                           <Button 
                             onClick={() => handleReview('approve')} 
                             disabled={!prescriptionDetails || reviewMutation.isPending}
-                            className="bg-green-600 hover:bg-green-700 text-white"
+                            className="bg-green-600 hover:bg-green-700 text-white rounded-full px-8 h-12 font-bold"
                           >
                             {reviewMutation.isPending ? "Processing..." : "Confirm Approval"}
                           </Button>
@@ -323,25 +383,25 @@ export default function ReviewConsultation() {
 
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button variant="outline" className="w-full border-blue-200 text-blue-700 hover:bg-blue-50">
-                          <MessageSquare className="w-4 h-4 mr-2" /> Request More Info
+                        <Button variant="outline" className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 rounded-xl h-12 font-bold">
+                          <MessageSquare className="w-5 h-5 mr-2" /> Request More Info
                         </Button>
                       </DialogTrigger>
-                      <DialogContent>
+                      <DialogContent className="sm:max-w-[500px] rounded-2xl">
                         <DialogHeader>
-                          <DialogTitle>Request Information</DialogTitle>
-                          <DialogDescription>
-                            What additional information do you need from the patient before making a decision?
+                          <DialogTitle className="text-2xl font-serif text-secondary">Request Information</DialogTitle>
+                          <DialogDescription className="text-base">
+                            What additional information do you need from the patient?
                           </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
-                          <div className="space-y-2">
-                            <Label>Message to Patient</Label>
+                          <div className="space-y-3">
+                            <Label className="font-bold text-secondary">Message to Patient</Label>
                             <Textarea 
                               value={reviewNote}
                               onChange={(e) => setReviewNote(e.target.value)}
                               placeholder="e.g. Please upload a clearer photo of the rash..."
-                              className="min-h-[100px]"
+                              className="min-h-[140px] rounded-xl focus-visible:ring-blue-500/30"
                             />
                           </div>
                         </div>
@@ -349,6 +409,7 @@ export default function ReviewConsultation() {
                           <Button 
                             onClick={() => handleReview('more_info')} 
                             disabled={!reviewNote || reviewMutation.isPending}
+                            className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-8 h-12 font-bold"
                           >
                             Send Request
                           </Button>
@@ -358,25 +419,25 @@ export default function ReviewConsultation() {
 
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button variant="outline" className="w-full border-purple-200 text-purple-700 hover:bg-purple-50">
-                          <ExternalLink className="w-4 h-4 mr-2" /> Refer to GP/Urgent Care
+                        <Button variant="outline" className="w-full border-purple-200 text-purple-700 hover:bg-purple-50 rounded-xl h-12 font-bold">
+                          <ExternalLink className="w-5 h-5 mr-2" /> Refer to GP / Urgent Care
                         </Button>
                       </DialogTrigger>
-                      <DialogContent>
+                      <DialogContent className="sm:max-w-[500px] rounded-2xl">
                         <DialogHeader>
-                          <DialogTitle>Refer Patient</DialogTitle>
-                          <DialogDescription>
+                          <DialogTitle className="text-2xl font-serif text-secondary">Refer Patient</DialogTitle>
+                          <DialogDescription className="text-base">
                             Provide instructions for the patient to seek alternative care.
                           </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
-                          <div className="space-y-2">
-                            <Label>Referral Instructions</Label>
+                          <div className="space-y-3">
+                            <Label className="font-bold text-secondary">Referral Instructions</Label>
                             <Textarea 
                               value={referralDetails}
                               onChange={(e) => setReferralDetails(e.target.value)}
                               placeholder="e.g. Your symptoms require physical examination. Please contact your GP within 48 hours..."
-                              className="min-h-[100px]"
+                              className="min-h-[140px] rounded-xl focus-visible:ring-purple-500/30"
                             />
                           </div>
                         </div>
@@ -384,7 +445,7 @@ export default function ReviewConsultation() {
                           <Button 
                             onClick={() => handleReview('refer')} 
                             disabled={!referralDetails || reviewMutation.isPending}
-                            className="bg-purple-600 hover:bg-purple-700 text-white"
+                            className="bg-purple-600 hover:bg-purple-700 text-white rounded-full px-8 h-12 font-bold"
                           >
                             Confirm Referral
                           </Button>
@@ -394,25 +455,25 @@ export default function ReviewConsultation() {
 
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button variant="outline" className="w-full border-destructive/30 text-destructive hover:bg-destructive/10">
-                          <XCircle className="w-4 h-4 mr-2" /> Reject Consultation
+                        <Button variant="outline" className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-xl h-12 font-bold mt-4">
+                          <XCircle className="w-5 h-5 mr-2" /> Reject Consultation
                         </Button>
                       </DialogTrigger>
-                      <DialogContent>
+                      <DialogContent className="sm:max-w-[500px] rounded-2xl">
                         <DialogHeader>
-                          <DialogTitle>Reject Consultation</DialogTitle>
-                          <DialogDescription>
+                          <DialogTitle className="text-2xl font-serif text-red-600 flex items-center gap-2"><AlertTriangle className="w-6 h-6"/> Reject Consultation</DialogTitle>
+                          <DialogDescription className="text-base">
                             Please provide a reason for rejecting this consultation. The patient will be notified.
                           </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
-                          <div className="space-y-2">
-                            <Label>Rejection Reason</Label>
+                          <div className="space-y-3">
+                            <Label className="font-bold text-secondary">Rejection Reason</Label>
                             <Textarea 
                               value={reviewNote}
                               onChange={(e) => setReviewNote(e.target.value)}
                               placeholder="e.g. This treatment is not suitable for your specific medical history..."
-                              className="min-h-[100px]"
+                              className="min-h-[140px] rounded-xl focus-visible:ring-red-500/30"
                             />
                           </div>
                         </div>
@@ -421,6 +482,7 @@ export default function ReviewConsultation() {
                             variant="destructive"
                             onClick={() => handleReview('reject')} 
                             disabled={!reviewNote || reviewMutation.isPending}
+                            className="rounded-full px-8 h-12 font-bold"
                           >
                             Confirm Rejection
                           </Button>
@@ -432,7 +494,7 @@ export default function ReviewConsultation() {
               )}
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
       </main>
     </div>
   );

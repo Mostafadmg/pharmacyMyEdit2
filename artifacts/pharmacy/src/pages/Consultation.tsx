@@ -21,8 +21,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { ArrowLeft, ShieldCheck, CheckCircle2, UploadCloud, AlertCircle } from "lucide-react";
+import { ArrowLeft, ShieldCheck, CheckCircle2, UploadCloud, AlertCircle, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Label } from "@/components/ui/label";
 
 // Step 1 Schema
 const personalDetailsSchema = z.object({
@@ -106,31 +107,41 @@ export default function Consultation() {
 
   const handleNextStep1 = () => {
     form1.trigger().then((isValid) => {
-      if (isValid) setStep(2);
+      if (isValid) {
+        setStep(2);
+        window.scrollTo(0, 0);
+      }
     });
   };
 
   const handleNextStep2 = () => {
     form2.trigger().then((isValid) => {
-      if (isValid) setStep(3);
+      if (isValid) {
+        setStep(3);
+        window.scrollTo(0, 0);
+      }
     });
   };
 
   const handleNextStep3 = () => {
-    // Basic validation for generic questions
     if (Object.keys(symptoms).length < 2) {
       toast.error("Please answer all questions");
       return;
     }
     setStep(condition?.requiresPhoto ? 4 : 5);
+    window.scrollTo(0, 0);
   };
 
   const handleNextStep4 = () => {
     setStep(5);
+    window.scrollTo(0, 0);
   };
 
   const submitConsultation = () => {
-    if (!conditionId || !hasConsented) return;
+    if (!conditionId || !hasConsented) {
+      if (!hasConsented) toast.error("Please accept the terms to continue");
+      return;
+    }
 
     const pd = form1.getValues();
     const mh = form2.getValues();
@@ -154,12 +165,12 @@ export default function Consultation() {
 
   if (isLoading || !condition) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-screen bg-background flex flex-col font-sans">
         <Header />
         <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-12">
-          <Skeleton className="h-4 w-full mb-8" />
+          <Skeleton className="h-4 w-full mb-8 rounded-full" />
           <Skeleton className="h-12 w-2/3 mb-6" />
-          <Skeleton className="h-96 w-full rounded-xl" />
+          <Skeleton className="h-96 w-full rounded-3xl" />
         </main>
       </div>
     );
@@ -167,44 +178,65 @@ export default function Consultation() {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-screen bg-background flex flex-col font-sans">
         <Header />
-        <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-20 text-center">
+        <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-24 text-center">
           <motion.div 
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-8"
+            transition={{ type: "spring", stiffness: 200, damping: 15 }}
+            className="w-28 h-28 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner border-[6px] border-green-50"
           >
-            <CheckCircle2 className="w-12 h-12" />
+            <CheckCircle2 className="w-14 h-14" />
           </motion.div>
-          <h1 className="text-4xl font-extrabold text-secondary mb-4">Consultation Submitted</h1>
-          <p className="text-xl text-muted-foreground mb-8">
+          <motion.h1 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            className="text-4xl md:text-5xl font-serif font-bold text-secondary mb-4"
+          >
+            Consultation Submitted
+          </motion.h1>
+          <motion.p 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-xl text-muted-foreground mb-12"
+          >
             Our pharmacists are reviewing your details. This usually takes less than 2 hours during working hours.
-          </p>
-          <Card className="bg-muted/30 border-border mb-8 text-left">
-            <CardContent className="p-6">
-              <h3 className="font-semibold text-secondary mb-4 flex items-center">
-                <AlertCircle className="w-5 h-5 mr-2 text-primary" /> What happens next?
-              </h3>
-              <ul className="space-y-3 text-muted-foreground">
-                <li className="flex gap-2">
-                  <span className="font-bold text-secondary">1.</span>
-                  We'll email you at <strong>{submittedEmail}</strong> with the outcome.
-                </li>
-                <li className="flex gap-2">
-                  <span className="font-bold text-secondary">2.</span>
-                  If approved, you'll be able to choose your delivery or collection method.
-                </li>
-                <li className="flex gap-2">
-                  <span className="font-bold text-secondary">3.</span>
-                  If our pharmacist needs more info, they'll message you securely.
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-          <Button size="lg" asChild className="rounded-full px-8">
-            <Link href="/">Return to Home</Link>
-          </Button>
+          </motion.p>
+          
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="bg-white border-border/50 mb-10 text-left shadow-lg rounded-3xl overflow-hidden">
+              <div className="h-2 w-full bg-gradient-to-r from-primary to-accent"></div>
+              <CardContent className="p-8">
+                <h3 className="text-xl font-bold text-secondary mb-6 flex items-center">
+                  <AlertCircle className="w-6 h-6 mr-3 text-primary" /> What happens next?
+                </h3>
+                <ul className="space-y-5 text-muted-foreground">
+                  <li className="flex gap-4">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">1</div>
+                    <div className="pt-1">We'll email you at <strong className="text-secondary">{submittedEmail}</strong> with the clinical decision.</div>
+                  </li>
+                  <li className="flex gap-4">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">2</div>
+                    <div className="pt-1">If approved, you can select your delivery or collection preferences.</div>
+                  </li>
+                  <li className="flex gap-4">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">3</div>
+                    <div className="pt-1">If our pharmacist needs more info, they'll message you securely.</div>
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+            <Button size="lg" asChild className="rounded-full px-12 h-14 text-lg font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all bg-secondary">
+              <Link href="/">Return to Homepage</Link>
+            </Button>
+          </motion.div>
         </main>
         <Footer />
       </div>
@@ -212,45 +244,51 @@ export default function Consultation() {
   }
 
   return (
-    <div className="min-h-screen bg-muted/20 flex flex-col">
-      <header className="bg-white border-b border-border py-4 px-6 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <Link href={`/conditions/${condition.id}`} className="text-muted-foreground hover:text-secondary flex items-center text-sm font-medium transition-colors">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Cancel
+    <div className="min-h-screen bg-muted/20 flex flex-col font-sans">
+      <header className="bg-white border-b border-border/50 py-4 px-6 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-4xl mx-auto flex items-center justify-between mb-4">
+          <Link href={`/conditions/${condition.id}`} className="text-muted-foreground hover:text-secondary flex items-center text-sm font-medium transition-colors group">
+            <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Cancel
           </Link>
-          <div className="text-secondary font-semibold">
+          <div className="text-secondary font-bold text-lg">
             {condition.name} Consultation
           </div>
-          <div className="w-20 flex items-center gap-1 text-xs font-medium text-muted-foreground justify-end">
-            <ShieldCheck className="w-4 h-4 text-green-600" /> Secure
+          <div className="w-20 flex items-center gap-1.5 text-xs font-bold text-green-700 bg-green-50 px-2 py-1 rounded-full justify-end">
+            <ShieldCheck className="w-3.5 h-3.5" /> Secure
           </div>
         </div>
-        <div className="max-w-4xl mx-auto mt-4">
-          <Progress value={progress} className="h-2" />
+        <div className="max-w-4xl mx-auto">
+          <Progress value={progress} className="h-2 bg-muted/50 rounded-full overflow-hidden">
+            <div className="h-full bg-primary transition-all duration-500 ease-in-out" style={{ width: `${progress}%` }} />
+          </Progress>
+          <div className="flex justify-between text-xs font-bold text-muted-foreground uppercase tracking-wider mt-2">
+            <span>Step {step} of {totalSteps}</span>
+            <span>{Math.round(progress)}% Complete</span>
+          </div>
         </div>
       </header>
 
-      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-8 md:py-12">
+      <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-10 md:py-16">
         <AnimatePresence mode="wait">
           {step === 1 && (
-            <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <h2 className="text-3xl font-bold text-secondary mb-2">Personal Details</h2>
-              <p className="text-muted-foreground mb-8">We need to confirm your identity to prescribe medication safely.</p>
+            <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-3">Personal Details</h2>
+              <p className="text-lg text-muted-foreground mb-8">We need to confirm your identity to prescribe medication safely.</p>
               
               <Form {...form1}>
-                <form className="space-y-6 bg-white p-6 md:p-8 rounded-xl shadow-sm border border-border">
+                <form className="space-y-6 bg-white p-8 md:p-10 rounded-3xl shadow-sm border border-border/50">
                   <FormField control={form1.control} name="patientName" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Full Legal Name</FormLabel>
-                      <FormControl><Input placeholder="Jane Doe" {...field} /></FormControl>
+                      <FormLabel className="text-base font-bold text-secondary">Full Legal Name</FormLabel>
+                      <FormControl><Input placeholder="e.g. Jane Doe" className="h-14 text-lg rounded-xl bg-muted/20" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
                   
                   <FormField control={form1.control} name="patientEmail" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email Address</FormLabel>
-                      <FormControl><Input type="email" placeholder="jane@example.com" {...field} /></FormControl>
+                      <FormLabel className="text-base font-bold text-secondary">Email Address</FormLabel>
+                      <FormControl><Input type="email" placeholder="jane@example.com" className="h-14 text-lg rounded-xl bg-muted/20" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
@@ -258,24 +296,24 @@ export default function Consultation() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField control={form1.control} name="patientAge" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Age</FormLabel>
-                        <FormControl><Input type="number" {...field} /></FormControl>
+                        <FormLabel className="text-base font-bold text-secondary">Age</FormLabel>
+                        <FormControl><Input type="number" className="h-14 text-lg rounded-xl bg-muted/20" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
                     
                     <FormField control={form1.control} name="patientSex" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Sex at Birth</FormLabel>
+                        <FormLabel className="text-base font-bold text-secondary">Sex at Birth</FormLabel>
                         <FormControl>
-                          <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-row space-x-4">
+                          <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-row space-x-6 h-14 items-center">
                             <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="male" id="male" />
-                              <Label htmlFor="male">Male</Label>
+                              <RadioGroupItem value="male" id="male" className="w-5 h-5 border-2 text-primary" />
+                              <Label htmlFor="male" className="text-base cursor-pointer">Male</Label>
                             </div>
                             <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="female" id="female" />
-                              <Label htmlFor="female">Female</Label>
+                              <RadioGroupItem value="female" id="female" className="w-5 h-5 border-2 text-primary" />
+                              <Label htmlFor="female" className="text-base cursor-pointer">Female</Label>
                             </div>
                           </RadioGroup>
                         </FormControl>
@@ -284,21 +322,27 @@ export default function Consultation() {
                     )} />
                   </div>
 
-                  {form1.watch("patientSex") === "female" && (
-                    <FormField control={form1.control} name="isPregnant" render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                        <FormControl>
-                          <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>I am currently pregnant or breastfeeding</FormLabel>
-                        </div>
-                      </FormItem>
-                    )} />
-                  )}
+                  <AnimatePresence>
+                    {form1.watch("patientSex") === "female" && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
+                        <FormField control={form1.control} name="isPregnant" render={({ field }) => (
+                          <FormItem className="flex flex-row items-center space-x-4 space-y-0 rounded-2xl border-2 border-border/50 p-6 bg-muted/10 transition-colors hover:bg-muted/20 cursor-pointer">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={field.onChange} className="w-6 h-6 border-2" />
+                            </FormControl>
+                            <div className="space-y-1">
+                              <FormLabel className="text-base font-semibold text-secondary cursor-pointer">I am currently pregnant or breastfeeding</FormLabel>
+                            </div>
+                          </FormItem>
+                        )} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
-                  <div className="pt-4 flex justify-end">
-                    <Button type="button" size="lg" onClick={handleNextStep1}>Continue to Medical History</Button>
+                  <div className="pt-6 flex justify-end">
+                    <Button type="button" size="lg" className="h-14 px-8 rounded-full text-lg font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-transform hover:-translate-y-0.5" onClick={handleNextStep1}>
+                      Continue to Medical History
+                    </Button>
                   </div>
                 </form>
               </Form>
@@ -306,20 +350,20 @@ export default function Consultation() {
           )}
 
           {step === 2 && (
-            <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <h2 className="text-3xl font-bold text-secondary mb-2">Medical History</h2>
-              <p className="text-muted-foreground mb-8">This helps our pharmacist ensure the treatment is safe for you.</p>
+            <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-3">Medical History</h2>
+              <p className="text-lg text-muted-foreground mb-8">This helps our pharmacist ensure the treatment is safe for you.</p>
               
               <Form {...form2}>
-                <form className="space-y-8 bg-white p-6 md:p-8 rounded-xl shadow-sm border border-border">
-                  <div className="space-y-4">
+                <form className="space-y-8 bg-white p-8 md:p-10 rounded-3xl shadow-sm border border-border/50">
+                  <div className="space-y-5">
                     <FormField control={form2.control} name="allergies" render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-base">Are you allergic to any medications?</FormLabel>
+                        <FormLabel className="text-lg font-bold text-secondary">Are you allergic to any medications?</FormLabel>
                         <FormControl>
                           <Textarea 
                             placeholder="List any allergies here..." 
-                            className="resize-none" 
+                            className={`resize-none min-h-[100px] text-base rounded-xl transition-all ${form2.watch("hasNoAllergies") ? "opacity-50 bg-muted" : "bg-muted/20"}`}
                             {...field} 
                             disabled={form2.watch("hasNoAllergies")}
                           />
@@ -328,22 +372,22 @@ export default function Consultation() {
                       </FormItem>
                     )} />
                     <FormField control={form2.control} name="hasNoAllergies" render={({ field }) => (
-                      <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                        <FormLabel className="font-normal text-muted-foreground">I do not have any known allergies</FormLabel>
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0 bg-muted/10 p-4 rounded-xl cursor-pointer hover:bg-muted/20 transition-colors">
+                        <FormControl><Checkbox className="w-5 h-5 border-2" checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                        <FormLabel className="font-semibold text-secondary cursor-pointer">I do not have any known allergies</FormLabel>
                       </FormItem>
                     )} />
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-5 pt-6 border-t border-border/50">
                     <FormField control={form2.control} name="currentMedications" render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-base">Are you currently taking any other medication?</FormLabel>
-                        <p className="text-sm text-muted-foreground mb-2">Include prescription, over-the-counter, and herbal remedies.</p>
+                        <FormLabel className="text-lg font-bold text-secondary">Are you currently taking any other medication?</FormLabel>
+                        <p className="text-sm font-medium text-muted-foreground mb-3">Include prescription, over-the-counter, and herbal remedies.</p>
                         <FormControl>
                           <Textarea 
                             placeholder="List medications here..." 
-                            className="resize-none" 
+                            className={`resize-none min-h-[100px] text-base rounded-xl transition-all ${form2.watch("hasNoMedications") ? "opacity-50 bg-muted" : "bg-muted/20"}`}
                             {...field} 
                             disabled={form2.watch("hasNoMedications")}
                           />
@@ -352,21 +396,21 @@ export default function Consultation() {
                       </FormItem>
                     )} />
                     <FormField control={form2.control} name="hasNoMedications" render={({ field }) => (
-                      <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                        <FormLabel className="font-normal text-muted-foreground">I am not taking any other medications</FormLabel>
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0 bg-muted/10 p-4 rounded-xl cursor-pointer hover:bg-muted/20 transition-colors">
+                        <FormControl><Checkbox className="w-5 h-5 border-2" checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                        <FormLabel className="font-semibold text-secondary cursor-pointer">I am not taking any other medications</FormLabel>
                       </FormItem>
                     )} />
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-5 pt-6 border-t border-border/50">
                     <FormField control={form2.control} name="medicalHistory" render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-base">Do you have any ongoing medical conditions?</FormLabel>
+                        <FormLabel className="text-lg font-bold text-secondary">Do you have any ongoing medical conditions?</FormLabel>
                         <FormControl>
                           <Textarea 
                             placeholder="e.g. Asthma, High Blood Pressure, Diabetes..." 
-                            className="resize-none" 
+                            className={`resize-none min-h-[100px] text-base rounded-xl transition-all ${form2.watch("hasNoHistory") ? "opacity-50 bg-muted" : "bg-muted/20"}`}
                             {...field} 
                             disabled={form2.watch("hasNoHistory")}
                           />
@@ -375,16 +419,16 @@ export default function Consultation() {
                       </FormItem>
                     )} />
                     <FormField control={form2.control} name="hasNoHistory" render={({ field }) => (
-                      <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                        <FormLabel className="font-normal text-muted-foreground">I do not have any significant medical history</FormLabel>
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0 bg-muted/10 p-4 rounded-xl cursor-pointer hover:bg-muted/20 transition-colors">
+                        <FormControl><Checkbox className="w-5 h-5 border-2" checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                        <FormLabel className="font-semibold text-secondary cursor-pointer">I do not have any significant medical history</FormLabel>
                       </FormItem>
                     )} />
                   </div>
 
-                  <div className="pt-4 flex justify-between">
-                    <Button type="button" variant="outline" onClick={() => setStep(1)}>Back</Button>
-                    <Button type="button" size="lg" onClick={handleNextStep2}>Continue to Symptoms</Button>
+                  <div className="pt-8 flex flex-col-reverse sm:flex-row justify-between gap-4 border-t border-border/50">
+                    <Button type="button" variant="outline" className="h-14 px-8 rounded-full text-lg font-bold border-2" onClick={() => setStep(1)}>Back</Button>
+                    <Button type="button" size="lg" className="h-14 px-8 rounded-full text-lg font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-transform hover:-translate-y-0.5" onClick={handleNextStep2}>Continue to Symptoms</Button>
                   </div>
                 </form>
               </Form>
@@ -392,46 +436,46 @@ export default function Consultation() {
           )}
 
           {step === 3 && (
-            <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <h2 className="text-3xl font-bold text-secondary mb-2">Your Symptoms</h2>
-              <p className="text-muted-foreground mb-8">Please answer these condition-specific questions honestly.</p>
+            <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-3">Your Symptoms</h2>
+              <p className="text-lg text-muted-foreground mb-8">Please answer these condition-specific questions honestly.</p>
               
-              <div className="space-y-8 bg-white p-6 md:p-8 rounded-xl shadow-sm border border-border">
-                {/* We'll use generic questions since the API doesn't provide specific ones in the schema */}
+              <div className="space-y-10 bg-white p-8 md:p-10 rounded-3xl shadow-sm border border-border/50">
                 <div className="space-y-4">
-                  <Label className="text-base">How long have you had these symptoms?</Label>
+                  <Label className="text-lg font-bold text-secondary">How long have you had these symptoms?</Label>
                   <RadioGroup 
                     onValueChange={(val) => setSymptoms({...symptoms, duration: val})}
                     value={symptoms.duration || ""}
+                    className="grid grid-cols-1 gap-3"
                   >
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer">
-                      <RadioGroupItem value="less_than_week" id="d1" />
-                      <Label htmlFor="d1" className="flex-1 cursor-pointer">Less than a week</Label>
+                    <div className={`flex items-center space-x-3 p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${symptoms.duration === 'less_than_week' ? 'border-primary bg-primary/5' : 'border-border/50 hover:border-primary/50 hover:bg-muted/10'}`}>
+                      <RadioGroupItem value="less_than_week" id="d1" className="w-5 h-5" />
+                      <Label htmlFor="d1" className="flex-1 cursor-pointer font-medium text-base">Less than a week</Label>
                     </div>
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer">
-                      <RadioGroupItem value="1_to_4_weeks" id="d2" />
-                      <Label htmlFor="d2" className="flex-1 cursor-pointer">1 to 4 weeks</Label>
+                    <div className={`flex items-center space-x-3 p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${symptoms.duration === '1_to_4_weeks' ? 'border-primary bg-primary/5' : 'border-border/50 hover:border-primary/50 hover:bg-muted/10'}`}>
+                      <RadioGroupItem value="1_to_4_weeks" id="d2" className="w-5 h-5" />
+                      <Label htmlFor="d2" className="flex-1 cursor-pointer font-medium text-base">1 to 4 weeks</Label>
                     </div>
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer">
-                      <RadioGroupItem value="more_than_month" id="d3" />
-                      <Label htmlFor="d3" className="flex-1 cursor-pointer">More than a month</Label>
+                    <div className={`flex items-center space-x-3 p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${symptoms.duration === 'more_than_month' ? 'border-primary bg-primary/5' : 'border-border/50 hover:border-primary/50 hover:bg-muted/10'}`}>
+                      <RadioGroupItem value="more_than_month" id="d3" className="w-5 h-5" />
+                      <Label htmlFor="d3" className="flex-1 cursor-pointer font-medium text-base">More than a month</Label>
                     </div>
                   </RadioGroup>
                 </div>
 
-                <div className="space-y-4">
-                  <Label className="text-base">Have you tried any treatments for this already?</Label>
+                <div className="space-y-4 pt-6 border-t border-border/50">
+                  <Label className="text-lg font-bold text-secondary">Have you tried any treatments for this already?</Label>
                   <Textarea 
                     placeholder="Please describe any creams, tablets, or remedies you've tried..." 
-                    className="resize-none"
+                    className="resize-none min-h-[120px] text-base rounded-xl bg-muted/20"
                     value={symptoms.previousTreatments || ""}
                     onChange={(e) => setSymptoms({...symptoms, previousTreatments: e.target.value})}
                   />
                 </div>
 
-                <div className="pt-4 flex justify-between border-t border-border">
-                  <Button type="button" variant="outline" onClick={() => setStep(2)}>Back</Button>
-                  <Button type="button" size="lg" onClick={handleNextStep3}>
+                <div className="pt-8 flex flex-col-reverse sm:flex-row justify-between gap-4 border-t border-border/50">
+                  <Button type="button" variant="outline" className="h-14 px-8 rounded-full text-lg font-bold border-2" onClick={() => setStep(2)}>Back</Button>
+                  <Button type="button" size="lg" className="h-14 px-8 rounded-full text-lg font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-transform hover:-translate-y-0.5" onClick={handleNextStep3}>
                     {condition.requiresPhoto ? "Continue to Upload" : "Continue to Review"}
                   </Button>
                 </div>
@@ -440,106 +484,138 @@ export default function Consultation() {
           )}
 
           {step === 4 && condition.requiresPhoto && (
-            <motion.div key="step4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <h2 className="text-3xl font-bold text-secondary mb-2">Upload Photos</h2>
-              <p className="text-muted-foreground mb-8">Our pharmacist needs to see the affected area to prescribe safely.</p>
+            <motion.div key="step4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-3">Upload Photos</h2>
+              <p className="text-lg text-muted-foreground mb-8">Our pharmacist needs to see the affected area to prescribe safely.</p>
               
-              <div className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-border">
-                <div className="border-2 border-dashed border-primary/30 rounded-xl p-12 text-center bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors">
-                  <UploadCloud className="w-12 h-12 text-primary mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-secondary mb-1">Click to upload or drag and drop</h3>
-                  <p className="text-sm text-muted-foreground mb-4">PNG, JPG up to 10MB</p>
-                  <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">Select Files</Button>
+              <div className="bg-white p-8 md:p-10 rounded-3xl shadow-sm border border-border/50">
+                <div className="border-2 border-dashed border-primary/40 rounded-2xl p-16 text-center bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors group">
+                  <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm group-hover:scale-110 transition-transform">
+                    <UploadCloud className="w-10 h-10 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-bold text-secondary mb-2">Click to upload or drag and drop</h3>
+                  <p className="text-muted-foreground mb-6 font-medium">PNG, JPG up to 10MB</p>
+                  <Button variant="outline" className="border-2 border-primary text-primary hover:bg-primary/10 rounded-full font-bold px-8">Select Files</Button>
                 </div>
                 
-                <div className="mt-6 bg-amber-50 p-4 rounded-lg text-amber-800 text-sm flex gap-3">
-                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                  <p>Make sure the area is well-lit and in focus. Do not include your face or identifiable features if possible.</p>
+                <div className="mt-8 bg-amber-50 p-5 rounded-2xl text-amber-800 text-sm flex gap-4 border border-amber-100">
+                  <AlertCircle className="w-6 h-6 flex-shrink-0 text-amber-600 mt-0.5" />
+                  <p className="font-medium text-base leading-relaxed">Make sure the area is well-lit and in focus. Do not include your face or identifiable features if possible. These images are stored securely and only viewed by our clinical team.</p>
                 </div>
 
-                <div className="pt-8 flex justify-between border-t border-border mt-8">
-                  <Button type="button" variant="outline" onClick={() => setStep(3)}>Back</Button>
-                  <Button type="button" size="lg" onClick={handleNextStep4}>Continue to Review</Button>
+                <div className="pt-8 flex flex-col-reverse sm:flex-row justify-between gap-4 border-t border-border/50 mt-8">
+                  <Button type="button" variant="outline" className="h-14 px-8 rounded-full text-lg font-bold border-2" onClick={() => setStep(3)}>Back</Button>
+                  <Button type="button" size="lg" className="h-14 px-8 rounded-full text-lg font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-transform hover:-translate-y-0.5" onClick={handleNextStep4}>Continue to Review</Button>
                 </div>
               </div>
             </motion.div>
           )}
 
           {step === (condition.requiresPhoto ? 5 : 4) && (
-            <motion.div key="step5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <h2 className="text-3xl font-bold text-secondary mb-2">Review & Consent</h2>
-              <p className="text-muted-foreground mb-8">Please review your information before submitting.</p>
+            <motion.div key="step5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-3">Review & Consent</h2>
+              <p className="text-lg text-muted-foreground mb-8">Please review your information before submitting.</p>
               
               <div className="space-y-6">
-                <Card className="border-border shadow-sm">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="font-semibold text-lg text-secondary">Personal Details</h3>
-                      <Button variant="ghost" size="sm" onClick={() => setStep(1)}>Edit</Button>
+                <Card className="border-border/50 shadow-sm rounded-3xl overflow-hidden">
+                  <CardContent className="p-8">
+                    <div className="flex justify-between items-center mb-6 border-b border-border/50 pb-4">
+                      <h3 className="font-bold text-xl text-secondary">Personal Details</h3>
+                      <Button variant="ghost" className="text-primary font-bold hover:bg-primary/10 rounded-full px-4" onClick={() => setStep(1)}>Edit</Button>
                     </div>
-                    <dl className="grid grid-cols-2 gap-4 text-sm">
+                    <dl className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8 text-base">
                       <div>
-                        <dt className="text-muted-foreground">Name</dt>
-                        <dd className="font-medium text-secondary">{form1.getValues().patientName}</dd>
+                        <dt className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">Name</dt>
+                        <dd className="font-semibold text-secondary">{form1.getValues().patientName}</dd>
                       </div>
                       <div>
-                        <dt className="text-muted-foreground">Email</dt>
-                        <dd className="font-medium text-secondary">{form1.getValues().patientEmail}</dd>
+                        <dt className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">Email</dt>
+                        <dd className="font-semibold text-secondary">{form1.getValues().patientEmail}</dd>
                       </div>
                       <div>
-                        <dt className="text-muted-foreground">Age</dt>
-                        <dd className="font-medium text-secondary">{form1.getValues().patientAge}</dd>
+                        <dt className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">Age</dt>
+                        <dd className="font-semibold text-secondary">{form1.getValues().patientAge}</dd>
                       </div>
                       <div>
-                        <dt className="text-muted-foreground">Sex</dt>
-                        <dd className="font-medium text-secondary capitalize">{form1.getValues().patientSex}</dd>
+                        <dt className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">Sex</dt>
+                        <dd className="font-semibold text-secondary capitalize">{form1.getValues().patientSex}</dd>
                       </div>
                     </dl>
                   </CardContent>
                 </Card>
 
-                <Card className="border-border shadow-sm border-l-4 border-l-primary">
-                  <CardContent className="p-6">
-                    <h3 className="font-semibold text-lg text-secondary mb-4">Patient Declaration</h3>
-                    
-                    <div className="space-y-4">
-                      <div className="flex items-start space-x-3">
-                        <Checkbox 
-                          id="consent" 
-                          checked={hasConsented} 
-                          onCheckedChange={(checked) => setHasConsented(checked as boolean)} 
-                        />
-                        <div className="space-y-1 leading-tight">
-                          <Label htmlFor="consent" className="text-base font-medium">I confirm that:</Label>
-                          <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1 mt-2">
-                            <li>The information I have provided is truthful and accurate to the best of my knowledge.</li>
-                            <li>I am requesting treatment for myself and will not share this medication with anyone else.</li>
-                            <li>I understand this is a private service and I will be charged for the medication if prescribed.</li>
-                            <li>I consent to my medical information being reviewed by a UK-registered pharmacist.</li>
-                          </ul>
-                        </div>
-                      </div>
+                <Card className="border-border/50 shadow-sm rounded-3xl overflow-hidden">
+                  <CardContent className="p-8">
+                    <div className="flex justify-between items-center mb-6 border-b border-border/50 pb-4">
+                      <h3 className="font-bold text-xl text-secondary">Medical History</h3>
+                      <Button variant="ghost" className="text-primary font-bold hover:bg-primary/10 rounded-full px-4" onClick={() => setStep(2)}>Edit</Button>
                     </div>
+                    <dl className="space-y-6 text-base">
+                      <div>
+                        <dt className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">Allergies</dt>
+                        <dd className="font-semibold text-secondary">{form2.getValues().hasNoAllergies ? "None" : form2.getValues().allergies}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">Current Medications</dt>
+                        <dd className="font-semibold text-secondary">{form2.getValues().hasNoMedications ? "None" : form2.getValues().currentMedications}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">Medical Conditions</dt>
+                        <dd className="font-semibold text-secondary">{form2.getValues().hasNoHistory ? "None" : form2.getValues().medicalHistory}</dd>
+                      </div>
+                    </dl>
                   </CardContent>
                 </Card>
 
-                <div className="pt-4 flex justify-between">
-                  <Button type="button" variant="outline" onClick={() => setStep(condition.requiresPhoto ? 4 : 3)}>Back</Button>
-                  <Button 
-                    type="button" 
-                    size="lg" 
-                    className="bg-green-600 hover:bg-green-700 text-white px-8" 
-                    onClick={submitConsultation}
-                    disabled={!hasConsented || createMutation.isPending}
-                  >
-                    {createMutation.isPending ? "Submitting..." : "Submit Consultation"}
-                  </Button>
+                <div className="bg-white p-8 rounded-3xl shadow-sm border border-border/50 space-y-6">
+                  <h3 className="font-bold text-xl text-secondary mb-4">Terms & Consent</h3>
+                  <div className="bg-muted/30 p-6 rounded-2xl">
+                    <FormField 
+                      name="consent" 
+                      render={() => (
+                        <FormItem className="flex flex-row items-start space-x-4 space-y-0 cursor-pointer">
+                          <FormControl>
+                            <Checkbox 
+                              checked={hasConsented} 
+                              onCheckedChange={(val) => setHasConsented(!!val)} 
+                              className="w-6 h-6 border-2 mt-1"
+                            />
+                          </FormControl>
+                          <div className="space-y-2 leading-relaxed">
+                            <FormLabel className="text-base font-bold text-secondary cursor-pointer block">
+                              I confirm that the information I have provided is accurate and truthful.
+                            </FormLabel>
+                            <p className="text-muted-foreground text-sm">
+                              I understand that omitting or providing false medical information can be harmful to my health. I consent to the pharmacist reviewing my data to make a prescribing decision.
+                            </p>
+                          </div>
+                        </FormItem>
+                      )} 
+                    />
+                  </div>
+
+                  <div className="pt-6 flex flex-col-reverse sm:flex-row justify-between gap-4 border-t border-border/50">
+                    <Button type="button" variant="outline" className="h-14 px-8 rounded-full text-lg font-bold border-2" onClick={() => setStep(condition.requiresPhoto ? 4 : 3)}>Back</Button>
+                    <Button 
+                      type="button" 
+                      className={`h-14 px-10 rounded-full text-lg font-bold shadow-md transition-all ${
+                        hasConsented 
+                        ? "bg-accent hover:bg-accent/90 text-accent-foreground hover:-translate-y-0.5 hover:shadow-lg" 
+                        : "bg-muted text-muted-foreground cursor-not-allowed opacity-70"
+                      }`}
+                      onClick={submitConsultation}
+                      disabled={!hasConsented || createMutation.isPending}
+                    >
+                      {createMutation.isPending ? "Submitting..." : "Submit Consultation"}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </main>
+      <Footer />
     </div>
   );
 }
