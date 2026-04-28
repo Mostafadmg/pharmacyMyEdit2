@@ -141,11 +141,15 @@ router.post("/orders", async (req, res): Promise<void> => {
 
   await db.insert(orderItemsTable).values(itemRows.map(r => ({ ...r, orderId })));
 
-  // Decrement stock
-  for (const r of itemRows) {
-    await db.update(productsTable)
-      .set({ stock: sql`${productsTable.stock} - ${r.quantity}` })
-      .where(eq(productsTable.id, r.productId));
+  // Decrement stock only when the order is actually paid right now (demo mode).
+  // For Stripe-pending orders, stock is decremented on payment confirmation
+  // in /orders/:id/verify-payment so that abandoned checkouts don't drain inventory.
+  if (!stripeOn) {
+    for (const r of itemRows) {
+      await db.update(productsTable)
+        .set({ stock: sql`${productsTable.stock} - ${r.quantity}` })
+        .where(eq(productsTable.id, r.productId));
+    }
   }
 
   // Create delivery
@@ -351,11 +355,23 @@ router.patch("/admin/orders/:id", requirePharmacist, async (req, res): Promise<v
     ];
   }
 
-  // Apply item changes (qty updates and removals)
+  // Apply item changes (qty updates and removals).
+  // Only adjust stock for orders that are already paid — for unpaid orders
+  // stock has not been decremented yet (see /orders POST and /verify-payment).
+  const orderIsPaid = order.paymentStatus === "paid" || order.paymentStatus === "paid_demo";
   let recomputeTotals = false;
   if (Array.isArray(b.removeItemIds) && b.removeItemIds.length > 0) {
     for (const itemId of b.removeItemIds) {
-      await db.delete(orderItemsTable).where(and(eq(orderItemsTable.id, itemId), eq(orderItemsTable.orderId, id)));
+      const [item] = await db.select().from(orderItemsTable).where(and(eq(orderItemsTable.id, itemId), eq(orderItemsTable.orderId, id))).limit(1);
+      if (item) {
+        await db.delete(orderItemsTable).where(eq(orderItemsTable.id, itemId));
+        if (orderIsPaid) {
+          // Return stock to inventory
+          await db.update(productsTable)
+            .set({ stock: sql`${productsTable.stock} + ${item.quantity}` })
+            .where(eq(productsTable.id, item.productId));
+        }
+      }
     }
     recomputeTotals = true;
   }
@@ -364,8 +380,23 @@ router.patch("/admin/orders/:id", requirePharmacist, async (req, res): Promise<v
       const qty = Math.max(1, Math.min(20, Math.floor(Number(it.quantity) || 1)));
       const [existing] = await db.select().from(orderItemsTable).where(and(eq(orderItemsTable.id, it.id), eq(orderItemsTable.orderId, id))).limit(1);
       if (existing && existing.quantity !== qty) {
+        const delta = qty - existing.quantity; // positive => need more stock
+        if (orderIsPaid && delta > 0) {
+          // Validate available stock before increasing fulfilled qty
+          const [prod] = await db.select().from(productsTable).where(eq(productsTable.id, existing.productId)).limit(1);
+          if (!prod || prod.stock < delta) {
+            res.status(409).json({ error: `Not enough stock for ${existing.productName}. Available: ${prod?.stock ?? 0}` });
+            return;
+          }
+        }
         const newLineTotal = existing.unitPriceGbp * qty;
         await db.update(orderItemsTable).set({ quantity: qty, lineTotalGbp: newLineTotal }).where(eq(orderItemsTable.id, it.id));
+        if (orderIsPaid && delta !== 0) {
+          // delta>0 => decrement stock; delta<0 => return stock
+          await db.update(productsTable)
+            .set({ stock: sql`${productsTable.stock} - ${delta}` })
+            .where(eq(productsTable.id, existing.productId));
+        }
         recomputeTotals = true;
       }
     }

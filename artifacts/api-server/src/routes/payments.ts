@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { db, ordersTable, orderItemsTable, deliveriesTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, ordersTable, orderItemsTable, deliveriesTable, productsTable } from "@workspace/db";
+import { eq, sql } from "drizzle-orm";
 import { getStripeClient, isStripeEnabled } from "../lib/stripe";
 
 const router: IRouter = Router();
@@ -62,13 +62,18 @@ router.post("/orders/:id/checkout-session", async (req, res): Promise<void> => {
     });
   }
 
+  // Append session_id correctly whether successUrl already has a query string or not.
+  const successWithSession = successUrl.includes("?")
+    ? `${successUrl}&session_id={CHECKOUT_SESSION_ID}`
+    : `${successUrl}?session_id={CHECKOUT_SESSION_ID}`;
+
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     payment_method_types: ["card"],
     line_items: lineItems,
     customer_email: order.customerEmail,
     metadata: { orderId, orderNumber: order.orderNumber },
-    success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
+    success_url: successWithSession,
     cancel_url: cancelUrl,
   });
 
@@ -125,6 +130,15 @@ router.post("/orders/:id/verify-payment", async (req, res): Promise<void> => {
       })
       .where(eq(ordersTable.id, orderId))
       .returning();
+
+    // Decrement stock now that payment is confirmed (deferred from order creation
+    // when Stripe is enabled, so abandoned checkouts don't drain inventory).
+    const orderItems = await db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, orderId));
+    for (const it of orderItems) {
+      await db.update(productsTable)
+        .set({ stock: sql`${productsTable.stock} - ${it.quantity}` })
+        .where(eq(productsTable.id, it.productId));
+    }
 
     // Initialise delivery tracking now that payment is confirmed
     const [delivery] = await db.select().from(deliveriesTable).where(eq(deliveriesTable.orderId, orderId)).limit(1);

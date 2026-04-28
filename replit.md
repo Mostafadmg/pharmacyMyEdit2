@@ -99,11 +99,31 @@ Allergy: Allergic rhinitis
 - `POST /api/admin/comms-log`, `GET /api/admin/comms-log?email=…`
 - `GET /api/admin/patients/:email/timeline`
 
+## Payments (Stripe + demo fallback)
+
+- `STRIPE_SECRET_KEY` env enables real Stripe Checkout Sessions. Without it the app runs a demo path that marks new orders `paid_demo` immediately so the full flow stays usable.
+- `GET /api/payments/status` → `{ stripeEnabled }`; the checkout page uses this to pick the path.
+- `POST /api/orders/:id/checkout-session` creates a Stripe Checkout Session and returns its URL. The `success_url` is the order-confirmation page with `&session_id={CHECKOUT_SESSION_ID}` appended (handles existing query strings correctly).
+- `POST /api/orders/:id/verify-payment` is called from `OrderConfirmation.tsx` when `?session_id=` is present; it confirms with Stripe and on success marks the order `paid` AND decrements stock (deferred from order creation so abandoned Stripe checkouts don't drain inventory).
+- Demo mode (no Stripe key) decrements stock at order creation time, since the order is paid_demo immediately.
+
+## Admin product & order CRUD (T001/T002)
+
+- Admin Products page (`/dashboard/products`) is mobile-responsive: card grid on `<md` with the same inline-edit, image-replace, duplicate, and delete actions as the desktop table.
+- `DELETE /api/admin/products/:id` soft-deletes by default; `?hard=true` hard-deletes (FK-safe — returns 409 if the product is referenced by any order). The UI dialog offers both.
+- `POST /api/admin/products/:id/duplicate` creates a `<slug>-copy` deactivated draft for editing.
+- `PATCH /api/admin/orders/:id` supports editing shipping address, customer details, qty changes, item removal (returns 400 if it would empty the order), customer-facing notes, and an append-only `internalNotes` thread (jsonb array). Stock is adjusted by qty delta on paid orders, with a 409 if there isn't enough stock to bump quantities.
+
+## Catalog
+
+- 60 active products spanning 12 categories (Cold & Flu, Pain Relief, Vitamins, First Aid, Allergy, Skin, Digestive, Foot Care, Eye Care, Sleep, Oral Care, Women's Health). Newer SKUs use `/products/_placeholder.svg`; pharmacist can swap any image via the admin Image Edit dialog.
+
 ## Future Plans
 
 - Real delivery integration (Royal Mail / DPD APIs) replacing MockProvider
 - Push notifications for new orders/consultations on mobile
 - Patient accounts beyond guest checkout (history, saved addresses)
-- Payment processing (Stripe)
+- Stripe webhook for out-of-band payment confirmation (currently uses verify-payment on success page)
+- Move pharmacist auth from base64 bearer token to signed JWT or server sessions
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
