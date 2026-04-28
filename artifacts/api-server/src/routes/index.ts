@@ -13,6 +13,8 @@ import ordersRouter from "./orders";
 import commsRouter from "./comms";
 import patientTimelineRouter from "./patient_timeline";
 import paymentsRouter from "./payments";
+import notificationsRouter from "./notifications";
+import consultationMessagesRouter from "./consultation-messages";
 
 const router: IRouter = Router();
 
@@ -30,5 +32,7 @@ router.use(ordersRouter);
 router.use(commsRouter);
 router.use(patientTimelineRouter);
 router.use(paymentsRouter);
+router.use(notificationsRouter);
+router.use(consultationMessagesRouter);
 
 export default router;

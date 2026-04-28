@@ -7,3 +7,6 @@ export * from "./audit_logs";
 export * from "./products";
 export * from "./orders";
 export * from "./comms_log";
+export * from "./consultation_messages";
+export * from "./notifications";
+export * from "./consultation_actions";

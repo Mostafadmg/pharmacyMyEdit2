@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { toast } from "sonner";
+import ConsultationChat from "@/components/ConsultationChat";
 
 interface Consultation {
   id: string;
@@ -117,6 +118,7 @@ function ConsultationCard({
   }[consultation.status] ?? "bg-amber-400";
 
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   return (
     <motion.div
@@ -219,6 +221,36 @@ function ConsultationCard({
             <p className="text-xs text-gray-400">
               Reviewed {new Date(consultation.reviewedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
             </p>
+          </div>
+        )}
+
+        {consultation.status !== "cancelled" && (
+          <div className="pt-3 mt-3 border-t border-gray-100 flex items-center justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              {consultation.status === "more_info_needed"
+                ? "Pharmacist is waiting for your reply."
+                : "Need to ask the pharmacist a question?"}
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              variant={consultation.status === "more_info_needed" ? "default" : "outline"}
+              onClick={() => setChatOpen(o => !o)}
+              className={`rounded-full text-xs font-bold ${consultation.status === "more_info_needed" ? "bg-blue-600 hover:bg-blue-700" : ""}`}
+            >
+              <MessageSquare className="w-3.5 h-3.5 mr-1" />
+              {chatOpen ? "Close conversation" : "Open conversation"}
+            </Button>
+          </div>
+        )}
+
+        {chatOpen && (
+          <div className="mt-4">
+            <ConsultationChat
+              consultationId={consultation.id}
+              audience="patient"
+              onClose={() => setChatOpen(false)}
+            />
           </div>
         )}
 

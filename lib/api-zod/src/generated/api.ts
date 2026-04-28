@@ -137,6 +137,40 @@ export const ListConsultationsResponse = zod.object({
       createdAt: zod.coerce.date(),
       updatedAt: zod.coerce.date(),
       reviewedAt: zod.coerce.date().nullish(),
+      gpName: zod.string().nullish(),
+      gpSurgery: zod.string().nullish(),
+      gpAddress: zod.string().nullish(),
+      gpPhone: zod.string().nullish(),
+      hasRegularGp: zod.boolean().nullish(),
+      consentShareWithGp: zod.boolean().nullish(),
+      consentToTreatment: zod.boolean().nullish(),
+      consentToDelivery: zod.boolean().nullish(),
+      consentDataProcessing: zod.boolean().nullish(),
+      identityVerificationMethod: zod.string().nullish(),
+      identityVerificationRef: zod.string().nullish(),
+      deliveryAddress: zod.string().nullish(),
+      deliveryAddressLine1: zod.string().nullish(),
+      deliveryAddressLine2: zod.string().nullish(),
+      deliveryCity: zod.string().nullish(),
+      deliveryPostcode: zod.string().nullish(),
+      preferredDeliveryMethod: zod.string().nullish(),
+      allergies: zod.string().nullish(),
+      currentMedications: zod.string().nullish(),
+      medicalHistory: zod.string().nullish(),
+      isPregnant: zod.boolean().nullish(),
+      bmi: zod.number().nullish(),
+      verifiedHeightCm: zod.number().nullish(),
+      verifiedWeightKg: zod.number().nullish(),
+      heightCm: zod.number().nullish(),
+      weightKg: zod.number().nullish(),
+      riskFlags: zod.array(zod.string()).nullish(),
+      riskCategory: zod.string().nullish(),
+      clinicalDecisionRationale: zod.string().nullish(),
+      reviewedBy: zod.string().nullish(),
+      deliveryCarrier: zod.string().nullish(),
+      deliveryTrackingNumber: zod.string().nullish(),
+      deliveredAt: zod.coerce.date().nullish(),
+      dispatchedAt: zod.coerce.date().nullish(),
     }),
   ),
   total: zod.number(),
@@ -193,6 +227,40 @@ export const GetConsultationResponse = zod.object({
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
   reviewedAt: zod.coerce.date().nullish(),
+  gpName: zod.string().nullish(),
+  gpSurgery: zod.string().nullish(),
+  gpAddress: zod.string().nullish(),
+  gpPhone: zod.string().nullish(),
+  hasRegularGp: zod.boolean().nullish(),
+  consentShareWithGp: zod.boolean().nullish(),
+  consentToTreatment: zod.boolean().nullish(),
+  consentToDelivery: zod.boolean().nullish(),
+  consentDataProcessing: zod.boolean().nullish(),
+  identityVerificationMethod: zod.string().nullish(),
+  identityVerificationRef: zod.string().nullish(),
+  deliveryAddress: zod.string().nullish(),
+  deliveryAddressLine1: zod.string().nullish(),
+  deliveryAddressLine2: zod.string().nullish(),
+  deliveryCity: zod.string().nullish(),
+  deliveryPostcode: zod.string().nullish(),
+  preferredDeliveryMethod: zod.string().nullish(),
+  allergies: zod.string().nullish(),
+  currentMedications: zod.string().nullish(),
+  medicalHistory: zod.string().nullish(),
+  isPregnant: zod.boolean().nullish(),
+  bmi: zod.number().nullish(),
+  verifiedHeightCm: zod.number().nullish(),
+  verifiedWeightKg: zod.number().nullish(),
+  heightCm: zod.number().nullish(),
+  weightKg: zod.number().nullish(),
+  riskFlags: zod.array(zod.string()).nullish(),
+  riskCategory: zod.string().nullish(),
+  clinicalDecisionRationale: zod.string().nullish(),
+  reviewedBy: zod.string().nullish(),
+  deliveryCarrier: zod.string().nullish(),
+  deliveryTrackingNumber: zod.string().nullish(),
+  deliveredAt: zod.coerce.date().nullish(),
+  dispatchedAt: zod.coerce.date().nullish(),
 });
 
 /**
@@ -207,6 +275,23 @@ export const ReviewConsultationBody = zod.object({
   pharmacistNote: zod.string().nullish(),
   prescription: zod.string().nullish(),
   referralInfo: zod.string().nullish(),
+  rejectReason: zod
+    .string()
+    .nullish()
+    .describe(
+      "Required when action=reject. One of medically_unsuitable, outside_our_scope, insufficient_information, already_prescribed, other",
+    ),
+  referRecipientType: zod
+    .string()
+    .nullish()
+    .describe(
+      "Required when action=refer. One of gp, hospital_specialist, ae, nhs_111, sexual_health_clinic, mental_health, other",
+    ),
+  referRecipientName: zod.string().nullish(),
+  referUrgency: zod
+    .string()
+    .nullish()
+    .describe("routine | soon | urgent | emergency"),
 });
 
 export const ReviewConsultationResponse = zod.object({
@@ -235,6 +320,144 @@ export const ReviewConsultationResponse = zod.object({
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
   reviewedAt: zod.coerce.date().nullish(),
+  gpName: zod.string().nullish(),
+  gpSurgery: zod.string().nullish(),
+  gpAddress: zod.string().nullish(),
+  gpPhone: zod.string().nullish(),
+  hasRegularGp: zod.boolean().nullish(),
+  consentShareWithGp: zod.boolean().nullish(),
+  consentToTreatment: zod.boolean().nullish(),
+  consentToDelivery: zod.boolean().nullish(),
+  consentDataProcessing: zod.boolean().nullish(),
+  identityVerificationMethod: zod.string().nullish(),
+  identityVerificationRef: zod.string().nullish(),
+  deliveryAddress: zod.string().nullish(),
+  deliveryAddressLine1: zod.string().nullish(),
+  deliveryAddressLine2: zod.string().nullish(),
+  deliveryCity: zod.string().nullish(),
+  deliveryPostcode: zod.string().nullish(),
+  preferredDeliveryMethod: zod.string().nullish(),
+  allergies: zod.string().nullish(),
+  currentMedications: zod.string().nullish(),
+  medicalHistory: zod.string().nullish(),
+  isPregnant: zod.boolean().nullish(),
+  bmi: zod.number().nullish(),
+  verifiedHeightCm: zod.number().nullish(),
+  verifiedWeightKg: zod.number().nullish(),
+  heightCm: zod.number().nullish(),
+  weightKg: zod.number().nullish(),
+  riskFlags: zod.array(zod.string()).nullish(),
+  riskCategory: zod.string().nullish(),
+  clinicalDecisionRationale: zod.string().nullish(),
+  reviewedBy: zod.string().nullish(),
+  deliveryCarrier: zod.string().nullish(),
+  deliveryTrackingNumber: zod.string().nullish(),
+  deliveredAt: zod.coerce.date().nullish(),
+  dispatchedAt: zod.coerce.date().nullish(),
+});
+
+/**
+ * @summary List chat messages on a consultation
+ */
+export const ListConsultationMessagesParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ListConsultationMessagesResponse = zod.object({
+  messages: zod.array(
+    zod.object({
+      id: zod.string(),
+      consultationId: zod.string(),
+      patientEmail: zod.string(),
+      senderRole: zod.string(),
+      senderName: zod.string(),
+      body: zod.string(),
+      kind: zod.string(),
+      meta: zod.string().nullish(),
+      readByPatient: zod.boolean(),
+      readByPharmacist: zod.boolean(),
+      createdAt: zod.string(),
+    }),
+  ),
+  actions: zod.array(
+    zod.object({
+      id: zod.string(),
+      consultationId: zod.string(),
+      action: zod.string(),
+      actorRole: zod.string(),
+      actorName: zod.string(),
+      details: zod.record(zod.string(), zod.unknown()).optional(),
+      note: zod.string().nullish(),
+      createdAt: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Post a chat message on a consultation (patient or pharmacist)
+ */
+export const PostConsultationMessageParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const PostConsultationMessageBody = zod.object({
+  body: zod.string(),
+  kind: zod.string().nullish(),
+});
+
+/**
+ * @summary List notifications for the authenticated user (patient or pharmacist)
+ */
+export const ListNotificationsQueryParams = zod.object({
+  unreadOnly: zod.coerce.boolean().optional(),
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListNotificationsResponse = zod.object({
+  notifications: zod.array(
+    zod.object({
+      id: zod.string(),
+      recipientType: zod.string(),
+      recipientKey: zod.string(),
+      category: zod.string(),
+      title: zod.string(),
+      body: zod.string(),
+      link: zod.string().nullish(),
+      consultationId: zod.string().nullish(),
+      orderId: zod.string().nullish(),
+      read: zod.boolean(),
+      createdAt: zod.string(),
+    }),
+  ),
+  unreadCount: zod.number(),
+});
+
+/**
+ * @summary Mark a notification as read
+ */
+export const MarkNotificationReadParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const MarkNotificationReadResponse = zod.object({
+  id: zod.string(),
+  recipientType: zod.string(),
+  recipientKey: zod.string(),
+  category: zod.string(),
+  title: zod.string(),
+  body: zod.string(),
+  link: zod.string().nullish(),
+  consultationId: zod.string().nullish(),
+  orderId: zod.string().nullish(),
+  read: zod.boolean(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Mark all notifications as read for the authenticated user
+ */
+export const MarkAllNotificationsReadResponse = zod.object({
+  updated: zod.number(),
 });
 
 /**
@@ -311,6 +534,40 @@ export const GetPatientConsultationsResponse = zod.object({
       createdAt: zod.coerce.date(),
       updatedAt: zod.coerce.date(),
       reviewedAt: zod.coerce.date().nullish(),
+      gpName: zod.string().nullish(),
+      gpSurgery: zod.string().nullish(),
+      gpAddress: zod.string().nullish(),
+      gpPhone: zod.string().nullish(),
+      hasRegularGp: zod.boolean().nullish(),
+      consentShareWithGp: zod.boolean().nullish(),
+      consentToTreatment: zod.boolean().nullish(),
+      consentToDelivery: zod.boolean().nullish(),
+      consentDataProcessing: zod.boolean().nullish(),
+      identityVerificationMethod: zod.string().nullish(),
+      identityVerificationRef: zod.string().nullish(),
+      deliveryAddress: zod.string().nullish(),
+      deliveryAddressLine1: zod.string().nullish(),
+      deliveryAddressLine2: zod.string().nullish(),
+      deliveryCity: zod.string().nullish(),
+      deliveryPostcode: zod.string().nullish(),
+      preferredDeliveryMethod: zod.string().nullish(),
+      allergies: zod.string().nullish(),
+      currentMedications: zod.string().nullish(),
+      medicalHistory: zod.string().nullish(),
+      isPregnant: zod.boolean().nullish(),
+      bmi: zod.number().nullish(),
+      verifiedHeightCm: zod.number().nullish(),
+      verifiedWeightKg: zod.number().nullish(),
+      heightCm: zod.number().nullish(),
+      weightKg: zod.number().nullish(),
+      riskFlags: zod.array(zod.string()).nullish(),
+      riskCategory: zod.string().nullish(),
+      clinicalDecisionRationale: zod.string().nullish(),
+      reviewedBy: zod.string().nullish(),
+      deliveryCarrier: zod.string().nullish(),
+      deliveryTrackingNumber: zod.string().nullish(),
+      deliveredAt: zod.coerce.date().nullish(),
+      dispatchedAt: zod.coerce.date().nullish(),
     }),
   ),
 });
@@ -373,6 +630,40 @@ export const GetRecentConsultationsResponseItem = zod.object({
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
   reviewedAt: zod.coerce.date().nullish(),
+  gpName: zod.string().nullish(),
+  gpSurgery: zod.string().nullish(),
+  gpAddress: zod.string().nullish(),
+  gpPhone: zod.string().nullish(),
+  hasRegularGp: zod.boolean().nullish(),
+  consentShareWithGp: zod.boolean().nullish(),
+  consentToTreatment: zod.boolean().nullish(),
+  consentToDelivery: zod.boolean().nullish(),
+  consentDataProcessing: zod.boolean().nullish(),
+  identityVerificationMethod: zod.string().nullish(),
+  identityVerificationRef: zod.string().nullish(),
+  deliveryAddress: zod.string().nullish(),
+  deliveryAddressLine1: zod.string().nullish(),
+  deliveryAddressLine2: zod.string().nullish(),
+  deliveryCity: zod.string().nullish(),
+  deliveryPostcode: zod.string().nullish(),
+  preferredDeliveryMethod: zod.string().nullish(),
+  allergies: zod.string().nullish(),
+  currentMedications: zod.string().nullish(),
+  medicalHistory: zod.string().nullish(),
+  isPregnant: zod.boolean().nullish(),
+  bmi: zod.number().nullish(),
+  verifiedHeightCm: zod.number().nullish(),
+  verifiedWeightKg: zod.number().nullish(),
+  heightCm: zod.number().nullish(),
+  weightKg: zod.number().nullish(),
+  riskFlags: zod.array(zod.string()).nullish(),
+  riskCategory: zod.string().nullish(),
+  clinicalDecisionRationale: zod.string().nullish(),
+  reviewedBy: zod.string().nullish(),
+  deliveryCarrier: zod.string().nullish(),
+  deliveryTrackingNumber: zod.string().nullish(),
+  deliveredAt: zod.coerce.date().nullish(),
+  dispatchedAt: zod.coerce.date().nullish(),
 });
 export const GetRecentConsultationsResponse = zod.array(
   GetRecentConsultationsResponseItem,

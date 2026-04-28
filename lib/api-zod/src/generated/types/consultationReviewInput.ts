@@ -12,4 +12,11 @@ export interface ConsultationReviewInput {
   pharmacistNote?: string | null;
   prescription?: string | null;
   referralInfo?: string | null;
+  /** Required when action=reject. One of medically_unsuitable, outside_our_scope, insufficient_information, already_prescribed, other */
+  rejectReason?: string | null;
+  /** Required when action=refer. One of gp, hospital_specialist, ae, nhs_111, sexual_health_clinic, mental_health, other */
+  referRecipientType?: string | null;
+  referRecipientName?: string | null;
+  /** routine | soon | urgent | emergency */
+  referUrgency?: string | null;
 }

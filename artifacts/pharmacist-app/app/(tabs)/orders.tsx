@@ -63,16 +63,29 @@ interface ShopOrder {
   delivery: DeliveryInfo | null;
 }
 
-const STATUS_FILTERS = [
-  { key: "all", label: "All" },
-  { key: "paid", label: "New" },
-  { key: "preparing", label: "Preparing" },
-  { key: "shipped", label: "Shipped" },
-  { key: "out_for_delivery", label: "Out" },
-  { key: "delivered", label: "Done" },
+const PRIMARY_TABS = [
+  { key: "pending", label: "Pending", icon: "package", color: "#D97706" },
+  { key: "shipped", label: "Shipped", icon: "truck", color: "#6366F1" },
+  { key: "delivered", label: "Delivered", icon: "check-circle", color: "#10B981" },
 ] as const;
 
-type FilterKey = typeof STATUS_FILTERS[number]["key"];
+type PrimaryTabKey = typeof PRIMARY_TABS[number]["key"];
+
+const PENDING_STAGES = new Set(["paid", "pending", "preparing"]);
+const SHIPPED_STAGES = new Set(["shipped", "out_for_delivery"]);
+const DELIVERED_STAGES = new Set(["delivered"]);
+
+const TIMELINE_STEPS: { key: string; label: string; icon: string }[] = [
+  { key: "preparing", label: "Preparing", icon: "package" },
+  { key: "shipped", label: "Dispatched", icon: "truck" },
+  { key: "out_for_delivery", label: "Out for delivery", icon: "navigation" },
+  { key: "delivered", label: "Delivered", icon: "check-circle" },
+];
+
+const STAGE_ORDER: Record<string, number> = {
+  // paid/pending → first step ("Preparing") so the timeline isn't empty for fresh orders
+  paid: 1, pending: 1, preparing: 1, shipped: 2, out_for_delivery: 3, delivered: 4,
+};
 
 const STAGE_LABEL: Record<string, string> = {
   preparing: "Preparing",
@@ -116,7 +129,7 @@ export default function OrdersScreen() {
   const [orders, setOrders] = useState<ShopOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<FilterKey>("all");
+  const [filter, setFilter] = useState<PrimaryTabKey>("pending");
   const [advancingId, setAdvancingId] = useState<string | null>(null);
 
   const fetchOrders = useCallback(async () => {
@@ -185,19 +198,19 @@ export default function OrdersScreen() {
 
   const stageOf = (o: ShopOrder) => o.delivery?.status ?? o.status;
 
-  const filtered = orders.filter(o => {
-    if (filter === "all") return true;
-    if (filter === "paid") return o.status === "paid" || o.status === "pending";
-    return stageOf(o) === filter;
-  });
+  const inGroup = (o: ShopOrder, group: PrimaryTabKey) => {
+    const s = stageOf(o);
+    if (group === "pending") return PENDING_STAGES.has(s);
+    if (group === "shipped") return SHIPPED_STAGES.has(s);
+    if (group === "delivered") return DELIVERED_STAGES.has(s);
+    return false;
+  };
 
-  const counts = {
-    all: orders.length,
-    paid: orders.filter(o => o.status === "paid" || o.status === "pending").length,
-    preparing: orders.filter(o => stageOf(o) === "preparing").length,
-    shipped: orders.filter(o => stageOf(o) === "shipped").length,
-    out_for_delivery: orders.filter(o => stageOf(o) === "out_for_delivery").length,
-    delivered: orders.filter(o => stageOf(o) === "delivered").length,
+  const filtered = orders.filter(o => inGroup(o, filter));
+  const counts: Record<PrimaryTabKey, number> = {
+    pending: orders.filter(o => inGroup(o, "pending")).length,
+    shipped: orders.filter(o => inGroup(o, "shipped")).length,
+    delivered: orders.filter(o => inGroup(o, "delivered")).length,
   };
 
   const nativeTabs = Platform.OS !== "web" && isLiquidGlassAvailable();
@@ -214,43 +227,32 @@ export default function OrdersScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: topPad }}>
-      <View style={styles.filterBar}>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
-          data={STATUS_FILTERS}
-          keyExtractor={f => f.key}
-          renderItem={({ item }) => {
-            const isActive = filter === item.key;
-            const count = counts[item.key];
-            return (
-              <Pressable
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setFilter(item.key);
-                }}
-                style={[
-                  styles.filterChip,
-                  {
-                    backgroundColor: isActive ? colors.primary : colors.card,
-                    borderColor: isActive ? colors.primary : colors.border,
-                  },
-                ]}
-                testID={`filter-${item.key}`}
-              >
-                <Text
-                  style={[
-                    styles.filterText,
-                    { color: isActive ? "#FFFFFF" : colors.foreground },
-                  ]}
-                >
-                  {item.label} {count > 0 ? `(${count})` : ""}
+      <View style={[styles.tabsBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        {PRIMARY_TABS.map(t => {
+          const isActive = filter === t.key;
+          const c = counts[t.key];
+          return (
+            <Pressable
+              key={t.key}
+              onPress={() => { Haptics.selectionAsync(); setFilter(t.key); }}
+              style={styles.tabBtn}
+              testID={`tab-${t.key}`}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <Feather name={t.icon as any} size={14} color={isActive ? t.color : colors.mutedForeground} />
+                <Text style={[styles.tabLabel, { color: isActive ? t.color : colors.mutedForeground }]}>
+                  {t.label}
                 </Text>
-              </Pressable>
-            );
-          }}
-        />
+                {c > 0 && (
+                  <View style={[styles.tabBadge, { backgroundColor: isActive ? t.color : colors.muted }]}>
+                    <Text style={[styles.tabBadgeText, { color: isActive ? "#fff" : colors.mutedForeground }]}>{c}</Text>
+                  </View>
+                )}
+              </View>
+              {isActive && <View style={[styles.tabIndicator, { backgroundColor: t.color }]} />}
+            </Pressable>
+          );
+        })}
       </View>
 
       <FlatList
@@ -315,12 +317,20 @@ export default function OrdersScreen() {
                 ))}
               </View>
 
+              {/* Tracking timeline */}
+              <TrackingTimeline stage={stage} colors={colors} />
+
               {item.delivery?.trackingNumber ? (
-                <View style={styles.row}>
-                  <Feather name="truck" size={14} color={colors.mutedForeground} />
-                  <Text style={[styles.rowText, { color: colors.mutedForeground }]} numberOfLines={1}>
-                    {item.delivery.carrier} · {item.delivery.trackingNumber}
-                  </Text>
+                <View style={[styles.trackingBox, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+                  <Feather name="truck" size={14} color={colors.foreground} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.trackingCarrier, { color: colors.foreground }]}>
+                      {item.delivery.carrier ?? "Royal Mail"}
+                    </Text>
+                    <Text style={[styles.trackingNumber, { color: colors.mutedForeground }]} numberOfLines={1}>
+                      Tracking: {item.delivery.trackingNumber}
+                    </Text>
+                  </View>
                 </View>
               ) : null}
 
@@ -364,16 +374,117 @@ export default function OrdersScreen() {
   );
 }
 
+function TrackingTimeline({ stage, colors }: { stage: string; colors: ReturnType<typeof useColors> }) {
+  const currentIndex = STAGE_ORDER[stage] ?? 0;
+  return (
+    <View style={timelineStyles.row}>
+      {TIMELINE_STEPS.map((step, i) => {
+        const reached = i + 1 <= currentIndex;
+        const isCurrent = i + 1 === currentIndex;
+        const dotColor = reached ? "#10B981" : colors.border;
+        return (
+          <React.Fragment key={step.key}>
+            <View style={timelineStyles.stepWrap}>
+              <View
+                style={[
+                  timelineStyles.dot,
+                  {
+                    backgroundColor: reached ? dotColor : colors.card,
+                    borderColor: isCurrent ? "#0EA5E9" : reached ? "#10B981" : colors.border,
+                    borderWidth: isCurrent ? 2 : 1.5,
+                  },
+                ]}
+              >
+                <Feather
+                  name={step.icon as any}
+                  size={10}
+                  color={reached ? "#fff" : colors.mutedForeground}
+                />
+              </View>
+              <Text
+                style={[
+                  timelineStyles.label,
+                  {
+                    color: reached ? colors.foreground : colors.mutedForeground,
+                    fontWeight: isCurrent ? "700" : "500",
+                  },
+                ]}
+                numberOfLines={1}
+              >
+                {step.label}
+              </Text>
+            </View>
+            {i < TIMELINE_STEPS.length - 1 && (
+              <View
+                style={[
+                  timelineStyles.line,
+                  { backgroundColor: i + 1 < currentIndex ? "#10B981" : colors.border },
+                ]}
+              />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </View>
+  );
+}
+
+const timelineStyles = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  stepWrap: { alignItems: "center", width: 64 },
+  dot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  label: { fontSize: 9, marginTop: 4, textAlign: "center" },
+  line: { flex: 1, height: 1.5, marginTop: 11, marginHorizontal: -8 },
+});
+
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  filterBar: { paddingVertical: 12, borderBottomWidth: 0 },
-  filterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
+  tabsBar: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
   },
-  filterText: { fontSize: 13, fontWeight: "600" },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    alignItems: "center",
+  },
+  tabLabel: { fontSize: 13, fontWeight: "600" },
+  tabBadge: {
+    minWidth: 20,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabBadgeText: { fontSize: 10, fontWeight: "800" },
+  tabIndicator: {
+    position: "absolute",
+    bottom: 0, left: 24, right: 24, height: 2.5, borderRadius: 2,
+  },
+  trackingBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginTop: 4,
+  },
+  trackingCarrier: { fontSize: 12, fontWeight: "700" },
+  trackingNumber: { fontSize: 11, marginTop: 2 },
   empty: { alignItems: "center", paddingVertical: 60, gap: 12 },
   emptyText: { fontSize: 15 },
   card: {

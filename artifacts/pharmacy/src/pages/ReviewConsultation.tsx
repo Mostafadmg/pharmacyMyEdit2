@@ -56,6 +56,21 @@ export default function ReviewConsultation() {
   const [prescriptionDetails, setPrescriptionDetails] = useState("");
   const [referralDetails, setReferralDetails] = useState("");
 
+  // Structured fields
+  const [rejectReason, setRejectReason] = useState<string>("");
+  const [rejectExplanation, setRejectExplanation] = useState<string>("");
+  const [referRecipientType, setReferRecipientType] = useState<string>("gp");
+  const [referRecipientName, setReferRecipientName] = useState<string>("");
+  const [referUrgency, setReferUrgency] = useState<string>("routine");
+  const [referNote, setReferNote] = useState<string>("");
+  const [moreInfoMessage, setMoreInfoMessage] = useState<string>("");
+
+  // Modal open state (controlled so we can close on success)
+  const [approveOpen, setApproveOpen] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [referOpen, setReferOpen] = useState(false);
+  const [moreInfoOpen, setMoreInfoOpen] = useState(false);
+
   type PatientNote = {
     id: string;
     patientEmail: string;
@@ -288,16 +303,47 @@ export default function ReviewConsultation() {
 
   const handleReview = (action: typeof ConsultationReviewInputAction[keyof typeof ConsultationReviewInputAction]) => {
     if (!id) return;
-    
-    reviewMutation.mutate({
-      id,
-      data: {
-        action,
-        pharmacistNote: reviewNote || null,
-        prescription: action === 'approve' ? prescriptionDetails : null,
-        referralInfo: action === 'refer' ? referralDetails : null
-      }
-    });
+
+    if (action === 'reject' && (!rejectReason || !rejectExplanation.trim())) {
+      toast.error("Select a reason and explanation");
+      return;
+    }
+    if (action === 'refer' && (!referRecipientType || !referRecipientName.trim())) {
+      toast.error("Choose a recipient and provide their name");
+      return;
+    }
+    if (action === 'more_info' && !moreInfoMessage.trim()) {
+      toast.error("Tell the patient what info is needed");
+      return;
+    }
+
+    const pharmacistNote =
+      action === 'reject' ? rejectExplanation
+      : action === 'refer' ? referNote
+      : action === 'more_info' ? moreInfoMessage
+      : reviewNote || null;
+
+    const data: any = {
+      action,
+      pharmacistNote: pharmacistNote || null,
+      prescription: action === 'approve' ? prescriptionDetails : null,
+      referralInfo: action === 'refer' ? referralDetails : null,
+    };
+    if (action === 'reject') data.rejectReason = rejectReason;
+    if (action === 'refer') {
+      data.referRecipientType = referRecipientType;
+      data.referRecipientName = referRecipientName;
+      data.referUrgency = referUrgency;
+    }
+
+    reviewMutation.mutate({ id, data }, {
+      onSuccess: () => {
+        setApproveOpen(false);
+        setRejectOpen(false);
+        setReferOpen(false);
+        setMoreInfoOpen(false);
+      },
+    } as any);
   };
 
   const getStatusBadge = (status: string) => {
@@ -817,35 +863,36 @@ export default function ReviewConsultation() {
                     />
                   </div>
 
-                  <div className="space-y-4 pt-6 mt-6 border-t border-border">
-                    <Dialog>
+                  <div className="space-y-3 pt-6 mt-6 border-t border-border">
+                    {/* Approve */}
+                    <Dialog open={approveOpen} onOpenChange={setApproveOpen}>
                       <DialogTrigger asChild>
                         <Button className="w-full bg-green-600 hover:bg-green-700 text-white rounded-xl h-14 text-base font-bold shadow-md hover:shadow-lg transition-all" size="lg">
                           <CheckCircle2 className="w-5 h-5 mr-2" /> Approve & Prescribe
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="sm:max-w-[500px] rounded-2xl">
+                      <DialogContent className="sm:max-w-[520px] rounded-2xl">
                         <DialogHeader>
                           <DialogTitle className="text-2xl font-serif text-secondary">Issue Prescription</DialogTitle>
                           <DialogDescription className="text-base">
                             Write the prescription details for <span className="font-bold text-secondary">{consultation.patientName}</span>.
                           </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-4 py-4">
-                          <div className="space-y-3">
+                        <div className="space-y-4 py-2">
+                          <div className="space-y-2">
                             <Label htmlFor="prescription" className="font-bold text-secondary">Prescription Details</Label>
-                            <Textarea 
-                              id="prescription" 
+                            <Textarea
+                              id="prescription"
                               value={prescriptionDetails}
                               onChange={(e) => setPrescriptionDetails(e.target.value)}
                               placeholder="e.g. Amoxicillin 500mg capsules. 1 capsule three times a day for 5 days. Quantity: 15."
-                              className="min-h-[160px] font-mono text-sm rounded-xl focus-visible:ring-green-500/30"
+                              className="min-h-[140px] font-mono text-sm rounded-xl focus-visible:ring-green-500/30"
                             />
                           </div>
                         </div>
                         <DialogFooter>
-                          <Button 
-                            onClick={() => handleReview('approve')} 
+                          <Button
+                            onClick={() => handleReview('approve')}
                             disabled={!prescriptionDetails || reviewMutation.isPending}
                             className="bg-green-600 hover:bg-green-700 text-white rounded-full px-8 h-12 font-bold"
                           >
@@ -855,70 +902,143 @@ export default function ReviewConsultation() {
                       </DialogContent>
                     </Dialog>
 
-                    <Dialog>
+                    {/* More Info */}
+                    <Dialog open={moreInfoOpen} onOpenChange={setMoreInfoOpen}>
                       <DialogTrigger asChild>
                         <Button variant="outline" className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 rounded-xl h-12 font-bold">
                           <MessageSquare className="w-5 h-5 mr-2" /> Request More Info
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="sm:max-w-[500px] rounded-2xl">
+                      <DialogContent className="sm:max-w-[520px] rounded-2xl">
                         <DialogHeader>
-                          <DialogTitle className="text-2xl font-serif text-secondary">Request Information</DialogTitle>
+                          <DialogTitle className="text-2xl font-serif text-secondary flex items-center gap-2">
+                            <MessageSquare className="w-6 h-6 text-blue-600" /> Request More Information
+                          </DialogTitle>
                           <DialogDescription className="text-base">
-                            What additional information do you need from the patient?
+                            Send a message to <span className="font-bold text-secondary">{consultation.patientName}</span>. They'll be notified and can reply directly.
                           </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-4 py-4">
-                          <div className="space-y-3">
+                        <div className="space-y-4 py-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            {[
+                              "Please upload a clearer photo of the affected area.",
+                              "Could you confirm your current medications?",
+                              "What is your usual blood pressure reading?",
+                              "Have you tried any over-the-counter remedies already?",
+                            ].map(t => (
+                              <button
+                                key={t}
+                                type="button"
+                                onClick={() => setMoreInfoMessage(prev => prev ? `${prev}\n${t}` : t)}
+                                className="text-left text-xs px-3 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200"
+                              >
+                                + {t}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="space-y-2">
                             <Label className="font-bold text-secondary">Message to Patient</Label>
-                            <Textarea 
-                              value={reviewNote}
-                              onChange={(e) => setReviewNote(e.target.value)}
-                              placeholder="e.g. Please upload a clearer photo of the rash..."
+                            <Textarea
+                              value={moreInfoMessage}
+                              onChange={(e) => setMoreInfoMessage(e.target.value)}
+                              placeholder="What additional information do you need?"
                               className="min-h-[140px] rounded-xl focus-visible:ring-blue-500/30"
                             />
                           </div>
+                          <p className="text-xs text-muted-foreground">This message will be added to the patient's conversation thread and they'll receive a notification.</p>
                         </div>
                         <DialogFooter>
-                          <Button 
-                            onClick={() => handleReview('more_info')} 
-                            disabled={!reviewNote || reviewMutation.isPending}
+                          <Button
+                            onClick={() => handleReview('more_info')}
+                            disabled={!moreInfoMessage.trim() || reviewMutation.isPending}
                             className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-8 h-12 font-bold"
                           >
-                            Send Request
+                            Send & Pause for Response
                           </Button>
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
 
-                    <Dialog>
+                    {/* Refer */}
+                    <Dialog open={referOpen} onOpenChange={setReferOpen}>
                       <DialogTrigger asChild>
                         <Button variant="outline" className="w-full border-purple-200 text-purple-700 hover:bg-purple-50 rounded-xl h-12 font-bold">
-                          <ExternalLink className="w-5 h-5 mr-2" /> Refer to GP / Urgent Care
+                          <ExternalLink className="w-5 h-5 mr-2" /> Refer to Healthcare Professional
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="sm:max-w-[500px] rounded-2xl">
+                      <DialogContent className="sm:max-w-[560px] rounded-2xl">
                         <DialogHeader>
-                          <DialogTitle className="text-2xl font-serif text-secondary">Refer Patient</DialogTitle>
+                          <DialogTitle className="text-2xl font-serif text-purple-700 flex items-center gap-2">
+                            <ExternalLink className="w-6 h-6" /> Refer for Further Care
+                          </DialogTitle>
                           <DialogDescription className="text-base">
-                            Provide instructions for the patient to seek alternative care.
+                            Refer <span className="font-bold text-secondary">{consultation.patientName}</span> to another healthcare professional.
                           </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-4 py-4">
-                          <div className="space-y-3">
-                            <Label className="font-bold text-secondary">Referral Instructions</Label>
-                            <Textarea 
+                        <div className="space-y-4 py-2">
+                          <div className="space-y-2">
+                            <Label className="font-bold text-secondary">Refer to</Label>
+                            <select
+                              value={referRecipientType}
+                              onChange={(e) => setReferRecipientType(e.target.value)}
+                              className="w-full h-11 px-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                            >
+                              <option value="gp">GP / regular prescriber</option>
+                              <option value="hospital_specialist">Hospital specialist</option>
+                              <option value="ae">A&E (Accident & Emergency)</option>
+                              <option value="nhs_111">NHS 111</option>
+                              <option value="sexual_health_clinic">Sexual health clinic</option>
+                              <option value="mental_health">Mental health services</option>
+                              <option value="other">Other specialist</option>
+                            </select>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-2">
+                              <Label className="font-bold text-secondary">Recipient name / clinic</Label>
+                              <input
+                                value={referRecipientName}
+                                onChange={(e) => setReferRecipientName(e.target.value)}
+                                placeholder="e.g. Dr Patel, Hilltop Surgery"
+                                className="w-full h-11 px-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="font-bold text-secondary">Urgency</Label>
+                              <select
+                                value={referUrgency}
+                                onChange={(e) => setReferUrgency(e.target.value)}
+                                className="w-full h-11 px-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                              >
+                                <option value="routine">Routine</option>
+                                <option value="soon">Within 7 days</option>
+                                <option value="urgent">Urgent (within 24h)</option>
+                                <option value="emergency">Emergency — call 999/111</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="font-bold text-secondary">Note to patient</Label>
+                            <Textarea
+                              value={referNote}
+                              onChange={(e) => setReferNote(e.target.value)}
+                              placeholder="Explain why you're referring and what the patient should do next."
+                              className="min-h-[100px] rounded-xl focus-visible:ring-purple-500/30"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="font-bold text-secondary">Internal referral notes (optional)</Label>
+                            <Textarea
                               value={referralDetails}
                               onChange={(e) => setReferralDetails(e.target.value)}
-                              placeholder="e.g. Your symptoms require physical examination. Please contact your GP within 48 hours..."
-                              className="min-h-[140px] rounded-xl focus-visible:ring-purple-500/30"
+                              placeholder="Notes for the audit log only — won't be sent to the patient."
+                              className="min-h-[60px] rounded-xl focus-visible:ring-purple-500/30 text-xs"
                             />
                           </div>
                         </div>
                         <DialogFooter>
-                          <Button 
-                            onClick={() => handleReview('refer')} 
-                            disabled={!referralDetails || reviewMutation.isPending}
+                          <Button
+                            onClick={() => handleReview('refer')}
+                            disabled={!referRecipientName.trim() || reviewMutation.isPending}
                             className="bg-purple-600 hover:bg-purple-700 text-white rounded-full px-8 h-12 font-bold"
                           >
                             Confirm Referral
@@ -927,35 +1047,66 @@ export default function ReviewConsultation() {
                       </DialogContent>
                     </Dialog>
 
-                    <Dialog>
+                    {/* Reject */}
+                    <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
                       <DialogTrigger asChild>
                         <Button variant="outline" className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-xl h-12 font-bold mt-4">
                           <XCircle className="w-5 h-5 mr-2" /> Reject Consultation
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="sm:max-w-[500px] rounded-2xl">
+                      <DialogContent className="sm:max-w-[520px] rounded-2xl">
                         <DialogHeader>
-                          <DialogTitle className="text-2xl font-serif text-red-600 flex items-center gap-2"><AlertTriangle className="w-6 h-6"/> Reject Consultation</DialogTitle>
+                          <DialogTitle className="text-2xl font-serif text-red-600 flex items-center gap-2">
+                            <AlertTriangle className="w-6 h-6"/> Reject Consultation
+                          </DialogTitle>
                           <DialogDescription className="text-base">
-                            Please provide a reason for rejecting this consultation. The patient will be notified.
+                            Choose a reason and explain to the patient. They'll be notified and can reply.
                           </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-4 py-4">
-                          <div className="space-y-3">
-                            <Label className="font-bold text-secondary">Rejection Reason</Label>
-                            <Textarea 
-                              value={reviewNote}
-                              onChange={(e) => setReviewNote(e.target.value)}
-                              placeholder="e.g. This treatment is not suitable for your specific medical history..."
-                              className="min-h-[140px] rounded-xl focus-visible:ring-red-500/30"
+                        <div className="space-y-4 py-2">
+                          <div className="space-y-2">
+                            <Label className="font-bold text-secondary">Reason</Label>
+                            <div className="grid grid-cols-1 gap-2">
+                              {[
+                                { v: "medically_unsuitable", label: "Medically unsuitable for this treatment" },
+                                { v: "outside_our_scope", label: "Outside the scope of our online service" },
+                                { v: "insufficient_information", label: "Insufficient information provided" },
+                                { v: "already_prescribed", label: "Already prescribed elsewhere" },
+                                { v: "other", label: "Other reason" },
+                              ].map(o => (
+                                <label key={o.v} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition-colors ${
+                                  rejectReason === o.v
+                                    ? "border-red-300 bg-red-50"
+                                    : "border-border hover:border-red-200 hover:bg-red-50/50"
+                                }`}>
+                                  <input
+                                    type="radio"
+                                    name="reject_reason"
+                                    value={o.v}
+                                    checked={rejectReason === o.v}
+                                    onChange={() => setRejectReason(o.v)}
+                                    className="accent-red-600"
+                                  />
+                                  <span className="text-sm font-medium text-secondary">{o.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="font-bold text-secondary">Explanation to patient</Label>
+                            <Textarea
+                              value={rejectExplanation}
+                              onChange={(e) => setRejectExplanation(e.target.value)}
+                              placeholder="Be clear and supportive. Explain why and what the patient should do next."
+                              className="min-h-[120px] rounded-xl focus-visible:ring-red-500/30"
                             />
                           </div>
                         </div>
                         <DialogFooter>
-                          <Button 
+                          <Button
                             variant="destructive"
-                            onClick={() => handleReview('reject')} 
-                            disabled={!reviewNote || reviewMutation.isPending}
+                            onClick={() => handleReview('reject')}
+                            disabled={!rejectReason || !rejectExplanation.trim() || reviewMutation.isPending}
                             className="rounded-full px-8 h-12 font-bold"
                           >
                             Confirm Rejection

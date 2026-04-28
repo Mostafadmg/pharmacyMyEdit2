@@ -1,6 +1,13 @@
 import { Router, type IRouter } from "express";
-import { db, consultationsTable, conditionsTable } from "@workspace/db";
-import { requirePharmacist } from "../middlewares/auth";
+import {
+  db,
+  consultationsTable,
+  conditionsTable,
+  consultationActionsTable,
+  consultationMessagesTable,
+  notificationsTable,
+} from "@workspace/db";
+import { requirePharmacist, type AuthedRequest } from "../middlewares/auth";
 import {
   ListConsultationsQueryParams,
   ListConsultationsResponse,
@@ -14,6 +21,24 @@ import {
 import { eq, desc, count, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { sendConsultationOutcomeEmail } from "../utils/email";
+
+const REJECT_REASON_LABELS: Record<string, string> = {
+  medically_unsuitable: "Medically unsuitable for this treatment",
+  outside_our_scope: "Outside the scope of our online service",
+  insufficient_information: "Insufficient information provided",
+  already_prescribed: "Already prescribed elsewhere",
+  other: "Other reason",
+};
+
+const REFER_RECIPIENT_LABELS: Record<string, string> = {
+  gp: "Your GP / regular prescriber",
+  hospital_specialist: "Hospital specialist",
+  ae: "A&E (Accident & Emergency)",
+  nhs_111: "NHS 111",
+  sexual_health_clinic: "Sexual health clinic",
+  mental_health: "Mental health services",
+  other: "Specialist service",
+};
 
 const router: IRouter = Router();
 
@@ -147,7 +172,7 @@ router.get("/consultations/:id", async (req, res): Promise<void> => {
   res.json(GetConsultationResponse.parse(consultation));
 });
 
-router.post("/consultations/:id/review", async (req, res): Promise<void> => {
+router.post("/consultations/:id/review", requirePharmacist, async (req: AuthedRequest, res): Promise<void> => {
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = ReviewConsultationParams.safeParse({ id: rawId });
   if (!params.success) {
@@ -161,7 +186,34 @@ router.post("/consultations/:id/review", async (req, res): Promise<void> => {
     return;
   }
 
-  const { action, pharmacistNote, prescription, referralInfo } = parsed.data;
+  const {
+    action,
+    pharmacistNote,
+    prescription,
+    referralInfo,
+    rejectReason,
+    referRecipientType,
+    referRecipientName,
+    referUrgency,
+  } = parsed.data;
+
+  // Structured validation
+  if (action === "reject") {
+    if (!rejectReason || !pharmacistNote?.trim()) {
+      res.status(400).json({ error: "A reject reason and explanation note are required." });
+      return;
+    }
+  }
+  if (action === "refer") {
+    if (!referRecipientType || !referRecipientName?.trim()) {
+      res.status(400).json({ error: "Referral recipient type and name are required." });
+      return;
+    }
+  }
+  if (action === "more_info" && !pharmacistNote?.trim()) {
+    res.status(400).json({ error: "Please describe what additional information is needed." });
+    return;
+  }
 
   const statusMap: Record<string, string> = {
     approve: "approved",
@@ -170,17 +222,118 @@ router.post("/consultations/:id/review", async (req, res): Promise<void> => {
     refer: "referred",
   };
 
-  const [updated] = await db
-    .update(consultationsTable)
-    .set({
-      status: statusMap[action] ?? "pending",
-      pharmacistNote: pharmacistNote ?? null,
-      prescription: prescription ?? null,
-      referralInfo: referralInfo ?? null,
-      reviewedAt: new Date(),
-    })
-    .where(eq(consultationsTable.id, params.data.id))
-    .returning();
+  const reasonLabel = rejectReason ? (REJECT_REASON_LABELS[rejectReason] ?? rejectReason) : null;
+  const recipientLabel = referRecipientType ? (REFER_RECIPIENT_LABELS[referRecipientType] ?? referRecipientType) : null;
+
+  // Compose enriched referralInfo for refer
+  const composedReferralInfo = action === "refer"
+    ? `Referred to: ${recipientLabel}${referRecipientName ? ` — ${referRecipientName}` : ""}${referUrgency ? ` (Urgency: ${referUrgency})` : ""}${pharmacistNote ? `\n\n${pharmacistNote}` : ""}${referralInfo ? `\n\n${referralInfo}` : ""}`
+    : referralInfo ?? null;
+
+  const composedRejectionNote = action === "reject"
+    ? `Reason: ${reasonLabel}\n\n${pharmacistNote ?? ""}`
+    : pharmacistNote ?? null;
+
+  // Patient-facing message in chat thread (computed before tx so we can reuse condition name)
+  const buildPatientMessage = (conditionName: string): string => {
+    switch (action) {
+      case "approve":
+        return `Good news — your consultation for ${conditionName} has been approved.${prescription ? `\n\nPrescription: ${prescription}` : ""}${pharmacistNote ? `\n\n${pharmacistNote}` : ""}`;
+      case "reject":
+        return `We're unable to approve your consultation for ${conditionName}.\n\nReason: ${reasonLabel}\n\n${pharmacistNote ?? ""}`;
+      case "more_info":
+        return `We need a little more information to review your consultation for ${conditionName}.\n\n${pharmacistNote ?? ""}\n\nPlease reply with the details above and we'll review again.`;
+      case "refer":
+        return `We've referred you for further care. Recipient: ${recipientLabel}${referRecipientName ? ` (${referRecipientName})` : ""}${referUrgency ? `, urgency: ${referUrgency}` : ""}.${pharmacistNote ? `\n\n${pharmacistNote}` : ""}`;
+      default:
+        return pharmacistNote ?? "";
+    }
+  };
+
+  const titles: Record<string, string> = {
+    approve: "Your consultation was approved",
+    reject: "Your consultation was reviewed",
+    more_info: "Pharmacist needs more info",
+    refer: "You've been referred for further care",
+  };
+
+  // Atomic write: status + audit + chat message + notification all succeed together,
+  // or none of them apply.
+  let updated: typeof consultationsTable.$inferSelect | undefined;
+  try {
+    updated = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(consultationsTable)
+        .set({
+          status: statusMap[action] ?? "pending",
+          pharmacistNote: composedRejectionNote,
+          prescription: prescription ?? null,
+          referralInfo: composedReferralInfo,
+          reviewedAt: new Date(),
+          reviewedBy: req.authActor?.name ?? null,
+        })
+        .where(eq(consultationsTable.id, params.data.id))
+        .returning();
+
+      if (!row) {
+        // Bail out of transaction so caller can return 404
+        throw new Error("CONSULTATION_NOT_FOUND");
+      }
+
+      await tx.insert(consultationActionsTable).values({
+        id: randomUUID(),
+        consultationId: row.id,
+        action,
+        actorRole: "pharmacist",
+        actorName: req.authActor?.name ?? "Pharmacist",
+        details: {
+          rejectReason: rejectReason ?? null,
+          rejectReasonLabel: reasonLabel,
+          referRecipientType: referRecipientType ?? null,
+          referRecipientLabel: recipientLabel,
+          referRecipientName: referRecipientName ?? null,
+          referUrgency: referUrgency ?? null,
+          prescription: prescription ?? null,
+        },
+        note: pharmacistNote ?? null,
+      });
+
+      await tx.insert(consultationMessagesTable).values({
+        id: randomUUID(),
+        consultationId: row.id,
+        patientEmail: row.patientEmail,
+        senderRole: "pharmacist",
+        senderName: req.authActor?.name ?? "Pharmacist",
+        body: buildPatientMessage(row.conditionName),
+        kind: action,
+        readByPatient: false,
+        readByPharmacist: true,
+      });
+
+      await tx.insert(notificationsTable).values({
+        id: randomUUID(),
+        recipientType: "patient",
+        recipientKey: row.patientEmail,
+        category: "consultation",
+        title: titles[action] ?? "Consultation update",
+        body: `${row.conditionName} — open to read full details and reply.`,
+        link: "/my-consultations",
+        consultationId: row.id,
+        orderId: null,
+        read: false,
+      });
+
+      return row;
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message === "CONSULTATION_NOT_FOUND") {
+      res.status(404).json({ error: "Consultation not found" });
+      return;
+    }
+    req.log?.error?.({ err }, "Consultation review transaction failed");
+    res.status(500).json({ error: "Failed to record review" });
+    return;
+  }
 
   if (!updated) {
     res.status(404).json({ error: "Consultation not found" });

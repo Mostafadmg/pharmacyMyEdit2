@@ -104,6 +104,16 @@ export default function ConsultationDetail() {
   const [referral, setReferral] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // Structured action modals
+  const [actionModal, setActionModal] = useState<null | "approve" | "more_info" | "refer" | "reject">(null);
+  const [moreInfoMessage, setMoreInfoMessage] = useState("");
+  const [referRecipientType, setReferRecipientType] = useState<string>("gp");
+  const [referRecipientName, setReferRecipientName] = useState("");
+  const [referUrgency, setReferUrgency] = useState<string>("routine");
+  const [referMessage, setReferMessage] = useState("");
+  const [rejectReason, setRejectReason] = useState<string>("");
+  const [rejectExplanation, setRejectExplanation] = useState("");
+
   const [patientHistory, setPatientHistory] = useState<PatientConsultation[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
@@ -341,40 +351,51 @@ export default function ConsultationDetail() {
     ]);
   }
 
-  function handleReview(action: typeof ConsultationReviewInputAction[keyof typeof ConsultationReviewInputAction]) {
+  function openActionModal(action: "approve" | "more_info" | "refer" | "reject") {
     if (action === "approve" && !prescription.trim()) {
-      Alert.alert("Required", "Please enter prescription details before approving.");
+      Alert.alert("Prescription required", "Please enter prescription details before approving.");
       return;
     }
-    const actionLabels: Record<string, string> = {
-      approve: "Approve and prescribe",
-      reject: "Reject this consultation",
-      more_info: "Request more info",
-      refer: "Refer to GP/specialist",
-    };
-    Alert.alert(
-      actionLabels[action] ?? action,
-      "Are you sure you want to proceed?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Confirm",
-          style: action === "reject" ? "destructive" : "default",
-          onPress: () => {
-            setSubmitting(true);
-            reviewMutation.mutate({
-              id: id ?? "",
-              data: {
-                action,
-                pharmacistNote: note.trim() || undefined,
-                prescription: prescription.trim() || undefined,
-                referralInfo: referral.trim() || undefined,
-              },
-            });
-          },
-        },
-      ]
-    );
+    Haptics.selectionAsync();
+    setActionModal(action);
+  }
+
+  function submitAction(action: "approve" | "more_info" | "refer" | "reject") {
+    const data: any = { action };
+    if (action === "approve") {
+      data.pharmacistNote = note.trim() || undefined;
+      data.prescription = prescription.trim() || undefined;
+    } else if (action === "more_info") {
+      if (!moreInfoMessage.trim()) {
+        Alert.alert("Required", "Please write a message for the patient.");
+        return;
+      }
+      data.pharmacistNote = moreInfoMessage.trim();
+    } else if (action === "refer") {
+      if (!referRecipientName.trim()) {
+        Alert.alert("Required", "Please enter the recipient name.");
+        return;
+      }
+      data.referRecipientType = referRecipientType;
+      data.referRecipientName = referRecipientName.trim();
+      data.referUrgency = referUrgency;
+      data.pharmacistNote = referMessage.trim() || undefined;
+      data.referralInfo = referral.trim() || undefined;
+    } else if (action === "reject") {
+      if (!rejectReason || !rejectExplanation.trim()) {
+        Alert.alert("Required", "Please choose a reason and provide an explanation.");
+        return;
+      }
+      data.rejectReason = rejectReason;
+      data.pharmacistNote = rejectExplanation.trim();
+    }
+    setSubmitting(true);
+    reviewMutation.mutate({ id: id ?? "", data });
+  }
+
+  // Backwards compat: existing call-sites use handleReview
+  function handleReview(action: "approve" | "more_info" | "refer" | "reject") {
+    openActionModal(action);
   }
 
   const styles = makeStyles(colors);
@@ -401,6 +422,23 @@ export default function ConsultationDetail() {
           <Text style={styles.redFlagText}>  URGENT — Red Flag Identified — Review Immediately</Text>
         </View>
       )}
+
+      {/* Back bar */}
+      <View style={styles.backBar}>
+        <Pressable
+          onPress={() => { Haptics.selectionAsync(); router.back(); }}
+          style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}
+          hitSlop={12}
+          testID="btn-back"
+        >
+          <Feather name="chevron-left" size={22} color={colors.primary} />
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
+        </Pressable>
+        <Text style={styles.backBarTitle} numberOfLines={1}>
+          Consultation · {consultation.id.slice(0, 8).toUpperCase()}
+        </Text>
+        <View style={{ width: 60 }} />
+      </View>
 
       {/* Patient header */}
       <View style={styles.patientHeader}>
@@ -519,38 +557,145 @@ export default function ConsultationDetail() {
                 )}
 
                 <View style={[styles.infoCard, { marginTop: 8 }]}>
-                  <InfoRow icon="shield" label="Identity" value={c.identityVerificationMethod || "Photo ID"} colors={colors} />
-                  <InfoRow icon="user" label="GP" value={c.gpName || "Not provided"} colors={colors} />
-                  {c.gpSurgery && <InfoRow icon="briefcase" label="Surgery" value={c.gpSurgery} colors={colors} />}
-                  {c.deliveryAddressLine1 && (
-                    <InfoRow
-                      icon="map-pin"
-                      label="Delivery"
-                      value={`${c.deliveryAddressLine1}, ${c.deliveryCity || ""} ${c.deliveryPostcode || ""}`.trim()}
-                      colors={colors}
-                    />
-                  )}
-                  {c.bmi && (
-                    <InfoRow
-                      icon="activity"
-                      label="BMI"
-                      value={`${Number(c.bmi).toFixed(1)} (${c.weightKg}kg / ${c.heightCm}cm)`}
-                      colors={colors}
-                    />
+                  <InfoRow icon="shield" label="Identity" value={c.identityVerificationMethod || "Photo ID on file"} colors={colors} />
+                  {c.identityVerificationRef && (
+                    <InfoRow icon="hash" label="ID Ref" value={c.identityVerificationRef} colors={colors} />
                   )}
                   <InfoRow
                     icon="check-square"
                     label="Consents"
                     value={[
-                      c.consentDataProcessing && "Data",
+                      c.consentDataProcessing && "Data processing",
                       c.consentToTreatment && "Treatment",
                       c.consentToDelivery && "Delivery",
-                      c.consentShareWithGp && "Share-GP",
+                      c.consentShareWithGp && "Share with GP",
                     ].filter(Boolean).join(", ") || "None recorded"}
                     colors={colors}
                   />
                 </View>
               </View>
+            );
+          })()}
+
+          {/* Patient submitted information — show ALL fields */}
+          {(() => {
+            const c: any = consultation;
+            const has = (v: any) => v !== null && v !== undefined && String(v).trim() !== "";
+            const hasGp = has(c.gpName) || has(c.gpSurgery) || has(c.gpAddress) || has(c.gpPhone) || c.hasRegularGp != null;
+            const hasMed = has(c.allergies) || has(c.currentMedications) || has(c.medicalHistory) || c.isPregnant != null;
+            const hasBody = has(c.bmi) || has(c.weightKg) || has(c.heightCm) || has(c.verifiedHeightCm) || has(c.verifiedWeightKg);
+            const hasDelivery = has(c.deliveryAddress) || has(c.deliveryAddressLine1) || has(c.deliveryCity) || has(c.deliveryPostcode) || has(c.preferredDeliveryMethod);
+            return (
+              <>
+                {/* GP / Regular Prescriber */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>GP / Regular Prescriber</Text>
+                  <View style={styles.infoCard}>
+                    <InfoRow
+                      icon="user"
+                      label="Has regular GP"
+                      value={c.hasRegularGp == null ? "Not asked" : c.hasRegularGp ? "Yes" : "No"}
+                      colors={colors}
+                    />
+                    <InfoRow icon="user" label="GP name" value={has(c.gpName) ? c.gpName : "—"} colors={colors} />
+                    <InfoRow icon="briefcase" label="Surgery" value={has(c.gpSurgery) ? c.gpSurgery : "—"} colors={colors} />
+                    <InfoRow icon="map-pin" label="Surgery address" value={has(c.gpAddress) ? c.gpAddress : "—"} colors={colors} />
+                    <InfoRow icon="phone" label="Surgery phone" value={has(c.gpPhone) ? c.gpPhone : "—"} colors={colors} />
+                    <InfoRow
+                      icon="share-2"
+                      label="Consent to share"
+                      value={c.consentShareWithGp ? "Yes — patient agreed to share with GP" : "No"}
+                      colors={colors}
+                    />
+                  </View>
+                  {!hasGp && (
+                    <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 6, fontStyle: "italic" }}>
+                      Patient didn't supply GP details for this consultation.
+                    </Text>
+                  )}
+                </View>
+
+                {/* Medical Background */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Medical Background</Text>
+                  <View style={styles.infoCard}>
+                    <InfoRow
+                      icon="alert-circle"
+                      label="Allergies"
+                      value={has(c.allergies) ? c.allergies : "None reported"}
+                      colors={colors}
+                    />
+                    <InfoRow
+                      icon="package"
+                      label="Current medications"
+                      value={has(c.currentMedications) ? c.currentMedications : "None reported"}
+                      colors={colors}
+                    />
+                    <InfoRow
+                      icon="file-text"
+                      label="Medical history"
+                      value={has(c.medicalHistory) ? c.medicalHistory : "None reported"}
+                      colors={colors}
+                    />
+                    {consultation.patientSex === "female" && (
+                      <InfoRow
+                        icon="heart"
+                        label="Pregnancy status"
+                        value={c.isPregnant === true ? "Pregnant" : c.isPregnant === false ? "Not pregnant" : "Not asked"}
+                        colors={colors}
+                      />
+                    )}
+                  </View>
+                </View>
+
+                {/* Body Measurements */}
+                {hasBody && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Body Measurements</Text>
+                    <View style={styles.infoCard}>
+                      {has(c.heightCm) && <InfoRow icon="trending-up" label="Height (self)" value={`${c.heightCm} cm`} colors={colors} />}
+                      {has(c.weightKg) && <InfoRow icon="bar-chart" label="Weight (self)" value={`${c.weightKg} kg`} colors={colors} />}
+                      {has(c.verifiedHeightCm) && <InfoRow icon="check" label="Height (verified)" value={`${c.verifiedHeightCm} cm`} colors={colors} />}
+                      {has(c.verifiedWeightKg) && <InfoRow icon="check" label="Weight (verified)" value={`${c.verifiedWeightKg} kg`} colors={colors} />}
+                      {has(c.bmi) && (
+                        <InfoRow
+                          icon="activity"
+                          label="BMI"
+                          value={`${Number(c.bmi).toFixed(1)}`}
+                          colors={colors}
+                        />
+                      )}
+                    </View>
+                  </View>
+                )}
+
+                {/* Delivery */}
+                {hasDelivery && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Delivery</Text>
+                    <View style={styles.infoCard}>
+                      <InfoRow
+                        icon="map-pin"
+                        label="Address"
+                        value={
+                          has(c.deliveryAddress)
+                            ? c.deliveryAddress
+                            : [c.deliveryAddressLine1, c.deliveryAddressLine2, c.deliveryCity, c.deliveryPostcode]
+                                .filter(Boolean)
+                                .join(", ") || "—"
+                        }
+                        colors={colors}
+                      />
+                      <InfoRow
+                        icon="truck"
+                        label="Method"
+                        value={has(c.preferredDeliveryMethod) ? c.preferredDeliveryMethod : "Royal Mail Tracked (default)"}
+                        colors={colors}
+                      />
+                    </View>
+                  </View>
+                )}
+              </>
             );
           })()}
 
@@ -838,6 +983,254 @@ export default function ConsultationDetail() {
         </View>
       )}
 
+      {/* Structured action modals */}
+      <Modal visible={actionModal === "more_info"} transparent animationType="slide" onRequestClose={() => setActionModal(null)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setActionModal(null)}>
+          <Pressable style={[styles.modalCard, { backgroundColor: colors.card, maxHeight: "85%" }]} onPress={() => {}}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+                <Feather name="message-circle" size={20} color="#2563EB" />
+                <Text style={[styles.modalTitle, { marginLeft: 8 }]}>Request More Information</Text>
+              </View>
+              <Text style={{ fontSize: 13, color: colors.mutedForeground, marginBottom: 14 }}>
+                Send a message to {consultation.patientName}. They'll be notified and can reply directly.
+              </Text>
+              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>QUICK ASKS</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+                {[
+                  "Please upload a clearer photo of the affected area.",
+                  "Could you confirm your current medications?",
+                  "What's your usual blood pressure?",
+                  "Have you tried OTC remedies already?",
+                ].map(t => (
+                  <Pressable
+                    key={t}
+                    onPress={() => setMoreInfoMessage(prev => prev ? `${prev}\n${t}` : t)}
+                    style={{ backgroundColor: "#DBEAFE", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: "#BFDBFE" }}
+                  >
+                    <Text style={{ fontSize: 11, color: "#1E3A8A", fontWeight: "600" }}>+ {t.length > 35 ? t.slice(0, 35) + "…" : t}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <TextInput
+                style={[styles.textarea, { marginBottom: 14, minHeight: 110 }]}
+                placeholder="What additional information do you need?"
+                placeholderTextColor={colors.mutedForeground}
+                value={moreInfoMessage}
+                onChangeText={setMoreInfoMessage}
+                multiline
+                textAlignVertical="top"
+                autoFocus
+              />
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <Pressable style={[styles.modalBtn, { backgroundColor: colors.muted, flex: 1 }]} onPress={() => setActionModal(null)}>
+                  <Text style={{ color: colors.foreground, fontWeight: "600" }}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.modalBtn, { backgroundColor: "#2563EB", flex: 2 }]}
+                  onPress={() => submitAction("more_info")}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "700" }}>Send & Pause for Reply</Text>
+                </Pressable>
+              </View>
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal visible={actionModal === "refer"} transparent animationType="slide" onRequestClose={() => setActionModal(null)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setActionModal(null)}>
+          <Pressable style={[styles.modalCard, { backgroundColor: colors.card, maxHeight: "90%" }]} onPress={() => {}}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+                <Feather name="external-link" size={20} color="#7C3AED" />
+                <Text style={[styles.modalTitle, { marginLeft: 8 }]}>Refer for Further Care</Text>
+              </View>
+              <Text style={{ fontSize: 13, color: colors.mutedForeground, marginBottom: 14 }}>
+                Refer {consultation.patientName} to another healthcare professional.
+              </Text>
+
+              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>REFER TO</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+                {[
+                  { v: "gp", l: "GP" },
+                  { v: "hospital_specialist", l: "Specialist" },
+                  { v: "ae", l: "A&E" },
+                  { v: "nhs_111", l: "NHS 111" },
+                  { v: "sexual_health_clinic", l: "Sexual health" },
+                  { v: "mental_health", l: "Mental health" },
+                  { v: "other", l: "Other" },
+                ].map(o => (
+                  <Pressable
+                    key={o.v}
+                    onPress={() => setReferRecipientType(o.v)}
+                    style={{
+                      paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18,
+                      borderWidth: 1.5,
+                      borderColor: referRecipientType === o.v ? "#7C3AED" : colors.border,
+                      backgroundColor: referRecipientType === o.v ? "#F3E8FF" : "transparent",
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, color: referRecipientType === o.v ? "#6D28D9" : colors.foreground, fontWeight: "600" }}>{o.l}</Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>RECIPIENT NAME / CLINIC</Text>
+              <TextInput
+                style={[styles.textarea, { minHeight: 44, marginBottom: 12 }]}
+                placeholder="e.g. Dr Patel, Hilltop Surgery"
+                placeholderTextColor={colors.mutedForeground}
+                value={referRecipientName}
+                onChangeText={setReferRecipientName}
+              />
+
+              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>URGENCY</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+                {[
+                  { v: "routine", l: "Routine" },
+                  { v: "soon", l: "Within 7 days" },
+                  { v: "urgent", l: "Urgent (24h)" },
+                  { v: "emergency", l: "Emergency 999" },
+                ].map(o => (
+                  <Pressable
+                    key={o.v}
+                    onPress={() => setReferUrgency(o.v)}
+                    style={{
+                      paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18,
+                      borderWidth: 1.5,
+                      borderColor: referUrgency === o.v ? (o.v === "emergency" ? "#DC2626" : "#7C3AED") : colors.border,
+                      backgroundColor: referUrgency === o.v ? (o.v === "emergency" ? "#FEE2E2" : "#F3E8FF") : "transparent",
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, color: referUrgency === o.v ? (o.v === "emergency" ? "#991B1B" : "#6D28D9") : colors.foreground, fontWeight: "600" }}>{o.l}</Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>NOTE TO PATIENT</Text>
+              <TextInput
+                style={[styles.textarea, { marginBottom: 14, minHeight: 90 }]}
+                placeholder="Explain why you're referring and what to do next."
+                placeholderTextColor={colors.mutedForeground}
+                value={referMessage}
+                onChangeText={setReferMessage}
+                multiline
+                textAlignVertical="top"
+              />
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <Pressable style={[styles.modalBtn, { backgroundColor: colors.muted, flex: 1 }]} onPress={() => setActionModal(null)}>
+                  <Text style={{ color: colors.foreground, fontWeight: "600" }}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.modalBtn, { backgroundColor: "#7C3AED", flex: 2 }]}
+                  onPress={() => submitAction("refer")}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "700" }}>Confirm Referral</Text>
+                </Pressable>
+              </View>
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal visible={actionModal === "reject"} transparent animationType="slide" onRequestClose={() => setActionModal(null)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setActionModal(null)}>
+          <Pressable style={[styles.modalCard, { backgroundColor: colors.card, maxHeight: "90%" }]} onPress={() => {}}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+                <Feather name="x-circle" size={20} color={colors.destructive} />
+                <Text style={[styles.modalTitle, { marginLeft: 8 }]}>Reject Consultation</Text>
+              </View>
+              <Text style={{ fontSize: 13, color: colors.mutedForeground, marginBottom: 14 }}>
+                Choose a reason and explain to the patient. They'll be notified and can reply.
+              </Text>
+
+              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>REASON</Text>
+              <View style={{ gap: 6, marginBottom: 14 }}>
+                {[
+                  { v: "medically_unsuitable", l: "Medically unsuitable for this treatment" },
+                  { v: "outside_our_scope", l: "Outside the scope of our online service" },
+                  { v: "insufficient_information", l: "Insufficient information provided" },
+                  { v: "already_prescribed", l: "Already prescribed elsewhere" },
+                  { v: "other", l: "Other reason" },
+                ].map(o => (
+                  <Pressable
+                    key={o.v}
+                    onPress={() => setRejectReason(o.v)}
+                    style={{
+                      flexDirection: "row", alignItems: "center", gap: 10,
+                      padding: 12, borderRadius: 12,
+                      borderWidth: 1.5,
+                      borderColor: rejectReason === o.v ? "#DC2626" : colors.border,
+                      backgroundColor: rejectReason === o.v ? "#FEE2E2" : "transparent",
+                    }}
+                  >
+                    <View style={{
+                      width: 16, height: 16, borderRadius: 8,
+                      borderWidth: 2,
+                      borderColor: rejectReason === o.v ? "#DC2626" : colors.border,
+                      alignItems: "center", justifyContent: "center",
+                    }}>
+                      {rejectReason === o.v && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#DC2626" }} />}
+                    </View>
+                    <Text style={{ fontSize: 13, color: rejectReason === o.v ? "#991B1B" : colors.foreground, fontWeight: "600", flex: 1 }}>{o.l}</Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>EXPLANATION TO PATIENT</Text>
+              <TextInput
+                style={[styles.textarea, { marginBottom: 14, minHeight: 110 }]}
+                placeholder="Be clear and supportive. Explain why and what to do next."
+                placeholderTextColor={colors.mutedForeground}
+                value={rejectExplanation}
+                onChangeText={setRejectExplanation}
+                multiline
+                textAlignVertical="top"
+              />
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <Pressable style={[styles.modalBtn, { backgroundColor: colors.muted, flex: 1 }]} onPress={() => setActionModal(null)}>
+                  <Text style={{ color: colors.foreground, fontWeight: "600" }}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.modalBtn, { backgroundColor: colors.destructive, flex: 2 }]}
+                  onPress={() => submitAction("reject")}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "700" }}>Confirm Rejection</Text>
+                </Pressable>
+              </View>
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal visible={actionModal === "approve"} transparent animationType="fade" onRequestClose={() => setActionModal(null)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setActionModal(null)}>
+          <Pressable style={[styles.modalCard, { backgroundColor: colors.card }]} onPress={() => {}}>
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+              <Feather name="check-circle" size={20} color={colors.success} />
+              <Text style={[styles.modalTitle, { marginLeft: 8 }]}>Confirm Approval</Text>
+            </View>
+            <Text style={{ fontSize: 13, color: colors.mutedForeground, marginBottom: 14 }}>
+              Issue the prescription below and notify {consultation.patientName}.
+            </Text>
+            <View style={{ backgroundColor: colors.muted, padding: 12, borderRadius: 10, marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, color: colors.mutedForeground, fontWeight: "700", marginBottom: 4 }}>PRESCRIPTION</Text>
+              <Text style={{ fontSize: 13, color: colors.foreground, lineHeight: 18 }}>{prescription}</Text>
+            </View>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <Pressable style={[styles.modalBtn, { backgroundColor: colors.muted, flex: 1 }]} onPress={() => setActionModal(null)}>
+                <Text style={{ color: colors.foreground, fontWeight: "600" }}>Cancel</Text>
+              </Pressable>
+              <Pressable style={[styles.modalBtn, { backgroundColor: colors.success, flex: 2 }]} onPress={() => submitAction("approve")}>
+                <Text style={{ color: "#fff", fontWeight: "700" }}>Approve & Prescribe</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {/* Photo lightbox modal */}
       <Modal visible={!!lightboxPhotoUrl} transparent animationType="fade" onRequestClose={() => setLightboxPhotoUrl(null)}>
         <Pressable style={[styles.modalOverlay, { backgroundColor: "rgba(0,0,0,0.92)" }]} onPress={() => setLightboxPhotoUrl(null)}>
@@ -959,6 +1352,32 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
     loadingText: { marginTop: 12, color: colors.mutedForeground, fontSize: 14 },
     redFlagBanner: { flexDirection: "row", alignItems: "center", backgroundColor: "#EF4444", paddingHorizontal: 16, paddingVertical: 10 },
     redFlagText: { color: "#fff", fontWeight: "700" as const, fontSize: 13 },
+    backBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      backgroundColor: colors.card,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    backButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 2,
+      paddingHorizontal: 6,
+      paddingVertical: 6,
+      borderRadius: 10,
+    },
+    backButtonText: { fontSize: 15, fontWeight: "600" },
+    backBarTitle: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: colors.foreground,
+      flex: 1,
+      textAlign: "center",
+    },
     patientHeader: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 14, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border },
     avatarLarge: { width: 50, height: 50, borderRadius: 25, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
     avatarLargeText: { color: "#fff", fontWeight: "800" as const, fontSize: 18 },

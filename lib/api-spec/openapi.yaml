@@ -176,6 +176,124 @@ paths:
               schema:
                 $ref: "#/components/schemas/Consultation"
 
+  /consultations/{id}/messages:
+    get:
+      operationId: listConsultationMessages
+      tags: [consultations]
+      summary: List chat messages on a consultation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ConsultationMessage"
+                  actions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ConsultationAction"
+                required: [messages, actions]
+    post:
+      operationId: postConsultationMessage
+      tags: [consultations]
+      summary: Post a chat message on a consultation (patient or pharmacist)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConsultationMessageInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsultationMessage"
+
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [patients]
+      summary: List notifications for the authenticated user (patient or pharmacist)
+      parameters:
+        - name: unreadOnly
+          in: query
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notifications:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Notification"
+                  unreadCount:
+                    type: integer
+                required: [notifications, unreadCount]
+
+  /notifications/{id}/read:
+    post:
+      operationId: markNotificationRead
+      tags: [patients]
+      summary: Mark a notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+
+  /notifications/read-all:
+    post:
+      operationId: markAllNotificationsRead
+      tags: [patients]
+      summary: Mark all notifications as read for the authenticated user
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated:
+                    type: integer
+                required: [updated]
+
   /auth/pharmacist-login:
     post:
       operationId: pharmacistLogin
@@ -401,6 +519,113 @@ components:
           type: string
           format: date-time
           nullable: true
+        # ── Extended fields (GPhC compliance + intake data) ──
+        gpName:
+          type: string
+          nullable: true
+        gpSurgery:
+          type: string
+          nullable: true
+        gpAddress:
+          type: string
+          nullable: true
+        gpPhone:
+          type: string
+          nullable: true
+        hasRegularGp:
+          type: boolean
+          nullable: true
+        consentShareWithGp:
+          type: boolean
+          nullable: true
+        consentToTreatment:
+          type: boolean
+          nullable: true
+        consentToDelivery:
+          type: boolean
+          nullable: true
+        consentDataProcessing:
+          type: boolean
+          nullable: true
+        identityVerificationMethod:
+          type: string
+          nullable: true
+        identityVerificationRef:
+          type: string
+          nullable: true
+        deliveryAddress:
+          type: string
+          nullable: true
+        deliveryAddressLine1:
+          type: string
+          nullable: true
+        deliveryAddressLine2:
+          type: string
+          nullable: true
+        deliveryCity:
+          type: string
+          nullable: true
+        deliveryPostcode:
+          type: string
+          nullable: true
+        preferredDeliveryMethod:
+          type: string
+          nullable: true
+        allergies:
+          type: string
+          nullable: true
+        currentMedications:
+          type: string
+          nullable: true
+        medicalHistory:
+          type: string
+          nullable: true
+        isPregnant:
+          type: boolean
+          nullable: true
+        bmi:
+          type: number
+          nullable: true
+        verifiedHeightCm:
+          type: number
+          nullable: true
+        verifiedWeightKg:
+          type: number
+          nullable: true
+        heightCm:
+          type: number
+          nullable: true
+        weightKg:
+          type: number
+          nullable: true
+        riskFlags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        riskCategory:
+          type: string
+          nullable: true
+        clinicalDecisionRationale:
+          type: string
+          nullable: true
+        reviewedBy:
+          type: string
+          nullable: true
+        deliveryCarrier:
+          type: string
+          nullable: true
+        deliveryTrackingNumber:
+          type: string
+          nullable: true
+        deliveredAt:
+          type: string
+          format: date-time
+          nullable: true
+        dispatchedAt:
+          type: string
+          format: date-time
+          nullable: true
       required:
         - id
         - patientName
@@ -475,8 +700,114 @@ components:
         referralInfo:
           type: string
           nullable: true
+        rejectReason:
+          type: string
+          nullable: true
+          description: Required when action=reject. One of medically_unsuitable, outside_our_scope, insufficient_information, already_prescribed, other
+        referRecipientType:
+          type: string
+          nullable: true
+          description: Required when action=refer. One of gp, hospital_specialist, ae, nhs_111, sexual_health_clinic, mental_health, other
+        referRecipientName:
+          type: string
+          nullable: true
+        referUrgency:
+          type: string
+          nullable: true
+          description: routine | soon | urgent | emergency
       required:
         - action
+
+    ConsultationMessage:
+      type: object
+      properties:
+        id:
+          type: string
+        consultationId:
+          type: string
+        patientEmail:
+          type: string
+        senderRole:
+          type: string
+        senderName:
+          type: string
+        body:
+          type: string
+        kind:
+          type: string
+        meta:
+          type: string
+          nullable: true
+        readByPatient:
+          type: boolean
+        readByPharmacist:
+          type: boolean
+        createdAt:
+          type: string
+      required: [id, consultationId, patientEmail, senderRole, senderName, body, kind, readByPatient, readByPharmacist, createdAt]
+
+    ConsultationMessageInput:
+      type: object
+      properties:
+        body:
+          type: string
+        kind:
+          type: string
+          nullable: true
+      required: [body]
+
+    ConsultationAction:
+      type: object
+      properties:
+        id:
+          type: string
+        consultationId:
+          type: string
+        action:
+          type: string
+        actorRole:
+          type: string
+        actorName:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+        note:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, consultationId, action, actorRole, actorName, createdAt]
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+        recipientType:
+          type: string
+        recipientKey:
+          type: string
+        category:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+        link:
+          type: string
+          nullable: true
+        consultationId:
+          type: string
+          nullable: true
+        orderId:
+          type: string
+          nullable: true
+        read:
+          type: boolean
+        createdAt:
+          type: string
+      required: [id, recipientType, recipientKey, category, title, body, read, createdAt]
 
     PharmacistLoginInput:
       type: object

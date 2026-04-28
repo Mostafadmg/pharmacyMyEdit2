@@ -87,6 +87,40 @@ export interface Consultation {
   createdAt: string;
   updatedAt: string;
   reviewedAt?: string | null;
+  gpName?: string | null;
+  gpSurgery?: string | null;
+  gpAddress?: string | null;
+  gpPhone?: string | null;
+  hasRegularGp?: boolean | null;
+  consentShareWithGp?: boolean | null;
+  consentToTreatment?: boolean | null;
+  consentToDelivery?: boolean | null;
+  consentDataProcessing?: boolean | null;
+  identityVerificationMethod?: string | null;
+  identityVerificationRef?: string | null;
+  deliveryAddress?: string | null;
+  deliveryAddressLine1?: string | null;
+  deliveryAddressLine2?: string | null;
+  deliveryCity?: string | null;
+  deliveryPostcode?: string | null;
+  preferredDeliveryMethod?: string | null;
+  allergies?: string | null;
+  currentMedications?: string | null;
+  medicalHistory?: string | null;
+  isPregnant?: boolean | null;
+  bmi?: number | null;
+  verifiedHeightCm?: number | null;
+  verifiedWeightKg?: number | null;
+  heightCm?: number | null;
+  weightKg?: number | null;
+  riskFlags?: string[] | null;
+  riskCategory?: string | null;
+  clinicalDecisionRationale?: string | null;
+  reviewedBy?: string | null;
+  deliveryCarrier?: string | null;
+  deliveryTrackingNumber?: string | null;
+  deliveredAt?: string | null;
+  dispatchedAt?: string | null;
 }
 
 export type NewConsultationInputPatientSex =
@@ -130,6 +164,59 @@ export interface ConsultationReviewInput {
   pharmacistNote?: string | null;
   prescription?: string | null;
   referralInfo?: string | null;
+  /** Required when action=reject. One of medically_unsuitable, outside_our_scope, insufficient_information, already_prescribed, other */
+  rejectReason?: string | null;
+  /** Required when action=refer. One of gp, hospital_specialist, ae, nhs_111, sexual_health_clinic, mental_health, other */
+  referRecipientType?: string | null;
+  referRecipientName?: string | null;
+  /** routine | soon | urgent | emergency */
+  referUrgency?: string | null;
+}
+
+export interface ConsultationMessage {
+  id: string;
+  consultationId: string;
+  patientEmail: string;
+  senderRole: string;
+  senderName: string;
+  body: string;
+  kind: string;
+  meta?: string | null;
+  readByPatient: boolean;
+  readByPharmacist: boolean;
+  createdAt: string;
+}
+
+export interface ConsultationMessageInput {
+  body: string;
+  kind?: string | null;
+}
+
+export type ConsultationActionDetails = { [key: string]: unknown };
+
+export interface ConsultationAction {
+  id: string;
+  consultationId: string;
+  action: string;
+  actorRole: string;
+  actorName: string;
+  details?: ConsultationActionDetails;
+  note?: string | null;
+  createdAt: string;
+}
+
+export interface Notification {
+  id: string;
+  recipientType: string;
+  recipientKey: string;
+  category: string;
+  title: string;
+  body: string;
+  link?: string | null;
+  consultationId?: string | null;
+  orderId?: string | null;
+  read: boolean;
+  createdAt: string;
 }
 
 export interface PharmacistLoginInput {
@@ -203,6 +290,25 @@ export const ListConsultationsStatus = {
 export type ListConsultations200 = {
   consultations: Consultation[];
   total: number;
+};
+
+export type ListConsultationMessages200 = {
+  messages: ConsultationMessage[];
+  actions: ConsultationAction[];
+};
+
+export type ListNotificationsParams = {
+  unreadOnly?: boolean;
+  limit?: number;
+};
+
+export type ListNotifications200 = {
+  notifications: Notification[];
+  unreadCount: number;
+};
+
+export type MarkAllNotificationsRead200 = {
+  updated: number;
 };
 
 export type GetPatientConsultations200 = {

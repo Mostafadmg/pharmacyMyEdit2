@@ -47,8 +47,27 @@ Condition-specific questions are defined in `artifacts/pharmacy/src/data/conditi
 - Overview stats: pending, approved today, red flags
 - Consultation queue with filtering by status
 - Full consultation review screen
-- Actions: Approve + prescribe, Reject, Ask more info, Refer to GP/urgent care
+- Structured action modals (April 2026 upgrade):
+  - **Approve & prescribe** — confirm modal with prescription summary
+  - **Request More Info** — message modal with quick-ask suggestion chips, posts to patient chat thread
+  - **Refer** — modal with recipient type (GP / Hospital specialist / A&E / NHS 111 / Sexual health / Mental health / Other), recipient name, urgency (Routine / 7 days / Urgent / Emergency 999), and a note
+  - **Reject** — modal with radio reason categories (Medically unsuitable / Outside scope / Insufficient info / Already prescribed / Other) plus required explanation textarea
+- Every action recorded in the `consultation_actions` audit table and surfaced as a notification + chat message to the patient
 - Red-flag warning banners
+
+### Patient ↔ Pharmacist Messaging (April 2026 upgrade)
+- New `consultation_messages` table — chronological chat thread per consultation, both sides can post.
+- New `notifications` table with bell icon in patient header (`<NotificationBell>` in `Header.tsx`) showing unread count and recent items, mark-read + mark-all-read.
+- `MyConsultations.tsx` consultation card has an "Open conversation" toggle that embeds `<ConsultationChat>` (8s polling, quick-replies, action timeline pills).
+- Pharmacist mobile app and web both write to the same thread; `consultation_actions` events render inline in the timeline.
+- **Auth resolution**: `requirePatient` and `resolveAuthActor` (`middlewares/auth.ts`) look up the patient account by id from the bearer and attach `email` to `req.authActor`. `/notifications` and `/consultations/:id/messages` use that resolved email for ownership/recipientKey checks so legitimate patients can read their own messages and notifications.
+- **Atomic review**: `POST /api/consultations/:id/review` wraps the consultation status update + `consultation_actions` audit row + chat message + patient notification in a single Drizzle transaction so partial writes can't desync the audit trail.
+
+### Mobile Pharmacist App (expo)
+- Login: `pharmacist` / `pharmacare2024` (same as web).
+- Consultation detail (`app/consultation/[id].tsx`) — back-button bar; renders ALL submitted patient info (GP / Regular Prescriber, Medical Background, Body Measurements, Delivery, identity verification, consents); fixes the legacy "GP not provided" bug by exposing the full schema in OpenAPI.
+- Same 4 structured review modals as the web (Approve / More Info / Refer / Reject).
+- Orders tab (`app/(tabs)/orders.tsx`) — 3 primary tabs (Pending / Shipped / Delivered) with per-tab counts; each card shows a 4-step tracking timeline (Preparing → Dispatched → Out for delivery → Delivered) plus carrier and tracking number.
 
 ## Conditions Covered (50, 15 categories)
 

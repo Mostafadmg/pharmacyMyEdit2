@@ -4,6 +4,7 @@ import { Menu, X, Plus, User, LogOut, ShoppingBag, ChevronDown, ChevronRight } f
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/useCart";
 import { TREATMENTS_MENU } from "@/data/treatmentsMenu";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function Header() {
   const [location, navigate] = useLocation();
@@ -137,7 +138,8 @@ export default function Header() {
               )}
             </Link>
 
-            <div className="pl-2 border-l border-border h-8 flex items-center gap-2">
+            <div className="pl-2 border-l border-border h-8 flex items-center gap-1">
+              {patientName && <NotificationBell audience="patient" />}
               {patientName ? (
                 <div className="flex items-center gap-2">
                   <Link href="/my-consultations" className="flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary transition-colors px-3 py-1.5 rounded-full hover:bg-primary/5">
