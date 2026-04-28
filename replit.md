@@ -84,7 +84,8 @@ Allergy: Allergic rhinitis
 
 - DB tables: `products`, `orders`, `order_items`, `deliveries`, `comms_log`. `conditions.questionsJson` for dynamic questionnaires.
 - Patient web shop: `/shop`, `/shop/category/:slug`, `/product/:id`, `/cart`, `/checkout`, `/my-orders`, `/order-confirmation/:id?key=…`, `/track-order/:id?key=…`. Persistent cart in localStorage. Guest order keys stored in `pharmacare_guest_orders`.
-- Pharmacist admin web (`/dashboard/...`): Orders + Order detail (status flow), Products list with units sold + revenue, Product create/edit (image upload), Conditions builder (per-condition questionnaire editor), Patient profile with comms toolbar (mailto/tel/Jitsi) + shop orders + comms log.
+- Pharmacist admin web (`/dashboard/...`): Orders + Order detail (status flow), Products list with **inline-edit price/stock/active toggle and one-click image-replace dialog** plus units sold + revenue, Product create/edit (image upload), Conditions builder (per-condition questionnaire editor), Patient profile with comms toolbar (mailto/tel/Jitsi) + shop orders + comms log.
+- Product imagery: 41 real UK pharmacy product photos served from `artifacts/pharmacy/public/products/<slug>.{jpg,png,webp}`. Generic OTC SKUs are branded (Panadol, Nurofen, Disprin, Clarityn, Zirtek, HC45, Vitabiotics, Haliborange).
 - Delivery service: `services/delivery.ts` (DeliveryProvider interface + MockDeliveryProvider, carrier "PharmaCare Express", PCEX… tracking). Stages: `preparing → shipped → out_for_delivery → delivered`.
 - Pharmacist mobile app (Expo): new "Orders" tab for fulfilment with stage-advance buttons.
 
