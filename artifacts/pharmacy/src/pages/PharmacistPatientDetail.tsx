@@ -19,7 +19,13 @@ import {
   ExternalLink,
   Stethoscope,
   Calendar,
+  Phone,
+  Video,
+  ShoppingBag,
+  MessageSquare,
 } from "lucide-react";
+import { apiFetch } from "@/lib/api";
+import { formatGbp } from "@/hooks/useCart";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -116,6 +122,59 @@ export default function PharmacistPatientDetail() {
   const [notes, setNotes] = useState<PatientNote[]>([]);
   const [loadingNotes, setLoadingNotes] = useState(true);
 
+  type ShopOrder = { id: string; orderNumber: string; status: string; totalGbp: number; createdAt: string };
+  type CommsEntry = { id: string; channel: string; subject: string | null; summary: string | null; pharmacistName: string | null; createdAt: string };
+  type PatientProfile = { email: string; name: string | null; phone: string | null; dateOfBirth: string | null; sex: string | null; addressLine1: string | null; city: string | null; postcode: string | null };
+  const [shopOrders, setShopOrders] = useState<ShopOrder[]>([]);
+  const [commsLog, setCommsLog] = useState<CommsEntry[]>([]);
+  const [patientProfile, setPatientProfile] = useState<PatientProfile | null>(null);
+
+  useEffect(() => {
+    if (!email) return;
+    apiFetch<{ patient: PatientProfile }>(`/api/admin/patients/${encodeURIComponent(email)}/timeline`, { auth: "pharmacist" })
+      .then(r => setPatientProfile(r.patient))
+      .catch(() => { /* ignore */ });
+  }, [email]);
+
+  const reloadComms = React.useCallback(async () => {
+    if (!email) return;
+    try {
+      const json = await apiFetch<{ entries: CommsEntry[] }>(`/api/admin/comms-log/${encodeURIComponent(email)}`, { auth: "pharmacist" });
+      setCommsLog(json.entries);
+    } catch { /* ignore */ }
+  }, [email]);
+
+  const logCommunication = async (channel: string, subject: string, summary?: string) => {
+    if (!email) return;
+    try {
+      await apiFetch("/api/admin/comms-log", {
+        method: "POST",
+        body: JSON.stringify({ patientEmail: email, channel, subject, summary }),
+        auth: "pharmacist",
+      });
+      reloadComms();
+    } catch { /* ignore */ }
+  };
+
+  const handleEmailPatient = () => {
+    window.location.href = `mailto:${email}?subject=${encodeURIComponent("PharmaCare Pharmacy")}`;
+    logCommunication("email", "Email composed", "Pharmacist opened email client");
+  };
+  const handleCallPatient = (phone?: string) => {
+    if (!phone) {
+      toast.error("No phone number on file");
+      return;
+    }
+    window.location.href = `tel:${phone}`;
+    logCommunication("phone", "Phone call", "Pharmacist initiated call");
+  };
+  const handleVideoCall = () => {
+    const room = `pharmacare-${(email ?? "patient").replace(/[^a-z0-9]+/gi, "-")}-${Date.now().toString(36)}`;
+    const url = `https://meet.jit.si/${room}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    logCommunication("video", "Video consultation", `Jitsi room: ${room}`);
+  };
+
   const [newNote, setNewNote] = useState("");
   const [savingNote, setSavingNote] = useState(false);
 
@@ -152,6 +211,18 @@ export default function PharmacistPatientDetail() {
       } finally {
         if (!cancelled) setLoadingNotes(false);
       }
+    })();
+    (async () => {
+      try {
+        const json = await apiFetch<{ orders: ShopOrder[] }>(`/api/orders?email=${encodeURIComponent(email)}`, { auth: "pharmacist" });
+        if (!cancelled) setShopOrders(json.orders);
+      } catch { /* ignore */ }
+    })();
+    (async () => {
+      try {
+        const json = await apiFetch<{ entries: CommsEntry[] }>(`/api/admin/comms-log/${encodeURIComponent(email)}`, { auth: "pharmacist" });
+        if (!cancelled) setCommsLog(json.entries);
+      } catch { /* ignore */ }
     })();
     return () => {
       cancelled = true;
@@ -274,14 +345,96 @@ export default function PharmacistPatientDetail() {
               </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full md:w-auto">
-              <MiniStat label="Orders" value={stats.total} tone="text-secondary" />
-              <MiniStat label="Pending" value={stats.pending} tone="text-amber-600" />
+              <MiniStat label="Consults" value={stats.total} tone="text-secondary" />
+              <MiniStat label="Orders" value={shopOrders.length} tone="text-blue-600" />
               <MiniStat label="Approved" value={stats.approved} tone="text-emerald-600" />
               <MiniStat label="Red flags" value={stats.redFlags} tone="text-red-600" />
             </div>
           </div>
+          <div className="flex flex-wrap gap-2 mt-5 pt-5 border-t">
+            <Button onClick={handleEmailPatient} variant="outline" className="rounded-full" data-testid="btn-comms-email">
+              <Mail className="w-4 h-4 mr-1.5" /> Email
+            </Button>
+            <Button onClick={() => handleCallPatient(patientProfile?.phone ?? undefined)} variant="outline" className="rounded-full" data-testid="btn-comms-call">
+              <Phone className="w-4 h-4 mr-1.5" /> Call
+            </Button>
+            <Button onClick={handleVideoCall} className="rounded-full bg-primary" data-testid="btn-comms-video">
+              <Video className="w-4 h-4 mr-1.5" /> Start video consult
+            </Button>
+          </div>
         </CardContent>
       </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="rounded-2xl border-none shadow-sm lg:col-span-2">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-secondary flex items-center gap-2">
+                <ShoppingBag className="w-5 h-5 text-primary" /> Shop orders
+              </h2>
+              <Badge variant="outline" className="font-semibold">{shopOrders.length}</Badge>
+            </div>
+            {shopOrders.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted-foreground border border-dashed rounded-xl">
+                No shop orders from this patient yet.
+              </div>
+            ) : (
+              <ul className="space-y-2" data-testid="list-shop-orders">
+                {shopOrders.map(o => (
+                  <li key={o.id}>
+                    <Link href={`/dashboard/orders/${o.id}`}>
+                      <a className="flex items-center justify-between gap-3 p-3 rounded-xl border hover:border-primary/40 hover:shadow-sm transition" data-testid={`patient-order-${o.orderNumber}`}>
+                        <div className="min-w-0">
+                          <p className="font-semibold truncate">{o.orderNumber}</p>
+                          <p className="text-xs text-muted-foreground">{format(new Date(o.createdAt), "PPp")}</p>
+                        </div>
+                        <Badge variant="outline" className="capitalize">{o.status}</Badge>
+                        <p className="font-bold text-primary">{formatGbp(o.totalGbp)}</p>
+                        <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                      </a>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-2xl border-none shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-secondary flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-primary" /> Comms log
+              </h2>
+              <Badge variant="outline" className="font-semibold">{commsLog.length}</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">
+              Auto-logged when you email, call or start a video consult above. Visible to all prescribers.
+            </p>
+            {commsLog.length === 0 ? (
+              <div className="text-center py-6 text-sm text-muted-foreground border border-dashed rounded-xl">
+                No communication logged yet.
+              </div>
+            ) : (
+              <ul className="space-y-2 max-h-72 overflow-auto pr-1" data-testid="list-comms-log">
+                {commsLog.map(c => (
+                  <li key={c.id} className="p-3 rounded-xl bg-muted/30 text-sm">
+                    <div className="flex items-baseline justify-between gap-2 mb-0.5">
+                      <span className="font-semibold capitalize">{c.channel}</span>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })}
+                      </span>
+                    </div>
+                    {c.subject && <p className="text-xs">{c.subject}</p>}
+                    {c.summary && <p className="text-xs text-muted-foreground">{c.summary}</p>}
+                    {c.pharmacistName && <p className="text-[10px] text-muted-foreground mt-0.5">— {c.pharmacistName}</p>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="rounded-2xl border-none shadow-sm lg:col-span-2">

@@ -1,4 +1,4 @@
-import { pgTable, text, boolean, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, boolean, integer, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -13,6 +13,9 @@ export const conditionsTable = pgTable("conditions", {
   ageRestrictions: text("age_restrictions"),
   redFlags: text("red_flags").array().notNull().default([]),
   questionsCount: integer("questions_count").notNull().default(5),
+  questionsJson: jsonb("questions_json").notNull().default([]),
+  priceGbp: integer("price_gbp_pence").notNull().default(2500),
+  active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

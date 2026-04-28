@@ -1,0 +1,29 @@
+ okay, so I want to add a few features:
+1. I want you to go and look at websites like Medexpress Pharmacy to look at the products they have and create a product section for p medications and GSL medications so patients can buy. Obviously, each page needs to have a one-click buy, and also you can click on the product to go into its own page where it explains about that product. If you're not sure what we include, look at the similar websites to get an idea.
+2. You also need to create a management portal where I can log in and look at all the current orders. We need to add this to the prescribers section as well, so they can see a new tab that will show all the current orders chronologically. Obviously, you can click and see the content of that order, the status of that order, and the order number.
+3. It needs to be connected to a delivery section, so we need to get an update from another API for deliveries and what the status is, with information about the deliveries and stuff like that.
+4. In the product section, in the management, I should be able to add new products, so there needs to be a section in the portal where I can add a new product and fill out information about that product, an image of that product, and stuff like that.
+5. Obviously, there should be a tab where I can see a list of all the products we are selling on the website, at least:- a list of all the products
+- how many we've sold
+- analytics
+- price and everything
+
+
+
+
+
+
+
+If you're not sure exactly what to do, you need to go and look at all the websites in detail, very detailed, and find that information. . 
+
+You need to improve the UI and the functionality of the application for the prescriber, so there is a lot more they can do. That could be just communicating with the customers through:
+- a call
+- a video call
+- email communications
+
+
+You can track them visually easily. Everything should be very easy to see and very easy to manage. It should have its own separate location where you can see the patient information. You can see the timeline of orders and the notes of the patient. It should be very comprehensive and very logical. The UI should be amazingly easy to follow and very intuitive.
+
+Also, look at a website like MedExpress, Pharmacy2You, Independent Pharmacy.co.uk, or Independent Pharmacy to get an idea of their system.
+- You can improve the questionnaires.
+- In the management, you could create a tab where I can actually add conditions when I add it. It can deploy, and people can choose that service, and I can put a price for that. I could put the questions I want to ask and the answers to those questions, if that is possible. Anything is doable; do it that way. If not, obviously you can tell me it's best that we could code it with React in the object that you obviously really ran there. Yeah, do this one 

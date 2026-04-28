@@ -4,3 +4,6 @@ export * from "./patient_accounts";
 export * from "./pharmacist_notes";
 export * from "./complaints";
 export * from "./audit_logs";
+export * from "./products";
+export * from "./orders";
+export * from "./comms_log";

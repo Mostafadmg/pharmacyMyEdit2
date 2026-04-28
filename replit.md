@@ -80,13 +80,29 @@ Allergy: Allergic rhinitis
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 
+## E-commerce + Admin (added)
+
+- DB tables: `products`, `orders`, `order_items`, `deliveries`, `comms_log`. `conditions.questionsJson` for dynamic questionnaires.
+- Patient web shop: `/shop`, `/shop/category/:slug`, `/product/:id`, `/cart`, `/checkout`, `/my-orders`, `/order-confirmation/:id?key=…`, `/track-order/:id?key=…`. Persistent cart in localStorage. Guest order keys stored in `pharmacare_guest_orders`.
+- Pharmacist admin web (`/dashboard/...`): Orders + Order detail (status flow), Products list with units sold + revenue, Product create/edit (image upload), Conditions builder (per-condition questionnaire editor), Patient profile with comms toolbar (mailto/tel/Jitsi) + shop orders + comms log.
+- Delivery service: `services/delivery.ts` (DeliveryProvider interface + MockDeliveryProvider, carrier "PharmaCare Express", PCEX… tracking). Stages: `preparing → shipped → out_for_delivery → delivered`.
+- Pharmacist mobile app (Expo): new "Orders" tab for fulfilment with stage-advance buttons.
+
+## Key API Endpoints (added)
+
+- `GET /api/products` (filters: category, search, limit) / `GET /api/products/:id`
+- `POST /api/orders` (one-click + cart, returns guest key for guests) / `GET /api/orders` (pharmacist sees all + ?email filter; patient sees own) / `GET /api/orders/:id?key=…`
+- `PATCH /api/admin/orders/:id/status` (also accepts `{deliveryStage}`)
+- `GET /api/admin/analytics/sales`
+- `POST /api/admin/conditions`, `PATCH /api/admin/conditions/:id`, `DELETE /api/admin/conditions/:id`
+- `POST /api/admin/comms-log`, `GET /api/admin/comms-log?email=…`
+- `GET /api/admin/patients/:email/timeline`
+
 ## Future Plans
 
-- Mobile app (Expo) for pharmacist push notifications
-- Clerk authentication for pharmacist login
-- Patient accounts and consultation history
-- Photo upload via object storage
+- Real delivery integration (Royal Mail / DPD APIs) replacing MockProvider
+- Push notifications for new orders/consultations on mobile
+- Patient accounts beyond guest checkout (history, saved addresses)
 - Payment processing (Stripe)
-- Real-time notifications via WebSocket
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.

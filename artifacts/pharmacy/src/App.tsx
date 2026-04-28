@@ -20,6 +20,19 @@ import PharmacistLogin from "./pages/PharmacistLogin";
 import PatientLogin from "./pages/PatientLogin";
 import PatientRegister from "./pages/PatientRegister";
 import MyConsultations from "./pages/MyConsultations";
+import Shop from "./pages/Shop";
+import ProductDetail from "./pages/ProductDetail";
+import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
+import MyOrders from "./pages/MyOrders";
+import OrderConfirmation from "./pages/OrderConfirmation";
+import OrderTracking from "./pages/OrderTracking";
+import AdminOrders from "./pages/AdminOrders";
+import AdminOrderDetail from "./pages/AdminOrderDetail";
+import AdminProducts from "./pages/AdminProducts";
+import AdminProductForm from "./pages/AdminProductForm";
+import AdminConditions from "./pages/AdminConditions";
+import AdminConditionEditor from "./pages/AdminConditionEditor";
 import Contact from "./pages/Contact";
 import Feedback from "./pages/Feedback";
 import OurService from "./pages/about/OurService";
@@ -61,9 +74,23 @@ function Router() {
       <Route path="/dashboard/complaints">{() => <ProtectedRoute component={PharmacistComplaints} />}</Route>
       <Route path="/dashboard/patients">{() => <ProtectedRoute component={PharmacistPatients} />}</Route>
       <Route path="/dashboard/patients/:email">{() => <ProtectedRoute component={PharmacistPatientDetail} />}</Route>
+      <Route path="/dashboard/orders">{() => <ProtectedRoute component={AdminOrders} />}</Route>
+      <Route path="/dashboard/orders/:id">{() => <ProtectedRoute component={AdminOrderDetail} />}</Route>
+      <Route path="/dashboard/products">{() => <ProtectedRoute component={AdminProducts} />}</Route>
+      <Route path="/dashboard/products/new">{() => <ProtectedRoute component={AdminProductForm} />}</Route>
+      <Route path="/dashboard/products/:id/edit">{() => <ProtectedRoute component={AdminProductForm} />}</Route>
+      <Route path="/dashboard/conditions">{() => <ProtectedRoute component={AdminConditions} />}</Route>
+      <Route path="/dashboard/conditions/:id">{() => <ProtectedRoute component={AdminConditionEditor} />}</Route>
       <Route path="/my-account/login" component={PatientLogin} />
       <Route path="/my-account/register" component={PatientRegister} />
       <Route path="/my-consultations" component={MyConsultations} />
+      <Route path="/shop" component={Shop} />
+      <Route path="/product/:id" component={ProductDetail} />
+      <Route path="/cart" component={Cart} />
+      <Route path="/checkout" component={Checkout} />
+      <Route path="/my-orders" component={MyOrders} />
+      <Route path="/order-confirmation/:id" component={OrderConfirmation} />
+      <Route path="/track-order/:id" component={OrderTracking} />
       <Route path="/contact" component={Contact} />
       <Route path="/feedback" component={Feedback} />
       <Route path="/about/our-service" component={OurService} />

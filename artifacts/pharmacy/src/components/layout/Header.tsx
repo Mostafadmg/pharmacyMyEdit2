@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, Plus, User, LogOut } from "lucide-react";
+import { Menu, X, Plus, User, LogOut, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useCart } from "@/hooks/useCart";
 
 export default function Header() {
   const [location, navigate] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [patientName, setPatientName] = useState<string | null>(null);
+  const { itemCount } = useCart();
 
   useEffect(() => {
     const name = localStorage.getItem("patient_name");
@@ -23,8 +25,9 @@ export default function Header() {
   };
 
   const navLinks = [
+    { name: "Shop", href: "/shop" },
     { name: "Conditions", href: "/conditions" },
-    { name: "Track Order", href: "/track" },
+    { name: "Track", href: "/track" },
     { name: "Pharmacist Portal", href: "/dashboard" },
   ];
 
@@ -60,6 +63,15 @@ export default function Header() {
               </Link>
             ))}
             
+            <Link href="/cart" className="relative p-2 text-foreground hover:text-primary transition-colors" data-testid="link-cart">
+              <ShoppingBag className="w-5 h-5" />
+              {itemCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-accent text-accent-foreground text-xs font-bold rounded-full flex items-center justify-center" data-testid="cart-badge">
+                  {itemCount > 9 ? "9+" : itemCount}
+                </span>
+              )}
+            </Link>
+
             <div className="pl-2 border-l border-border h-8 flex items-center gap-2">
               {patientName ? (
                 <div className="flex items-center gap-2">

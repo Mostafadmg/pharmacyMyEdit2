@@ -8,6 +8,10 @@ import patientRouter from "./patient";
 import patientNotesRouter from "./patient-notes";
 import consultationNotesRouter from "./consultation-notes";
 import complianceRouter from "./compliance";
+import productsRouter from "./products";
+import ordersRouter from "./orders";
+import commsRouter from "./comms";
+import patientTimelineRouter from "./patient_timeline";
 
 const router: IRouter = Router();
 
@@ -20,5 +24,9 @@ router.use(patientRouter);
 router.use(patientNotesRouter);
 router.use(consultationNotesRouter);
 router.use(complianceRouter);
+router.use(productsRouter);
+router.use(ordersRouter);
+router.use(commsRouter);
+router.use(patientTimelineRouter);
 
 export default router;

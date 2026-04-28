@@ -35,7 +35,7 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
-      const response = await pharmacistLogin({ data: { username: username.trim(), password } });
+      const response = await pharmacistLogin({ username: username.trim(), password });
       await login(response.token, response.pharmacistName, response.pharmacistId, response.role);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace("/(tabs)");

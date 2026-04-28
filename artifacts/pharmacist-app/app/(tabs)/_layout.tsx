@@ -24,6 +24,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: "checkmark.circle", selected: "checkmark.circle.fill" }} />
         <Label>Reviewed</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="orders">
+        <Icon sf={{ default: "shippingbox", selected: "shippingbox.fill" }} />
+        <Label>Orders</Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile">
         <Icon sf={{ default: "person.circle", selected: "person.circle.fill" }} />
         <Label>Profile</Label>
@@ -94,6 +98,18 @@ function ClassicTabLayout() {
               <SymbolView name="checkmark.circle" tintColor={color} size={24} />
             ) : (
               <Feather name="check-circle" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="orders"
+        options={{
+          title: "Orders",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="shippingbox" tintColor={color} size={24} />
+            ) : (
+              <Feather name="package" size={22} color={color} />
             ),
         }}
       />

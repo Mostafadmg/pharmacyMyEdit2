@@ -11,14 +11,20 @@ import {
   Pill,
   Menu,
   X,
+  ShoppingBag,
+  Stethoscope,
+  Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-type NavKey = "queue" | "patients" | "complaints" | "reports" | "settings";
+type NavKey = "queue" | "patients" | "orders" | "products" | "conditions" | "complaints" | "reports" | "settings";
 
 const NAV_ITEMS: { key: NavKey; label: string; icon: React.ElementType; href: string; live: boolean }[] = [
   { key: "queue", label: "Queue", icon: Activity, href: "/dashboard", live: true },
   { key: "patients", label: "Patients", icon: Users, href: "/dashboard/patients", live: true },
+  { key: "orders", label: "Shop Orders", icon: ShoppingBag, href: "/dashboard/orders", live: true },
+  { key: "products", label: "Products", icon: Package, href: "/dashboard/products", live: true },
+  { key: "conditions", label: "Conditions", icon: Stethoscope, href: "/dashboard/conditions", live: true },
   { key: "complaints", label: "Complaints", icon: MessageSquare, href: "/dashboard/complaints", live: true },
   { key: "reports", label: "Reports", icon: FileText, href: "/dashboard/reports", live: false },
   { key: "settings", label: "Settings", icon: Settings, href: "/dashboard/settings", live: false },
