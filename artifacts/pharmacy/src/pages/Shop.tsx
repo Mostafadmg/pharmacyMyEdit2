@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Search, ShoppingBag, Truck, ShieldCheck, Star, Plus, Filter } from "lucide-react";
+import { Search, ShoppingBag, Truck, ShieldCheck, Star, Plus, Filter, Zap } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Input } from "@/components/ui/input";
@@ -74,6 +74,10 @@ export default function Shop() {
       toast.error("This product requires a consultation");
       return;
     }
+    if (p.stock <= 0) {
+      toast.error("Out of stock");
+      return;
+    }
     addItem({
       productId: p.id,
       slug: p.slug,
@@ -83,6 +87,26 @@ export default function Shop() {
       unitPriceGbp: p.priceGbp,
     });
     toast.success(`${p.name} added to basket`);
+  };
+
+  const handleBuyNow = (p: Product) => {
+    if (p.requiresConsultation) {
+      toast.error("This product requires a consultation");
+      return;
+    }
+    if (p.stock <= 0) {
+      toast.error("Out of stock");
+      return;
+    }
+    addItem({
+      productId: p.id,
+      slug: p.slug,
+      name: p.name,
+      brand: p.brand,
+      imageUrl: p.imageUrl,
+      unitPriceGbp: p.priceGbp,
+    });
+    navigate("/checkout");
   };
 
   return (
@@ -201,21 +225,46 @@ export default function Shop() {
                           <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{p.shortDescription}</p>
                           {p.packSize && <p className="text-xs text-muted-foreground mb-3">{p.packSize}</p>}
                         </Link>
-                        <div className="mt-auto flex items-end justify-between">
-                          <div>
-                            <p className="text-2xl font-bold text-[#168A7B]" data-testid={`product-price-${p.slug}`}>{formatGbp(p.priceGbp)}</p>
-                            {p.rrpGbp && p.rrpGbp > p.priceGbp && (
-                              <p className="text-xs text-muted-foreground line-through">{formatGbp(p.rrpGbp)}</p>
-                            )}
+                        <div className="mt-auto space-y-2">
+                          <div className="flex items-end justify-between">
+                            <div>
+                              <p className="text-2xl font-bold text-[#168A7B]" data-testid={`product-price-${p.slug}`}>{formatGbp(p.priceGbp)}</p>
+                              {p.rrpGbp && p.rrpGbp > p.priceGbp && (
+                                <p className="text-xs text-muted-foreground line-through">{formatGbp(p.rrpGbp)}</p>
+                              )}
+                            </div>
+                            {p.requiresConsultation ? (
+                              <Badge className="bg-amber-100 hover:bg-amber-100 text-amber-800 border-0">Consult required</Badge>
+                            ) : p.stock <= 0 ? (
+                              <Badge className="bg-rose-100 hover:bg-rose-100 text-rose-700 border-0">Out of stock</Badge>
+                            ) : null}
                           </div>
-                          <Button
-                            size="sm"
-                            onClick={() => handleQuickAdd(p)}
-                            className="bg-[#168A7B] hover:bg-[#0E5A52] rounded-full"
-                            data-testid={`btn-add-${p.slug}`}
-                          >
-                            <Plus className="w-4 h-4 mr-1" /> Add
-                          </Button>
+                          {!p.requiresConsultation && p.stock > 0 && (
+                            <div className="grid grid-cols-2 gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleQuickAdd(p)}
+                                className="rounded-full border-[#168A7B] text-[#168A7B] hover:bg-[#168A7B]/5"
+                                data-testid={`btn-add-${p.slug}`}
+                              >
+                                <Plus className="w-4 h-4 mr-1" /> Add
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => handleBuyNow(p)}
+                                className="bg-amber-500 hover:bg-amber-600 text-white rounded-full"
+                                data-testid={`btn-buy-now-${p.slug}`}
+                              >
+                                <Zap className="w-4 h-4 mr-1" /> Buy now
+                              </Button>
+                            </div>
+                          )}
+                          {p.requiresConsultation && (
+                            <Button asChild size="sm" variant="outline" className="w-full rounded-full" data-testid={`btn-consult-${p.slug}`}>
+                              <Link href="/conditions">Start consultation</Link>
+                            </Button>
+                          )}
                         </div>
                       </CardContent>
                     </Card>

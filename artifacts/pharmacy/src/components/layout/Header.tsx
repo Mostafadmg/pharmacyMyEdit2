@@ -102,14 +102,24 @@ export default function Header() {
             </div>
           </nav>
 
-          {/* Mobile Menu Toggle */}
-          <button 
-            className="md:hidden p-2 text-foreground"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          {/* Mobile cart + menu toggle */}
+          <div className="md:hidden flex items-center gap-1">
+            <Link href="/cart" className="relative p-2 text-foreground hover:text-primary transition-colors" data-testid="link-cart-mobile" aria-label="Basket">
+              <ShoppingBag className="w-6 h-6" />
+              {itemCount > 0 && (
+                <span className="absolute top-0 right-0 min-w-[20px] h-5 px-1 bg-accent text-accent-foreground text-xs font-bold rounded-full flex items-center justify-center" data-testid="cart-badge-mobile">
+                  {itemCount > 9 ? "9+" : itemCount}
+                </span>
+              )}
+            </Link>
+            <button
+              className="p-2 text-foreground"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -129,6 +139,18 @@ export default function Header() {
                 {link.name}
               </Link>
             ))}
+            <Link
+              href="/cart"
+              className={`flex items-center justify-between px-4 py-3 rounded-xl text-base font-medium ${
+                location === "/cart" ? "bg-primary/5 text-primary" : "text-foreground hover:bg-muted"
+              }`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <span className="flex items-center gap-2"><ShoppingBag className="w-4 h-4" /> Basket</span>
+              {itemCount > 0 && (
+                <span className="min-w-[24px] h-6 px-2 bg-accent text-accent-foreground text-xs font-bold rounded-full flex items-center justify-center">{itemCount}</span>
+              )}
+            </Link>
             <div className="border-t border-border mt-2 pt-3 px-0">
               {patientName ? (
                 <>
