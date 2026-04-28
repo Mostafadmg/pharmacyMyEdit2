@@ -1,3 +1,5 @@
+import { newConditionQuestions, conditionAliases } from './newConditionsData';
+
 export type QuestionType = 'radio' | 'textarea' | 'checkbox_group';
 
 export interface Option {
@@ -2085,7 +2087,13 @@ export const conditionQuestions: Record<string, ConditionQuestionnaire> = {
 };
 
 export function getConditionQuestions(conditionId: string): ConditionQuestionnaire {
-  return conditionQuestions[conditionId] ?? {
+  const aliasResolved = conditionAliases[conditionId] ?? conditionId;
+  return (
+    conditionQuestions[aliasResolved] ??
+    newConditionQuestions[aliasResolved] ??
+    conditionQuestions[conditionId] ??
+    newConditionQuestions[conditionId] ??
+  {
     eligibilityQuestions: [
       {
         id: 'general_emergency',
@@ -2118,5 +2126,5 @@ export function getConditionQuestions(conditionId: string): ConditionQuestionnai
         type: 'textarea',
       },
     ],
-  };
+  });
 }

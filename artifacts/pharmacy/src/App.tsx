@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 // Import pages
 import Home from "./pages/Home";
 import Conditions from "./pages/Conditions";
+import WeightLoss from "./pages/WeightLoss";
 import ConditionDetail from "./pages/ConditionDetail";
 import Consultation from "./pages/Consultation";
 import TrackConsultation from "./pages/TrackConsultation";
@@ -46,6 +47,14 @@ import Complaints from "./pages/legal/Complaints";
 
 const queryClient = new QueryClient();
 
+function ScrollToTop() {
+  const [location] = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [location]);
+  return null;
+}
+
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const [, navigate] = useLocation();
   const token = localStorage.getItem("pharmacist_token");
@@ -65,6 +74,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/conditions" component={Conditions} />
+      <Route path="/treatments/weight-loss" component={WeightLoss} />
       <Route path="/conditions/:id" component={ConditionDetail} />
       <Route path="/consult/:conditionId" component={Consultation} />
       <Route path="/track" component={TrackConsultation} />
@@ -111,6 +121,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <ScrollToTop />
           <Router />
         </WouterRouter>
         <Toaster />

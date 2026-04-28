@@ -32,7 +32,7 @@ export default function TrackConsultation() {
 
   const { data, isLoading } = useListConsultations(
     {}, 
-    { query: { enabled: !!emailToTrack && hasSearched } }
+    { query: { enabled: !!emailToTrack && hasSearched } as never }
   );
 
   const myConsultations = React.useMemo(() => {

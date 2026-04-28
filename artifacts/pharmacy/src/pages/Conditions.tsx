@@ -63,7 +63,7 @@ export default function Conditions() {
     const groups: Record<string, typeof conditions> = {};
     filteredConditions.forEach(c => {
       if (!groups[c.category]) groups[c.category] = [];
-      groups[c.category].push(c);
+      groups[c.category]!.push(c);
     });
     return groups;
   }, [filteredConditions]);
@@ -181,7 +181,7 @@ export default function Conditions() {
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {items.map(condition => (
+                        {(items ?? []).map(condition => (
                           <Link key={condition.id} href={`/conditions/${condition.id}`}>
                             <Card className="h-full hover:-translate-y-1 transition-all duration-300 cursor-pointer border-border hover:shadow-lg group bg-white relative overflow-hidden rounded-2xl">
                               {/* Left Accent Bar */}

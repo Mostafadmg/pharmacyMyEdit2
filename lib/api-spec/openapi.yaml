@@ -321,7 +321,7 @@ components:
           type: string
         category:
           type: string
-          enum: [skin, womens_health, eye_care, digestive, children_family, pain_minor_illness, allergy, respiratory, ear, urinary]
+          enum: [skin, womens_health, eye_care, digestive, children_family, pain_minor_illness, allergy, respiratory, ear, urinary, weight_management, sexual_performance, sexual_health, stis, hair_skin_nails, seasonal_viruses, travel_health]
         description:
           type: string
         onlineEligible:

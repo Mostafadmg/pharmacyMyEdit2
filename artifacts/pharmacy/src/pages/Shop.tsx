@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Search, ShoppingBag, Truck, ShieldCheck, Star, Plus, Filter, Zap } from "lucide-react";
+import { Search, ShoppingBag, Truck, ShieldCheck, Star, Plus, Minus, Filter, Zap, Check } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Input } from "@/components/ui/input";
@@ -51,7 +51,12 @@ export default function Shop() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [loading, setLoading] = useState(true);
-  const { addItem } = useCart();
+  const { addItem, items: cartItems, updateQty, removeItem } = useCart();
+  const cartQtyById = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const it of cartItems) m[it.productId] = it.quantity;
+    return m;
+  }, [cartItems]);
 
   useEffect(() => {
     setLoading(true);
@@ -241,15 +246,55 @@ export default function Shop() {
                           </div>
                           {!p.requiresConsultation && p.stock > 0 && (
                             <div className="grid grid-cols-2 gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleQuickAdd(p)}
-                                className="rounded-full border-[#168A7B] text-[#168A7B] hover:bg-[#168A7B]/5"
-                                data-testid={`btn-add-${p.slug}`}
-                              >
-                                <Plus className="w-4 h-4 mr-1" /> Add
-                              </Button>
+                              {(cartQtyById[p.id] ?? 0) === 0 ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleQuickAdd(p)}
+                                  className="rounded-full border-[#168A7B] text-[#168A7B] hover:bg-[#168A7B]/5"
+                                  data-testid={`btn-add-${p.slug}`}
+                                >
+                                  <Plus className="w-4 h-4 mr-1" /> Add
+                                </Button>
+                              ) : (
+                                <div
+                                  className="flex items-center justify-between rounded-full border border-[#168A7B] bg-[#168A7B]/5 overflow-hidden h-9"
+                                  data-testid={`stepper-${p.slug}`}
+                                >
+                                  <button
+                                    type="button"
+                                    aria-label="Decrease quantity"
+                                    onClick={() => {
+                                      const next = (cartQtyById[p.id] ?? 1) - 1;
+                                      if (next <= 0) removeItem(p.id);
+                                      else updateQty(p.id, next);
+                                    }}
+                                    className="px-3 h-full text-[#168A7B] hover:bg-[#168A7B]/10 flex items-center"
+                                    data-testid={`btn-stepper-minus-${p.slug}`}
+                                  >
+                                    <Minus className="w-4 h-4" />
+                                  </button>
+                                  <span className="font-semibold text-sm text-[#0E5A52] flex items-center gap-1" data-testid={`text-stepper-qty-${p.slug}`}>
+                                    <Check className="w-3.5 h-3.5" /> {cartQtyById[p.id]}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    aria-label="Increase quantity"
+                                    onClick={() => {
+                                      const cur = cartQtyById[p.id] ?? 0;
+                                      if (cur >= Math.min(20, p.stock)) {
+                                        toast.error(`Only ${p.stock} available`);
+                                        return;
+                                      }
+                                      updateQty(p.id, cur + 1);
+                                    }}
+                                    className="px-3 h-full text-[#168A7B] hover:bg-[#168A7B]/10 flex items-center"
+                                    data-testid={`btn-stepper-plus-${p.slug}`}
+                                  >
+                                    <Plus className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              )}
                               <Button
                                 size="sm"
                                 onClick={() => handleBuyNow(p)}

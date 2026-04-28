@@ -23,6 +23,13 @@ export const ConditionCategory = {
   respiratory: "respiratory",
   ear: "ear",
   urinary: "urinary",
+  weight_management: "weight_management",
+  sexual_performance: "sexual_performance",
+  sexual_health: "sexual_health",
+  stis: "stis",
+  hair_skin_nails: "hair_skin_nails",
+  seasonal_viruses: "seasonal_viruses",
+  travel_health: "travel_health",
 } as const;
 
 export interface Condition {

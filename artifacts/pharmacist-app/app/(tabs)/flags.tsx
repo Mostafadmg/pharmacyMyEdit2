@@ -39,7 +39,7 @@ export default function ReviewedScreen() {
 
   const { data, isLoading, refetch, isRefetching } = useListConsultations(
     { limit: 100 },
-    { query: { refetchInterval: 60000 } }
+    { query: { refetchInterval: 60000 } as never }
   );
 
   const allConsultations = data?.consultations ?? [];

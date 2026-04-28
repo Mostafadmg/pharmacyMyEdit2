@@ -41,11 +41,11 @@ export default function PendingScreen() {
 
   const { data, isLoading, refetch, isRefetching } = useListConsultations(
     { limit: 100 },
-    { query: { refetchInterval: 20000 } }
+    { query: { refetchInterval: 20000 } as never },
   );
 
   const { data: stats } = useGetDashboardStats({
-    query: { refetchInterval: 20000 },
+    query: { refetchInterval: 20000 } as never,
   });
 
   const allConsultations = data?.consultations ?? [];

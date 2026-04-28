@@ -39,7 +39,9 @@ export default function ProductDetail() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState(1);
-  const { addItem } = useCart();
+  const { addItem, items: cartItems, updateQty, removeItem } = useCart();
+  const inCart = product ? cartItems.find(i => i.productId === product.id) : null;
+  const inCartQty = inCart?.quantity ?? 0;
 
   useEffect(() => {
     if (!params?.id) return;
@@ -137,25 +139,69 @@ export default function ProductDetail() {
                 </div>
 
                 {!product.requiresConsultation && product.stock > 0 ? (
-                  <>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium">Quantity</span>
-                      <div className="flex items-center border rounded-full overflow-hidden bg-white">
-                        <button onClick={() => setQty(Math.max(1, qty - 1))} className="p-2 hover:bg-muted" data-testid="btn-qty-minus"><Minus className="w-4 h-4" /></button>
-                        <span className="w-10 text-center font-semibold" data-testid="text-qty">{qty}</span>
-                        <button onClick={() => setQty(Math.min(20, qty + 1))} className="p-2 hover:bg-muted" data-testid="btn-qty-plus"><Plus className="w-4 h-4" /></button>
+                  inCartQty > 0 ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-3 px-4 py-3 bg-[#168A7B]/5 border border-[#168A7B]/30 rounded-xl">
+                        <div className="flex items-center gap-2 text-sm font-medium text-[#0E5A52]">
+                          <Check className="w-4 h-4" />
+                          <span>{inCartQty} in your basket</span>
+                        </div>
+                        <div className="flex items-center border border-[#168A7B] rounded-full overflow-hidden bg-white">
+                          <button
+                            type="button"
+                            aria-label="Decrease basket quantity"
+                            onClick={() => {
+                              if (inCartQty <= 1) removeItem(product.id);
+                              else updateQty(product.id, inCartQty - 1);
+                            }}
+                            className="p-2 hover:bg-muted text-[#168A7B]"
+                            data-testid="btn-cart-qty-minus"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <span className="w-10 text-center font-semibold text-[#0E5A52]" data-testid="text-cart-qty">{inCartQty}</span>
+                          <button
+                            type="button"
+                            aria-label="Increase basket quantity"
+                            onClick={() => {
+                              if (inCartQty >= Math.min(20, product.stock)) {
+                                toast.error(`Only ${product.stock} available`);
+                                return;
+                              }
+                              updateQty(product.id, inCartQty + 1);
+                            }}
+                            className="p-2 hover:bg-muted text-[#168A7B]"
+                            data-testid="btn-cart-qty-plus"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
+                      <Button asChild size="lg" className="w-full rounded-full bg-[#168A7B] hover:bg-[#0E5A52]" data-testid="btn-go-to-basket">
+                        <Link href="/cart"><ShoppingBag className="w-4 h-4 mr-2" /> View basket</Link>
+                      </Button>
                     </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium">Quantity</span>
+                        <div className="flex items-center border rounded-full overflow-hidden bg-white">
+                          <button onClick={() => setQty(Math.max(1, qty - 1))} className="p-2 hover:bg-muted" data-testid="btn-qty-minus"><Minus className="w-4 h-4" /></button>
+                          <span className="w-10 text-center font-semibold" data-testid="text-qty">{qty}</span>
+                          <button onClick={() => setQty(Math.min(20, qty + 1))} className="p-2 hover:bg-muted" data-testid="btn-qty-plus"><Plus className="w-4 h-4" /></button>
+                        </div>
+                      </div>
 
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      <Button onClick={handleAdd} variant="outline" size="lg" className="rounded-full border-[#168A7B] text-[#168A7B] hover:bg-[#168A7B]/5" data-testid="btn-add-to-cart">
-                        <ShoppingBag className="w-4 h-4 mr-2" /> Add to basket
-                      </Button>
-                      <Button onClick={handleBuyNow} size="lg" className="rounded-full bg-[#168A7B] hover:bg-[#0E5A52]" data-testid="btn-buy-now">
-                        Buy now
-                      </Button>
-                    </div>
-                  </>
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <Button onClick={handleAdd} variant="outline" size="lg" className="rounded-full border-[#168A7B] text-[#168A7B] hover:bg-[#168A7B]/5" data-testid="btn-add-to-cart">
+                          <ShoppingBag className="w-4 h-4 mr-2" /> Add to basket
+                        </Button>
+                        <Button onClick={handleBuyNow} size="lg" className="rounded-full bg-[#168A7B] hover:bg-[#0E5A52]" data-testid="btn-buy-now">
+                          Buy now
+                        </Button>
+                      </div>
+                    </>
+                  )
                 ) : product.requiresConsultation ? (
                   <Card className="border-amber-200 bg-amber-50">
                     <CardContent className="p-4 flex items-start gap-3">

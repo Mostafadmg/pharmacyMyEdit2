@@ -31,13 +31,13 @@ The consultation form (`artifacts/pharmacy/src/pages/Consultation.tsx`) uses a 5
 5. **Photo Upload** — shown only when `condition.requiresPhoto = true`
 6. **Review & Submit** — full summary with edit links, consent checkbox, submit
 
-Condition-specific questions are defined in `artifacts/pharmacy/src/data/conditionQuestions.ts` — covers all 27 conditions with tailored eligibility screening and clinical questions.
+Condition-specific questions are defined in `artifacts/pharmacy/src/data/conditionQuestions.ts` (original set) and `artifacts/pharmacy/src/data/newConditionsData.ts` (catalogue expansion). `getConditionQuestions(id)` resolves both maps plus an alias table.
 
 ## Features
 
 ### Patient-facing
 - Landing page with hero, how-it-works, categories, trust badges
-- Browse 27 treatable conditions grouped by category
+- Browse 50 treatable conditions grouped by category
 - Condition detail pages with eligibility info
 - Condition-specific step-by-step consultation (MedExpress/Pharmacy2U style)
 - Eligibility blocking (red flag screening, unfit answers show "Not suitable" page)
@@ -50,16 +50,36 @@ Condition-specific questions are defined in `artifacts/pharmacy/src/data/conditi
 - Actions: Approve + prescribe, Reject, Ask more info, Refer to GP/urgent care
 - Red-flag warning banners
 
-## Conditions Covered (27)
+## Conditions Covered (50, 15 categories)
 
-Skin: Acne vulgaris, Athlete's foot, Dry skin/eczema, Ringworm/tinea, Scabies, Warts/verrucae
-Women's Health: UTI (AFAB 16-64), Vaginal thrush
-Eye Care: Dry eye disease, Bacterial conjunctivitis
-Digestive: Dyspepsia, Constipation, Diarrhoea, Haemorrhoids
-Children & Family: Chickenpox (under 14), Head lice, Infantile colic, Nappy rash, Teething, Threadworms
-Pain & Minor Illness: Back pain (16-<50), Cold sores, Ingrowing toenail, Mouth ulcers, Sore throat
-Respiratory: Oral thrush
-Allergy: Allergic rhinitis
+Original 27 (Skin, Women's Health, Eye Care, Digestive, Children & Family, Pain & Minor Illness, Respiratory, Allergy) plus the 2026 catalogue expansion to match MedExpress / Pharmacy2U:
+
+- **Weight Management** (5): Mounjaro, Wegovy, Saxenda, Orlistat, Mysimba — all gated by BMI eligibility
+- **Sexual Performance** (2): Erectile dysfunction, Premature ejaculation
+- **Sexual Health** (3): Period delay, Emergency contraception, Bacterial vaginosis (extends Women's)
+- **STIs** (3): Chlamydia, Genital herpes, Genital warts
+- **Hair, Skin & Nails** (3): Hair loss, Nail (fungal) infection, Rosacea
+- **Seasonal Viruses** (2): Flu treatment, COVID-19 self-test
+- **Travel Health** (2): Anti-malaria, Jet lag
+- Extra digestive: Acid reflux, IBS · Extra pain: Migraine, Numbing cream · Extra family: Threadworm · Extra sleep: Sleep aid
+
+New conditions live in `artifacts/pharmacy/src/data/newConditionsData.ts` and are merged into `getConditionQuestions()` in `conditionQuestions.ts`. The alias map (`conditionAliases`) only contains `hayfever` → `allergic-rhinitis`; add new aliases there if you rename a slug.
+
+## Mega-menu Header (T4)
+
+`artifacts/pharmacy/src/components/layout/Header.tsx` renders a wide MedExpress-style "Treatments" mega-menu on desktop hover, with sub-categories defined in `data/treatmentsMenu.ts`. Mobile uses an accordion within the existing slide-out drawer. Categories: Weight Loss, Sexual Performance, Sexual Health, STIs, Pain Relief, Hair Skin & Nails, Allergies, Digestive Health, Seasonal Viruses, Travel Health, Women's Health, Eye Care, Children & Family.
+
+## Weight Loss Page (T5)
+
+`/treatments/weight-loss` (`pages/WeightLoss.tsx`) — hero, BMI calculator (with `classifyBmi`), 5 treatment cards, "How it works", safety. Each treatment CTA jumps to its tailored consultation.
+
+## Scroll-to-top (T1)
+
+`<ScrollToTop>` inside the Wouter Router in `App.tsx` listens to `useLocation()` and resets `window.scrollTo(0, 0)` on every route change.
+
+## Shop basket stepper (T2)
+
+`Shop.tsx` and `ProductDetail.tsx` show an inline `−/qty/+` stepper when a product is already in the cart (Amazon-style). Tapping `−` to 0 reverts to the "Add" button. Live badge stays in sync.
 
 ## API Endpoints
 

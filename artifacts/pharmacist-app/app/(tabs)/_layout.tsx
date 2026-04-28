@@ -24,6 +24,14 @@ function NativeTabLayout() {
         <Icon sf={{ default: "checkmark.circle", selected: "checkmark.circle.fill" }} />
         <Label>Reviewed</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="patients">
+        <Icon sf={{ default: "person.2", selected: "person.2.fill" }} />
+        <Label>Patients</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="inbox">
+        <Icon sf={{ default: "bell", selected: "bell.fill" }} />
+        <Label>Inbox</Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="orders">
         <Icon sf={{ default: "shippingbox", selected: "shippingbox.fill" }} />
         <Label>Orders</Label>
@@ -52,6 +60,7 @@ function ClassicTabLayout() {
         headerStyle: { backgroundColor: "#FFFFFF" },
         headerTintColor: "#0E2354",
         headerTitleStyle: { fontWeight: "700" },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: "600" },
         tabBarStyle: {
           position: "absolute",
           backgroundColor: isIOS ? "transparent" : colors.background,
@@ -98,6 +107,30 @@ function ClassicTabLayout() {
               <SymbolView name="checkmark.circle" tintColor={color} size={24} />
             ) : (
               <Feather name="check-circle" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="patients"
+        options={{
+          title: "Patients",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="person.2" tintColor={color} size={24} />
+            ) : (
+              <Feather name="users" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="inbox"
+        options={{
+          title: "Inbox",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="bell" tintColor={color} size={24} />
+            ) : (
+              <Feather name="bell" size={22} color={color} />
             ),
         }}
       />
