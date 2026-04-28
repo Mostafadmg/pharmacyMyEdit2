@@ -3,6 +3,7 @@ import { db, productsTable, ordersTable, orderItemsTable, deliveriesTable, patie
 import { eq, desc, inArray, and, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { decodeBearerId, requirePharmacist } from "../middlewares/auth";
+import { isStripeEnabled } from "../lib/stripe";
 
 const router: IRouter = Router();
 
@@ -115,6 +116,7 @@ router.post("/orders", async (req, res): Promise<void> => {
 
   const orderId = randomUUID();
   const orderNumber = generateOrderNumber();
+  const stripeOn = isStripeEnabled();
 
   const [order] = await db.insert(ordersTable).values({
     id: orderId,
@@ -132,8 +134,8 @@ router.post("/orders", async (req, res): Promise<void> => {
     itemsTotalGbp: itemsTotal,
     shippingGbp: shipping,
     totalGbp: total,
-    status: "paid",
-    paymentStatus: "paid_demo",
+    status: stripeOn ? "pending_payment" : "paid",
+    paymentStatus: stripeOn ? "pending" : "paid_demo",
     notes: b.notes?.trim() || null,
   }).returning();
 
@@ -289,6 +291,108 @@ router.patch("/admin/orders/:id/status", requirePharmacist, async (req, res): Pr
   }
 
   res.json({ order });
+});
+
+/**
+ * Full admin edit: shipping address, customer notes, item quantity changes,
+ * item removal, and append-only internal notes thread.
+ */
+router.patch("/admin/orders/:id", requirePharmacist, async (req, res): Promise<void> => {
+  const id = req.params.id;
+  const actorId = decodeBearerId(req.headers.authorization) ?? "pharmacist";
+  const b = req.body as {
+    shippingAddress?: ShippingAddress;
+    customerName?: string;
+    customerEmail?: string;
+    customerPhone?: string | null;
+    notes?: string | null;
+    items?: Array<{ id: string; quantity: number }>;
+    removeItemIds?: string[];
+    addInternalNote?: { author: string; text: string };
+  };
+
+  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, id)).limit(1);
+  if (!order) {
+    res.status(404).json({ error: "Order not found" });
+    return;
+  }
+
+  const orderUpdate: Record<string, unknown> = {};
+
+  if (b.shippingAddress) {
+    const a = b.shippingAddress;
+    if (!a.line1?.trim() || !a.city?.trim() || !a.postcode?.trim()) {
+      res.status(400).json({ error: "Address line1, city, postcode are required" });
+      return;
+    }
+    orderUpdate.shippingAddress = {
+      line1: a.line1.trim(),
+      line2: a.line2?.trim() || "",
+      city: a.city.trim(),
+      postcode: a.postcode.trim().toUpperCase(),
+      country: a.country?.trim() || "United Kingdom",
+    };
+  }
+  if (typeof b.customerName === "string" && b.customerName.trim()) orderUpdate.customerName = b.customerName.trim();
+  if (typeof b.customerEmail === "string" && b.customerEmail.trim()) orderUpdate.customerEmail = b.customerEmail.trim().toLowerCase();
+  if ("customerPhone" in b) orderUpdate.customerPhone = b.customerPhone?.trim() || null;
+  if ("notes" in b) orderUpdate.notes = b.notes?.trim() || null;
+
+  if (b.addInternalNote && b.addInternalNote.text?.trim()) {
+    const existing = Array.isArray(order.internalNotes) ? order.internalNotes as unknown[] : [];
+    orderUpdate.internalNotes = [
+      ...existing,
+      {
+        id: randomUUID(),
+        author: b.addInternalNote.author?.trim() || actorId,
+        text: b.addInternalNote.text.trim(),
+        ts: new Date().toISOString(),
+      },
+    ];
+  }
+
+  // Apply item changes (qty updates and removals)
+  let recomputeTotals = false;
+  if (Array.isArray(b.removeItemIds) && b.removeItemIds.length > 0) {
+    for (const itemId of b.removeItemIds) {
+      await db.delete(orderItemsTable).where(and(eq(orderItemsTable.id, itemId), eq(orderItemsTable.orderId, id)));
+    }
+    recomputeTotals = true;
+  }
+  if (Array.isArray(b.items)) {
+    for (const it of b.items) {
+      const qty = Math.max(1, Math.min(20, Math.floor(Number(it.quantity) || 1)));
+      const [existing] = await db.select().from(orderItemsTable).where(and(eq(orderItemsTable.id, it.id), eq(orderItemsTable.orderId, id))).limit(1);
+      if (existing && existing.quantity !== qty) {
+        const newLineTotal = existing.unitPriceGbp * qty;
+        await db.update(orderItemsTable).set({ quantity: qty, lineTotalGbp: newLineTotal }).where(eq(orderItemsTable.id, it.id));
+        recomputeTotals = true;
+      }
+    }
+  }
+
+  if (recomputeTotals) {
+    const items = await db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, id));
+    if (items.length === 0) {
+      res.status(400).json({ error: "Cannot remove all items from an order. Cancel the order instead." });
+      return;
+    }
+    const itemsTotal = items.reduce((sum, it) => sum + it.lineTotalGbp, 0);
+    const shipping = itemsTotal >= 2500 ? 0 : (order.shippingGbp > 0 ? 299 : 0);
+    orderUpdate.itemsTotalGbp = itemsTotal;
+    orderUpdate.shippingGbp = shipping;
+    orderUpdate.totalGbp = itemsTotal + shipping;
+  }
+
+  if (Object.keys(orderUpdate).length === 0) {
+    res.json({ order });
+    return;
+  }
+
+  const [updated] = await db.update(ordersTable).set(orderUpdate).where(eq(ordersTable.id, id)).returning();
+  const items = await db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, id));
+  const [delivery] = await db.select().from(deliveriesTable).where(eq(deliveriesTable.orderId, id)).limit(1);
+  res.json({ order: updated, items, delivery: delivery ?? null });
 });
 
 router.get("/admin/analytics/sales", requirePharmacist, async (_req, res): Promise<void> => {

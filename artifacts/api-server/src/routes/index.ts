@@ -12,6 +12,7 @@ import productsRouter from "./products";
 import ordersRouter from "./orders";
 import commsRouter from "./comms";
 import patientTimelineRouter from "./patient_timeline";
+import paymentsRouter from "./payments";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(productsRouter);
 router.use(ordersRouter);
 router.use(commsRouter);
 router.use(patientTimelineRouter);
+router.use(paymentsRouter);
 
 export default router;

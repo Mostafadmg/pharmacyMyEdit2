@@ -12,7 +12,11 @@ export const ordersTable = pgTable("orders", {
   totalGbp: integer("total_gbp_pence").notNull(),
   status: text("status").notNull().default("pending"),
   paymentStatus: text("payment_status").notNull().default("paid_demo"),
+  paymentProvider: text("payment_provider"),
+  paymentSessionId: text("payment_session_id"),
+  paymentIntentId: text("payment_intent_id"),
   notes: text("notes"),
+  internalNotes: jsonb("internal_notes").notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

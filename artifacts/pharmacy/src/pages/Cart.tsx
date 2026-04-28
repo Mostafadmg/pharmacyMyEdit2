@@ -71,7 +71,7 @@ export default function Cart() {
               </AnimatePresence>
             </div>
 
-            <Card className="border-0 bg-white rounded-2xl h-fit sticky top-24">
+            <Card className="border-0 bg-white rounded-2xl h-fit lg:sticky lg:top-24">
               <CardContent className="p-6 space-y-4">
                 <h2 className="font-semibold text-lg">Order summary</h2>
                 <div className="space-y-2 text-sm">

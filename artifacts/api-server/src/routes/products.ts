@@ -134,12 +134,59 @@ router.patch("/admin/products/:id", requirePharmacist, async (req, res): Promise
 
 router.delete("/admin/products/:id", requirePharmacist, async (req, res): Promise<void> => {
   const id = req.params.id;
+  const hard = paramAsString(req.query.hard as string | string[] | undefined) === "true";
+
+  if (hard) {
+    // Hard delete: only allow if no order references this product (referential integrity)
+    const refs = await db.execute(sql`SELECT 1 FROM order_items WHERE product_id = ${id} LIMIT 1`);
+    if (refs.rows.length > 0) {
+      res.status(409).json({ error: "Product appears in past orders. Use soft delete (deactivate) instead." });
+      return;
+    }
+    const deleted = await db.delete(productsTable).where(eq(productsTable.id, id)).returning();
+    if (deleted.length === 0) {
+      res.status(404).json({ error: "Product not found" });
+      return;
+    }
+    res.json({ success: true, hardDeleted: true });
+    return;
+  }
+
   const [product] = await db.update(productsTable).set({ active: false }).where(eq(productsTable.id, id)).returning();
   if (!product) {
     res.status(404).json({ error: "Product not found" });
     return;
   }
   res.json({ success: true, product });
+});
+
+router.post("/admin/products/:id/duplicate", requirePharmacist, async (req, res): Promise<void> => {
+  const id = req.params.id;
+  const [original] = await db.select().from(productsTable).where(eq(productsTable.id, id)).limit(1);
+  if (!original) {
+    res.status(404).json({ error: "Product not found" });
+    return;
+  }
+
+  // Find a unique slug suffix
+  let n = 2;
+  let newSlug = `${original.slug}-copy`;
+  while (true) {
+    const [exists] = await db.select().from(productsTable).where(eq(productsTable.slug, newSlug)).limit(1);
+    if (!exists) break;
+    newSlug = `${original.slug}-copy-${n++}`;
+  }
+
+  const { id: _id, slug: _s, ...rest } = original;
+  const [copy] = await db.insert(productsTable).values({
+    ...rest,
+    id: newSlug,
+    slug: newSlug,
+    name: `${original.name} (Copy)`,
+    active: false,
+    stock: 0,
+  }).returning();
+  res.status(201).json({ product: copy });
 });
 
 export default router;

@@ -49,9 +49,11 @@ export default function OrderConfirmation() {
   useEffect(() => {
     if (!params?.id) return;
     let key: string | null = null;
+    let sessionId: string | null = null;
     try {
       const search = new URLSearchParams(window.location.search);
       key = search.get("key");
+      sessionId = search.get("session_id");
       if (!key) {
         const raw = localStorage.getItem("pharmacare_guest_orders");
         if (raw) {
@@ -60,11 +62,31 @@ export default function OrderConfirmation() {
         }
       }
     } catch { /* ignore */ }
-    const url = key ? `/api/orders/${params.id}?key=${encodeURIComponent(key)}` : `/api/orders/${params.id}`;
-    apiFetch<{ order: Order; items: Item[]; delivery: Delivery | null }>(url)
-      .then(setData)
-      .catch(e => toast.error(e.message))
-      .finally(() => setLoading(false));
+
+    const verifyAndLoad = async () => {
+      try {
+        // If we just came back from Stripe, verify the payment first.
+        if (sessionId) {
+          try {
+            await apiFetch(`/api/orders/${params.id}/verify-payment`, {
+              method: "POST",
+              body: JSON.stringify({ sessionId }),
+            });
+          } catch (err) {
+            console.warn("Payment verification failed", err);
+          }
+        }
+        const url = key ? `/api/orders/${params.id}?key=${encodeURIComponent(key)}` : `/api/orders/${params.id}`;
+        const res = await apiFetch<{ order: Order; items: Item[]; delivery: Delivery | null }>(url);
+        setData(res);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Failed to load order");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    verifyAndLoad();
   }, [params?.id]);
 
   if (loading) {
