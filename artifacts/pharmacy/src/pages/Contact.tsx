@@ -144,22 +144,22 @@ export default function Contact() {
               <motion.div key={item.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
                 {item.href ? (
                   <a href={item.href} target={item.href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer"
-                    className="block bg-white rounded-2xl border border-border/50 shadow-sm p-6 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 group h-full overflow-hidden">
+                    className="block bg-white rounded-2xl border border-border/50 shadow-sm p-6 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 group h-full">
                     <div className={`w-11 h-11 ${item.bg} ${item.color} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                       {item.icon}
                     </div>
                     <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">{item.label}</p>
-                    <p className={`font-bold text-sm sm:text-base ${item.color} mb-1 break-words leading-snug`}>{item.value}</p>
+                    <p className={`font-bold text-sm ${item.color} mb-1 break-all leading-snug`}>{item.value}</p>
                     <p className="text-xs text-muted-foreground break-words leading-relaxed">{item.sub}</p>
                     {item.href.startsWith("http") && <ExternalLink className="w-3.5 h-3.5 text-muted-foreground mt-2" />}
                   </a>
                 ) : (
-                  <div className="bg-white rounded-2xl border border-border/50 shadow-sm p-6 h-full overflow-hidden">
+                  <div className="bg-white rounded-2xl border border-border/50 shadow-sm p-6 h-full">
                     <div className={`w-11 h-11 ${item.bg} ${item.color} rounded-xl flex items-center justify-center mb-4`}>
                       {item.icon}
                     </div>
                     <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">{item.label}</p>
-                    <p className={`font-bold text-sm sm:text-base ${item.color} mb-1 break-words leading-snug`}>{item.value}</p>
+                    <p className={`font-bold text-sm ${item.color} mb-1 break-all leading-snug`}>{item.value}</p>
                     <p className="text-xs text-muted-foreground break-words leading-relaxed">{item.sub}</p>
                   </div>
                 )}

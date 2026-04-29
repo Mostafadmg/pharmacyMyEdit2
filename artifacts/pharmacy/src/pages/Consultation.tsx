@@ -78,12 +78,31 @@ function savePatientToStorage(data: {
 function RadioCard({ value, label, selected, onSelect }: { value: string; label: string; selected: boolean; onSelect: () => void }) {
   return (
     <button type="button" onClick={onSelect}
-      className={`w-full flex items-center gap-4 p-4 border-2 rounded-xl text-left transition-all duration-150 cursor-pointer ${selected ? "border-primary bg-primary/5 shadow-sm" : "border-border/60 hover:border-primary/40 hover:bg-muted/10"}`}
+      className={`w-full flex items-center gap-4 p-5 border-2 rounded-2xl text-left transition-all duration-150 cursor-pointer min-h-[64px] ${selected ? "border-primary bg-primary/[0.07] shadow-md ring-1 ring-primary/20" : "border-border/60 bg-white hover:border-primary/50 hover:bg-primary/[0.03] hover:shadow-sm"}`}
     >
-      <div className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${selected ? "border-primary bg-primary" : "border-muted-foreground/40"}`}>
-        {selected && <div className="w-2 h-2 rounded-full bg-white" />}
+      <div className={`w-6 h-6 rounded-full border-2 shrink-0 flex items-center justify-center transition-all ${selected ? "border-primary bg-primary scale-110" : "border-muted-foreground/40"}`}>
+        {selected && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
       </div>
-      <span className={`text-base font-medium ${selected ? "text-secondary" : "text-secondary/80"}`}>{label}</span>
+      <span className={`text-base font-semibold ${selected ? "text-primary" : "text-secondary"}`}>{label}</span>
+    </button>
+  );
+}
+
+function YesNoCard({ value, selected, onSelect }: { value: "yes" | "no"; selected: boolean; onSelect: () => void }) {
+  const isYes = value === "yes";
+  const activeClass = selected
+    ? isYes
+      ? "border-rose-500 bg-rose-50 shadow-md ring-1 ring-rose-200"
+      : "border-emerald-500 bg-emerald-50 shadow-md ring-1 ring-emerald-200"
+    : "border-border/60 bg-white hover:border-muted-foreground/40 hover:shadow-sm";
+  const textClass = selected
+    ? isYes ? "text-rose-700" : "text-emerald-700"
+    : "text-secondary";
+  return (
+    <button type="button" onClick={onSelect}
+      className={`flex-1 flex flex-col items-center justify-center gap-3 py-8 border-2 rounded-2xl transition-all duration-150 cursor-pointer ${activeClass}`}
+    >
+      <span className={`text-4xl font-black ${textClass}`}>{isYes ? "Yes" : "No"}</span>
     </button>
   );
 }
@@ -126,6 +145,8 @@ export default function Consultation() {
   // ── Eligibility ─────────────────────────────────────────
   const [eligibilityAnswers, setEligibilityAnswers] = useState<Record<string, string>>({});
   const [blocked, setBlocked] = useState<{ message: string } | null>(null);
+  const [eligibilityIndex, setEligibilityIndex] = useState(0);
+  const [clinicalIndex, setClinicalIndex] = useState(0);
 
   // ── Clinical questions ──────────────────────────────────
   const [clinicalAnswers, setClinicalAnswers] = useState<Record<string, string | string[]>>({});
@@ -295,9 +316,16 @@ export default function Consultation() {
   function goTo(s: number) { setStep(s); scrollTop(); }
 
   function goBack() {
-    if (step === STEPS.ELIGIBILITY) return;
-    if (step === STEPS.CLINICAL) { goTo(STEPS.ELIGIBILITY); return; }
-    if (step === STEPS.MEDICAL) { goTo(STEPS.CLINICAL); return; }
+    if (step === STEPS.ELIGIBILITY) {
+      if (eligibilityIndex > 0) { setEligibilityIndex(i => i - 1); scrollTop(); return; }
+      return;
+    }
+    if (step === STEPS.CLINICAL) {
+      if (clinicalIndex > 0) { setClinicalIndex(i => i - 1); scrollTop(); return; }
+      setEligibilityIndex(questions ? questions.eligibilityQuestions.length - 1 : 0);
+      goTo(STEPS.ELIGIBILITY); return;
+    }
+    if (step === STEPS.MEDICAL) { setClinicalIndex(questions ? questions.clinicalQuestions.length - 1 : 0); goTo(STEPS.CLINICAL); return; }
     if (step === STEPS.PHOTO) { goTo(STEPS.MEDICAL); return; }
     if (step === STEPS.ACCOUNT) { goTo(requiresPhoto ? STEPS.PHOTO : STEPS.MEDICAL); return; }
     if (step === STEPS.GP_DETAILS) { goTo(STEPS.ACCOUNT); return; }
@@ -312,6 +340,31 @@ export default function Consultation() {
       if (eligibilityAnswers[q.id] === q.blockingAnswer) { setBlocked({ message: q.blockingMessage }); scrollTop(); return; }
     }
     goTo(STEPS.CLINICAL);
+  }
+
+  function handleEligibilityAnswer(q: EligibilityQuestion, answer: string) {
+    if (!questions) return;
+    setEligibilityAnswers(prev => ({ ...prev, [q.id]: answer }));
+    if (answer === q.blockingAnswer) {
+      setTimeout(() => { setBlocked({ message: q.blockingMessage }); scrollTop(); }, 350);
+      return;
+    }
+    setTimeout(() => {
+      if (eligibilityIndex < questions.eligibilityQuestions.length - 1) {
+        setEligibilityIndex(i => i + 1);
+        scrollTop();
+      } else {
+        setClinicalIndex(0);
+        goTo(STEPS.CLINICAL);
+      }
+    }, 350);
+  }
+
+  function handleClinicalAutoAdvance() {
+    if (!questions) return;
+    if (clinicalIndex < questions.clinicalQuestions.length - 1) {
+      setTimeout(() => { setClinicalIndex(i => i + 1); scrollTop(); }, 350);
+    }
   }
 
   // ─── Step 2: Clinical questions ────────────────────────────────────────────
@@ -849,55 +902,118 @@ export default function Consultation() {
       <main className="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 py-10 md:py-14">
         <AnimatePresence mode="wait">
 
-          {/* ── Step 1: Safety Check ──────────────────────────────────────── */}
-          {step === STEPS.ELIGIBILITY && (
-            <StepWrapper stepKey="eligibility">
-              <div className="mb-8">
-                <div className="inline-flex items-center gap-2 bg-amber-50 text-amber-800 text-sm font-semibold px-4 py-2 rounded-full border border-amber-200 mb-4">
-                  <ShieldCheck className="w-4 h-4" /> Safety Check
+          {/* ── Step 1: Safety Check — one question at a time ────────────── */}
+          {step === STEPS.ELIGIBILITY && (() => {
+            const q = questions.eligibilityQuestions[eligibilityIndex];
+            if (!q) return null;
+            const total = questions.eligibilityQuestions.length;
+            const isLast = eligibilityIndex === total - 1;
+            return (
+              <StepWrapper stepKey={`eligibility-${eligibilityIndex}`}>
+                {/* Mini progress dots */}
+                {total > 1 && (
+                  <div className="flex items-center gap-1.5 mb-6">
+                    {questions.eligibilityQuestions.map((_: unknown, i: number) => (
+                      <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === eligibilityIndex ? "w-6 bg-primary" : i < eligibilityIndex ? "w-3 bg-primary/40" : "w-3 bg-border"}`} />
+                    ))}
+                    <span className="text-xs text-muted-foreground ml-2 font-medium">{eligibilityIndex + 1} / {total}</span>
+                  </div>
+                )}
+                <div className="mb-8">
+                  <div className="inline-flex items-center gap-2 bg-amber-50 text-amber-800 text-xs font-bold px-3 py-1.5 rounded-full border border-amber-200 mb-5 uppercase tracking-wider">
+                    <ShieldCheck className="w-3.5 h-3.5" /> Safety Check
+                  </div>
+                  <h2 className="text-2xl md:text-3xl font-bold text-secondary leading-snug mb-3">{q.text}</h2>
+                  {q.subtext && <p className="text-base text-muted-foreground">{q.subtext}</p>}
                 </div>
-                <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-2">Before we begin</h2>
-                <p className="text-base text-muted-foreground">Answer honestly — these questions ensure this service is safe for you.</p>
-              </div>
-              <div className="bg-white rounded-3xl shadow-sm border border-border/50 p-8 space-y-8">
-                {questions.eligibilityQuestions.map((q: EligibilityQuestion) => (
-                  <div key={q.id} className="space-y-3">
-                    <p className="text-base font-bold text-secondary">{q.text}</p>
-                    {q.subtext && <p className="text-sm text-muted-foreground">{q.subtext}</p>}
-                    <div className="grid grid-cols-2 gap-3">
-                      {["yes", "no"].map(v => (
-                        <RadioCard key={v} value={v} label={v === "yes" ? "Yes" : "No"} selected={eligibilityAnswers[q.id] === v} onSelect={() => setEligibilityAnswers(prev => ({ ...prev, [q.id]: v }))} />
+                <div className="flex gap-4">
+                  {(["yes", "no"] as const).map(v => (
+                    <YesNoCard key={v} value={v} selected={eligibilityAnswers[q.id] === v} onSelect={() => handleEligibilityAnswer(q, v)} />
+                  ))}
+                </div>
+                {isLast && eligibilityAnswers[q.id] && (
+                  <div className="mt-6">
+                    <Button type="button" size="lg" onClick={handleEligibilityNext} className="w-full h-14 rounded-2xl text-base font-bold bg-primary hover:bg-primary/90 shadow-md">
+                      Continue to your questions <ChevronRight className="w-5 h-5 ml-1" />
+                    </Button>
+                  </div>
+                )}
+              </StepWrapper>
+            );
+          })()}
+
+          {/* ── Step 2: Clinical Questions — one question at a time ───────── */}
+          {step === STEPS.CLINICAL && (() => {
+            const cq = questions.clinicalQuestions[clinicalIndex];
+            if (!cq) return null;
+            const total = questions.clinicalQuestions.length;
+            const isLast = clinicalIndex === total - 1;
+            const answer = clinicalAnswers[cq.id];
+            const error = clinicalErrors[cq.id];
+            return (
+              <StepWrapper stepKey={`clinical-${clinicalIndex}`}>
+                {/* Mini progress dots */}
+                {total > 1 && (
+                  <div className="flex items-center gap-1.5 mb-6">
+                    {questions.clinicalQuestions.map((_: unknown, i: number) => (
+                      <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === clinicalIndex ? "w-6 bg-primary" : i < clinicalIndex ? "w-3 bg-primary/40" : "w-3 bg-border"}`} />
+                    ))}
+                    <span className="text-xs text-muted-foreground ml-2 font-medium">{clinicalIndex + 1} / {total}</span>
+                  </div>
+                )}
+                <div className="mb-8">
+                  <h2 className="text-2xl md:text-3xl font-bold text-secondary leading-snug mb-2">{cq.text}</h2>
+                  {cq.subtext && <p className="text-base text-muted-foreground">{cq.subtext}</p>}
+                </div>
+                <div className="bg-white rounded-3xl shadow-sm border border-border/50 p-8">
+                  {cq.type === "radio" && cq.options && (
+                    <div className="space-y-3">
+                      {cq.options.map((opt: { value: string; label: string }) => (
+                        <RadioCard key={opt.value} value={opt.value} label={opt.label}
+                          selected={answer === opt.value}
+                          onSelect={() => {
+                            setClinicalAnswer(cq.id, opt.value);
+                            if (!isLast) handleClinicalAutoAdvance();
+                          }}
+                        />
                       ))}
                     </div>
-                  </div>
-                ))}
-                <div className="pt-4 border-t border-border/50">
-                  <Button type="button" size="lg" onClick={handleEligibilityNext} className="w-full sm:w-auto h-14 px-10 rounded-full text-base font-bold bg-primary hover:bg-primary/90 shadow-md float-right">
-                    Continue <ChevronRight className="w-5 h-5 ml-1" />
-                  </Button>
-                </div>
-              </div>
-            </StepWrapper>
-          )}
+                  )}
+                  {cq.type === "checkbox_group" && cq.options && (
+                    <div className="space-y-3">
+                      {cq.options.map((opt: { value: string; label: string }) => (
+                        <CheckboxCard key={opt.value} value={opt.value} label={opt.label} checked={Array.isArray(answer) && answer.includes(opt.value)} onToggle={() => toggleClinicalCheckbox(cq.id, opt.value)} />
+                      ))}
+                    </div>
+                  )}
+                  {cq.type === "textarea" && (
+                    <Textarea value={(answer as string) || ""} onChange={e => setClinicalAnswer(cq.id, e.target.value)} placeholder="Type your answer here…" className="min-h-[120px] text-base rounded-xl bg-muted/20 resize-none" />
+                  )}
+                  {error && <FieldError msg={error} />}
 
-          {/* ── Step 2: Clinical Questions ────────────────────────────────── */}
-          {step === STEPS.CLINICAL && (
-            <StepWrapper stepKey="clinical">
-              <div className="mb-8">
-                <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-2">Your {condition.name} symptoms</h2>
-                <p className="text-base text-muted-foreground">These help our pharmacist make a safe prescribing decision.</p>
-              </div>
-              <div className="bg-white rounded-3xl shadow-sm border border-border/50 p-8 space-y-8">
-                {questions.clinicalQuestions.map(renderClinicalQuestion)}
-                <div className="pt-4 border-t border-border/50 flex flex-col-reverse sm:flex-row justify-between gap-3">
-                  <Button type="button" variant="outline" className="h-12 px-8 rounded-full font-bold border-2" onClick={goBack}>Back</Button>
-                  <Button type="button" size="lg" onClick={handleClinicalNext} className="h-12 px-10 rounded-full font-bold bg-primary hover:bg-primary/90 shadow-md">
-                    Continue <ChevronRight className="w-5 h-5 ml-1" />
-                  </Button>
+                  <div className="mt-6 pt-5 border-t border-border/50 flex justify-between gap-3">
+                    <Button type="button" variant="outline" className="h-12 px-7 rounded-2xl font-bold border-2" onClick={goBack}>Back</Button>
+                    {isLast ? (
+                      <Button type="button" size="lg" onClick={handleClinicalNext} className="h-12 px-10 rounded-2xl font-bold bg-primary hover:bg-primary/90 shadow-md">
+                        Continue <ChevronRight className="w-5 h-5 ml-1" />
+                      </Button>
+                    ) : (
+                      <Button type="button" size="lg" onClick={() => {
+                        if (!answer || (Array.isArray(answer) && answer.length === 0)) {
+                          setClinicalErrors(p => ({ ...p, [cq.id]: "Please answer before continuing." }));
+                          return;
+                        }
+                        setClinicalIndex(i => i + 1);
+                        scrollTop();
+                      }} className="h-12 px-10 rounded-2xl font-bold bg-primary hover:bg-primary/90 shadow-md">
+                        Next <ChevronRight className="w-5 h-5 ml-1" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </StepWrapper>
-          )}
+              </StepWrapper>
+            );
+          })()}
 
           {/* ── Step 3: Medical History ───────────────────────────────────── */}
           {step === STEPS.MEDICAL && (

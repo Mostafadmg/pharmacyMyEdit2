@@ -52,9 +52,7 @@ export default function ReviewConsultation() {
   const [_, setLocation] = useLocation();
   const queryClient = useQueryClient();
   
-  const [reviewNote, setReviewNote] = useState("");
   const [prescriptionDetails, setPrescriptionDetails] = useState("");
-  const [referralDetails, setReferralDetails] = useState("");
 
   // Structured fields
   const [rejectReason, setRejectReason] = useState<string>("");
@@ -321,13 +319,13 @@ export default function ReviewConsultation() {
       action === 'reject' ? rejectExplanation
       : action === 'refer' ? referNote
       : action === 'more_info' ? moreInfoMessage
-      : reviewNote || null;
+      : null;
 
     const data: any = {
       action,
       pharmacistNote: pharmacistNote || null,
       prescription: action === 'approve' ? prescriptionDetails : null,
-      referralInfo: action === 'refer' ? referralDetails : null,
+      referralInfo: action === 'refer' ? referNote : null,
     };
     if (action === 'reject') data.rejectReason = rejectReason;
     if (action === 'refer') {
@@ -846,24 +844,7 @@ export default function ReviewConsultation() {
                 </div>
               ) : (
                 <>
-                  <div className="space-y-3">
-                    <Label htmlFor="clinical-notes" className="text-sm font-bold text-secondary flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-primary" /> Decision rationale
-                    </Label>
-                    <p className="text-xs text-muted-foreground -mt-1">
-                      Briefly justify this clinical decision. Saved with the action below as part of the GPhC audit trail. For ongoing observations and follow-ups, use the <span className="font-semibold">Consultation notes</span> panel below.
-                    </p>
-                    <Textarea 
-                      id="clinical-notes"
-                      placeholder="e.g. Symptoms consistent with mild allergic rhinitis. No red flags. Approving cetirizine 10mg." 
-                      className="min-h-[120px] resize-none rounded-xl focus-visible:ring-primary/30"
-                      value={reviewNote}
-                      onChange={(e) => setReviewNote(e.target.value)}
-                      data-testid="textarea-decision-rationale"
-                    />
-                  </div>
-
-                  <div className="space-y-3 pt-6 mt-6 border-t border-border">
+                  <div className="space-y-3 pt-2">
                     {/* Approve */}
                     <Dialog open={approveOpen} onOpenChange={setApproveOpen}>
                       <DialogTrigger asChild>
@@ -1023,15 +1004,6 @@ export default function ReviewConsultation() {
                               onChange={(e) => setReferNote(e.target.value)}
                               placeholder="Explain why you're referring and what the patient should do next."
                               className="min-h-[100px] rounded-xl focus-visible:ring-purple-500/30"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="font-bold text-secondary">Internal referral notes (optional)</Label>
-                            <Textarea
-                              value={referralDetails}
-                              onChange={(e) => setReferralDetails(e.target.value)}
-                              placeholder="Notes for the audit log only — won't be sent to the patient."
-                              className="min-h-[60px] rounded-xl focus-visible:ring-purple-500/30 text-xs"
                             />
                           </div>
                         </div>

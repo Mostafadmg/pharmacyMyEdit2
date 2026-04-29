@@ -24,14 +24,16 @@ A full-stack UK digital pharmacy platform providing online minor ailment consult
 ## Consultation Form
 
 The consultation form (`artifacts/pharmacy/src/pages/Consultation.tsx`) uses a 5 or 6 step flow (6 when photo required):
-1. **Safety Check** — condition-specific eligibility screening (blocking questions)
+1. **Safety Check** — one eligibility question per screen with YES/NO cards; blocking answer detection auto-navigates to "Not suitable" page; mini progress dots track position; 350 ms delay before advancing on YES.
 2. **About You** — personal details (name, email, age, sex, pregnancy)
-3. **Symptoms** — 4–6 condition-specific clinical questions (radio, checkbox_group, textarea)
+3. **Symptoms** — one clinical question per screen with auto-advance on radio selection; back navigation via `clinicalIndex` decrement; progress shown as `X / N`
 4. **Medical Background** — allergies, medications, medical history (with "none" checkboxes)
 5. **Photo Upload** — shown only when `condition.requiresPhoto = true`
 6. **Review & Submit** — full summary with edit links, consent checkbox, submit
 
 Condition-specific questions are defined in `artifacts/pharmacy/src/data/conditionQuestions.ts` (original set) and `artifacts/pharmacy/src/data/newConditionsData.ts` (catalogue expansion). `getConditionQuestions(id)` resolves both maps plus an alias table.
+
+`chlamydia` has `requiresPhoto: false` (April 2026 fix — STI self-test result photo requirement removed).
 
 ## Features
 
@@ -96,7 +98,9 @@ New conditions live in `artifacts/pharmacy/src/data/newConditionsData.ts` and ar
 
 `<ScrollToTop>` inside the Wouter Router in `App.tsx` listens to `useLocation()` and resets `window.scrollTo(0, 0)` on every route change.
 
-## Shop basket stepper (T2)
+## Shop layout (April 2026)
+
+`Shop.tsx` uses a **horizontal scrollable pill-chip category filter** above a full-width product grid instead of the previous left-sidebar layout. Pills are rendered as `overflow-x-auto` flex row with `snap-x`, one chip per category + "All products". The product grid spans full width at all breakpoints.
 
 `Shop.tsx` and `ProductDetail.tsx` show an inline `−/qty/+` stepper when a product is already in the cart (Amazon-style). Tapping `−` to 0 reverts to the "Add" button. Live badge stays in sync.
 
@@ -156,6 +160,14 @@ New conditions live in `artifacts/pharmacy/src/data/newConditionsData.ts` and ar
 ## Catalog
 
 - 60 active products spanning 12 categories (Cold & Flu, Pain Relief, Vitamins, First Aid, Allergy, Skin, Digestive, Foot Care, Eye Care, Sleep, Oral Care, Women's Health). Newer SKUs use `/products/_placeholder.svg`; pharmacist can swap any image via the admin Image Edit dialog.
+
+## ReviewConsultation cleanup (April 2026)
+
+`ReviewConsultation.tsx` had its standalone `reviewNote` textarea (free-form notes on the main review page) and the `referralDetails` internal-notes textarea inside the Refer modal removed. The pharmacist's message to the patient is now exclusively captured through the structured action modals (referNote for Refer, rejectExplanation for Reject, moreInfoMessage for More Info). The `handleReview` call sends `pharmacistNote: null` for approve actions and `referralInfo: referNote` for refer actions.
+
+## Contact page (April 2026)
+
+`Contact.tsx` contact-info cards changed from `overflow-hidden` + `break-words` to allow text to fill full card height (removed `overflow-hidden`) and use `break-all` on value text so email addresses and phone numbers wrap cleanly within narrow cards on all viewports.
 
 ## Future Plans
 

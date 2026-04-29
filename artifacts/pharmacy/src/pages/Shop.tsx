@@ -151,17 +151,16 @@ export default function Shop() {
         </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-6 py-10 flex-1 w-full">
-        <div className="grid lg:grid-cols-[260px,1fr] gap-8">
-          {/* Categories sidebar */}
-          <aside className="space-y-2">
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground/70 mb-2">
-              <Filter className="w-4 h-4" /> Categories
-            </div>
+      <div className="max-w-7xl mx-auto px-6 py-8 flex-1 w-full">
+        {/* Category filter bar — horizontal scrollable chips */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none -mx-1 px-1">
             <button
               onClick={() => setActiveCategory("all")}
-              className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                activeCategory === "all" ? "bg-[#168A7B] text-white" : "bg-white text-foreground hover:bg-muted"
+              className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all border-2 ${
+                activeCategory === "all"
+                  ? "bg-[#168A7B] border-[#168A7B] text-white shadow-sm"
+                  : "bg-white border-border text-foreground hover:border-[#168A7B]/40 hover:text-[#168A7B]"
               }`}
               data-testid="btn-category-all"
             >
@@ -171,21 +170,24 @@ export default function Shop() {
               <button
                 key={c.category}
                 onClick={() => setActiveCategory(c.category)}
-                className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-colors flex justify-between items-center ${
-                  activeCategory === c.category ? "bg-[#168A7B] text-white" : "bg-white text-foreground hover:bg-muted"
+                className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all border-2 ${
+                  activeCategory === c.category
+                    ? "bg-[#168A7B] border-[#168A7B] text-white shadow-sm"
+                    : "bg-white border-border text-foreground hover:border-[#168A7B]/40 hover:text-[#168A7B]"
                 }`}
                 data-testid={`btn-category-${c.category}`}
               >
-                <span>{CATEGORY_LABELS[c.category] ?? c.category}</span>
-                <span className={`text-xs ${activeCategory === c.category ? "text-white/70" : "text-muted-foreground"}`}>{c.count}</span>
+                {CATEGORY_LABELS[c.category] ?? c.category}
+                <span className={`text-xs rounded-full px-1.5 py-0.5 ${activeCategory === c.category ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"}`}>{c.count}</span>
               </button>
             ))}
-          </aside>
+          </div>
+        </div>
 
-          {/* Product grid */}
-          <div>
-            <div className="flex items-baseline justify-between mb-6">
-              <h2 className="text-2xl font-bold">
+        {/* Product grid — full width */}
+        <div>
+            <div className="flex items-baseline justify-between mb-5">
+              <h2 className="text-xl font-bold">
                 {activeCategory === "all" ? "All products" : CATEGORY_LABELS[activeCategory] ?? activeCategory}
               </h2>
               <p className="text-sm text-muted-foreground">{products?.length ?? 0} products</p>
@@ -322,7 +324,6 @@ export default function Shop() {
               </div>
             )}
           </div>
-        </div>
       </div>
 
       <Footer />

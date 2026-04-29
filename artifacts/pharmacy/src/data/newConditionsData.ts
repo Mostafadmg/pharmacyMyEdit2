@@ -127,7 +127,7 @@ export const newConditionDbSeeds: DbConditionSeed[] = [
     description:
       "First-line antibiotic treatment for confirmed chlamydia: doxycycline 100mg BD for 7 days, or azithromycin 1g single dose if doxycycline contraindicated. Includes partner-notification advice.",
     onlineEligible: true,
-    requiresPhoto: true,
+    requiresPhoto: false,
     requiresInPerson: false,
     ageRestrictions: "16+",
     redFlags: ["pelvic_pain", "fever", "unable_to_provide_test_result"],

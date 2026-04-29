@@ -136,33 +136,17 @@ export default function ConditionDetail() {
                   </div>
                 </motion.section>
 
-                <motion.section 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="bg-red-50 p-8 rounded-2xl border border-red-100"
-                >
-                  <h3 className="text-xl font-bold text-red-900 mb-4 flex items-center gap-2">
-                    <AlertTriangle className="w-6 h-6 text-red-600" />
-                    Important Information
-                  </h3>
-                  <ul className="space-y-3 text-red-800">
-                    <li className="flex gap-2">
-                      <span className="font-bold">•</span>
-                      This service is not for medical emergencies. Call 999 if you have a medical emergency.
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="font-bold">•</span>
-                      You must provide truthful and accurate information about your health.
-                    </li>
-                    {condition.requiresInPerson && (
-                      <li className="flex gap-2 font-semibold">
-                        <span className="font-bold">•</span>
-                        Certain symptoms for this condition may require you to see a doctor in person.
-                      </li>
-                    )}
-                  </ul>
-                </motion.section>
+                {condition.requiresInPerson && (
+                  <motion.section
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="bg-amber-50 p-5 rounded-2xl border border-amber-100 flex items-start gap-3"
+                  >
+                    <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <p className="text-sm text-amber-800 font-medium">Some symptoms for this condition may require an in-person assessment. Our pharmacist will advise you during the consultation.</p>
+                  </motion.section>
+                )}
               </div>
 
               {/* Right Column: Sticky CTA */}
