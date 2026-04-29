@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "gQmjBhy5pmn4GJLb0HSoi"
@@ -18,3 +17,9 @@ id = "NU5K22bt6FY8v5co7iucz"
 uri = "file://artifacts/pharmacist-app/assets/images/icon.png"
 type = "image"
 title = "pharmacist-app-icon"
+
+[[outputs]]
+id = "b83H9R5iBTWfsX8ishAcM"
+uri = "file://pharmacare-webapp-export.md"
+type = "text"
+title = "PharmaCare Web App — Full Source Export"
