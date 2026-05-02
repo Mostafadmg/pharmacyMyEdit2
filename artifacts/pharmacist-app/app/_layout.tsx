@@ -50,6 +50,15 @@ function RootLayoutNav() {
           headerTitleStyle: { fontWeight: "700" },
         }}
       />
+      <Stack.Screen
+        name="patient/[email]"
+        options={{
+          title: "Patient Profile",
+          headerStyle: { backgroundColor: "#FFFFFF" },
+          headerTintColor: "#0E2354",
+          headerTitleStyle: { fontWeight: "700" },
+        }}
+      />
     </Stack>
   );
 }

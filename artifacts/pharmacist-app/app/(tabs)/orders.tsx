@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
-import { currentToken } from "@/context/AuthContext";
+import { getCurrentToken } from "@/context/AuthContext";
 import { formatDistanceToNow } from "date-fns";
 
 function getApiBase(): string {
@@ -134,13 +134,14 @@ export default function OrdersScreen() {
 
   const fetchOrders = useCallback(async () => {
     const apiBase = getApiBase();
-    if (!currentToken) {
+    const token = getCurrentToken();
+    if (!token) {
       setLoading(false);
       return;
     }
     try {
       const res = await fetch(`${apiBase}/api/orders?limit=50`, {
-        headers: { Authorization: `Bearer ${currentToken}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
@@ -175,11 +176,12 @@ export default function OrdersScreen() {
       const apiBase = getApiBase();
 
       try {
+        const token = getCurrentToken();
         const res = await fetch(`${apiBase}/api/admin/orders/${order.id}/status`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${currentToken}`,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           body: JSON.stringify({ status: next.status, deliveryStatus: next.deliveryStatus }),
         });

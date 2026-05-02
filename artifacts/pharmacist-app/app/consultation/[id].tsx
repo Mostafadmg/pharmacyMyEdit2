@@ -22,9 +22,10 @@ import { useGetConsultation, useReviewConsultation, getGetConsultationQueryKey, 
 import { useQueryClient } from "@tanstack/react-query";
 import { useColors } from "@/hooks/useColors";
 import { format, formatDistanceToNow } from "date-fns";
-import { currentToken } from "@/context/AuthContext";
+import { getCurrentToken } from "@/context/AuthContext";
 
 function authHeaders(extra?: Record<string, string>): Record<string, string> {
+  const currentToken = getCurrentToken();
   return {
     ...(extra ?? {}),
     ...(currentToken ? { Authorization: `Bearer ${currentToken}` } : {}),

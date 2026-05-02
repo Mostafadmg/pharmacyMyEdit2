@@ -2,192 +2,84 @@
 
 ## Overview
 
-A full-stack UK digital pharmacy platform providing online minor ailment consultations reviewed by a pharmacist prescriber. Built to a clinical standard matching GPhC compliance requirements, inspired by Pharmacy2U and MedExpress.
+PharmaCare is a full-stack UK digital pharmacy platform designed to provide online minor ailment consultations reviewed by pharmacist prescribers. It aims to meet clinical standards and GPhC compliance requirements, similar to established platforms like Pharmacy2U and MedExpress. The project encompasses a patient-facing platform for consultations and e-commerce, a pharmacist dashboard, and a mobile pharmacist app, alongside administrative functionalities. Key capabilities include condition-specific consultations, eligibility screening, patient-pharmacist messaging, order management, and prescription generation. The platform seeks to expand its catalogue of treatable conditions and integrate real-world delivery and payment solutions.
 
-## Stack
+## User Preferences
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **Frontend**: React + Vite (artifacts/pharmacy)
-- **API framework**: Express 5 (artifacts/api-server)
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
-- **UI**: Tailwind CSS + shadcn/ui + Radix UI
-- **Routing**: Wouter
-- **Forms**: react-hook-form + zodResolver
+I prefer detailed explanations.
+I want iterative development.
+Ask before making major changes.
+I like functional programming.
+
+## System Architecture
+
+The project is built as a monorepo using `pnpm workspaces`, targeting Node.js 24 and TypeScript 5.9.
+
+**Frontend:**
+- Developed with React and Vite.
+- UI uses Tailwind CSS, shadcn/ui, and Radix UI for a modern and responsive design.
+- Routing is managed by Wouter, and forms are handled with react-hook-form and Zod.
+- Animations are implemented using Framer Motion.
+- Features a MedExpress-style "Treatments" mega-menu for desktop and an accordion for mobile.
+- Includes a `<ScrollToTop>` component for smooth navigation.
+- The shop layout utilizes a horizontal scrollable pill-chip category filter and a full-width product grid, with Amazon-style `−/qty/+` steppers for cart items.
+
+**Backend:**
+- API is built with Express 5.
+- Data persistence uses PostgreSQL with Drizzle ORM.
+- Validation is performed using Zod and drizzle-zod.
+- API codegen is handled by Orval from an OpenAPI specification.
+- Features a robust pharmacist dashboard for consultation review, including structured action modals for approving, requesting more info, referring, or rejecting consultations.
+- Implements patient-pharmacist messaging with a `consultation_messages` table and a `notifications` system.
+- Auth resolution (`requirePatient`, `resolveAuthActor`) securely links patient accounts to their messages and notifications.
+- API actions for consultation review are wrapped in Drizzle transactions to ensure atomic updates and maintain audit trail integrity.
+
+**Mobile App (Pharmacist):**
+- Developed with Expo.
+- Provides access to consultation details and the same structured review modals as the web dashboard.
+- Includes an "Orders" tab for fulfillment with stage-advance buttons.
+
+**E-commerce and Admin:**
+- Database tables for products, orders, order items, deliveries, and communication logs.
+- Patient web shop supports guest checkout with persistent cart and one-click "Buy now" functionality.
+- Pharmacist admin web provides comprehensive CRUD operations for orders and products, a conditions builder for questionnaires, and patient profile management.
+- Supports soft and hard deletion for products, with FK-safe checks.
+- Admin product pages are mobile-responsive, offering inline editing and image replacement.
+
+**Consultation Flow:**
+- A 5 or 6 step consultation form (`Consultation.tsx`) guides patients through safety checks, personal details, symptoms, medical background, optional photo upload, and review/submission.
+- Eligibility blocking diverts unsuitable patients.
+- Condition-specific questions are dynamically loaded.
+
+**Prescription Generation:**
+- A dedicated API endpoint generates branded 2-page A4 PDF prescriptions using pdfkit.
+- Accessible to both patients and pharmacists, and embedded in outcome emails.
+
+## Recent Work (May 2026)
+
+**Critical mobile auth pattern (Metro live-binding fix):**
+- Metro bundler's CommonJS interop captures `import { currentToken }` at module-load time and freezes it to `null`. NEVER directly import `currentToken` from `AuthContext` — always call `getCurrentToken()` getter at request time. Migrated `app/(tabs)/orders.tsx` (3 sites) and `app/consultation/[id].tsx` `authHeaders()` helper. Without this fix, all pharmacist actions return 401 "Pharmacist authentication required" after login.
+
+**New backend routes (`artifacts/api-server/src/routes/pharmacist-patients.ts`):**
+- `GET /api/pharmacist/patients/:email/profile` — aggregates patient account, full consultation history with status counts, full order history with items + delivery, recent messages, total spend, top conditions. Used by mobile patient detail screen.
+- `POST /api/pharmacist/patients/:email/email` — sends a custom email to a patient via the `sendConsultationOutcomeEmail` template; if `consultationId` provided, also logs the message into `consultation_messages` thread.
+
+**New mobile screen (`artifacts/pharmacist-app/app/patient/[email].tsx`):**
+- Tappable from `Patients` tab rows (`router.push('/patient/<encoded-email>')`)
+- Hero card with avatar/name/email, action row (Email Patient + Mail App), 4-tile stats grid, tabbed sections: Overview / Consults / Orders / Messages
+- Compose Email modal that calls `POST /api/pharmacist/patients/:email/email`
+- Registered as `Stack.Screen name="patient/[email]"` in `app/_layout.tsx`
+
+## External Dependencies
+
+- **Database**: PostgreSQL
+- **ORM**: Drizzle ORM
+- **Payment Gateway**: Stripe (with a demo fallback option)
+- **PDF Generation**: pdfkit
+- **Mobile Development**: Expo
+- **UI Libraries**: shadcn/ui, Radix UI
 - **Animations**: Framer Motion
-
-## Consultation Form
-
-The consultation form (`artifacts/pharmacy/src/pages/Consultation.tsx`) uses a 5 or 6 step flow (6 when photo required):
-1. **Safety Check** — one eligibility question per screen with YES/NO cards; blocking answer detection auto-navigates to "Not suitable" page; mini progress dots track position; 350 ms delay before advancing on YES.
-2. **About You** — personal details (name, email, age, sex, pregnancy)
-3. **Symptoms** — one clinical question per screen with auto-advance on radio selection; back navigation via `clinicalIndex` decrement; progress shown as `X / N`
-4. **Medical Background** — allergies, medications, medical history (with "none" checkboxes)
-5. **Photo Upload** — shown only when `condition.requiresPhoto = true`
-6. **Review & Submit** — full summary with edit links, consent checkbox, submit
-
-Condition-specific questions are defined in `artifacts/pharmacy/src/data/conditionQuestions.ts` (original set) and `artifacts/pharmacy/src/data/newConditionsData.ts` (catalogue expansion). `getConditionQuestions(id)` resolves both maps plus an alias table.
-
-`chlamydia` has `requiresPhoto: false` (April 2026 fix — STI self-test result photo requirement removed).
-
-## Features
-
-### Patient-facing
-- Landing page with hero, how-it-works, categories, trust badges
-- Browse 50 treatable conditions grouped by category
-- Condition detail pages with eligibility info
-- Condition-specific step-by-step consultation (MedExpress/Pharmacy2U style)
-- Eligibility blocking (red flag screening, unfit answers show "Not suitable" page)
-- Patient consultation tracking (by email)
-
-### Pharmacist Dashboard
-- Overview stats: pending, approved today, red flags
-- Consultation queue with filtering by status
-- Full consultation review screen
-- Structured action modals (April 2026 upgrade):
-  - **Approve & prescribe** — confirm modal with prescription summary
-  - **Request More Info** — message modal with quick-ask suggestion chips, posts to patient chat thread
-  - **Refer** — modal with recipient type (GP / Hospital specialist / A&E / NHS 111 / Sexual health / Mental health / Other), recipient name, urgency (Routine / 7 days / Urgent / Emergency 999), and a note
-  - **Reject** — modal with radio reason categories (Medically unsuitable / Outside scope / Insufficient info / Already prescribed / Other) plus required explanation textarea
-- Every action recorded in the `consultation_actions` audit table and surfaced as a notification + chat message to the patient
-- Red-flag warning banners
-
-### Patient ↔ Pharmacist Messaging (April 2026 upgrade)
-- New `consultation_messages` table — chronological chat thread per consultation, both sides can post.
-- New `notifications` table with bell icon in patient header (`<NotificationBell>` in `Header.tsx`) showing unread count and recent items, mark-read + mark-all-read.
-- `MyConsultations.tsx` consultation card has an "Open conversation" toggle that embeds `<ConsultationChat>` (8s polling, quick-replies, action timeline pills).
-- Pharmacist mobile app and web both write to the same thread; `consultation_actions` events render inline in the timeline.
-- **Auth resolution**: `requirePatient` and `resolveAuthActor` (`middlewares/auth.ts`) look up the patient account by id from the bearer and attach `email` to `req.authActor`. `/notifications` and `/consultations/:id/messages` use that resolved email for ownership/recipientKey checks so legitimate patients can read their own messages and notifications.
-- **Atomic review**: `POST /api/consultations/:id/review` wraps the consultation status update + `consultation_actions` audit row + chat message + patient notification in a single Drizzle transaction so partial writes can't desync the audit trail.
-
-### Mobile Pharmacist App (expo)
-- Login: `pharmacist` / `pharmacare2024` (same as web).
-- Consultation detail (`app/consultation/[id].tsx`) — back-button bar; renders ALL submitted patient info (GP / Regular Prescriber, Medical Background, Body Measurements, Delivery, identity verification, consents); fixes the legacy "GP not provided" bug by exposing the full schema in OpenAPI.
-- Same 4 structured review modals as the web (Approve / More Info / Refer / Reject).
-- Orders tab (`app/(tabs)/orders.tsx`) — 3 primary tabs (Pending / Shipped / Delivered) with per-tab counts; each card shows a 4-step tracking timeline (Preparing → Dispatched → Out for delivery → Delivered) plus carrier and tracking number.
-
-## Conditions Covered (50, 15 categories)
-
-Original 27 (Skin, Women's Health, Eye Care, Digestive, Children & Family, Pain & Minor Illness, Respiratory, Allergy) plus the 2026 catalogue expansion to match MedExpress / Pharmacy2U:
-
-- **Weight Management** (5): Mounjaro, Wegovy, Saxenda, Orlistat, Mysimba — all gated by BMI eligibility
-- **Sexual Performance** (2): Erectile dysfunction, Premature ejaculation
-- **Sexual Health** (3): Period delay, Emergency contraception, Bacterial vaginosis (extends Women's)
-- **STIs** (3): Chlamydia, Genital herpes, Genital warts
-- **Hair, Skin & Nails** (3): Hair loss, Nail (fungal) infection, Rosacea
-- **Seasonal Viruses** (2): Flu treatment, COVID-19 self-test
-- **Travel Health** (2): Anti-malaria, Jet lag
-- Extra digestive: Acid reflux, IBS · Extra pain: Migraine, Numbing cream · Extra family: Threadworm · Extra sleep: Sleep aid
-
-New conditions live in `artifacts/pharmacy/src/data/newConditionsData.ts` and are merged into `getConditionQuestions()` in `conditionQuestions.ts`. The alias map (`conditionAliases`) only contains `hayfever` → `allergic-rhinitis`; add new aliases there if you rename a slug.
-
-## Mega-menu Header (T4)
-
-`artifacts/pharmacy/src/components/layout/Header.tsx` renders a wide MedExpress-style "Treatments" mega-menu on desktop hover, with sub-categories defined in `data/treatmentsMenu.ts`. Mobile uses an accordion within the existing slide-out drawer. Categories: Weight Loss, Sexual Performance, Sexual Health, STIs, Pain Relief, Hair Skin & Nails, Allergies, Digestive Health, Seasonal Viruses, Travel Health, Women's Health, Eye Care, Children & Family.
-
-## Weight Loss Page (T5)
-
-`/treatments/weight-loss` (`pages/WeightLoss.tsx`) — hero, BMI calculator (with `classifyBmi`), 5 treatment cards, "How it works", safety. Each treatment CTA jumps to its tailored consultation.
-
-## Scroll-to-top (T1)
-
-`<ScrollToTop>` inside the Wouter Router in `App.tsx` listens to `useLocation()` and resets `window.scrollTo(0, 0)` on every route change.
-
-## Shop layout (April 2026)
-
-`Shop.tsx` uses a **horizontal scrollable pill-chip category filter** above a full-width product grid instead of the previous left-sidebar layout. Pills are rendered as `overflow-x-auto` flex row with `snap-x`, one chip per category + "All products". The product grid spans full width at all breakpoints.
-
-`Shop.tsx` and `ProductDetail.tsx` show an inline `−/qty/+` stepper when a product is already in the cart (Amazon-style). Tapping `−` to 0 reverts to the "Add" button. Live badge stays in sync.
-
-## API Endpoints
-
-- `GET /api/conditions` — list all conditions
-- `GET /api/conditions/:id` — condition detail
-- `GET /api/consultations` — list consultations (with status filter)
-- `POST /api/consultations` — submit new consultation
-- `GET /api/consultations/:id` — consultation detail
-- `POST /api/consultations/:id/review` — pharmacist review action
-- `GET /api/dashboard/stats` — dashboard statistics
-- `GET /api/dashboard/recent` — recent consultations
-
-## Key Commands
-
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
-
-## E-commerce + Admin (added)
-
-- DB tables: `products`, `orders`, `order_items`, `deliveries`, `comms_log`. `conditions.questionsJson` for dynamic questionnaires.
-- Patient web shop: `/shop`, `/shop/category/:slug`, `/product/:id`, `/cart`, `/checkout`, `/my-orders`, `/order-confirmation/:id?key=…`, `/track-order/:id?key=…`. Persistent cart in localStorage. Guest order keys stored in `pharmacare_guest_orders`. **Each shop card has both an "Add" button and an Amazon-style one-click "Buy now"** (adds to cart and jumps straight to /checkout). Header shows a basket icon with live count on **both desktop AND mobile** (always visible, plus a "Basket" entry inside the mobile menu).
-- Pharmacist admin web (`/dashboard/...`): Orders + Order detail (status flow), Products list with **inline-edit price/stock/active toggle and one-click image-replace dialog** plus units sold + revenue, Product create/edit (image upload), Conditions builder (per-condition questionnaire editor), Patient profile with comms toolbar (mailto/tel/Jitsi) + shop orders + comms log.
-- Product imagery: 41 real UK pharmacy product photos served from `artifacts/pharmacy/public/products/<slug>.{jpg,png,webp}`. Generic OTC SKUs are branded (Panadol, Nurofen, Disprin, Clarityn, Zirtek, HC45, Vitabiotics, Haliborange).
-- Delivery service: `services/delivery.ts` (DeliveryProvider interface + MockDeliveryProvider, carrier "PharmaCare Express", PCEX… tracking). Stages: `preparing → shipped → out_for_delivery → delivered`.
-- Pharmacist mobile app (Expo): new "Orders" tab for fulfilment with stage-advance buttons.
-
-## Key API Endpoints (added)
-
-- `GET /api/products` (filters: category, search, limit) / `GET /api/products/:id`
-- `POST /api/orders` (one-click + cart, returns guest key for guests) / `GET /api/orders` (pharmacist sees all + ?email filter; patient sees own) / `GET /api/orders/:id?key=…`
-- `PATCH /api/admin/orders/:id/status` (also accepts `{deliveryStage}`)
-- `GET /api/admin/analytics/sales`
-- `POST /api/admin/conditions`, `PATCH /api/admin/conditions/:id`, `DELETE /api/admin/conditions/:id`
-- `POST /api/admin/comms-log`, `GET /api/admin/comms-log?email=…`
-- `GET /api/admin/patients/:email/timeline`
-
-## Payments (Stripe + demo fallback)
-
-- `STRIPE_SECRET_KEY` env enables real Stripe Checkout Sessions. Without it the app runs a demo path that marks new orders `paid_demo` immediately so the full flow stays usable.
-- `GET /api/payments/status` → `{ stripeEnabled }`; the checkout page uses this to pick the path.
-- `POST /api/orders/:id/checkout-session` creates a Stripe Checkout Session and returns its URL. The `success_url` is the order-confirmation page with `&session_id={CHECKOUT_SESSION_ID}` appended (handles existing query strings correctly).
-- `POST /api/orders/:id/verify-payment` is called from `OrderConfirmation.tsx` when `?session_id=` is present; it confirms with Stripe and on success marks the order `paid` AND decrements stock (deferred from order creation so abandoned Stripe checkouts don't drain inventory).
-- Demo mode (no Stripe key) decrements stock at order creation time, since the order is paid_demo immediately.
-
-## Admin product & order CRUD (T001/T002)
-
-- Admin Products page (`/dashboard/products`) is mobile-responsive: card grid on `<md` with the same inline-edit, image-replace, duplicate, and delete actions as the desktop table.
-- `DELETE /api/admin/products/:id` soft-deletes by default; `?hard=true` hard-deletes (FK-safe — returns 409 if the product is referenced by any order). The UI dialog offers both.
-- `POST /api/admin/products/:id/duplicate` creates a `<slug>-copy` deactivated draft for editing.
-- `PATCH /api/admin/orders/:id` supports editing shipping address, customer details, qty changes, item removal (returns 400 if it would empty the order), customer-facing notes, and an append-only `internalNotes` thread (jsonb array). Stock is adjusted by qty delta on paid orders, with a 409 if there isn't enough stock to bump quantities.
-
-## Catalog
-
-- 60 active products spanning 12 categories (Cold & Flu, Pain Relief, Vitamins, First Aid, Allergy, Skin, Digestive, Foot Care, Eye Care, Sleep, Oral Care, Women's Health). Newer SKUs use `/products/_placeholder.svg`; pharmacist can swap any image via the admin Image Edit dialog.
-
-## ReviewConsultation cleanup (April 2026)
-
-`ReviewConsultation.tsx` had its standalone `reviewNote` textarea (free-form notes on the main review page) and the `referralDetails` internal-notes textarea inside the Refer modal removed. The pharmacist's message to the patient is now exclusively captured through the structured action modals (referNote for Refer, rejectExplanation for Reject, moreInfoMessage for More Info). The `handleReview` call sends `pharmacistNote: null` for approve actions and `referralInfo: referNote` for refer actions.
-
-## Contact page (April 2026)
-
-`Contact.tsx` contact-info cards changed from `overflow-hidden` + `break-words` to allow text to fill full card height (removed `overflow-hidden`) and use `break-all` on value text so email addresses and phone numbers wrap cleanly within narrow cards on all viewports.
-
-## Prescription PDF generation (May 2026)
-
-- New endpoint `GET /api/consultations/:id/prescription.pdf` generates a branded 2-page A4 PDF (pdfkit) containing patient details, prescriber/prescription block, signature, and approval stamp. Returns 409 if the consultation is not approved or has no prescription.
-- Patient sees a "Download PDF" button on approved consultations in `MyConsultations.tsx` (linking directly to the PDF endpoint).
-- Pharmacist sees a "View Prescription PDF" button on already-approved consultations in `ReviewConsultation.tsx`.
-- Mobile pharmacist app shows a contextual success modal after each review decision; for approvals the modal opens the PDF in `expo-web-browser`.
-- The patient outcome email (HTML + plain text) now embeds a "📄 Download Prescription PDF" link when a prescription was issued.
-- pdfkit is bundled as an `external` in `artifacts/api-server/build.mjs` so esbuild does not try to inline its font assets.
-
-## Mobile auth bug fix (May 2026)
-
-Metro/CommonJS live-binding caused `setAuthTokenGetter(() => currentToken)` in `_layout.tsx` to capture a frozen `null` token, sending unauthenticated requests for every API call. Fix: export `getCurrentToken()` getter from `AuthContext.tsx` and call `setAuthTokenGetter(getCurrentToken)`. Always export a getter function — never use the raw `currentToken` named export with `setAuthTokenGetter`.
-
-## Future Plans
-
-- Real delivery integration (Royal Mail / DPD APIs) replacing MockProvider
-- Push notifications for new orders/consultations on mobile
-- Patient accounts beyond guest checkout (history, saved addresses)
-- Stripe webhook for out-of-band payment confirmation (currently uses verify-payment on success page)
-- Move pharmacist auth from base64 bearer token to signed JWT or server sessions
-
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+- **API Specification**: OpenAPI
+- **API Codegen**: Orval
+- **Package Management**: pnpm
+- **Build Tool**: esbuild

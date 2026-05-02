@@ -173,6 +173,7 @@ export default function PatientsScreen() {
               ]}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push(`/patient/${encodeURIComponent(item.email)}`);
               }}
               testID={`patient-row-${item.email}`}
             >

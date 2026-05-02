@@ -16,6 +16,7 @@ import paymentsRouter from "./payments";
 import notificationsRouter from "./notifications";
 import consultationMessagesRouter from "./consultation-messages";
 import prescriptionPdfRouter from "./prescription-pdf";
+import pharmacistPatientsRouter from "./pharmacist-patients";
 
 const router: IRouter = Router();
 
@@ -36,5 +37,6 @@ router.use(paymentsRouter);
 router.use(notificationsRouter);
 router.use(consultationMessagesRouter);
 router.use(prescriptionPdfRouter);
+router.use(pharmacistPatientsRouter);
 
 export default router;
