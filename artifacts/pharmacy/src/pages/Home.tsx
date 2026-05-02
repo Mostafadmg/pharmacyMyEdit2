@@ -3,6 +3,9 @@ import { Link } from "wouter";
 import { useListConditions } from "@workspace/api-client-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import PressStrip from "@/components/PressStrip";
+import ReviewsSection from "@/components/ReviewsSection";
+import HomeFAQ from "@/components/HomeFAQ";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
@@ -98,6 +101,7 @@ export default function Home() {
                 </Button>
                 <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary/5 rounded-full px-8 h-14 text-lg font-semibold" asChild data-testid="hero-track-consultation">
                   <Link href="/track">Track consultation</Link>
+
                 </Button>
               </div>
             </motion.div>
@@ -156,6 +160,8 @@ export default function Home() {
             </motion.div>
           </div>
         </section>
+
+        <PressStrip />
 
         {/* How it Works */}
         <section className="py-24 bg-white relative">
@@ -366,6 +372,10 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        <ReviewsSection />
+
+        <HomeFAQ />
 
         {/* CTA */}
         <section className="py-32 relative overflow-hidden bg-secondary">

@@ -70,6 +70,15 @@ The project is built as a monorepo using `pnpm workspaces`, targeting Node.js 24
 - Compose Email modal that calls `POST /api/pharmacist/patients/:email/email`
 - Registered as `Stack.Screen name="patient/[email]"` in `app/_layout.tsx`
 
+**Patient web — competitor parity additions (homepage + sitewide):**
+- `components/PressStrip.tsx` — "As featured in" wordmark strip (BBC News, Guardian, Pulse Today, Pharm. Journal, Telegraph, C+D), inserted right after Hero on Home.
+- `components/ReviewsSection.tsx` — Trustpilot-style header (4.8/5 · 12,438 reviews) + 6 verified patient testimonial cards in a 3-col grid, on Home before FAQ.
+- `components/HomeFAQ.tsx` — accordion of 8 frequently-asked questions (regulator, dispatch times, paper prescriptions, declined consultations, privacy, repeats, NHS, post-arrival messaging), inserted before final Home CTA.
+- `components/CookieBanner.tsx` — sticky bottom banner with "Essential only" / "Accept all" choices persisted to `localStorage` key `pharmacare:cookie-consent:v1`. Mounted globally in `App.tsx`.
+- `components/LiveHelpFAB.tsx` — floating bottom-right help bubble with quick links (Track / Message / FAQ), telephone, email, and NHS-emergency safety panel. Mounted globally in `App.tsx`.
+- `components/NewsletterSignup.tsx` — frontend-only email capture (no backend yet) added to `Footer.tsx` with paired call-us copy.
+- `pages/WeightLoss.tsx` — new "Subscribe & save 10%" comparison card section between BMI calculator and treatment cards, showing one-off £149 vs subscription £134/month.
+
 ## External Dependencies
 
 - **Database**: PostgreSQL

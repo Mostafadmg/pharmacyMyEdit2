@@ -279,6 +279,59 @@ export default function WeightLoss() {
         </div>
       </section>
 
+      {/* Subscription / one-off comparison */}
+      <section className="bg-gradient-to-br from-primary/5 via-white to-accent/5 border-y border-border/50">
+        <div className="max-w-5xl mx-auto px-6 py-12">
+          <div className="text-center mb-8">
+            <span className="inline-block text-xs font-bold uppercase tracking-[0.2em] text-primary bg-primary/10 px-3 py-1.5 rounded-full mb-3">
+              New · Repeat & save
+            </span>
+            <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-3">
+              Subscribe and save <em className="text-primary italic">10%</em> on every dose
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Choose subscription at checkout — your pharmacist re-reviews you at every cycle and you can pause or
+              cancel any time from your account.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="bg-white rounded-2xl border border-border p-6 relative" data-testid="oneoff-card">
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">One-off order</div>
+              <div className="flex items-baseline gap-2 mb-3">
+                <span className="text-3xl font-bold text-secondary">£149</span>
+                <span className="text-muted-foreground text-sm">/ first month</span>
+              </div>
+              <ul className="space-y-1.5 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" /> Single-month supply</li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" /> Free tracked next-day delivery</li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" /> Pharmacist messaging during treatment</li>
+              </ul>
+            </div>
+            <div className="bg-secondary text-white rounded-2xl border-2 border-primary p-6 relative shadow-xl shadow-primary/10" data-testid="subscription-card">
+              <span className="absolute -top-3 right-5 bg-accent text-accent-foreground text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-md">
+                Save 10%
+              </span>
+              <div className="text-xs font-semibold uppercase tracking-wider text-primary mb-2">Subscription · Auto-renew</div>
+              <div className="flex items-baseline gap-2 mb-3">
+                <span className="text-3xl font-bold">£134</span>
+                <span className="text-white/70 text-sm line-through">£149</span>
+                <span className="text-white/70 text-sm">/ month</span>
+              </div>
+              <ul className="space-y-1.5 text-sm text-white/80">
+                <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" /> Auto-shipped before you run out</li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" /> 10% off eligible repeat refills</li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" /> Free dose-titration check-ins</li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" /> Pause or cancel any time</li>
+              </ul>
+            </div>
+          </div>
+          <p className="text-center text-xs text-muted-foreground mt-5 max-w-2xl mx-auto">
+            Subscription pricing shown is illustrative for maintenance doses, applies to eligible repeat refills, and is
+            subject to clinical suitability and pharmacist re-review at every cycle. Prices may change with notice.
+          </p>
+        </div>
+      </section>
+
       {/* Treatment Cards */}
       <section className="bg-white">
         <div className="max-w-7xl mx-auto px-6 py-16">

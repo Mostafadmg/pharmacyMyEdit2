@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "wouter";
 import { ShieldCheck, Building2, Mail, Phone, ExternalLink } from "lucide-react";
+import NewsletterSignup from "@/components/NewsletterSignup";
 
 export default function Footer() {
   return (
@@ -87,6 +88,22 @@ export default function Footer() {
               <li><Link href="/legal/complaints" className="hover:text-primary transition-colors">Complaints Procedure</Link></li>
               <li><Link href="/legal/safeguarding" className="hover:text-primary transition-colors">Safeguarding Policy</Link></li>
             </ul>
+          </div>
+        </div>
+
+        {/* Newsletter */}
+        <div className="py-8 border-b border-secondary-foreground/15">
+          <div className="grid md:grid-cols-12 gap-6">
+            <div className="md:col-span-7 md:pr-6">
+              <NewsletterSignup />
+            </div>
+            <div className="md:col-span-5 flex items-center text-sm text-secondary-foreground/70 leading-relaxed">
+              <p>
+                Want to talk to a real human? Our team is on{" "}
+                <a href="tel:08000209090" className="text-primary font-semibold hover:underline">0800 020 9090</a>{" "}
+                Monday to Friday 8am – 8pm and Saturday 9am – 5pm.
+              </p>
+            </div>
           </div>
         </div>
 

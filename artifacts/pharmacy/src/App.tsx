@@ -44,6 +44,8 @@ import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
 import CookiePolicy from "./pages/legal/CookiePolicy";
 import Safeguarding from "./pages/legal/Safeguarding";
 import Complaints from "./pages/legal/Complaints";
+import CookieBanner from "@/components/CookieBanner";
+import LiveHelpFAB from "@/components/LiveHelpFAB";
 
 const queryClient = new QueryClient();
 
@@ -123,6 +125,8 @@ function App() {
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <ScrollToTop />
           <Router />
+          <LiveHelpFAB />
+          <CookieBanner />
         </WouterRouter>
         <Toaster />
       </TooltipProvider>
