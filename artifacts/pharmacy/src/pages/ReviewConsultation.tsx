@@ -836,7 +836,18 @@ export default function ReviewConsultation() {
                     
                     {consultation.prescription && (
                       <div className="mt-6">
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block font-bold flex items-center gap-2"><Pill className="w-3 h-3"/> Issued Prescription</Label>
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <Label className="text-xs text-muted-foreground uppercase tracking-wider block font-bold flex items-center gap-2"><Pill className="w-3 h-3"/> Issued Prescription</Label>
+                          <a
+                            href={`${(import.meta.env.BASE_URL as string).replace(/\/$/, "")}/api/consultations/${consultation.id}/prescription.pdf`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-600 hover:bg-green-700 text-white text-xs font-bold transition-colors shadow-sm"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            View Prescription PDF
+                          </a>
+                        </div>
                         <p className="text-sm text-secondary p-4 bg-white rounded-xl border border-border shadow-sm font-mono leading-relaxed">{consultation.prescription}</p>
                       </div>
                     )}

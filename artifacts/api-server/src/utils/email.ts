@@ -195,7 +195,8 @@ function buildEmailHtml(data: ConsultationEmailData): string {
               <!-- Prescription -->
               <div style="background:linear-gradient(135deg,#D1FAE5 0%,#A7F3D0 100%);border:1px solid #6EE7B7;border-radius:12px;padding:24px;margin-bottom:28px;">
                 <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#065F46;letter-spacing:1px;text-transform:uppercase;">✓ Prescription Issued</p>
-                <p style="margin:0;font-size:15px;line-height:1.7;color:#064E3B;font-weight:500;">${prescription}</p>
+                <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#064E3B;font-weight:500;">${prescription}</p>
+                <a href="${appUrl}/api/consultations/${consultationId}/prescription.pdf" style="display:inline-block;background-color:#065F46;color:#ffffff;text-decoration:none;padding:10px 22px;border-radius:999px;font-size:13px;font-weight:700;letter-spacing:0.3px;">📄 Download Prescription PDF</a>
               </div>
               ` : ""}
 
@@ -255,7 +256,8 @@ export async function sendConsultationOutcomeEmail(data: ConsultationEmailData):
   const html = buildEmailHtml(data);
   const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@pharmacare.co.uk";
   const subject = `${statusInfo.icon} Your PharmaCare consultation update — ${conditionName}`;
-  const text = `Dear ${patientName},\n\nYour consultation for ${conditionName} has been ${statusInfo.label}.\n\n${data.pharmacistNote ? `Pharmacist note: ${data.pharmacistNote}\n\n` : ""}${data.prescription ? `Prescription: ${data.prescription}\n\n` : ""}${data.referralInfo ? `Referral: ${data.referralInfo}\n\n` : ""}Track your consultation at: ${process.env.APP_URL || "https://pharmacare.replit.app"}/my-consultations\n\nPharmaCare Team\n\nIf this is a medical emergency, call 999. For urgent advice, call NHS 111.`;
+  const appUrlPlain = process.env.APP_URL || "https://pharmacare.replit.app";
+  const text = `Dear ${patientName},\n\nYour consultation for ${conditionName} has been ${statusInfo.label}.\n\n${data.pharmacistNote ? `Pharmacist note: ${data.pharmacistNote}\n\n` : ""}${data.prescription ? `Prescription: ${data.prescription}\n\nDownload your prescription PDF: ${appUrlPlain}/api/consultations/${consultationId}/prescription.pdf\n\n` : ""}${data.referralInfo ? `Referral: ${data.referralInfo}\n\n` : ""}Track your consultation at: ${appUrlPlain}/my-consultations\n\nPharmaCare Team\n\nIf this is a medical emergency, call 999. For urgent advice, call NHS 111.`;
 
   // Try Resend first (no SMTP setup required, free tier available)
   if (process.env.RESEND_API_KEY) {

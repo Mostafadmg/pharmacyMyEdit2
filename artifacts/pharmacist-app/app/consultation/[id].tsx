@@ -1,11 +1,13 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import * as WebBrowser from "expo-web-browser";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -106,6 +108,11 @@ export default function ConsultationDetail() {
 
   // Structured action modals
   const [actionModal, setActionModal] = useState<null | "approve" | "more_info" | "refer" | "reject">(null);
+  const [successInfo, setSuccessInfo] = useState<null | {
+    action: "approve" | "more_info" | "refer" | "reject";
+    patientName: string;
+    pdfUrl: string | null;
+  }>(null);
   const [moreInfoMessage, setMoreInfoMessage] = useState("");
   const [referRecipientType, setReferRecipientType] = useState<string>("gp");
   const [referRecipientName, setReferRecipientName] = useState("");
@@ -141,18 +148,46 @@ export default function ConsultationDetail() {
 
   const reviewMutation = useReviewConsultation({
     mutation: {
-      onSuccess: () => {
+      onSuccess: (_data, variables) => {
         queryClient.invalidateQueries({ queryKey: getGetConsultationQueryKey(id ?? "") });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        router.back();
+        setActionModal(null);
+        setSubmitting(false);
+        const action = variables?.data?.action as "approve" | "more_info" | "refer" | "reject";
+        const isApprove = action === "approve";
+        const domain = process.env.EXPO_PUBLIC_DOMAIN;
+        const pdfUrl = isApprove && id && domain
+          ? `https://${domain}/api/consultations/${id}/prescription.pdf`
+          : null;
+        setSuccessInfo({
+          action,
+          patientName: consultation?.patientName ?? "the patient",
+          pdfUrl,
+        });
       },
-      onError: () => {
+      onError: (err: unknown) => {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        Alert.alert("Error", "Failed to submit review. Please try again.");
+        const detail =
+          (err && typeof err === "object" && "message" in err && typeof (err as { message: unknown }).message === "string")
+            ? (err as { message: string }).message
+            : "Failed to submit review. Please try again.";
+        Alert.alert("Couldn't submit decision", detail);
         setSubmitting(false);
       },
     },
   });
+
+  async function openPrescriptionPdf(url: string) {
+    try {
+      await WebBrowser.openBrowserAsync(url);
+    } catch {
+      try {
+        await Linking.openURL(url);
+      } catch {
+        Alert.alert("Unable to open", "Please copy the link manually.");
+      }
+    }
+  }
 
   const apiBase = getApiBase();
   const pharmacistName = typeof localStorage !== "undefined"
@@ -1225,6 +1260,48 @@ export default function ConsultationDetail() {
               </Pressable>
               <Pressable style={[styles.modalBtn, { backgroundColor: colors.success, flex: 2 }]} onPress={() => submitAction("approve")}>
                 <Text style={{ color: "#fff", fontWeight: "700" }}>Approve & Prescribe</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Decision success modal */}
+      <Modal visible={!!successInfo} transparent animationType="fade" onRequestClose={() => { setSuccessInfo(null); router.back(); }}>
+        <Pressable style={styles.modalOverlay} onPress={() => { setSuccessInfo(null); router.back(); }}>
+          <Pressable style={[styles.modalCard, { backgroundColor: colors.card, alignItems: "center" }]} onPress={() => {}}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: "#DCFCE7", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+              <Feather name="check" size={32} color="#16A34A" />
+            </View>
+            <Text style={[styles.modalTitle, { textAlign: "center", marginBottom: 6 }]}>
+              {successInfo?.action === "approve" ? "Prescription Issued" :
+               successInfo?.action === "reject" ? "Decision Recorded" :
+               successInfo?.action === "refer" ? "Patient Referred" :
+               "Message Sent"}
+            </Text>
+            <Text style={{ fontSize: 13, color: colors.mutedForeground, textAlign: "center", marginBottom: 18, lineHeight: 19 }}>
+              {successInfo?.action === "approve" ? `${successInfo?.patientName} has been notified and the PDF prescription is ready to view.` :
+               successInfo?.action === "reject" ? `${successInfo?.patientName} has been notified with your reason and explanation.` :
+               successInfo?.action === "refer" ? `${successInfo?.patientName} has been notified and given the referral details.` :
+               `${successInfo?.patientName} will see your message in their consultation thread.`}
+            </Text>
+            <View style={{ flexDirection: "column", gap: 10, width: "100%" }}>
+              {successInfo?.pdfUrl && (
+                <Pressable
+                  style={[styles.modalBtn, { backgroundColor: colors.success }]}
+                  onPress={() => { if (successInfo.pdfUrl) openPrescriptionPdf(successInfo.pdfUrl); }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Feather name="file-text" size={16} color="#fff" />
+                    <Text style={{ color: "#fff", fontWeight: "700" }}>View Prescription PDF</Text>
+                  </View>
+                </Pressable>
+              )}
+              <Pressable
+                style={[styles.modalBtn, { backgroundColor: colors.muted }]}
+                onPress={() => { setSuccessInfo(null); router.back(); }}
+              >
+                <Text style={{ color: colors.foreground, fontWeight: "600" }}>Done</Text>
               </Pressable>
             </View>
           </Pressable>

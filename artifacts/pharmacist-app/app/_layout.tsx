@@ -14,11 +14,11 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { AuthProvider, currentToken, useAuth } from "@/context/AuthContext";
+import { AuthProvider, getCurrentToken, useAuth } from "@/context/AuthContext";
 import { setBaseUrl, setAuthTokenGetter } from "@workspace/api-client-react";
 
 setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
-setAuthTokenGetter(() => currentToken);
+setAuthTokenGetter(getCurrentToken);
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();

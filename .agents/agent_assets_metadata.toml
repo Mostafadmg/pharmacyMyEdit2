@@ -23,3 +23,9 @@ id = "b83H9R5iBTWfsX8ishAcM"
 uri = "file://pharmacare-webapp-export.md"
 type = "text"
 title = "PharmaCare Web App — Full Source Export"
+
+[[outputs]]
+id = "xMiOGxNydheZgIZ8-5iI7"
+uri = "file://exports/sample-prescription.pdf"
+type = "pdf"
+title = "Sample Prescription PDF (auto-generated)"

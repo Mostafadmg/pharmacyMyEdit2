@@ -15,6 +15,7 @@ import patientTimelineRouter from "./patient_timeline";
 import paymentsRouter from "./payments";
 import notificationsRouter from "./notifications";
 import consultationMessagesRouter from "./consultation-messages";
+import prescriptionPdfRouter from "./prescription-pdf";
 
 const router: IRouter = Router();
 
@@ -34,5 +35,6 @@ router.use(patientTimelineRouter);
 router.use(paymentsRouter);
 router.use(notificationsRouter);
 router.use(consultationMessagesRouter);
+router.use(prescriptionPdfRouter);
 
 export default router;

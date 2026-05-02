@@ -169,6 +169,19 @@ New conditions live in `artifacts/pharmacy/src/data/newConditionsData.ts` and ar
 
 `Contact.tsx` contact-info cards changed from `overflow-hidden` + `break-words` to allow text to fill full card height (removed `overflow-hidden`) and use `break-all` on value text so email addresses and phone numbers wrap cleanly within narrow cards on all viewports.
 
+## Prescription PDF generation (May 2026)
+
+- New endpoint `GET /api/consultations/:id/prescription.pdf` generates a branded 2-page A4 PDF (pdfkit) containing patient details, prescriber/prescription block, signature, and approval stamp. Returns 409 if the consultation is not approved or has no prescription.
+- Patient sees a "Download PDF" button on approved consultations in `MyConsultations.tsx` (linking directly to the PDF endpoint).
+- Pharmacist sees a "View Prescription PDF" button on already-approved consultations in `ReviewConsultation.tsx`.
+- Mobile pharmacist app shows a contextual success modal after each review decision; for approvals the modal opens the PDF in `expo-web-browser`.
+- The patient outcome email (HTML + plain text) now embeds a "📄 Download Prescription PDF" link when a prescription was issued.
+- pdfkit is bundled as an `external` in `artifacts/api-server/build.mjs` so esbuild does not try to inline its font assets.
+
+## Mobile auth bug fix (May 2026)
+
+Metro/CommonJS live-binding caused `setAuthTokenGetter(() => currentToken)` in `_layout.tsx` to capture a frozen `null` token, sending unauthenticated requests for every API call. Fix: export `getCurrentToken()` getter from `AuthContext.tsx` and call `setAuthTokenGetter(getCurrentToken)`. Always export a getter function — never use the raw `currentToken` named export with `setAuthTokenGetter`.
+
 ## Future Plans
 
 - Real delivery integration (Royal Mail / DPD APIs) replacing MockProvider
