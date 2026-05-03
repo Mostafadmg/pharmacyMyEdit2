@@ -9,6 +9,7 @@ import HomeFAQ from "@/components/HomeFAQ";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
+import heroImage from "@/assets/hero-pharmacy.png";
 import { 
   ShieldCheck, 
   Clock, 
@@ -110,7 +111,7 @@ export default function Home() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
-              className="relative hidden lg:block"
+              className="relative order-first lg:order-last"
             >
               <div className="relative w-full aspect-square max-w-md mx-auto">
                 {/* Decorative background circle */}
@@ -152,9 +153,14 @@ export default function Home() {
                   </div>
                 </Card>
                 
-                {/* Main image placeholder / styling */}
-                <div className="absolute inset-4 rounded-[2rem] bg-secondary/5 border-2 border-white shadow-inner overflow-hidden z-10 flex items-center justify-center">
-                    <Stethoscope className="w-32 h-32 text-primary/20" />
+                {/* Main hero image */}
+                <div className="absolute inset-4 rounded-[2rem] bg-gradient-to-br from-primary/5 to-accent/10 border-2 border-white shadow-inner overflow-hidden z-10">
+                    <img
+                      src={heroImage}
+                      alt="UK GPhC-regulated pharmacist reviewing a prescription"
+                      className="w-full h-full object-cover"
+                      loading="eager"
+                    />
                 </div>
               </div>
             </motion.div>

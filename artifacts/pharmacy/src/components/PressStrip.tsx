@@ -17,16 +17,18 @@ export default function PressStrip() {
         <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-7">
           Regulated, accredited &amp; trusted
         </p>
-        <div className="flex flex-wrap items-stretch justify-center gap-x-8 gap-y-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
           {accreditations.map(({ icon: Icon, label, sub }) => (
             <div
               key={label}
-              className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-border/70 bg-muted/20"
+              className="flex items-center gap-3 px-4 py-3.5 rounded-xl border border-border/70 bg-white hover:border-primary/40 hover:shadow-sm transition-all min-h-[68px]"
             >
-              <Icon className="w-5 h-5 text-primary shrink-0" />
-              <div className="leading-tight">
-                <div className="font-bold text-secondary text-sm tracking-wide">{label}</div>
-                <div className="text-[11px] text-muted-foreground">{sub}</div>
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <Icon className="w-5 h-5 text-primary" />
+              </div>
+              <div className="leading-tight min-w-0">
+                <div className="font-bold text-secondary text-sm tracking-wide truncate">{label}</div>
+                <div className="text-[11px] text-muted-foreground truncate">{sub}</div>
               </div>
             </div>
           ))}

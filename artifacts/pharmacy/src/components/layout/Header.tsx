@@ -264,6 +264,7 @@ export default function Header() {
                   {TREATMENTS_MENU.map((col) => (
                     <div key={col.title} className="border-b border-border last:border-0">
                       <button
+                        type="button"
                         onClick={() => setOpenMobileSection(openMobileSection === col.title ? "__root" : col.title)}
                         className="w-full flex items-center justify-between px-4 py-3 text-foreground font-medium text-sm"
                       >
@@ -274,13 +275,17 @@ export default function Header() {
                         <ul className="bg-muted/30 px-2 pb-2">
                           {col.items.map((item) => (
                             <li key={item.label + item.href}>
-                              <Link
-                                href={item.href}
-                                className="block px-3 py-2 text-sm text-primary hover:bg-primary/10 rounded-lg"
-                                onClick={() => setIsMobileMenuOpen(false)}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsMobileMenuOpen(false);
+                                  setOpenMobileSection(null);
+                                  navigate(item.href);
+                                }}
+                                className="block w-full text-left px-3 py-2.5 text-sm text-primary hover:bg-primary/10 active:bg-primary/15 rounded-lg"
                               >
                                 {item.label}
-                              </Link>
+                              </button>
                             </li>
                           ))}
                         </ul>
