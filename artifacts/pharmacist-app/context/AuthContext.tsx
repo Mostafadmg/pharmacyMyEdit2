@@ -25,16 +25,20 @@ const ROLE_KEY = "@pharmacare_role";
 export let currentToken: string | null = null;
 
 /**
- * Live getter for the current auth token. Use this (not the `currentToken`
- * named import) when registering with `setAuthTokenGetter`, because Metro's
- * CommonJS interop captures imported `let` values at module-load time and
- * does NOT preserve ES-module live bindings — so the imported `currentToken`
- * stays frozen at its initial `null`. Functions, by contrast, read the
- * variable from their own module scope each call, so they always see the
- * latest value.
+ * Live getter for the current auth token. Reads from AsyncStorage directly
+ * (with an in-memory fast path) so the request layer cannot get stranded by
+ * Metro module-binding quirks or React state-update timing. The in-memory
+ * `currentToken` is updated on login/logout/restore for synchronous callers.
  */
-export function getCurrentToken(): string | null {
-  return currentToken;
+export async function getCurrentToken(): Promise<string | null> {
+  if (currentToken) return currentToken;
+  try {
+    const stored = await AsyncStorage.getItem(TOKEN_KEY);
+    if (stored) currentToken = stored;
+    return stored;
+  } catch {
+    return null;
+  }
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
