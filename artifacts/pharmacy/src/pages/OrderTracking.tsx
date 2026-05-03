@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
 import { formatGbp } from "@/hooks/useCart";
+import ConsultationChat from "@/components/ConsultationChat";
 
 type Order = {
   id: string; orderNumber: string; status: string; totalGbp: number; createdAt: string;
@@ -198,6 +199,11 @@ export default function OrderTracking() {
               </CardContent></Card>
               )}
 
+              {data.order.consultationId && (
+                <div className="md:col-span-2">
+                  <ConsultationChat consultationId={data.order.consultationId} audience="patient" />
+                </div>
+              )}
               <Card><CardContent className="p-5">
                 <h3 className="font-semibold mb-3 flex items-center gap-2"><MapPin className="w-4 h-4" /> Shipping to</h3>
                 <p className="text-sm">

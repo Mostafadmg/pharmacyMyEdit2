@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { setAuthTokenGetter } from "@workspace/api-client-react";
 
 interface AuthState {
   token: string | null;
@@ -60,6 +61,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
+    // Re-register the token getter on every mount so Metro hot-reloads of this
+    // module always replace any stale getter held by the api-client.
+    setAuthTokenGetter(getCurrentTokenAsync);
     async function restore() {
       try {
         const [token, name, id, role] = await Promise.all([

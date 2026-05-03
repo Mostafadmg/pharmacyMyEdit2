@@ -24,6 +24,7 @@ import { useColors } from "@/hooks/useColors";
 import { format, formatDistanceToNow } from "date-fns";
 import { getCurrentToken } from "@/context/AuthContext";
 import PrescriptionBuilder from "@/components/PrescriptionBuilder";
+import ConsultationChat from "@/components/ConsultationChat";
 import { type PrescriptionItemDraft, formatPrescriptionItems } from "@/data/medications";
 
 function authHeaders(extra?: Record<string, string>): Record<string, string> {
@@ -94,7 +95,7 @@ interface PatientConsultation {
   pharmacistNote: string | null;
 }
 
-const TABS = ["Overview", "History", "Notes"] as const;
+const TABS = ["Overview", "Messages", "History", "Notes"] as const;
 type Tab = typeof TABS[number];
 
 export default function ConsultationDetail() {
@@ -841,6 +842,13 @@ export default function ConsultationDetail() {
             </View>
           )}
         </ScrollView>
+      )}
+
+      {/* Messages tab */}
+      {activeTab === "Messages" && (
+        <View style={{ flex: 1, paddingBottom: Platform.OS === "web" ? 0 : insets.bottom }}>
+          <ConsultationChat consultationId={consultation.id} />
+        </View>
       )}
 
       {/* History tab */}
