@@ -820,7 +820,7 @@ export default function ReviewConsultation() {
           transition={{ delay: 0.3 }}
           className="space-y-6"
         >
-          <Card className={`border-none shadow-xl rounded-2xl sticky top-24 overflow-hidden ${isPending ? 'ring-2 ring-primary/50' : ''}`}>
+          <Card className={`border-none shadow-xl rounded-2xl overflow-hidden ${isPending ? 'ring-2 ring-primary/50' : ''}`}>
             <CardHeader className={isPending ? 'bg-primary/5 pb-6' : 'bg-muted/30 pb-6'}>
               <CardTitle className="text-2xl font-serif text-secondary mb-1">Clinical Decision</CardTitle>
               <CardDescription className="text-sm font-medium">Review answers and determine the appropriate action.</CardDescription>
