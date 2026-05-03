@@ -16,6 +16,7 @@ export const consultationsTable = pgTable("consultations", {
   hasPhoto: boolean("has_photo").notNull().default(false),
   pharmacistNote: text("pharmacist_note"),
   prescription: text("prescription"),
+  prescriptionItems: jsonb("prescription_items").notNull().default([]),
   referralInfo: text("referral_info"),
   allergies: text("allergies"),
   currentMedications: text("current_medications"),

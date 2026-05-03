@@ -192,11 +192,6 @@ export default function Conditions() {
                                   <h3 className="text-2xl font-bold text-secondary group-hover:text-primary transition-colors leading-tight">
                                     {condition.name}
                                   </h3>
-                                  {condition.requiresPhoto && (
-                                    <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-50 ml-2 shrink-0">
-                                      Photo required
-                                    </Badge>
-                                  )}
                                 </div>
                                 <p className="text-muted-foreground text-sm flex-1 mb-8 line-clamp-2 leading-relaxed">
                                   {condition.description}

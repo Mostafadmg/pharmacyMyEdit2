@@ -46,6 +46,8 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
+import PrescriptionBuilder from "@/components/PrescriptionBuilder";
+import { type PrescriptionItemDraft, formatPrescriptionItems } from "@/data/medications";
 
 export default function ReviewConsultation() {
   const { id } = useParams();
@@ -53,6 +55,7 @@ export default function ReviewConsultation() {
   const queryClient = useQueryClient();
   
   const [prescriptionDetails, setPrescriptionDetails] = useState("");
+  const [prescriptionItems, setPrescriptionItems] = useState<PrescriptionItemDraft[]>([]);
 
   // Structured fields
   const [rejectReason, setRejectReason] = useState<string>("");
@@ -324,7 +327,10 @@ export default function ReviewConsultation() {
     const data: any = {
       action,
       pharmacistNote: pharmacistNote || null,
-      prescription: action === 'approve' ? prescriptionDetails : null,
+      prescription: action === 'approve'
+        ? (prescriptionItems.length > 0 ? formatPrescriptionItems(prescriptionItems) : prescriptionDetails)
+        : null,
+      prescriptionItems: action === 'approve' ? prescriptionItems : null,
       referralInfo: action === 'refer' ? referNote : null,
     };
     if (action === 'reject') data.rejectReason = rejectReason;
@@ -863,32 +869,36 @@ export default function ReviewConsultation() {
                           <CheckCircle2 className="w-5 h-5 mr-2" /> Approve & Prescribe
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="sm:max-w-[520px] rounded-2xl">
+                      <DialogContent className="sm:max-w-[640px] rounded-2xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                           <DialogTitle className="text-2xl font-serif text-secondary">Issue Prescription</DialogTitle>
                           <DialogDescription className="text-base">
-                            Write the prescription details for <span className="font-bold text-secondary">{consultation.patientName}</span>.
+                            Build a structured prescription for <span className="font-bold text-secondary">{consultation.patientName}</span>. We'll auto-create their order and start tracked delivery.
                           </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-2">
-                          <div className="space-y-2">
-                            <Label htmlFor="prescription" className="font-bold text-secondary">Prescription Details</Label>
-                            <Textarea
-                              id="prescription"
-                              value={prescriptionDetails}
-                              onChange={(e) => setPrescriptionDetails(e.target.value)}
-                              placeholder="e.g. Amoxicillin 500mg capsules. 1 capsule three times a day for 5 days. Quantity: 15."
-                              className="min-h-[140px] font-mono text-sm rounded-xl focus-visible:ring-green-500/30"
-                            />
-                          </div>
+                          <PrescriptionBuilder items={prescriptionItems} onChange={setPrescriptionItems} />
                         </div>
-                        <DialogFooter>
+                        <DialogFooter className="gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setApproveOpen(false)}
+                            className="rounded-full px-6 h-12"
+                          >
+                            Cancel
+                          </Button>
                           <Button
                             onClick={() => handleReview('approve')}
-                            disabled={!prescriptionDetails || reviewMutation.isPending}
+                            disabled={
+                              prescriptionItems.length === 0 ||
+                              prescriptionItems.some(i => !i.name.trim() || !i.strength.trim() || !i.sig.trim()) ||
+                              reviewMutation.isPending
+                            }
                             className="bg-green-600 hover:bg-green-700 text-white rounded-full px-8 h-12 font-bold"
+                            data-testid="button-confirm-approve"
                           >
-                            {reviewMutation.isPending ? "Processing..." : "Confirm Approval"}
+                            {reviewMutation.isPending ? "Processing..." : "Approve & Send Prescription"}
                           </Button>
                         </DialogFooter>
                       </DialogContent>

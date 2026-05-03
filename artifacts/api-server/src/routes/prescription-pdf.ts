@@ -1,9 +1,12 @@
 import { Router, type IRouter } from "express";
 import PDFDocument from "pdfkit";
-import { db, consultationsTable } from "@workspace/db";
+import { db, consultationsTable, patientAccountsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { decodeBearerId } from "../middlewares/auth";
 
 const router: IRouter = Router();
+
+const PHARMACIST_IDS = new Set(["pharm-001", "pharm-002"]);
 
 const PHARMACY_DETAILS = {
   name: "PharmaCare Digital Pharmacy",
@@ -43,6 +46,29 @@ router.get("/consultations/:id/prescription.pdf", async (req, res): Promise<void
   if (!row) {
     res.status(404).json({ error: "Consultation not found" });
     return;
+  }
+
+  // Authorisation: only the patient who owns this consultation, or a pharmacist, may view the PDF.
+  // Bearer token may come via Authorization header or ?token=… (for inline browser tab opens).
+  const tokenHeader = req.headers.authorization;
+  const tokenQuery = typeof req.query.token === "string" ? `Bearer ${req.query.token}` : undefined;
+  const actorId = decodeBearerId(tokenHeader ?? tokenQuery);
+  if (!actorId) {
+    res.status(401).json({ error: "Authentication required to view this prescription" });
+    return;
+  }
+  const isPharmacist = PHARMACIST_IDS.has(actorId);
+  if (!isPharmacist) {
+    const [patient] = await db
+      .select()
+      .from(patientAccountsTable)
+      .where(eq(patientAccountsTable.id, actorId))
+      .limit(1);
+    const isOwner = !!patient && patient.email.toLowerCase() === row.patientEmail.toLowerCase();
+    if (!isOwner) {
+      res.status(403).json({ error: "You do not have access to this prescription" });
+      return;
+    }
   }
 
   if (row.status !== "approved" || !row.prescription) {

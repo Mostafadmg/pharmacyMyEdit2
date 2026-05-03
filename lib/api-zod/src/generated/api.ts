@@ -133,6 +133,19 @@ export const ListConsultationsResponse = zod.object({
       photoUrls: zod.array(zod.string()).optional(),
       pharmacistNote: zod.string().nullish(),
       prescription: zod.string().nullish(),
+      prescriptionItems: zod
+        .array(
+          zod.object({
+            name: zod.string(),
+            strength: zod.string(),
+            form: zod.string(),
+            quantity: zod.string(),
+            sig: zod.string(),
+            duration: zod.string(),
+            notes: zod.string().nullish(),
+          }),
+        )
+        .nullish(),
       referralInfo: zod.string().nullish(),
       createdAt: zod.coerce.date(),
       updatedAt: zod.coerce.date(),
@@ -223,6 +236,19 @@ export const GetConsultationResponse = zod.object({
   photoUrls: zod.array(zod.string()).optional(),
   pharmacistNote: zod.string().nullish(),
   prescription: zod.string().nullish(),
+  prescriptionItems: zod
+    .array(
+      zod.object({
+        name: zod.string(),
+        strength: zod.string(),
+        form: zod.string(),
+        quantity: zod.string(),
+        sig: zod.string(),
+        duration: zod.string(),
+        notes: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
   referralInfo: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
@@ -274,6 +300,19 @@ export const ReviewConsultationBody = zod.object({
   action: zod.enum(["approve", "reject", "more_info", "refer"]),
   pharmacistNote: zod.string().nullish(),
   prescription: zod.string().nullish(),
+  prescriptionItems: zod
+    .array(
+      zod.object({
+        name: zod.string(),
+        strength: zod.string(),
+        form: zod.string(),
+        quantity: zod.string(),
+        sig: zod.string(),
+        duration: zod.string(),
+        notes: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
   referralInfo: zod.string().nullish(),
   rejectReason: zod
     .string()
@@ -316,6 +355,19 @@ export const ReviewConsultationResponse = zod.object({
   photoUrls: zod.array(zod.string()).optional(),
   pharmacistNote: zod.string().nullish(),
   prescription: zod.string().nullish(),
+  prescriptionItems: zod
+    .array(
+      zod.object({
+        name: zod.string(),
+        strength: zod.string(),
+        form: zod.string(),
+        quantity: zod.string(),
+        sig: zod.string(),
+        duration: zod.string(),
+        notes: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
   referralInfo: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
@@ -530,6 +582,19 @@ export const GetPatientConsultationsResponse = zod.object({
       photoUrls: zod.array(zod.string()).optional(),
       pharmacistNote: zod.string().nullish(),
       prescription: zod.string().nullish(),
+      prescriptionItems: zod
+        .array(
+          zod.object({
+            name: zod.string(),
+            strength: zod.string(),
+            form: zod.string(),
+            quantity: zod.string(),
+            sig: zod.string(),
+            duration: zod.string(),
+            notes: zod.string().nullish(),
+          }),
+        )
+        .nullish(),
       referralInfo: zod.string().nullish(),
       createdAt: zod.coerce.date(),
       updatedAt: zod.coerce.date(),
@@ -626,6 +691,19 @@ export const GetRecentConsultationsResponseItem = zod.object({
   photoUrls: zod.array(zod.string()).optional(),
   pharmacistNote: zod.string().nullish(),
   prescription: zod.string().nullish(),
+  prescriptionItems: zod
+    .array(
+      zod.object({
+        name: zod.string(),
+        strength: zod.string(),
+        form: zod.string(),
+        quantity: zod.string(),
+        sig: zod.string(),
+        duration: zod.string(),
+        notes: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
   referralInfo: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),

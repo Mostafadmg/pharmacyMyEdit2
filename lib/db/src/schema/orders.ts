@@ -17,6 +17,8 @@ export const ordersTable = pgTable("orders", {
   paymentIntentId: text("payment_intent_id"),
   notes: text("notes"),
   internalNotes: jsonb("internal_notes").notNull().default([]),
+  prescriptionItems: jsonb("prescription_items").notNull().default([]),
+  consultationId: text("consultation_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

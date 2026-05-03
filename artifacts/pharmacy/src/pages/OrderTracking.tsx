@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useRoute } from "wouter";
-import { ArrowLeft, Package, Truck, Check, MapPin, Clock } from "lucide-react";
+import { ArrowLeft, Package, Truck, Check, MapPin, Clock, Pill, FileText } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,7 +10,12 @@ import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
 import { formatGbp } from "@/hooks/useCart";
 
-type Order = { id: string; orderNumber: string; status: string; totalGbp: number; createdAt: string; shippingAddress: { line1: string; line2?: string; city: string; postcode: string } };
+type Order = {
+  id: string; orderNumber: string; status: string; totalGbp: number; createdAt: string;
+  shippingAddress: { line1: string; line2?: string; city: string; postcode: string };
+  prescriptionItems?: Array<{ name: string; strength: string; form: string; quantity: string; sig: string; duration: string; notes?: string }>;
+  consultationId?: string | null;
+};
 type Item = { id: string; productName: string; quantity: number; unitPriceGbp: number; lineTotalGbp: number; imageUrl: string | null };
 type Delivery = {
   carrier: string; trackingNumber: string; status: string;
@@ -131,7 +136,48 @@ export default function OrderTracking() {
               </Card>
             )}
 
+            {data.order.prescriptionItems && data.order.prescriptionItems.length > 0 && (
+              <Card className="mb-6 border-primary/20">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+                    <h2 className="font-serif text-xl font-bold flex items-center gap-2">
+                      <Pill className="w-5 h-5 text-primary" /> Your prescription
+                    </h2>
+                    {data.order.consultationId && (
+                      <a
+                        href={`/api/consultations/${data.order.consultationId}/prescription.pdf?token=${encodeURIComponent(localStorage.getItem("patient_token") ?? "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-white text-xs font-bold hover:opacity-90"
+                        data-testid="link-prescription-pdf"
+                      >
+                        <FileText className="w-3.5 h-3.5" /> View PDF
+                      </a>
+                    )}
+                  </div>
+                  <div className="space-y-3">
+                    {data.order.prescriptionItems.map((it, i) => (
+                      <div key={i} className="border border-border rounded-xl p-4 bg-white" data-testid={`prescription-item-${i}`}>
+                        <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
+                          <p className="font-bold text-secondary">
+                            {i + 1}. {it.name}
+                            {it.strength && <span className="font-normal text-muted-foreground"> · {it.strength}</span>}
+                            {it.form && <span className="font-normal text-muted-foreground"> · {it.form}</span>}
+                          </p>
+                          {it.quantity && <Badge variant="outline" className="text-[10px]">Qty: {it.quantity}</Badge>}
+                        </div>
+                        {it.sig && <p className="text-sm text-foreground"><strong>How to take:</strong> {it.sig}</p>}
+                        {it.duration && <p className="text-xs text-muted-foreground mt-1">Duration: {it.duration}</p>}
+                        {it.notes && <p className="text-xs text-amber-700 mt-2 bg-amber-50 px-2 py-1 rounded">Note: {it.notes}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <div className="grid md:grid-cols-2 gap-6">
+              {data.items.length > 0 && (
               <Card><CardContent className="p-5">
                 <h3 className="font-semibold mb-3">Order items</h3>
                 <div className="space-y-3">
@@ -150,6 +196,7 @@ export default function OrderTracking() {
                   <span>Total</span><span className="text-primary">{formatGbp(data.order.totalGbp)}</span>
                 </div>
               </CardContent></Card>
+              )}
 
               <Card><CardContent className="p-5">
                 <h3 className="font-semibold mb-3 flex items-center gap-2"><MapPin className="w-4 h-4" /> Shipping to</h3>

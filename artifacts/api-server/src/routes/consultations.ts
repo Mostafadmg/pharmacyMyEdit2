@@ -6,6 +6,9 @@ import {
   consultationActionsTable,
   consultationMessagesTable,
   notificationsTable,
+  ordersTable,
+  deliveriesTable,
+  patientAccountsTable,
 } from "@workspace/db";
 import { requirePharmacist, type AuthedRequest } from "../middlewares/auth";
 import {
@@ -190,12 +193,31 @@ router.post("/consultations/:id/review", requirePharmacist, async (req: AuthedRe
     action,
     pharmacistNote,
     prescription,
+    prescriptionItems,
     referralInfo,
     rejectReason,
     referRecipientType,
     referRecipientName,
     referUrgency,
   } = parsed.data;
+
+  // Build a human-readable prescription string from structured items if provided.
+  const items = Array.isArray(prescriptionItems) ? prescriptionItems : [];
+  const formattedItemsText = items.length > 0
+    ? items.map((it, i) => {
+        const head = `${it.name}${it.strength ? ` ${it.strength}` : ""}${it.form ? ` ${it.form}` : ""}`;
+        const parts: string[] = [head];
+        if (it.quantity) parts.push(`Quantity: ${it.quantity}`);
+        if (it.sig) parts.push(`Sig: ${it.sig}`);
+        if (it.duration) parts.push(`Duration: ${it.duration}`);
+        if (it.notes) parts.push(`Note: ${it.notes}`);
+        return `${i + 1}. ${parts.join(" · ")}`;
+      }).join("\n")
+    : "";
+  const finalPrescription = action === "approve"
+    ? (formattedItemsText || prescription || null)
+    : null;
+  const itemsToStore = action === "approve" ? items : [];
 
   // Structured validation
   if (action === "reject") {
@@ -235,10 +257,10 @@ router.post("/consultations/:id/review", requirePharmacist, async (req: AuthedRe
     : pharmacistNote ?? null;
 
   // Patient-facing message in chat thread (computed before tx so we can reuse condition name)
-  const buildPatientMessage = (conditionName: string): string => {
+  const buildPatientMessage = (conditionName: string, orderCreated: boolean): string => {
     switch (action) {
       case "approve":
-        return `Good news — your consultation for ${conditionName} has been approved.${prescription ? `\n\nPrescription: ${prescription}` : ""}${pharmacistNote ? `\n\n${pharmacistNote}` : ""}`;
+        return `Good news — your consultation for ${conditionName} has been approved.${finalPrescription ? `\n\nPrescription:\n${finalPrescription}` : ""}${orderCreated ? `\n\nWe're preparing your medicine for tracked delivery — you can follow it from "My orders" in your account.` : ""}${pharmacistNote ? `\n\n${pharmacistNote}` : ""}`;
       case "reject":
         return `We're unable to approve your consultation for ${conditionName}.\n\nReason: ${reasonLabel}\n\n${pharmacistNote ?? ""}`;
       case "more_info":
@@ -267,7 +289,8 @@ router.post("/consultations/:id/review", requirePharmacist, async (req: AuthedRe
         .set({
           status: statusMap[action] ?? "pending",
           pharmacistNote: composedRejectionNote,
-          prescription: prescription ?? null,
+          prescription: finalPrescription,
+          prescriptionItems: itemsToStore,
           referralInfo: composedReferralInfo,
           reviewedAt: new Date(),
           reviewedBy: req.authActor?.name ?? null,
@@ -293,10 +316,101 @@ router.post("/consultations/:id/review", requirePharmacist, async (req: AuthedRe
           referRecipientLabel: recipientLabel,
           referRecipientName: referRecipientName ?? null,
           referUrgency: referUrgency ?? null,
-          prescription: prescription ?? null,
+          prescription: finalPrescription,
+          prescriptionItems: itemsToStore,
         },
         note: pharmacistNote ?? null,
       });
+
+      // ── Auto-create order + delivery on approve with prescription items ──
+      // Idempotent: if an RX order already exists for this consultation we reuse it.
+      let createdOrderId: string | null = null;
+      if (action === "approve" && itemsToStore.length > 0) {
+        const [existingOrder] = await tx
+          .select({ id: ordersTable.id })
+          .from(ordersTable)
+          .where(eq(ordersTable.consultationId, row.id))
+          .limit(1);
+
+        if (existingOrder) {
+          createdOrderId = existingOrder.id;
+        } else {
+          // Resolve patient account (for shipping address, phone) if registered.
+          const [patient] = await tx
+            .select()
+            .from(patientAccountsTable)
+            .where(eq(patientAccountsTable.email, row.patientEmail))
+            .limit(1);
+
+          // Build shipping address with fallback chain:
+          // 1) registered patient account address
+          // 2) consultation deliveryAddress (free-text captured at consult time)
+          // 3) skip auto-order if neither is available
+          let shippingAddress: {
+            line1: string; line2: string; city: string; postcode: string; country: string;
+          } | null = null;
+
+          if (patient?.addressLine1) {
+            shippingAddress = {
+              line1: patient.addressLine1,
+              line2: patient.addressLine2 ?? "",
+              city: patient.city ?? "",
+              postcode: patient.postcode ?? "",
+              country: "United Kingdom",
+            };
+          } else if (row.deliveryAddress?.trim()) {
+            shippingAddress = {
+              line1: row.deliveryAddress.trim(),
+              line2: "",
+              city: "",
+              postcode: "",
+              country: "United Kingdom",
+            };
+          }
+
+          if (shippingAddress) {
+            const orderId = randomUUID();
+            const orderNumber = `RX-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1000).toString().padStart(3, "0")}`;
+            const trackingNumber = `PCX${Math.floor(Math.random() * 1e10).toString().padStart(10, "0")}`;
+            const eta = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+
+            await tx.insert(ordersTable).values({
+              id: orderId,
+              orderNumber,
+              customerEmail: row.patientEmail,
+              customerName: row.patientName,
+              customerPhone: patient?.phone ?? null,
+              shippingAddress,
+              itemsTotalGbp: 0,
+              shippingGbp: 0,
+              totalGbp: 0,
+              status: "preparing",
+              paymentStatus: "rx_internal",
+              consultationId: row.id,
+              prescriptionItems: itemsToStore,
+              notes: `Prescription order for consultation ${row.id} (${row.conditionName})`,
+            });
+
+            await tx.insert(deliveriesTable).values({
+              id: randomUUID(),
+              orderId,
+              carrier: "PharmaCare Express",
+              trackingNumber,
+              status: "preparing",
+              estimatedDelivery: eta,
+              events: [
+                {
+                  ts: new Date().toISOString(),
+                  status: "preparing",
+                  message: "Prescription approved by pharmacist — preparing for tracked delivery.",
+                },
+              ],
+            });
+
+            createdOrderId = orderId;
+          }
+        }
+      }
 
       await tx.insert(consultationMessagesTable).values({
         id: randomUUID(),
@@ -304,7 +418,7 @@ router.post("/consultations/:id/review", requirePharmacist, async (req: AuthedRe
         patientEmail: row.patientEmail,
         senderRole: "pharmacist",
         senderName: req.authActor?.name ?? "Pharmacist",
-        body: buildPatientMessage(row.conditionName),
+        body: buildPatientMessage(row.conditionName, !!createdOrderId),
         kind: action,
         readByPatient: false,
         readByPharmacist: true,
@@ -316,10 +430,12 @@ router.post("/consultations/:id/review", requirePharmacist, async (req: AuthedRe
         recipientKey: row.patientEmail,
         category: "consultation",
         title: titles[action] ?? "Consultation update",
-        body: `${row.conditionName} — open to read full details and reply.`,
-        link: "/my-consultations",
+        body: action === "approve" && createdOrderId
+          ? `${row.conditionName} approved — we're preparing your medicine for tracked delivery.`
+          : `${row.conditionName} — open to read full details and reply.`,
+        link: action === "approve" && createdOrderId ? `/track-order/${createdOrderId}` : "/my-consultations",
         consultationId: row.id,
-        orderId: null,
+        orderId: createdOrderId,
         read: false,
       });
 

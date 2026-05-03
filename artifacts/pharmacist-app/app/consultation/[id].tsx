@@ -23,6 +23,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useColors } from "@/hooks/useColors";
 import { format, formatDistanceToNow } from "date-fns";
 import { getCurrentToken } from "@/context/AuthContext";
+import PrescriptionBuilder from "@/components/PrescriptionBuilder";
+import { type PrescriptionItemDraft, formatPrescriptionItems } from "@/data/medications";
 
 function authHeaders(extra?: Record<string, string>): Record<string, string> {
   const currentToken = getCurrentToken();
@@ -104,6 +106,7 @@ export default function ConsultationDetail() {
   const [activeTab, setActiveTab] = useState<Tab>("Overview");
   const [note, setNote] = useState("");
   const [prescription, setPrescription] = useState("");
+  const [prescriptionItems, setPrescriptionItems] = useState<PrescriptionItemDraft[]>([]);
   const [referral, setReferral] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -388,9 +391,16 @@ export default function ConsultationDetail() {
   }
 
   function openActionModal(action: "approve" | "more_info" | "refer" | "reject") {
-    if (action === "approve" && !prescription.trim()) {
-      Alert.alert("Prescription required", "Please enter prescription details before approving.");
-      return;
+    if (action === "approve") {
+      if (prescriptionItems.length === 0) {
+        Alert.alert("Prescription required", "Add at least one medication before approving.");
+        return;
+      }
+      const incomplete = prescriptionItems.find(it => !it.name.trim() || !it.strength.trim() || !it.sig.trim());
+      if (incomplete) {
+        Alert.alert("Incomplete prescription", "Each medication needs a name, strength and dosage instructions.");
+        return;
+      }
     }
     Haptics.selectionAsync();
     setActionModal(action);
@@ -400,7 +410,8 @@ export default function ConsultationDetail() {
     const data: any = { action };
     if (action === "approve") {
       data.pharmacistNote = note.trim() || undefined;
-      data.prescription = prescription.trim() || undefined;
+      data.prescriptionItems = prescriptionItems;
+      data.prescription = formatPrescriptionItems(prescriptionItems) || prescription.trim() || undefined;
     } else if (action === "more_info") {
       if (!moreInfoMessage.trim()) {
         Alert.alert("Required", "Please write a message for the patient.");
@@ -763,18 +774,11 @@ export default function ConsultationDetail() {
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Prescription Details</Text>
-                <TextInput
-                  style={styles.textarea}
-                  placeholder="e.g. Clotrimazole 1% cream — apply twice daily for 2 weeks"
-                  placeholderTextColor={colors.mutedForeground}
-                  value={prescription}
-                  onChangeText={setPrescription}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                  testID="input-prescription"
-                />
+                <Text style={styles.sectionTitle}>Prescription</Text>
+                <Text style={{ fontSize: 12, color: colors.mutedForeground, marginBottom: 10, lineHeight: 16 }}>
+                  Search the UK formulary, set strength, quantity and dosage. We'll auto-create the order and start tracked delivery on approval.
+                </Text>
+                <PrescriptionBuilder items={prescriptionItems} onChange={setPrescriptionItems} />
               </View>
 
               <View style={styles.section}>
@@ -1251,9 +1255,24 @@ export default function ConsultationDetail() {
             <Text style={{ fontSize: 13, color: colors.mutedForeground, marginBottom: 14 }}>
               Issue the prescription below and notify {consultation.patientName}.
             </Text>
-            <View style={{ backgroundColor: colors.muted, padding: 12, borderRadius: 10, marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, color: colors.mutedForeground, fontWeight: "700", marginBottom: 4 }}>PRESCRIPTION</Text>
-              <Text style={{ fontSize: 13, color: colors.foreground, lineHeight: 18 }}>{prescription}</Text>
+            <View style={{ backgroundColor: colors.muted, padding: 12, borderRadius: 10, marginBottom: 16, maxHeight: 220 }}>
+              <Text style={{ fontSize: 12, color: colors.mutedForeground, fontWeight: "700", marginBottom: 6 }}>PRESCRIPTION ({prescriptionItems.length} item{prescriptionItems.length === 1 ? "" : "s"})</Text>
+              <ScrollView>
+                {prescriptionItems.map((it, i) => (
+                  <View key={i} style={{ marginBottom: 8 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground }}>
+                      {i + 1}. {it.name}{it.strength ? ` ${it.strength}` : ""}{it.form ? ` ${it.form}` : ""}
+                    </Text>
+                    {!!it.sig && <Text style={{ fontSize: 12, color: colors.foreground, marginTop: 1 }}>{it.sig}</Text>}
+                    {(it.quantity || it.duration) && (
+                      <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: 1 }}>
+                        {it.quantity && `Qty: ${it.quantity}`}{it.quantity && it.duration ? " · " : ""}{it.duration && `Duration: ${it.duration}`}
+                      </Text>
+                    )}
+                  </View>
+                ))}
+              </ScrollView>
+              <Text style={{ fontSize: 11, color: colors.success, marginTop: 6, fontWeight: "700" }}>✓ Order + tracked delivery will be created automatically.</Text>
             </View>
             <View style={{ flexDirection: "row", gap: 10 }}>
               <Pressable style={[styles.modalBtn, { backgroundColor: colors.muted, flex: 1 }]} onPress={() => setActionModal(null)}>

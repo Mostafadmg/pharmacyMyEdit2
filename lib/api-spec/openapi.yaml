@@ -506,6 +506,11 @@ components:
         prescription:
           type: string
           nullable: true
+        prescriptionItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/PrescriptionItem"
+          nullable: true
         referralInfo:
           type: string
           nullable: true
@@ -685,6 +690,25 @@ components:
         - answers
         - hasPhoto
 
+    PrescriptionItem:
+      type: object
+      properties:
+        name:
+          type: string
+        strength:
+          type: string
+        form:
+          type: string
+        quantity:
+          type: string
+        sig:
+          type: string
+        duration:
+          type: string
+        notes:
+          type: string
+          nullable: true
+      required: [name, strength, form, quantity, sig, duration]
     ConsultationReviewInput:
       type: object
       properties:
@@ -696,6 +720,11 @@ components:
           nullable: true
         prescription:
           type: string
+          nullable: true
+        prescriptionItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/PrescriptionItem"
           nullable: true
         referralInfo:
           type: string

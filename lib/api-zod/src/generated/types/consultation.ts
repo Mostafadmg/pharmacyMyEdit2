@@ -8,6 +8,7 @@
 import type { ConsultationAnswers } from "./consultationAnswers";
 import type { ConsultationPatientSex } from "./consultationPatientSex";
 import type { ConsultationStatus } from "./consultationStatus";
+import type { PrescriptionItem } from "./prescriptionItem";
 
 export interface Consultation {
   id: string;
@@ -24,6 +25,7 @@ export interface Consultation {
   photoUrls?: string[];
   pharmacistNote?: string | null;
   prescription?: string | null;
+  prescriptionItems?: PrescriptionItem[] | null;
   referralInfo?: string | null;
   createdAt: Date;
   updatedAt: Date;

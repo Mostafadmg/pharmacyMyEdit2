@@ -68,6 +68,16 @@ export const ConsultationStatus = {
 
 export type ConsultationAnswers = { [key: string]: unknown };
 
+export interface PrescriptionItem {
+  name: string;
+  strength: string;
+  form: string;
+  quantity: string;
+  sig: string;
+  duration: string;
+  notes?: string | null;
+}
+
 export interface Consultation {
   id: string;
   patientName: string;
@@ -83,6 +93,7 @@ export interface Consultation {
   photoUrls?: string[];
   pharmacistNote?: string | null;
   prescription?: string | null;
+  prescriptionItems?: PrescriptionItem[] | null;
   referralInfo?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -163,6 +174,7 @@ export interface ConsultationReviewInput {
   action: ConsultationReviewInputAction;
   pharmacistNote?: string | null;
   prescription?: string | null;
+  prescriptionItems?: PrescriptionItem[] | null;
   referralInfo?: string | null;
   /** Required when action=reject. One of medically_unsuitable, outside_our_scope, insufficient_information, already_prescribed, other */
   rejectReason?: string | null;

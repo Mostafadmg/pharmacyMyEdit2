@@ -40,3 +40,4 @@ export * from "./patientLoginInput";
 export * from "./patientRegisterInput";
 export * from "./pharmacistAuthResponse";
 export * from "./pharmacistLoginInput";
+export * from "./prescriptionItem";

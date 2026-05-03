@@ -6,11 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ConsultationReviewInputAction } from "./consultationReviewInputAction";
+import type { PrescriptionItem } from "./prescriptionItem";
 
 export interface ConsultationReviewInput {
   action: ConsultationReviewInputAction;
   pharmacistNote?: string | null;
   prescription?: string | null;
+  prescriptionItems?: PrescriptionItem[] | null;
   referralInfo?: string | null;
   /** Required when action=reject. One of medically_unsuitable, outside_our_scope, insufficient_information, already_prescribed, other */
   rejectReason?: string | null;

@@ -112,18 +112,6 @@ export default function ConditionDetail() {
                       </div>
                     </div>
                     
-                    {condition.requiresPhoto && (
-                      <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-full border-4 border-white bg-accent text-accent-foreground shadow-sm shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 font-bold">
-                          <Camera className="w-5 h-5" />
-                        </div>
-                        <div className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] p-6 rounded-2xl bg-white border border-border shadow-sm">
-                          <h3 className="text-lg font-bold text-secondary mb-2">Upload photos</h3>
-                          <p className="text-muted-foreground text-sm">Securely upload photos of your condition for our pharmacist to review.</p>
-                        </div>
-                      </div>
-                    )}
-                    
                     <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
                       <div className="flex items-center justify-center w-12 h-12 rounded-full border-4 border-white bg-secondary text-white shadow-sm shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 font-bold">
                         <CheckCircle2 className="w-6 h-6" />
