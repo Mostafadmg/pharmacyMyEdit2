@@ -25,12 +25,21 @@ const ROLE_KEY = "@pharmacare_role";
 export let currentToken: string | null = null;
 
 /**
- * Live getter for the current auth token. Reads from AsyncStorage directly
- * (with an in-memory fast path) so the request layer cannot get stranded by
- * Metro module-binding quirks or React state-update timing. The in-memory
- * `currentToken` is updated on login/logout/restore for synchronous callers.
+ * Synchronous live getter for the current auth token. Safe to use in direct
+ * `fetch` callers that build headers inline. Returns the in-memory token
+ * (hydrated by AuthProvider.restore on app start and updated by login/logout).
  */
-export async function getCurrentToken(): Promise<string | null> {
+export function getCurrentToken(): string | null {
+  return currentToken;
+}
+
+/**
+ * Async getter that falls back to AsyncStorage when the in-memory cache is
+ * empty (e.g. a request fires before AuthProvider's restore() effect has
+ * resolved, or Metro module-binding quirks have stranded the variable).
+ * Register THIS one with `setAuthTokenGetter` on the api-client.
+ */
+export async function getCurrentTokenAsync(): Promise<string | null> {
   if (currentToken) return currentToken;
   try {
     const stored = await AsyncStorage.getItem(TOKEN_KEY);
