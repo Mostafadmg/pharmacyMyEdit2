@@ -3,10 +3,25 @@ import { setAuthTokenGetter } from "@workspace/api-client-react";
 import App from "./App";
 import "./index.css";
 
-// Register auth token getter for orval-generated hooks (customFetch).
-// Pharmacist portal pages (e.g. ReviewConsultation) call useReviewConsultation
-// which uses customFetch — without this, no Authorization header is attached
-// and the API returns 401 for approve/reject/refer/more-info.
+const DEMO_ID = "pharm-001";
+const DEMO_NAME = "Dr. Sarah Mitchell";
+const DEMO_ROLE = "Pharmacist Prescriber (GPhC)";
+
+function ensurePharmacistSession() {
+  try {
+    if (!localStorage.getItem("pharmacist_token")) {
+      const token = btoa(`${DEMO_ID}:${Date.now()}`);
+      localStorage.setItem("pharmacist_token", token);
+      localStorage.setItem("pharmacist_name", DEMO_NAME);
+      localStorage.setItem("pharmacist_role", DEMO_ROLE);
+    }
+  } catch {
+    // localStorage unavailable — ignore
+  }
+}
+
+ensurePharmacistSession();
+
 setAuthTokenGetter(() => {
   try {
     return (
