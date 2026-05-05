@@ -6,7 +6,7 @@ import {
   consultationsTable,
   notificationsTable,
 } from "@workspace/db";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { resolveAuthActor, type AuthedRequest } from "../middlewares/auth";
 
@@ -116,6 +116,14 @@ router.post("/consultations/:id/messages", async (req: AuthedRequest, res: Respo
     readByPatient: actor.role === "patient",
     readByPharmacist: actor.role === "pharmacist",
   }).returning();
+
+  // If patient replies to a more_info_needed consultation, move it to patient_responded
+  if (actor.role === "patient" && consultation.status === "more_info_needed") {
+    await db
+      .update(consultationsTable)
+      .set({ status: "patient_responded" })
+      .where(and(eq(consultationsTable.id, consultationId), eq(consultationsTable.status, "more_info_needed")));
+  }
 
   // Audit action for patient replies
   if (actor.role === "patient") {

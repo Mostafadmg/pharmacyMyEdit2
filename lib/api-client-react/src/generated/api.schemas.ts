@@ -64,6 +64,7 @@ export const ConsultationStatus = {
   more_info_needed: "more_info_needed",
   referred: "referred",
   red_flag: "red_flag",
+  patient_responded: "patient_responded",
 } as const;
 
 export type ConsultationAnswers = { [key: string]: unknown };
@@ -297,6 +298,7 @@ export const ListConsultationsStatus = {
   more_info_needed: "more_info_needed",
   referred: "referred",
   red_flag: "red_flag",
+  patient_responded: "patient_responded",
 } as const;
 
 export type ListConsultations200 = {

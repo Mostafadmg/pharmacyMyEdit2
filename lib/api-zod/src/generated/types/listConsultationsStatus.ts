@@ -16,4 +16,5 @@ export const ListConsultationsStatus = {
   more_info_needed: "more_info_needed",
   referred: "referred",
   red_flag: "red_flag",
+  patient_responded: "patient_responded",
 } as const;

@@ -22,14 +22,16 @@ import { formatDistanceToNow } from "date-fns";
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; bar: string }> = {
   pending: { label: "Awaiting Review", bg: "#FFF7ED", text: "#D97706", bar: "#F59E0B" },
   red_flag: { label: "URGENT", bg: "#FFF1F2", text: "#EF4444", bar: "#EF4444" },
+  patient_responded: { label: "Patient Replied", bg: "#FFF3E0", text: "#E65100", bar: "#FF6D00" },
 };
 
-type FilterKey = "all" | "pending" | "urgent";
+type FilterKey = "all" | "pending" | "urgent" | "replied";
 
 const FILTER_OPTIONS: { key: FilterKey; label: string; color: string }[] = [
   { key: "all", label: "All Pending", color: "#0E2354" },
   { key: "pending", label: "Standard", color: "#D97706" },
   { key: "urgent", label: "Urgent", color: "#EF4444" },
+  { key: "replied", label: "Replied", color: "#E65100" },
 ];
 
 export default function PendingScreen() {
@@ -50,18 +52,21 @@ export default function PendingScreen() {
 
   const allConsultations = data?.consultations ?? [];
   const pendingConsultations = allConsultations.filter(c =>
-    c.status === "pending" || c.status === "red_flag"
+    c.status === "pending" || c.status === "red_flag" || c.status === "patient_responded"
   );
 
   const filtered = pendingConsultations.filter(c => {
     if (filter === "pending") return c.status === "pending";
     if (filter === "urgent") return c.status === "red_flag";
+    if (filter === "replied") return c.status === "patient_responded";
     return true;
   });
 
   const sorted = [...filtered].sort((a, b) => {
     if (a.status === "red_flag" && b.status !== "red_flag") return -1;
     if (b.status === "red_flag" && a.status !== "red_flag") return 1;
+    if (a.status === "patient_responded" && b.status !== "patient_responded") return -1;
+    if (b.status === "patient_responded" && a.status !== "patient_responded") return 1;
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
@@ -75,6 +80,7 @@ export default function PendingScreen() {
 
   const urgentCount = pendingConsultations.filter(c => c.status === "red_flag").length;
   const standardCount = pendingConsultations.filter(c => c.status === "pending").length;
+  const repliedCount = pendingConsultations.filter(c => c.status === "patient_responded").length;
 
   const nativeTabs = Platform.OS !== "web" && isLiquidGlassAvailable();
   const topPad = Platform.OS === "web" ? 67 : nativeTabs ? insets.top + 8 : 0;
@@ -95,7 +101,7 @@ export default function PendingScreen() {
       <View style={styles.statsRow}>
         <StatChip icon="clock" value={standardCount} label="Standard" color="#D97706" bg="#FFF7ED" />
         <StatChip icon="alert-triangle" value={urgentCount} label="Urgent" color="#EF4444" bg="#FFF1F2" />
-        <StatChip icon="users" value={pendingConsultations.length} label="Total" color={colors.primary} bg={colors.muted} />
+        <StatChip icon="message-square" value={repliedCount} label="Replied" color="#E65100" bg="#FFF3E0" />
         <StatChip icon="check-circle" value={stats?.approvedToday ?? 0} label="Today" color="#16A34A" bg="#F0FDF4" />
       </View>
 
@@ -114,6 +120,7 @@ export default function PendingScreen() {
               {opt.label}
               {opt.key === "all" ? ` (${pendingConsultations.length})` :
                opt.key === "urgent" ? ` (${urgentCount})` :
+               opt.key === "replied" ? ` (${repliedCount})` :
                ` (${standardCount})`}
             </Text>
           </Pressable>
@@ -154,11 +161,14 @@ export default function PendingScreen() {
           const isUrgent = item.status === "red_flag";
           const initials = item.patientName.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
 
+          const isReplied = item.status === "patient_responded";
+
           return (
             <Pressable
               style={({ pressed }) => [
                 styles.card,
                 isUrgent && styles.urgentCard,
+                isReplied && styles.repliedCard,
                 pressed && styles.cardPressed,
               ]}
               onPress={() => {
@@ -169,8 +179,13 @@ export default function PendingScreen() {
               {/* Color bar */}
               <View style={[styles.colorBar, { backgroundColor: sc.bar }]} />
 
-              <View style={[styles.avatar, { backgroundColor: isUrgent ? "#EF4444" : colors.primary }]}>
-                <Text style={styles.avatarText}>{initials}</Text>
+              <View style={{ position: "relative", marginLeft: 12, marginRight: 10, flexShrink: 0 }}>
+                <View style={[styles.avatar, { backgroundColor: isUrgent ? "#EF4444" : isReplied ? "#E65100" : colors.primary, marginLeft: 0, marginRight: 0 }]}>
+                  <Text style={styles.avatarText}>{initials}</Text>
+                </View>
+                {isReplied && (
+                  <View style={styles.notifDot} />
+                )}
               </View>
 
               <View style={styles.cardBody}>
@@ -253,6 +268,21 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
     urgentCard: {
       borderColor: "#FCA5A5",
       backgroundColor: "#FFFAFA",
+    },
+    repliedCard: {
+      borderColor: "#FFCCBC",
+      backgroundColor: "#FFF8F5",
+    },
+    notifDot: {
+      position: "absolute",
+      top: -2,
+      right: -2,
+      width: 13,
+      height: 13,
+      borderRadius: 7,
+      backgroundColor: "#EF4444",
+      borderWidth: 2,
+      borderColor: "#fff",
     },
     cardPressed: { opacity: 0.78 },
     colorBar: { width: 4, alignSelf: "stretch", borderRadius: 0 },

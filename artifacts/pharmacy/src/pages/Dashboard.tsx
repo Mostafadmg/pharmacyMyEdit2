@@ -15,6 +15,7 @@ import {
   Search,
   ArrowRight,
   Users,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +63,12 @@ export default function Dashboard() {
         return (
           <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 border-none font-semibold px-3 py-1">
             More Info Needed
+          </Badge>
+        );
+      case "patient_responded":
+        return (
+          <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-200 border-none font-semibold px-3 py-1 flex items-center gap-1">
+            <MessageSquare className="w-3 h-3" /> Patient Replied
           </Badge>
         );
       case "referred":
@@ -226,6 +233,16 @@ export default function Dashboard() {
                 >
                   Urgent
                 </TabsTrigger>
+                <TabsTrigger
+                  value="patient_responded"
+                  className="rounded-full px-4 text-orange-700 data-[state=active]:bg-orange-50 data-[state=active]:text-orange-800 flex items-center gap-1.5"
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500" />
+                  </span>
+                  Replied
+                </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -268,19 +285,29 @@ export default function Dashboard() {
                     className={`group cursor-pointer transition-colors ${
                       consultation.status === "red_flag"
                         ? "bg-red-50/30 hover:bg-red-50/60"
-                        : consultation.status === "pending"
-                          ? "hover:bg-amber-50/30"
-                          : "hover:bg-muted/30"
+                        : consultation.status === "patient_responded"
+                          ? "bg-orange-50/40 hover:bg-orange-50/70"
+                          : consultation.status === "pending"
+                            ? "hover:bg-amber-50/30"
+                            : "hover:bg-muted/30"
                     }`}
                     data-testid={`consultation-row-${consultation.id}`}
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-4">
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0
-                            ${consultation.patientSex === "female" ? "bg-pink-100 text-pink-700" : "bg-blue-100 text-blue-700"}`}
-                        >
-                          {getInitials(consultation.patientName)}
+                        <div className="relative shrink-0">
+                          <div
+                            className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm
+                              ${consultation.patientSex === "female" ? "bg-pink-100 text-pink-700" : "bg-blue-100 text-blue-700"}`}
+                          >
+                            {getInitials(consultation.patientName)}
+                          </div>
+                          {consultation.status === "patient_responded" && (
+                            <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-red-500 border-2 border-white" />
+                            </span>
+                          )}
                         </div>
                         <div>
                           <p className="font-bold text-secondary group-hover:text-primary transition-colors">
