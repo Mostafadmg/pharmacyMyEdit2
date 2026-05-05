@@ -6,7 +6,7 @@ import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Clock, ShieldCheck, FileText, Camera, Info, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Clock, ShieldCheck, FileText, Info, CheckCircle2, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function ConditionDetail() {

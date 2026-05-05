@@ -22,7 +22,7 @@ import { useGetConsultation, getGetConsultationQueryKey } from "@workspace/api-c
 import { useQueryClient } from "@tanstack/react-query";
 import { useColors } from "@/hooks/useColors";
 import { format, formatDistanceToNow } from "date-fns";
-import { getCurrentToken } from "@/context/AuthContext";
+import { getCurrentToken, getCurrentTokenAsync } from "@/context/AuthContext";
 import PrescriptionBuilder from "@/components/PrescriptionBuilder";
 import ConsultationChat from "@/components/ConsultationChat";
 import { type PrescriptionItemDraft, formatPrescriptionItems } from "@/data/medications";
@@ -153,9 +153,12 @@ export default function ConsultationDetail() {
 
   async function callReviewApi(consultationId: string, data: Record<string, unknown>, _action: "approve" | "more_info" | "refer" | "reject") {
     const base = getApiBase();
+    const token = await getCurrentTokenAsync();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
     const res = await fetch(`${base}/api/consultations/${encodeURIComponent(consultationId)}/review`, {
       method: "POST",
-      headers: authHeaders({ "Content-Type": "application/json" }),
+      headers,
       body: JSON.stringify(data),
     });
     if (!res.ok) {
