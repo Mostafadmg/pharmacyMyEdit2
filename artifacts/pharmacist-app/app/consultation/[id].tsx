@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  LayoutAnimation,
   Linking,
   Platform,
   Pressable,
@@ -147,6 +148,11 @@ export default function ConsultationDetail() {
   // Photo lightbox
   const [lightboxPhotoUrl, setLightboxPhotoUrl] = useState<string | null>(null);
 
+  // Quick message compose
+  const [messageModal, setMessageModal] = useState(false);
+  const [messageText, setMessageText] = useState("");
+  const [messageSending, setMessageSending] = useState(false);
+
   const { data: consultation, isLoading } = useGetConsultation(id ?? "", {
     query: { enabled: !!id, queryKey: getGetConsultationQueryKey(id ?? "") },
   });
@@ -177,6 +183,34 @@ export default function ConsultationDetail() {
       } catch {
         Alert.alert("Unable to open", "Please copy the link manually.");
       }
+    }
+  }
+
+  async function sendQuickMessage() {
+    if (!messageText.trim() || messageSending) return;
+    setMessageSending(true);
+    try {
+      const token = await getCurrentTokenAsync();
+      const res = await fetch(
+        `${getApiBase()}/api/consultations/${encodeURIComponent(id ?? "")}/messages`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ body: messageText.trim() }),
+        },
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setMessageText("");
+      setMessageModal(false);
+      Alert.alert("Message sent", `${consultation?.patientName ?? "The patient"} will be notified.`);
+    } catch (e) {
+      Alert.alert("Couldn't send", e instanceof Error ? e.message : "Please try again.");
+    } finally {
+      setMessageSending(false);
     }
   }
 
@@ -518,6 +552,33 @@ export default function ConsultationDetail() {
         </View>
       </View>
 
+      {/* Quick action bar */}
+      <View style={styles.quickActionBar}>
+        <Pressable
+          onPress={() => { Haptics.selectionAsync(); setMessageModal(true); }}
+          style={({ pressed }) => [styles.quickActionPill, styles.quickActionPrimary, pressed && { opacity: 0.75 }]}
+        >
+          <Feather name="message-square" size={14} color="#fff" />
+          <Text style={styles.quickActionPrimaryText}>Message Patient</Text>
+        </Pressable>
+        {consultation.patientEmail ? (
+          <Pressable
+            onPress={() => Linking.openURL(`mailto:${consultation.patientEmail}`)}
+            style={({ pressed }) => [styles.quickActionPill, styles.quickActionSecondary, pressed && { opacity: 0.75 }]}
+          >
+            <Feather name="mail" size={14} color={colors.foreground} />
+            <Text style={styles.quickActionSecondaryText}>Email</Text>
+          </Pressable>
+        ) : null}
+        <Pressable
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab("Messages"); }}
+          style={({ pressed }) => [styles.quickActionPill, styles.quickActionSecondary, pressed && { opacity: 0.75 }]}
+        >
+          <Feather name="clock" size={14} color={colors.foreground} />
+          <Text style={styles.quickActionSecondaryText}>History</Text>
+        </Pressable>
+      </View>
+
       {/* Tab bar */}
       <View style={styles.tabBar}>
         {TABS.map(tab => (
@@ -647,8 +708,7 @@ export default function ConsultationDetail() {
             return (
               <>
                 {/* GP / Regular Prescriber */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>GP / Regular Prescriber</Text>
+                <CollapsibleSection title="GP / Regular Prescriber" icon="user" defaultOpen={false} colors={colors}>
                   <View style={styles.infoCard}>
                     <InfoRow
                       icon="user"
@@ -672,11 +732,10 @@ export default function ConsultationDetail() {
                       Patient didn't supply GP details for this consultation.
                     </Text>
                   )}
-                </View>
+                </CollapsibleSection>
 
                 {/* Medical Background */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Medical Background</Text>
+                <CollapsibleSection title="Medical Background" icon="heart" defaultOpen={true} colors={colors}>
                   <View style={styles.infoCard}>
                     <InfoRow
                       icon="alert-circle"
@@ -705,12 +764,11 @@ export default function ConsultationDetail() {
                       />
                     )}
                   </View>
-                </View>
+                </CollapsibleSection>
 
                 {/* Body Measurements */}
                 {hasBody && (
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Body Measurements</Text>
+                  <CollapsibleSection title="Body Measurements" icon="activity" defaultOpen={false} colors={colors}>
                     <View style={styles.infoCard}>
                       {has(c.heightCm) && <InfoRow icon="trending-up" label="Height (self)" value={`${c.heightCm} cm`} colors={colors} />}
                       {has(c.weightKg) && <InfoRow icon="bar-chart" label="Weight (self)" value={`${c.weightKg} kg`} colors={colors} />}
@@ -725,13 +783,12 @@ export default function ConsultationDetail() {
                         />
                       )}
                     </View>
-                  </View>
+                  </CollapsibleSection>
                 )}
 
                 {/* Delivery */}
                 {hasDelivery && (
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Delivery</Text>
+                  <CollapsibleSection title="Delivery" icon="truck" defaultOpen={false} colors={colors}>
                     <View style={styles.infoCard}>
                       <InfoRow
                         icon="map-pin"
@@ -752,21 +809,20 @@ export default function ConsultationDetail() {
                         colors={colors}
                       />
                     </View>
-                  </View>
+                  </CollapsibleSection>
                 )}
               </>
             );
           })()}
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Questionnaire Answers</Text>
+          <CollapsibleSection title="Questionnaire Answers" icon="list" defaultOpen={false} colors={colors}>
             {Object.entries(answers).map(([key, val]) => (
               <View key={key} style={styles.qaCard}>
                 <Text style={styles.qaQuestion}>{key.replace(/([A-Z])/g, " $1").replace(/_/g, " ").replace(/^\s/, "")}</Text>
                 <Text style={styles.qaAnswer}>{val || "No answer provided"}</Text>
               </View>
             ))}
-          </View>
+          </CollapsibleSection>
 
           {!isAlreadyReviewed && (
             <>
@@ -810,12 +866,93 @@ export default function ConsultationDetail() {
 
               <View style={styles.actionsSection}>
                 <Text style={styles.sectionTitle}>Clinical Decision</Text>
-                <View style={styles.actionsGrid}>
-                  <ActionButton icon="check-circle" label="Approve" color={colors.success} onPress={() => handleReview("approve")} disabled={submitting} />
-                  <ActionButton icon="message-circle" label="More Info" color="#2563EB" onPress={() => handleReview("more_info")} disabled={submitting} />
-                  <ActionButton icon="external-link" label="Refer" color="#7C3AED" onPress={() => handleReview("refer")} disabled={submitting} />
-                  <ActionButton icon="x-circle" label="Reject" color={colors.destructive} onPress={() => handleReview("reject")} disabled={submitting} outline />
+
+                {/* Approve — full width, prominent */}
+                <Pressable
+                  onPress={() => handleReview("approve")}
+                  disabled={submitting}
+                  testID="btn-approve"
+                  style={({ pressed }) => [{
+                    backgroundColor: colors.success,
+                    borderRadius: 18,
+                    padding: 18,
+                    marginBottom: 10,
+                    flexDirection: "row" as const,
+                    alignItems: "center" as const,
+                    opacity: pressed || submitting ? 0.8 : 1,
+                    shadowColor: colors.success,
+                    shadowOffset: { width: 0, height: 6 },
+                    shadowOpacity: 0.35,
+                    shadowRadius: 10,
+                    elevation: 6,
+                  }]}
+                >
+                  <View style={styles.decisionIconWrap}>
+                    <Feather name="check-circle" size={24} color="#fff" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.decisionLabel}>Approve & Prescribe</Text>
+                    <Text style={styles.decisionSubtitle}>Issue prescription · auto-create tracked delivery</Text>
+                  </View>
+                  <Feather name="chevron-right" size={20} color="rgba(255,255,255,0.7)" />
+                </Pressable>
+
+                {/* More Info + Refer — side by side */}
+                <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
+                  <Pressable
+                    onPress={() => handleReview("more_info")}
+                    disabled={submitting}
+                    testID="btn-more-info"
+                    style={({ pressed }) => [{
+                      flex: 1, backgroundColor: "#2563EB", borderRadius: 18, padding: 16,
+                      alignItems: "flex-start" as const,
+                      opacity: pressed || submitting ? 0.8 : 1,
+                      shadowColor: "#2563EB", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
+                    }]}
+                  >
+                    <View style={styles.decisionIconWrapSm}>
+                      <Feather name="message-circle" size={18} color="#fff" />
+                    </View>
+                    <Text style={styles.decisionLabelSm}>More Info</Text>
+                    <Text style={styles.decisionSubtitleSm}>Ask patient</Text>
+                  </Pressable>
+
+                  <Pressable
+                    onPress={() => handleReview("refer")}
+                    disabled={submitting}
+                    testID="btn-refer"
+                    style={({ pressed }) => [{
+                      flex: 1, backgroundColor: "#7C3AED", borderRadius: 18, padding: 16,
+                      alignItems: "flex-start" as const,
+                      opacity: pressed || submitting ? 0.8 : 1,
+                      shadowColor: "#7C3AED", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
+                    }]}
+                  >
+                    <View style={styles.decisionIconWrapSm}>
+                      <Feather name="external-link" size={18} color="#fff" />
+                    </View>
+                    <Text style={styles.decisionLabelSm}>Refer Patient</Text>
+                    <Text style={styles.decisionSubtitleSm}>Escalate care</Text>
+                  </Pressable>
                 </View>
+
+                {/* Reject — outlined, full width */}
+                <Pressable
+                  onPress={() => handleReview("reject")}
+                  disabled={submitting}
+                  testID="btn-reject"
+                  style={({ pressed }) => [{
+                    borderRadius: 18, padding: 16, borderWidth: 1.5, borderColor: colors.destructive,
+                    flexDirection: "row" as const, alignItems: "center" as const,
+                    opacity: pressed || submitting ? 0.8 : 1,
+                  }]}
+                >
+                  <Feather name="x-circle" size={20} color={colors.destructive} style={{ marginRight: 12 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: "700" as const, color: colors.destructive }}>Cannot Approve</Text>
+                    <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 1 }}>Not suitable for this treatment</Text>
+                  </View>
+                </Pressable>
               </View>
             </>
           )}
@@ -1347,6 +1484,80 @@ export default function ConsultationDetail() {
         </Pressable>
       </Modal>
 
+      {/* Quick message compose modal */}
+      <Modal visible={messageModal} transparent animationType="slide" onRequestClose={() => setMessageModal(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setMessageModal(false)}>
+          <Pressable style={[styles.modalCard, { backgroundColor: colors.card }]} onPress={() => {}}>
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 14 }}>
+              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary + "20", alignItems: "center", justifyContent: "center", marginRight: 12 }}>
+                <Feather name="message-square" size={20} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: "700" as const, color: colors.foreground }}>
+                  Message {consultation?.patientName ?? "Patient"}
+                </Text>
+                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>Patient gets an instant notification</Text>
+              </View>
+              <Pressable onPress={() => setMessageModal(false)} hitSlop={14}>
+                <Feather name="x" size={20} color={colors.mutedForeground} />
+              </Pressable>
+            </View>
+
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+              {[
+                "We're reviewing your consultation now.",
+                "Could you provide a bit more information?",
+                "Your prescription has been approved.",
+              ].map(q => (
+                <Pressable
+                  key={q}
+                  onPress={() => setMessageText(prev => prev ? `${prev} ${q}` : q)}
+                  style={{ backgroundColor: colors.primary + "15", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 }}
+                >
+                  <Text style={{ fontSize: 11, color: colors.primary, fontWeight: "600" as const }}>
+                    + {q.length > 32 ? q.slice(0, 32) + "…" : q}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <TextInput
+              style={[styles.textarea, { minHeight: 110, marginBottom: 14 }]}
+              placeholder={`Type your message to ${consultation?.patientName ?? "the patient"}…`}
+              placeholderTextColor={colors.mutedForeground}
+              value={messageText}
+              onChangeText={setMessageText}
+              multiline
+              textAlignVertical="top"
+              autoFocus
+            />
+
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <Pressable
+                style={[styles.modalBtn, { backgroundColor: colors.muted, flex: 1 }]}
+                onPress={() => setMessageModal(false)}
+              >
+                <Text style={{ color: colors.foreground, fontWeight: "600" as const }}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalBtn, { backgroundColor: colors.primary, flex: 2, opacity: (!messageText.trim() || messageSending) ? 0.6 : 1 }]}
+                onPress={sendQuickMessage}
+                disabled={!messageText.trim() || messageSending}
+              >
+                {messageSending ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Feather name="send" size={14} color="#fff" />
+                    <Text style={{ color: "#fff", fontWeight: "700" as const }}>Send Message</Text>
+                  </View>
+                )}
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {/* Photo lightbox modal */}
       <Modal visible={!!lightboxPhotoUrl} transparent animationType="fade" onRequestClose={() => setLightboxPhotoUrl(null)}>
         <Pressable style={[styles.modalOverlay, { backgroundColor: "rgba(0,0,0,0.92)" }]} onPress={() => setLightboxPhotoUrl(null)}>
@@ -1425,6 +1636,50 @@ export default function ConsultationDetail() {
           <Text style={styles.submittingText}>Submitting review...</Text>
         </View>
       )}
+    </View>
+  );
+}
+
+function CollapsibleSection({
+  title, icon, children, defaultOpen = true, colors,
+}: {
+  title: string;
+  icon: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <View style={{ marginBottom: 20 }}>
+      <Pressable
+        onPress={() => {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setOpen(v => !v);
+        }}
+        style={({ pressed }) => ({
+          flexDirection: "row" as const,
+          alignItems: "center" as const,
+          justifyContent: "space-between" as const,
+          paddingBottom: 8,
+          opacity: pressed ? 0.7 : 1,
+        })}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Feather name={icon as any} size={13} color={colors.mutedForeground} />
+          <Text style={{ fontSize: 12, fontWeight: "700" as const, color: colors.mutedForeground, textTransform: "uppercase" as const, letterSpacing: 0.8 }}>
+            {title}
+          </Text>
+        </View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+          {!open && (
+            <Text style={{ fontSize: 10, color: colors.primary, fontWeight: "600" as const }}>tap to expand</Text>
+          )}
+          <Feather name={open ? "chevron-up" : "chevron-down"} size={16} color={colors.mutedForeground} />
+        </View>
+      </Pressable>
+      {open && children}
     </View>
   );
 }
@@ -1553,5 +1808,79 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
     modalCard: { width: "100%", borderRadius: 20, padding: 20, maxWidth: 480 },
     modalTitle: { fontSize: 17, fontWeight: "700" as const, color: colors.foreground, marginBottom: 14 },
     modalBtn: { borderRadius: 12, paddingVertical: 14, alignItems: "center", justifyContent: "center" },
+    quickActionBar: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      backgroundColor: colors.card,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    quickActionPill: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 6,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 20,
+    },
+    quickActionPrimary: {
+      backgroundColor: colors.primary,
+    },
+    quickActionPrimaryText: {
+      fontSize: 13,
+      fontWeight: "600" as const,
+      color: "#fff",
+    },
+    quickActionSecondary: {
+      backgroundColor: colors.muted,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    quickActionSecondaryText: {
+      fontSize: 13,
+      fontWeight: "600" as const,
+      color: colors.foreground,
+    },
+    decisionIconWrap: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: "rgba(255,255,255,0.25)",
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      marginRight: 14,
+    },
+    decisionIconWrapSm: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      backgroundColor: "rgba(255,255,255,0.22)",
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      marginBottom: 10,
+    },
+    decisionLabel: {
+      fontSize: 16,
+      fontWeight: "800" as const,
+      color: "#fff",
+    },
+    decisionSubtitle: {
+      fontSize: 12,
+      color: "rgba(255,255,255,0.8)",
+      marginTop: 2,
+    },
+    decisionLabelSm: {
+      fontSize: 14,
+      fontWeight: "700" as const,
+      color: "#fff",
+    },
+    decisionSubtitleSm: {
+      fontSize: 11,
+      color: "rgba(255,255,255,0.75)",
+      marginTop: 2,
+    },
   });
 }
