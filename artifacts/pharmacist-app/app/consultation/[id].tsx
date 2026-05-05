@@ -18,7 +18,7 @@ import {
   Modal,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useGetConsultation, useReviewConsultation, getGetConsultationQueryKey, ConsultationReviewInputAction } from "@workspace/api-client-react";
+import { useGetConsultation, getGetConsultationQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useColors } from "@/hooks/useColors";
 import { format, formatDistanceToNow } from "date-fns";
@@ -151,36 +151,19 @@ export default function ConsultationDetail() {
     query: { enabled: !!id, queryKey: getGetConsultationQueryKey(id ?? "") },
   });
 
-  const reviewMutation = useReviewConsultation({
-    mutation: {
-      onSuccess: (_data, variables) => {
-        queryClient.invalidateQueries({ queryKey: getGetConsultationQueryKey(id ?? "") });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setActionModal(null);
-        setSubmitting(false);
-        const action = variables?.data?.action as "approve" | "more_info" | "refer" | "reject";
-        const isApprove = action === "approve";
-        const domain = process.env.EXPO_PUBLIC_DOMAIN;
-        const pdfUrl = isApprove && id && domain
-          ? `https://${domain}/api/consultations/${id}/prescription.pdf`
-          : null;
-        setSuccessInfo({
-          action,
-          patientName: consultation?.patientName ?? "the patient",
-          pdfUrl,
-        });
-      },
-      onError: (err: unknown) => {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        const detail =
-          (err && typeof err === "object" && "message" in err && typeof (err as { message: unknown }).message === "string")
-            ? (err as { message: string }).message
-            : "Failed to submit review. Please try again.";
-        Alert.alert("Couldn't submit decision", detail);
-        setSubmitting(false);
-      },
-    },
-  });
+  async function callReviewApi(consultationId: string, data: Record<string, unknown>, _action: "approve" | "more_info" | "refer" | "reject") {
+    const base = getApiBase();
+    const res = await fetch(`${base}/api/consultations/${encodeURIComponent(consultationId)}/review`, {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error((errBody as { error?: string }).error || `HTTP ${res.status} : ${res.statusText}`);
+    }
+    return res.json();
+  }
 
   async function openPrescriptionPdf(url: string) {
     try {
@@ -407,8 +390,8 @@ export default function ConsultationDetail() {
     setActionModal(action);
   }
 
-  function submitAction(action: "approve" | "more_info" | "refer" | "reject") {
-    const data: any = { action };
+  async function submitAction(action: "approve" | "more_info" | "refer" | "reject") {
+    const data: Record<string, unknown> = { action };
     if (action === "approve") {
       data.pharmacistNote = note.trim() || undefined;
       data.prescriptionItems = prescriptionItems;
@@ -437,8 +420,33 @@ export default function ConsultationDetail() {
       data.rejectReason = rejectReason;
       data.pharmacistNote = rejectExplanation.trim();
     }
+
     setSubmitting(true);
-    reviewMutation.mutate({ id: id ?? "", data });
+    try {
+      await callReviewApi(id ?? "", data, action);
+      queryClient.invalidateQueries({ queryKey: getGetConsultationQueryKey(id ?? "") });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setActionModal(null);
+      setSubmitting(false);
+      const isApprove = action === "approve";
+      const domain = process.env.EXPO_PUBLIC_DOMAIN;
+      const pdfUrl = isApprove && id && domain
+        ? `https://${domain}/api/consultations/${id}/prescription.pdf`
+        : null;
+      setSuccessInfo({
+        action,
+        patientName: consultation?.patientName ?? "the patient",
+        pdfUrl,
+      });
+    } catch (err: unknown) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      const detail =
+        err && typeof err === "object" && "message" in err && typeof (err as { message: unknown }).message === "string"
+          ? (err as { message: string }).message
+          : "Failed to submit review. Please try again.";
+      Alert.alert("Couldn't submit decision", detail);
+      setSubmitting(false);
+    }
   }
 
   // Backwards compat: existing call-sites use handleReview
