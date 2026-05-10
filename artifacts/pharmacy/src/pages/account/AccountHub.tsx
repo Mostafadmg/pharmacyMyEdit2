@@ -130,7 +130,7 @@ export default function AccountHub() {
         </div>
 
         {/* Cards */}
-        <div className="space-y-3">
+        <div className="space-y-4 md:space-y-5">
           <AccountCard
             href="/my-orders"
             icon={Package}
