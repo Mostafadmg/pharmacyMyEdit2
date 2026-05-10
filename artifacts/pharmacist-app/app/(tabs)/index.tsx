@@ -18,20 +18,21 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useListConsultations, useGetDashboardStats } from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
 import { formatDistanceToNow } from "date-fns";
+import { BrandHeader, FONT, StatTile } from "@/components/Brand";
 
-const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; bar: string }> = {
-  pending: { label: "Awaiting Review", bg: "#FFF7ED", text: "#D97706", bar: "#F59E0B" },
-  red_flag: { label: "URGENT", bg: "#FFF1F2", text: "#EF4444", bar: "#EF4444" },
-  patient_responded: { label: "Patient Replied", bg: "#FFF3E0", text: "#E65100", bar: "#FF6D00" },
+const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string }> = {
+  pending: { label: "Awaiting review", bg: "#FFF7ED", text: "#B45309", dot: "#F59E0B" },
+  red_flag: { label: "Urgent", bg: "#FEF2F2", text: "#B91C1C", dot: "#EF4444" },
+  patient_responded: { label: "Patient replied", bg: "#FFF3E0", text: "#C2410C", dot: "#F97316" },
 };
 
 type FilterKey = "all" | "pending" | "urgent" | "replied";
 
-const FILTER_OPTIONS: { key: FilterKey; label: string; color: string }[] = [
-  { key: "all", label: "All Pending", color: "#0E2354" },
-  { key: "pending", label: "Standard", color: "#D97706" },
-  { key: "urgent", label: "Urgent", color: "#EF4444" },
-  { key: "replied", label: "Replied", color: "#E65100" },
+const FILTER_OPTIONS: { key: FilterKey; label: string }[] = [
+  { key: "all", label: "All pending" },
+  { key: "pending", label: "Standard" },
+  { key: "urgent", label: "Urgent" },
+  { key: "replied", label: "Replied" },
 ];
 
 export default function PendingScreen() {
@@ -81,56 +82,77 @@ export default function PendingScreen() {
   const urgentCount = pendingConsultations.filter(c => c.status === "red_flag").length;
   const standardCount = pendingConsultations.filter(c => c.status === "pending").length;
   const repliedCount = pendingConsultations.filter(c => c.status === "patient_responded").length;
+  const totalPending = pendingConsultations.length;
 
-  const nativeTabs = Platform.OS !== "web" && isLiquidGlassAvailable();
-  const topPad = Platform.OS === "web" ? 67 : nativeTabs ? insets.top + 8 : 0;
   const styles = makeStyles(colors);
+  const nativeTabs = Platform.OS !== "web" && isLiquidGlassAvailable();
+  const topPad = Platform.OS === "web" ? 12 : nativeTabs ? insets.top + 8 : insets.top + 4;
 
   if (isLoading) {
     return (
       <View style={[styles.container, styles.center, { paddingTop: topPad }]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading queue...</Text>
+        <Text style={styles.loadingText}>Loading queue…</Text>
       </View>
     );
   }
 
+  const subtitle =
+    totalPending === 0
+      ? "All caught up — no patients waiting."
+      : `${totalPending} patient${totalPending === 1 ? "" : "s"} waiting for a prescriber.`;
+
   const ListHeader = (
     <View>
-      {/* Stats row */}
+      <BrandHeader
+        title="Today's queue,"
+        accent="ready for you."
+        subtitle={subtitle}
+        style={{ paddingHorizontal: 16, paddingBottom: 4 }}
+      />
+
       <View style={styles.statsRow}>
-        <StatChip icon="clock" value={standardCount} label="Standard" color="#D97706" bg="#FFF7ED" />
-        <StatChip icon="alert-triangle" value={urgentCount} label="Urgent" color="#EF4444" bg="#FFF1F2" />
-        <StatChip icon="message-square" value={repliedCount} label="Replied" color="#E65100" bg="#FFF3E0" />
-        <StatChip icon="check-circle" value={stats?.approvedToday ?? 0} label="Today" color="#16A34A" bg="#F0FDF4" />
+        <StatTile icon="clock" value={standardCount} label="Standard" tint="#B45309" tintBg="#FEF3C7" />
+        <StatTile icon="alert-triangle" value={urgentCount} label="Urgent" tint="#B91C1C" tintBg="#FEE2E2" />
+        <StatTile icon="message-square" value={repliedCount} label="Replied" tint="#C2410C" tintBg="#FFEDD5" />
+        <StatTile icon="check-circle" value={stats?.approvedToday ?? 0} label="Today" tint="#15803D" tintBg="#DCFCE7" />
       </View>
 
-      {/* Filter pills */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterContent}>
-        {FILTER_OPTIONS.map(opt => (
-          <Pressable
-            key={opt.key}
-            onPress={() => setFilter(opt.key)}
-            style={[
-              styles.filterPill,
-              filter === opt.key && { backgroundColor: opt.color, borderColor: opt.color },
-            ]}
-          >
-            <Text style={[styles.filterText, filter === opt.key && { color: "#fff" }]}>
-              {opt.label}
-              {opt.key === "all" ? ` (${pendingConsultations.length})` :
-               opt.key === "urgent" ? ` (${urgentCount})` :
-               opt.key === "replied" ? ` (${repliedCount})` :
-               ` (${standardCount})`}
-            </Text>
-          </Pressable>
-        ))}
+        {FILTER_OPTIONS.map(opt => {
+          const count =
+            opt.key === "all" ? totalPending :
+            opt.key === "urgent" ? urgentCount :
+            opt.key === "replied" ? repliedCount :
+            standardCount;
+          const active = filter === opt.key;
+          return (
+            <Pressable
+              key={opt.key}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setFilter(opt.key);
+              }}
+              style={[
+                styles.filterPill,
+                active && { backgroundColor: colors.secondary, borderColor: colors.secondary },
+              ]}
+            >
+              <Text style={[styles.filterText, active && { color: "#FFFFFF" }]}>
+                {opt.label}
+              </Text>
+              <View style={[styles.filterCount, active && styles.filterCountActive]}>
+                <Text style={[styles.filterCountText, active && { color: colors.secondary }]}>{count}</Text>
+              </View>
+            </Pressable>
+          );
+        })}
       </ScrollView>
     </View>
   );
 
   return (
-    <View style={[styles.container, { paddingTop: topPad }]}>
+    <View style={styles.container}>
       <FlatList
         data={sorted}
         keyExtractor={item => item.id}
@@ -150,7 +172,7 @@ export default function PendingScreen() {
         ListEmptyComponent={() => (
           <View style={styles.emptyWrap}>
             <View style={styles.emptyIcon}>
-              <Feather name="inbox" size={32} color={colors.mutedForeground} />
+              <Feather name="inbox" size={32} color={colors.primary} />
             </View>
             <Text style={styles.emptyTitle}>All clear</Text>
             <Text style={styles.emptySubtitle}>No pending consultations right now</Text>
@@ -159,16 +181,13 @@ export default function PendingScreen() {
         renderItem={({ item }) => {
           const sc = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.pending;
           const isUrgent = item.status === "red_flag";
-          const initials = item.patientName.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
-
           const isReplied = item.status === "patient_responded";
+          const initials = item.patientName.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
 
           return (
             <Pressable
               style={({ pressed }) => [
                 styles.card,
-                isUrgent && styles.urgentCard,
-                isReplied && styles.repliedCard,
                 pressed && styles.cardPressed,
               ]}
               onPress={() => {
@@ -176,16 +195,30 @@ export default function PendingScreen() {
                 router.push(`/consultation/${item.id}`);
               }}
             >
-              {/* Color bar */}
-              <View style={[styles.colorBar, { backgroundColor: sc.bar }]} />
-
-              <View style={{ position: "relative", marginLeft: 12, marginRight: 10, flexShrink: 0 }}>
-                <View style={[styles.avatar, { backgroundColor: isUrgent ? "#EF4444" : isReplied ? "#E65100" : colors.primary, marginLeft: 0, marginRight: 0 }]}>
-                  <Text style={styles.avatarText}>{initials}</Text>
+              <View style={styles.cardLeft}>
+                <View
+                  style={[
+                    styles.avatar,
+                    {
+                      backgroundColor: isUrgent
+                        ? "#FEE2E2"
+                        : isReplied
+                          ? "#FFEDD5"
+                          : "#E6F4F2",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.avatarText,
+                      { color: isUrgent ? "#B91C1C" : isReplied ? "#C2410C" : colors.primary },
+                    ]}
+                  >
+                    {initials}
+                  </Text>
                 </View>
-                {isReplied && (
-                  <View style={styles.notifDot} />
-                )}
+                {isReplied && <View style={styles.notifDot} />}
+                {isUrgent && <View style={[styles.notifDot, { backgroundColor: "#EF4444" }]} />}
               </View>
 
               <View style={styles.cardBody}>
@@ -198,21 +231,21 @@ export default function PendingScreen() {
                 <Text style={styles.conditionName} numberOfLines={1}>{item.conditionName}</Text>
                 <View style={styles.cardBottom}>
                   <View style={[styles.statusBadge, { backgroundColor: sc.bg }]}>
-                    {isUrgent && <Feather name="alert-triangle" size={9} color={sc.text} style={{ marginRight: 3 }} />}
+                    <View style={[styles.statusDot, { backgroundColor: sc.dot }]} />
                     <Text style={[styles.statusText, { color: sc.text }]}>{sc.label}</Text>
                   </View>
                   {item.hasPhoto && (
-                    <View style={styles.photoBadge}>
-                      <Feather name="camera" size={9} color={colors.primary} />
+                    <View style={styles.metaChip}>
+                      <Feather name="camera" size={10} color={colors.primary} />
                     </View>
                   )}
                   {item.hasRedFlag && !isUrgent && (
-                    <View style={[styles.photoBadge, { backgroundColor: "#FFF1F2" }]}>
-                      <Feather name="flag" size={9} color="#EF4444" />
+                    <View style={[styles.metaChip, { backgroundColor: "#FEE2E2" }]}>
+                      <Feather name="flag" size={10} color="#EF4444" />
                     </View>
                   )}
                   <View style={{ flex: 1 }} />
-                  <Feather name="chevron-right" size={15} color={colors.mutedForeground} />
+                  <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
                 </View>
               </View>
             </Pressable>
@@ -223,92 +256,128 @@ export default function PendingScreen() {
   );
 }
 
-function StatChip({ icon, value, label, color, bg }: { icon: string; value: number; label: string; color: string; bg: string }) {
-  return (
-    <View style={{ flex: 1, backgroundColor: bg, borderRadius: 14, padding: 10, alignItems: "center" }}>
-      <Feather name={icon as any} size={14} color={color} />
-      <Text style={{ fontSize: 20, fontWeight: "800" as const, color, marginTop: 3 }}>{value}</Text>
-      <Text style={{ fontSize: 9, color, marginTop: 1, fontWeight: "600" as const, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</Text>
-    </View>
-  );
-}
-
 function makeStyles(colors: ReturnType<typeof useColors>) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     center: { alignItems: "center", justifyContent: "center" },
-    loadingText: { marginTop: 12, color: colors.mutedForeground, fontSize: 14 },
-    statsRow: { flexDirection: "row", gap: 8, marginBottom: 12 },
-    filterScroll: { marginBottom: 14 },
-    filterContent: { gap: 8, paddingRight: 4 },
+    loadingText: { marginTop: 12, color: colors.mutedForeground, fontSize: 14, fontFamily: FONT.body },
+    statsRow: {
+      flexDirection: "row",
+      gap: 10,
+      marginTop: 14,
+      marginBottom: 16,
+      paddingHorizontal: 16,
+    },
+    filterScroll: { marginBottom: 6 },
+    filterContent: { gap: 8, paddingHorizontal: 16, paddingRight: 24 },
     filterPill: {
-      paddingHorizontal: 14,
-      paddingVertical: 7,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      minHeight: 44,
       borderRadius: 999,
-      borderWidth: 1.5,
+      borderWidth: 1,
       borderColor: colors.border,
-      backgroundColor: colors.card,
+      backgroundColor: "#FFFFFF",
     },
     filterText: {
-      fontSize: 12,
-      fontWeight: "600" as const,
+      fontSize: 13,
+      fontFamily: FONT.bodySemibold,
       color: colors.secondary,
     },
-    listContent: { padding: 16 },
+    filterCount: {
+      minWidth: 22,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 999,
+      backgroundColor: colors.muted,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    filterCountActive: {
+      backgroundColor: "#FFFFFF",
+    },
+    filterCountText: {
+      fontSize: 11,
+      fontFamily: FONT.bodyBold,
+      color: colors.mutedForeground,
+    },
+    listContent: { paddingTop: 6, paddingHorizontal: 0 },
     card: {
       flexDirection: "row",
-      backgroundColor: colors.card,
-      borderRadius: 16,
-      marginBottom: 10,
+      backgroundColor: "#FFFFFF",
+      borderRadius: 18,
+      marginHorizontal: 16,
+      marginBottom: 12,
       borderWidth: 1,
       borderColor: colors.border,
       alignItems: "center",
-      overflow: "hidden",
+      paddingVertical: 14,
+      paddingHorizontal: 14,
+      ...Platform.select({
+        ios: {
+          shadowColor: "#0E2354",
+          shadowOpacity: 0.05,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 4 },
+        },
+        android: { elevation: 1 },
+        default: { boxShadow: "0 4px 12px rgba(14, 35, 84, 0.05)" } as object,
+      }),
     },
-    urgentCard: {
-      borderColor: "#FCA5A5",
-      backgroundColor: "#FFFAFA",
+    cardPressed: { opacity: 0.85, transform: [{ scale: 0.995 }] },
+    cardLeft: {
+      position: "relative",
+      marginRight: 12,
     },
-    repliedCard: {
-      borderColor: "#FFCCBC",
-      backgroundColor: "#FFF8F5",
+    avatar: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: "center",
+      justifyContent: "center",
     },
+    avatarText: { fontFamily: FONT.bodyBold, fontSize: 15, letterSpacing: -0.2 },
     notifDot: {
       position: "absolute",
       top: -2,
       right: -2,
-      width: 13,
-      height: 13,
-      borderRadius: 7,
-      backgroundColor: "#EF4444",
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: "#F97316",
       borderWidth: 2,
-      borderColor: "#fff",
+      borderColor: "#FFFFFF",
     },
-    cardPressed: { opacity: 0.78 },
-    colorBar: { width: 4, alignSelf: "stretch", borderRadius: 0 },
-    avatar: {
-      width: 42,
-      height: 42,
-      borderRadius: 21,
-      alignItems: "center",
-      justifyContent: "center",
-      marginLeft: 12,
-      marginRight: 10,
-      flexShrink: 0,
-    },
-    avatarText: { color: "#fff", fontWeight: "800" as const, fontSize: 17 },
-    cardBody: { flex: 1, paddingVertical: 12, paddingRight: 12 },
+    cardBody: { flex: 1 },
     cardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-    patientName: { fontSize: 14, fontWeight: "700" as const, color: colors.secondary, flex: 1 },
-    timeAgo: { fontSize: 10, color: colors.mutedForeground, marginLeft: 4 },
-    conditionName: { fontSize: 12, color: colors.mutedForeground, marginTop: 2, marginBottom: 7 },
-    cardBottom: { flexDirection: "row", alignItems: "center", gap: 5 },
-    statusBadge: { flexDirection: "row", alignItems: "center", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
-    photoBadge: { flexDirection: "row", alignItems: "center", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: "#ECFDF5" },
-    statusText: { fontSize: 10, fontWeight: "600" as const },
-    emptyWrap: { alignItems: "center", justifyContent: "center", paddingTop: 80, gap: 12 },
-    emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.muted, alignItems: "center", justifyContent: "center" },
-    emptyTitle: { fontSize: 18, fontWeight: "700" as const, color: colors.secondary, marginTop: 4 },
-    emptySubtitle: { fontSize: 13, color: colors.mutedForeground, textAlign: "center", paddingHorizontal: 32 },
+    patientName: { fontSize: 15, fontFamily: FONT.bodyBold, color: colors.secondary, flex: 1, letterSpacing: -0.2 },
+    timeAgo: { fontSize: 11, color: colors.mutedForeground, marginLeft: 6, fontFamily: FONT.body },
+    conditionName: { fontSize: 12.5, color: colors.mutedForeground, marginTop: 2, marginBottom: 8, fontFamily: FONT.body },
+    cardBottom: { flexDirection: "row", alignItems: "center", gap: 6 },
+    statusBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      borderRadius: 999,
+      paddingHorizontal: 9,
+      paddingVertical: 4,
+    },
+    statusDot: { width: 6, height: 6, borderRadius: 3 },
+    statusText: { fontSize: 10.5, fontFamily: FONT.bodySemibold, letterSpacing: 0.1 },
+    metaChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderRadius: 999,
+      paddingHorizontal: 6,
+      paddingVertical: 4,
+      backgroundColor: "#E6F4F2",
+    },
+    emptyWrap: { alignItems: "center", justifyContent: "center", paddingTop: 60, gap: 12 },
+    emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#E6F4F2", alignItems: "center", justifyContent: "center" },
+    emptyTitle: { fontSize: 18, fontFamily: FONT.displayExtra, color: colors.secondary, marginTop: 4 },
+    emptySubtitle: { fontSize: 13, color: colors.mutedForeground, textAlign: "center", paddingHorizontal: 32, fontFamily: FONT.body },
   });
 }

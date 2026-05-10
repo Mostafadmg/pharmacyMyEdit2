@@ -98,8 +98,8 @@ function ClassicTabLayout() {
         headerShown: true,
         headerStyle: { backgroundColor: "#FFFFFF" },
         headerTintColor: "#0E2354",
-        headerTitleStyle: { fontWeight: "700" },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: "600" },
+        headerTitleStyle: { fontFamily: "PlusJakartaSans_700Bold", fontSize: 18, color: "#0E2354" },
+        tabBarLabelStyle: { fontSize: 10, fontFamily: "PlusJakartaSans_600SemiBold" },
         tabBarStyle: {
           position: "absolute",
           backgroundColor: isIOS ? "transparent" : colors.background,
@@ -129,6 +129,7 @@ function ClassicTabLayout() {
         name="index"
         options={{
           title: "Pending",
+          headerShown: false,
           tabBarIcon: ({ color }) =>
             isIOS ? (
               <SymbolView name="clock" tintColor={color} size={24} />

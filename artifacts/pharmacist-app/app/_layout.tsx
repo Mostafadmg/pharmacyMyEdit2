@@ -5,10 +5,18 @@ import {
   Inter_700Bold,
   useFonts,
 } from "@expo-google-fonts/inter";
+import {
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from "@expo-google-fonts/plus-jakarta-sans";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
+import { Text as RNText, TextInput as RNTextInput } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider, KeyboardToolbar } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -47,7 +55,7 @@ function RootLayoutNav() {
           title: "Consultation",
           headerStyle: { backgroundColor: "#FFFFFF" },
           headerTintColor: "#0E2354",
-          headerTitleStyle: { fontWeight: "700" },
+          headerTitleStyle: { fontFamily: "PlusJakartaSans_700Bold" },
         }}
       />
       <Stack.Screen
@@ -56,7 +64,7 @@ function RootLayoutNav() {
           title: "Patient Profile",
           headerStyle: { backgroundColor: "#FFFFFF" },
           headerTintColor: "#0E2354",
-          headerTitleStyle: { fontWeight: "700" },
+          headerTitleStyle: { fontFamily: "PlusJakartaSans_700Bold" },
         }}
       />
       <Stack.Screen
@@ -65,7 +73,7 @@ function RootLayoutNav() {
           title: "Messages",
           headerStyle: { backgroundColor: "#FFFFFF" },
           headerTintColor: "#0E2354",
-          headerTitleStyle: { fontWeight: "700" },
+          headerTitleStyle: { fontFamily: "PlusJakartaSans_700Bold" },
           headerShown: false,
         }}
       />
@@ -79,10 +87,30 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
   });
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
+      // Apply Plus Jakarta Sans as the global default font, matching the
+      // patient web (which uses --font-sans: 'Plus Jakarta Sans').
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const TextAny = RNText as any;
+      const TextInputAny = RNTextInput as any;
+      TextAny.defaultProps = TextAny.defaultProps || {};
+      TextAny.defaultProps.style = [
+        { fontFamily: "PlusJakartaSans_400Regular" },
+        TextAny.defaultProps.style,
+      ];
+      TextInputAny.defaultProps = TextInputAny.defaultProps || {};
+      TextInputAny.defaultProps.style = [
+        { fontFamily: "PlusJakartaSans_400Regular" },
+        TextInputAny.defaultProps.style,
+      ];
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
