@@ -250,6 +250,122 @@ function buildEmailHtml(data: ConsultationEmailData): string {
 </html>`;
 }
 
+interface DispatchEmailData {
+  patientName: string;
+  patientEmail: string;
+  orderNumber: string;
+  orderId: string;
+  carrier: string;
+  trackingNumber: string;
+  trackingUrl: string;
+  estimatedDelivery: Date | string | null;
+  shippingAddress: { line1: string; line2?: string | null; city: string; postcode: string };
+}
+
+function buildDispatchHtml(d: DispatchEmailData): string {
+  const appUrl = process.env.APP_URL || "https://pharmacare.replit.app";
+  const eta = d.estimatedDelivery
+    ? new Date(d.estimatedDelivery).toLocaleDateString("en-GB", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      })
+    : "within 1–2 working days";
+  const fullTrackingUrl = d.trackingUrl.startsWith("http")
+    ? d.trackingUrl
+    : `${appUrl}${d.trackingUrl}`;
+  const internalUrl = `${appUrl}/track-order/${d.orderId}`;
+
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>Your PharmaCare order is on its way</title></head>
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#F0F4F8;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F0F4F8;padding:40px 20px;"><tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+  <tr><td style="background:linear-gradient(135deg,#0F3460,#0A7EA4);border-radius:16px 16px 0 0;padding:36px 48px;text-align:center;color:#fff;">
+    <div style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:50%;width:56px;height:56px;line-height:56px;font-size:28px;margin-bottom:14px;">🚚</div>
+    <h1 style="margin:0;font-size:26px;font-weight:800;">Your order is on its way</h1>
+    <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:13px;letter-spacing:1px;text-transform:uppercase;">Order ${d.orderNumber}</p>
+  </td></tr>
+  <tr><td style="background:#fff;padding:36px 48px;border-left:1px solid #E2E8F0;border-right:1px solid #E2E8F0;">
+    <p style="margin:0 0 20px;font-size:16px;color:#1A202C;">Hi <strong>${d.patientName}</strong>,</p>
+    <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#4A5568;">
+      Good news — your PharmaCare order has just been dispatched and is now with our delivery partner. You can track it in real time using the link below.
+    </p>
+    <div style="background:#F7FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:20px;margin-bottom:24px;">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr><td style="padding:6px 0;color:#718096;font-size:13px;">Carrier</td>
+            <td style="padding:6px 0;text-align:right;color:#2D3748;font-weight:600;font-size:14px;">${d.carrier}</td></tr>
+        <tr><td style="padding:6px 0;color:#718096;font-size:13px;border-top:1px solid #EDF2F7;">Tracking number</td>
+            <td style="padding:6px 0;text-align:right;color:#2D3748;font-weight:600;font-size:13px;font-family:monospace;border-top:1px solid #EDF2F7;">${d.trackingNumber}</td></tr>
+        <tr><td style="padding:6px 0;color:#718096;font-size:13px;border-top:1px solid #EDF2F7;">Estimated delivery</td>
+            <td style="padding:6px 0;text-align:right;color:#2D3748;font-weight:600;font-size:14px;border-top:1px solid #EDF2F7;">${eta}</td></tr>
+      </table>
+    </div>
+    <div style="text-align:center;margin:28px 0;">
+      <a href="${fullTrackingUrl}" style="display:inline-block;background:linear-gradient(135deg,#0F3460,#0A7EA4);color:#fff;text-decoration:none;padding:14px 32px;border-radius:999px;font-weight:700;font-size:15px;">Track my delivery →</a>
+      <p style="margin:14px 0 0;font-size:12px;color:#A0AEC0;">Or view full order details: <a href="${internalUrl}" style="color:#0A7EA4;">${internalUrl}</a></p>
+    </div>
+    <div style="border-top:1px solid #EDF2F7;padding-top:20px;font-size:13px;color:#718096;line-height:1.6;">
+      <strong style="color:#2D3748;">Delivering to</strong><br>
+      ${d.shippingAddress.line1}${d.shippingAddress.line2 ? `, ${d.shippingAddress.line2}` : ""}<br>
+      ${d.shippingAddress.city}, ${d.shippingAddress.postcode}
+    </div>
+  </td></tr>
+  <tr><td style="background:#FFFBEB;border:1px solid #FDE68A;border-left:1px solid #E2E8F0;border-right:1px solid #E2E8F0;padding:18px 48px;font-size:13px;color:#92400E;line-height:1.6;">
+    <strong>Need help?</strong> Reply to this email or message your pharmacist via your PharmaCare account. For medical emergencies, call <strong>999</strong> or NHS 111.
+  </td></tr>
+  <tr><td style="background:#F7FAFC;border:1px solid #E2E8F0;border-top:0;border-radius:0 0 16px 16px;padding:24px 48px;text-align:center;font-size:12px;color:#718096;">
+    PharmaCare Ltd · Registered with the GPhC<br>
+    <a href="${appUrl}/my-orders" style="color:#0A7EA4;">Manage your orders</a>
+  </td></tr>
+</table></td></tr></table></body></html>`;
+}
+
+export async function sendDispatchEmail(d: DispatchEmailData): Promise<void> {
+  const appUrl = process.env.APP_URL || "https://pharmacare.replit.app";
+  const fullTrackingUrl = d.trackingUrl.startsWith("http") ? d.trackingUrl : `${appUrl}${d.trackingUrl}`;
+  const html = buildDispatchHtml(d);
+  const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@pharmacare.co.uk";
+  const subject = `📦 Your PharmaCare order ${d.orderNumber} has been dispatched`;
+  const text = `Hi ${d.patientName},\n\nYour PharmaCare order ${d.orderNumber} has been dispatched.\n\nCarrier: ${d.carrier}\nTracking number: ${d.trackingNumber}\nTrack your delivery: ${fullTrackingUrl}\n\nFull order details: ${appUrl}/track-order/${d.orderId}\n\nPharmaCare Team`;
+
+  if (process.env.RESEND_API_KEY) {
+    await sendViaResend({
+      from: `PharmaCare <${fromAddress}>`,
+      to: d.patientEmail,
+      subject,
+      html,
+      text,
+    });
+    console.log(`📧 [Resend] Dispatch email sent to ${d.patientEmail} for order ${d.orderNumber}`);
+    return;
+  }
+
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || "587"),
+      secure: process.env.SMTP_SECURE === "true",
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    });
+    await transporter.sendMail({
+      from: `"PharmaCare" <${fromAddress}>`,
+      to: d.patientEmail,
+      subject,
+      html,
+      text,
+    });
+    console.log(`📧 [SMTP] Dispatch email sent to ${d.patientEmail} for order ${d.orderNumber}`);
+    return;
+  }
+
+  console.log(`\n📧 [DISPATCH EMAIL NOT SENT — no provider configured]
+  To:       ${d.patientEmail}
+  Subject:  ${subject}
+  Tracking: ${d.carrier} ${d.trackingNumber}
+  URL:      ${fullTrackingUrl}\n`);
+}
+
 export async function sendConsultationOutcomeEmail(data: ConsultationEmailData): Promise<void> {
   const { patientEmail, patientName, conditionName, status, consultationId } = data;
   const statusInfo = getStatusInfo(status);

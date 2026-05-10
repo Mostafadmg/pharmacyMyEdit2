@@ -1,9 +1,11 @@
 import { Router, type IRouter } from "express";
-import { db, productsTable, ordersTable, orderItemsTable, deliveriesTable, patientAccountsTable } from "@workspace/db";
+import { db, productsTable, ordersTable, orderItemsTable, deliveriesTable, patientAccountsTable, notificationsTable } from "@workspace/db";
 import { eq, desc, inArray, and, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { decodeBearerId, requirePharmacist } from "../middlewares/auth";
 import { isStripeEnabled } from "../lib/stripe";
+import { buildTrackingUrl, getCarrierLabel } from "../utils/carriers";
+import { sendDispatchEmail } from "../utils/email";
 
 const router: IRouter = Router();
 
@@ -154,12 +156,14 @@ router.post("/orders", async (req, res): Promise<void> => {
 
   // Create delivery
   const trackingNumber = generateTrackingNumber();
+  const carrier = "PharmaCare Express";
   const eta = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
   await db.insert(deliveriesTable).values({
     id: randomUUID(),
     orderId,
-    carrier: "PharmaCare Express",
+    carrier,
     trackingNumber,
+    trackingUrl: buildTrackingUrl(carrier, trackingNumber, null, orderId),
     status: "preparing",
     estimatedDelivery: eta,
     events: [
@@ -229,7 +233,34 @@ router.get("/orders", async (req, res): Promise<void> => {
     .from(ordersTable)
     .where(eq(ordersTable.customerEmail, patient.email.toLowerCase()))
     .orderBy(desc(ordersTable.createdAt));
-  res.json({ orders });
+
+  if (orders.length === 0) {
+    res.json({ orders: [] });
+    return;
+  }
+  const deliveries = await db
+    .select()
+    .from(deliveriesTable)
+    .where(inArray(deliveriesTable.orderId, orders.map(o => o.id)));
+  const dByOrder = new Map(deliveries.map(d => [d.orderId, d]));
+  const enriched = orders.map(o => {
+    const d = dByOrder.get(o.id);
+    return {
+      ...o,
+      delivery: d
+        ? {
+            carrier: d.carrier,
+            trackingNumber: d.trackingNumber,
+            trackingUrl: d.trackingUrl ?? buildTrackingUrl(d.carrier, d.trackingNumber, null, d.orderId),
+            status: d.status,
+            estimatedDelivery: d.estimatedDelivery,
+            shippedAt: d.shippedAt,
+            deliveredAt: d.deliveredAt,
+          }
+        : null,
+    };
+  });
+  res.json({ orders: enriched });
 });
 
 router.get("/orders/:id", async (req, res): Promise<void> => {
@@ -265,7 +296,14 @@ router.get("/orders/:id", async (req, res): Promise<void> => {
 
 router.patch("/admin/orders/:id/status", requirePharmacist, async (req, res): Promise<void> => {
   const id = req.params.id;
-  const b = req.body as { status?: string; deliveryStatus?: string; deliveryMessage?: string };
+  const b = req.body as {
+    status?: string;
+    deliveryStatus?: string;
+    deliveryMessage?: string;
+    carrier?: string;
+    trackingNumber?: string;
+    trackingUrl?: string;
+  };
 
   let order;
   if (b.status) {
@@ -278,20 +316,109 @@ router.patch("/admin/orders/:id/status", requirePharmacist, async (req, res): Pr
     return;
   }
 
-  if (b.deliveryStatus) {
+  let dispatchPayload: {
+    carrier: string;
+    trackingNumber: string;
+    trackingUrl: string;
+    estimatedDelivery: Date | null;
+  } | null = null;
+
+  const wantsDeliveryWrite =
+    b.deliveryStatus !== undefined ||
+    b.carrier !== undefined ||
+    b.trackingNumber !== undefined ||
+    b.trackingUrl !== undefined;
+
+  if (wantsDeliveryWrite) {
     const [existingDelivery] = await db.select().from(deliveriesTable).where(eq(deliveriesTable.orderId, id)).limit(1);
     if (existingDelivery) {
-      const newEvent = {
-        ts: new Date().toISOString(),
-        status: b.deliveryStatus,
-        message: b.deliveryMessage || `Status updated to ${b.deliveryStatus}`,
-      };
-      const events = Array.isArray(existingDelivery.events) ? [...existingDelivery.events as unknown[], newEvent] : [newEvent];
-      const patch: Record<string, unknown> = { status: b.deliveryStatus, events, lastSyncedAt: new Date() };
-      if (b.deliveryStatus === "shipped" && !existingDelivery.shippedAt) patch.shippedAt = new Date();
-      if (b.deliveryStatus === "delivered") patch.deliveredAt = new Date();
+      const patch: Record<string, unknown> = { lastSyncedAt: new Date() };
+
+      const newCarrier = b.carrier?.trim() ? getCarrierLabel(b.carrier.trim()) : existingDelivery.carrier;
+      const newTrackingNumber = b.trackingNumber?.trim() || existingDelivery.trackingNumber;
+      const explicitUrl = b.trackingUrl?.trim();
+
+      if (b.carrier !== undefined) patch.carrier = newCarrier;
+      if (b.trackingNumber !== undefined) patch.trackingNumber = newTrackingNumber;
+      if (
+        b.carrier !== undefined ||
+        b.trackingNumber !== undefined ||
+        b.trackingUrl !== undefined
+      ) {
+        patch.trackingUrl = buildTrackingUrl(newCarrier, newTrackingNumber, explicitUrl ?? null, id);
+      }
+
+      const wasShipped = !!existingDelivery.shippedAt;
+      const isBecomingShipped = b.deliveryStatus === "shipped" && !wasShipped;
+
+      if (b.deliveryStatus) {
+        const newEvent = {
+          ts: new Date().toISOString(),
+          status: b.deliveryStatus,
+          message: b.deliveryMessage || `Status updated to ${b.deliveryStatus}`,
+        };
+        const events = Array.isArray(existingDelivery.events)
+          ? [...(existingDelivery.events as unknown[]), newEvent]
+          : [newEvent];
+        patch.status = b.deliveryStatus;
+        patch.events = events;
+        if (isBecomingShipped) patch.shippedAt = new Date();
+        if (b.deliveryStatus === "delivered") patch.deliveredAt = new Date();
+      }
+
       await db.update(deliveriesTable).set(patch).where(eq(deliveriesTable.orderId, id));
+
+      if (isBecomingShipped) {
+        dispatchPayload = {
+          carrier: newCarrier,
+          trackingNumber: newTrackingNumber,
+          trackingUrl: (patch.trackingUrl as string | undefined)
+            ?? existingDelivery.trackingUrl
+            ?? buildTrackingUrl(newCarrier, newTrackingNumber, null, id),
+          estimatedDelivery: existingDelivery.estimatedDelivery ?? null,
+        };
+      }
     }
+  }
+
+  if (dispatchPayload) {
+    // In-app notification for the patient (notification bell)
+    try {
+      await db.insert(notificationsTable).values({
+        id: randomUUID(),
+        recipientType: "patient",
+        recipientKey: order.customerEmail.toLowerCase(),
+        category: "order",
+        title: `Order ${order.orderNumber} dispatched`,
+        body: `Your order is on its way with ${dispatchPayload.carrier}. Tap to track delivery.`,
+        link: `/track-order/${order.id}`,
+        orderId: order.id,
+        read: false,
+      });
+    } catch (err) {
+      req.log?.error?.({ err }, "Failed to insert dispatch notification");
+    }
+
+    // Async transactional email — don't block response
+    const addr = order.shippingAddress as {
+      line1?: string; line2?: string | null; city?: string; postcode?: string;
+    } | null;
+    sendDispatchEmail({
+      patientName: order.customerName,
+      patientEmail: order.customerEmail,
+      orderNumber: order.orderNumber,
+      orderId: order.id,
+      carrier: dispatchPayload.carrier,
+      trackingNumber: dispatchPayload.trackingNumber,
+      trackingUrl: dispatchPayload.trackingUrl,
+      estimatedDelivery: dispatchPayload.estimatedDelivery,
+      shippingAddress: {
+        line1: addr?.line1 ?? "",
+        line2: addr?.line2 ?? null,
+        city: addr?.city ?? "",
+        postcode: addr?.postcode ?? "",
+      },
+    }).catch((err) => req.log?.error?.({ err }, "Dispatch email send failed"));
   }
 
   res.json({ order });

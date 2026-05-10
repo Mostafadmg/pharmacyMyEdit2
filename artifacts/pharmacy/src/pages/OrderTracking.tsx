@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useRoute } from "wouter";
-import { ArrowLeft, Package, Truck, Check, MapPin, Clock, Pill, FileText } from "lucide-react";
+import { ArrowLeft, Package, Truck, Check, MapPin, Clock, Pill, FileText, ExternalLink } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +20,7 @@ type Order = {
 type Item = { id: string; productName: string; quantity: number; unitPriceGbp: number; lineTotalGbp: number; imageUrl: string | null };
 type Delivery = {
   carrier: string; trackingNumber: string; status: string;
+  trackingUrl: string | null;
   estimatedDelivery: string | null;
   events: Array<{ ts: string; status: string; message: string }>;
 };
@@ -86,9 +87,22 @@ export default function OrderTracking() {
                 <CardContent className="p-6">
                   <div className="flex items-baseline justify-between flex-wrap gap-2 mb-6">
                     <h2 className="font-serif text-xl font-bold">Delivery progress</h2>
-                    <span className="text-sm text-muted-foreground">
-                      Tracking <span className="font-mono">{data.delivery.trackingNumber}</span> · {data.delivery.carrier}
-                    </span>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="text-sm text-muted-foreground">
+                        Tracking <span className="font-mono">{data.delivery.trackingNumber}</span> · {data.delivery.carrier}
+                      </span>
+                      {data.delivery.trackingUrl && (data.delivery.status === "shipped" || data.delivery.status === "out_for_delivery") && (
+                        <a
+                          href={data.delivery.trackingUrl}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-white text-xs font-bold hover:opacity-90"
+                          data-testid="link-carrier-tracking"
+                        >
+                          <Truck className="w-3.5 h-3.5" /> Track on {data.delivery.carrier} <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between mb-2 relative">

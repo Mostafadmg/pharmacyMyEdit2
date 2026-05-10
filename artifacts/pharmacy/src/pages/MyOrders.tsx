@@ -26,6 +26,14 @@ type Order = {
   prescriptionItems: Array<{ name: string; strength: string; form: string }> | null;
   shippingAddress?: { line1?: string; line2?: string; city?: string; postcode?: string } | null;
   createdAt: string;
+  delivery: {
+    carrier: string;
+    trackingNumber: string;
+    trackingUrl: string | null;
+    status: string;
+    estimatedDelivery: string | null;
+    shippedAt: string | null;
+  } | null;
 };
 
 // ── Timeline definition ───────────────────────────────────────────────────────

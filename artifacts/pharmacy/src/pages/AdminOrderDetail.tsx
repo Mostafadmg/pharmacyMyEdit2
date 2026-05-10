@@ -37,10 +37,13 @@ type Order = {
 };
 type Delivery = {
   carrier: string; trackingNumber: string;
+  trackingUrl: string | null;
   status: string;
   estimatedDelivery: string | null;
   events: Array<{ ts: string; status: string; message: string }>;
 };
+
+const CARRIER_PRESETS = ["PharmaCare Express", "Royal Mail", "DPD", "Evri"];
 
 const ORDER_STATUSES = ["pending_payment", "paid", "preparing", "shipped", "delivered", "cancelled", "refunded"];
 const DELIVERY_STAGES = ["preparing", "shipped", "out_for_delivery", "delivered"];
@@ -52,6 +55,9 @@ export default function AdminOrderDetail() {
   const [saving, setSaving] = useState(false);
   const [deliveryStage, setDeliveryStage] = useState("");
   const [deliveryMsg, setDeliveryMsg] = useState("");
+  const [carrierDraft, setCarrierDraft] = useState("");
+  const [trackingNumberDraft, setTrackingNumberDraft] = useState("");
+  const [trackingUrlDraft, setTrackingUrlDraft] = useState("");
 
   const [editingAddress, setEditingAddress] = useState(false);
   const [addressDraft, setAddressDraft] = useState<Address & { customerName: string; customerEmail: string; customerPhone: string }>({
@@ -72,6 +78,9 @@ export default function AdminOrderDetail() {
       .then(d => {
         setData(d);
         setDeliveryStage(d.delivery?.status ?? "");
+        setCarrierDraft(d.delivery?.carrier ?? "");
+        setTrackingNumberDraft(d.delivery?.trackingNumber ?? "");
+        setTrackingUrlDraft(d.delivery?.trackingUrl ?? "");
         const a = d.order.shippingAddress ?? { line1: "", city: "", postcode: "" };
         setAddressDraft({
           line1: a.line1 ?? "",
@@ -113,12 +122,23 @@ export default function AdminOrderDetail() {
     if (!data || !deliveryStage) return;
     setSaving(true);
     try {
+      const body: Record<string, unknown> = {
+        deliveryStatus: deliveryStage,
+        deliveryMessage: deliveryMsg,
+      };
+      const orig = data.delivery;
+      if (orig) {
+        if (carrierDraft.trim() && carrierDraft !== orig.carrier) body.carrier = carrierDraft.trim();
+        if (trackingNumberDraft.trim() && trackingNumberDraft !== orig.trackingNumber) body.trackingNumber = trackingNumberDraft.trim();
+        if (trackingUrlDraft.trim() !== (orig.trackingUrl ?? "")) body.trackingUrl = trackingUrlDraft.trim();
+      }
       await apiFetch(`/api/admin/orders/${data.order.id}/status`, {
         method: "PATCH",
-        body: JSON.stringify({ deliveryStatus: deliveryStage, deliveryMessage: deliveryMsg }),
+        body: JSON.stringify(body),
         auth: "pharmacist",
       });
-      toast.success("Delivery updated");
+      const becameShipped = deliveryStage === "shipped" && orig?.status !== "shipped";
+      toast.success(becameShipped ? "Marked as dispatched — patient notified by email" : "Delivery updated");
       setDeliveryMsg("");
       load();
     } catch (e) {
@@ -364,8 +384,39 @@ export default function AdminOrderDetail() {
                   <CardContent className="p-5 sm:p-6">
                     <h2 className="font-semibold mb-1">Delivery management</h2>
                     <p className="text-xs text-muted-foreground mb-4">
-                      {data.delivery.carrier} · <span className="font-mono">{data.delivery.trackingNumber}</span>
+                      Update carrier &amp; tracking before marking dispatched — the patient is auto-emailed a tracking link when stage changes to <strong>shipped</strong>.
                     </p>
+
+                    <div className="grid sm:grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <Label className="text-xs">Carrier</Label>
+                        <Select value={carrierDraft} onValueChange={setCarrierDraft}>
+                          <SelectTrigger data-testid="select-carrier"><SelectValue placeholder="Choose carrier" /></SelectTrigger>
+                          <SelectContent>
+                            {CARRIER_PRESETS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Tracking number</Label>
+                        <Input
+                          value={trackingNumberDraft}
+                          onChange={e => setTrackingNumberDraft(e.target.value)}
+                          className="h-9 font-mono"
+                          data-testid="input-tracking-number"
+                        />
+                      </div>
+                    </div>
+                    <div className="mb-3">
+                      <Label className="text-xs">Tracking URL <span className="text-muted-foreground font-normal">(optional — auto-derived from carrier if blank)</span></Label>
+                      <Input
+                        value={trackingUrlDraft}
+                        onChange={e => setTrackingUrlDraft(e.target.value)}
+                        placeholder="https://..."
+                        className="h-9 text-xs"
+                        data-testid="input-tracking-url"
+                      />
+                    </div>
 
                     <div className="grid sm:grid-cols-[1fr,auto] gap-3 mb-4">
                       <Select value={deliveryStage} onValueChange={setDeliveryStage}>

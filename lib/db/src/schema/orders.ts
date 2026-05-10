@@ -47,6 +47,7 @@ export const deliveriesTable = pgTable("deliveries", {
   orderId: text("order_id").notNull().unique(),
   carrier: text("carrier").notNull().default("PharmaCare Express"),
   trackingNumber: text("tracking_number").notNull(),
+  trackingUrl: text("tracking_url"),
   status: text("status").notNull().default("preparing"),
   estimatedDelivery: timestamp("estimated_delivery", { withTimezone: true }),
   shippedAt: timestamp("shipped_at", { withTimezone: true }),

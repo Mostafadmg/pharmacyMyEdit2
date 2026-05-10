@@ -86,7 +86,7 @@ export default function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-7">
+          <nav className="hidden md:flex items-center gap-8 ml-10 lg:ml-14">
             {/* Treatments mega-menu trigger */}
             <div
               className="relative"
@@ -205,8 +205,8 @@ export default function Header() {
           onMouseLeave={scheduleCloseMega}
           data-testid="mega-menu-panel"
         >
-          <div className="max-w-7xl mx-auto px-6 py-8">
-            <div className="flex items-center justify-between mb-6">
+          <div className="max-w-7xl mx-auto px-6 py-10">
+            <div className="flex items-center justify-between mb-8">
               <Link
                 href="/conditions"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90"
@@ -219,18 +219,18 @@ export default function Header() {
                 UK-registered pharmacist review · Same-day dispatch · GPhC 9011677
               </p>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-x-6 gap-y-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-x-8 gap-y-10">
               {TREATMENTS_MENU.map((col) => (
                 <div key={col.title}>
-                  <h3 className="font-bold text-foreground text-sm mb-3 border-b border-border/60 pb-1.5">
+                  <h3 className="font-bold text-foreground text-sm mb-4 border-b border-border/60 pb-2">
                     {col.title}
                   </h3>
-                  <ul className="space-y-1.5">
+                  <ul className="space-y-2.5">
                     {col.items.map((item) => (
                       <li key={item.label + item.href}>
                         <Link
                           href={item.href}
-                          className="text-sm text-primary hover:text-primary/70 hover:underline block leading-snug"
+                          className="text-sm text-primary hover:text-primary/70 hover:underline block leading-relaxed py-0.5"
                           onClick={() => setIsMegaOpen(false)}
                           data-testid={`mega-link-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
                         >
