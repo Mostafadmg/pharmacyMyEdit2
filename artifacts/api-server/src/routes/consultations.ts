@@ -24,6 +24,7 @@ import {
 import { eq, desc, count, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { sendConsultationOutcomeEmail } from "../utils/email";
+import { checkDrugInteractions } from "./pharmacist-tools";
 
 const REJECT_REASON_LABELS: Record<string, string> = {
   medically_unsuitable: "Medically unsuitable for this treatment",
@@ -281,6 +282,38 @@ router.post("/consultations/:id/review", requirePharmacist, async (req: AuthedRe
     );
     if (incomplete) {
       res.status(400).json({ error: "Each prescription item needs a medication name, strength, and dosing instructions (sig)." });
+      return;
+    }
+
+    // ── Server-side drug-interaction safety guard ──
+    // Hard-block contraindicated combinations even if a pharmacist tries to bypass the UI.
+    // Major / moderate warnings still allow approval but require explicit clinical override
+    // via interactionsAck=true on the request body.
+    const [existingConsult] = await db
+      .select({ medications: consultationsTable.currentMedications })
+      .from(consultationsTable)
+      .where(eq(consultationsTable.id, params.data.id));
+    const patientMeds = (existingConsult?.medications ?? "")
+      .split(/[,\n;]+/)
+      .map((s) => s.trim())
+      .filter((s) => s && s.toLowerCase() !== "none" && s.toLowerCase() !== "n/a");
+    const warnings = await checkDrugInteractions(items.map((i) => i.name), patientMeds);
+    const blocking = warnings.filter((w) => w.severity === "contraindicated");
+    const major = warnings.filter((w) => w.severity === "major");
+    if (blocking.length > 0) {
+      res.status(409).json({
+        error: "Contraindicated drug interaction detected — cannot approve.",
+        warnings,
+      });
+      return;
+    }
+    const ack = (req.body as { interactionsAck?: boolean }).interactionsAck === true;
+    if (major.length > 0 && !ack) {
+      res.status(409).json({
+        error: "Major drug interaction detected. Add interactionsAck=true to override after clinical review.",
+        warnings,
+        requiresAck: true,
+      });
       return;
     }
   }

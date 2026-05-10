@@ -48,6 +48,7 @@ import AdminProducts from "./pages/AdminProducts";
 import AdminProductForm from "./pages/AdminProductForm";
 import AdminConditions from "./pages/AdminConditions";
 import AdminConditionEditor from "./pages/AdminConditionEditor";
+import PharmacistAnalytics from "./pages/PharmacistAnalytics";
 import Contact from "./pages/Contact";
 import Feedback from "./pages/Feedback";
 import HealthHub from "./pages/HealthHub";
@@ -117,6 +118,7 @@ function Router() {
       <Route path="/dashboard/products/:id/edit">{() => <ProtectedRoute component={AdminProductForm} />}</Route>
       <Route path="/dashboard/conditions">{() => <ProtectedRoute component={AdminConditions} />}</Route>
       <Route path="/dashboard/conditions/:id">{() => <ProtectedRoute component={AdminConditionEditor} />}</Route>
+      <Route path="/dashboard/analytics">{() => <ProtectedRoute component={PharmacistAnalytics} />}</Route>
       <Route path="/my-account/login" component={PatientLogin} />
       <Route path="/my-account/register" component={PatientRegister} />
       <Route path="/my-consultations" component={MyConsultations} />

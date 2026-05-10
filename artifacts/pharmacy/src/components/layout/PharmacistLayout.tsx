@@ -15,14 +15,17 @@ import {
   Stethoscope,
   Package,
   StickyNote,
+  BarChart3,
+  Search,
 } from "lucide-react";
+import CommandPalette from "@/components/pharmacist/CommandPalette";
 import { Button } from "@/components/ui/button";
 import {
   useGetPharmacistUnreadCounts,
   getGetPharmacistUnreadCountsQueryKey,
 } from "@workspace/api-client-react";
 
-type NavKey = "queue" | "patients" | "messages" | "notes" | "orders" | "products" | "conditions" | "complaints" | "reports" | "settings";
+type NavKey = "queue" | "patients" | "messages" | "notes" | "orders" | "products" | "conditions" | "complaints" | "reports" | "analytics" | "settings";
 
 const NAV_ITEMS: { key: NavKey; label: string; icon: React.ElementType; href: string; live: boolean; badgeKey?: "queue" | "messages" }[] = [
   { key: "queue", label: "Queue", icon: Activity, href: "/dashboard", live: true, badgeKey: "queue" },
@@ -33,6 +36,7 @@ const NAV_ITEMS: { key: NavKey; label: string; icon: React.ElementType; href: st
   { key: "products", label: "Products", icon: Package, href: "/dashboard/products", live: true },
   { key: "conditions", label: "Conditions", icon: Stethoscope, href: "/dashboard/conditions", live: true },
   { key: "complaints", label: "Complaints", icon: MessageSquare, href: "/dashboard/complaints", live: true },
+  { key: "analytics", label: "Analytics", icon: BarChart3, href: "/dashboard/analytics", live: true },
   { key: "reports", label: "Reports", icon: FileText, href: "/dashboard/reports", live: false },
   { key: "settings", label: "Settings", icon: Settings, href: "/dashboard/settings", live: false },
 ];
@@ -225,7 +229,20 @@ export default function PharmacistLayout({ current, children }: PharmacistLayout
         {sidebarContent}
       </aside>
 
-      <main className="flex-1 p-4 sm:p-6 md:p-10 max-w-7xl mx-auto w-full space-y-6 md:space-y-10">{children}</main>
+      <main className="flex-1 p-4 sm:p-6 md:p-10 max-w-7xl mx-auto w-full space-y-6 md:space-y-10">
+        {/* Cmd-K affordance — desktop only */}
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))}
+          className="hidden md:inline-flex fixed right-6 bottom-6 z-30 items-center gap-2 px-3.5 py-2.5 rounded-full bg-secondary text-white shadow-lg hover:bg-secondary/90 text-sm font-medium"
+          data-testid="button-open-command-palette"
+        >
+          <Search className="w-4 h-4" /> Search
+          <kbd className="ml-1 px-1.5 py-0.5 rounded bg-white/15 text-[10px] font-bold">⌘K</kbd>
+        </button>
+        {children}
+      </main>
+      <CommandPalette />
     </div>
   );
 }

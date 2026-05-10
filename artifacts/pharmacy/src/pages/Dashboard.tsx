@@ -465,6 +465,28 @@ export default function Dashboard() {
                       <p className="text-xs font-medium text-muted-foreground">
                         {format(new Date(consultation.createdAt), "MMM d, yyyy HH:mm")}
                       </p>
+                      {(consultation.status === "pending" || consultation.status === "patient_responded") && (() => {
+                        const ageMins = Math.floor((Date.now() - new Date(consultation.createdAt).getTime()) / 60000);
+                        const SLA_MINS = 120;
+                        const ratio = ageMins / SLA_MINS;
+                        const cls = ratio >= 1
+                          ? "bg-rose-100 text-rose-800 border border-rose-300"
+                          : ratio >= 0.75
+                          ? "bg-amber-100 text-amber-800 border border-amber-300"
+                          : "bg-emerald-100 text-emerald-800 border border-emerald-300";
+                        const label = ratio >= 1 ? `SLA breached · ${Math.floor(ageMins / 60)}h ${ageMins % 60}m` :
+                          ageMins < 60 ? `${ageMins}m / 2h SLA` :
+                          `${Math.floor(ageMins / 60)}h ${ageMins % 60}m / 2h SLA`;
+                        return (
+                          <span
+                            className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${cls}`}
+                            data-testid={`sla-chip-${consultation.id}`}
+                          >
+                            <Clock className="w-2.5 h-2.5" />
+                            {label}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4">{getStatusBadge(consultation.status)}</td>
                     <td className="px-6 py-4 text-right">

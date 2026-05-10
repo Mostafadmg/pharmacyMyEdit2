@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Send, Sparkles, MessageSquare, X, Check, CheckCheck } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import ClinicalReplyPicker from "@/components/pharmacist/ClinicalReplyPicker";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 
 type Audience = "patient" | "pharmacist";
@@ -55,6 +56,8 @@ interface Props {
   audience: Audience;
   className?: string;
   onClose?: () => void;
+  conditionId?: string | null;
+  consultationStatus?: string | null;
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -129,7 +132,7 @@ function Avatar({ name, size = "md" }: { name: string; size?: "sm" | "md" | "lg"
   );
 }
 
-export default function ConsultationChat({ consultationId, audience, className, onClose }: Props) {
+export default function ConsultationChat({ consultationId, audience, className, onClose, conditionId, consultationStatus }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [actions, setActions] = useState<Action[]>([]);
   const [body, setBody] = useState("");
@@ -339,7 +342,7 @@ export default function ConsultationChat({ consultationId, audience, className, 
 
       {/* Composer */}
       <div className="px-3 py-3 bg-[#F4EFE7] border-t border-border/60">
-        <div className="flex flex-wrap gap-1.5 mb-2">
+        <div className="flex flex-wrap items-center gap-1.5 mb-2">
           {QUICK_REPLIES[audience].map(q => (
             <button
               key={q}
@@ -351,6 +354,13 @@ export default function ConsultationChat({ consultationId, audience, className, 
               <Sparkles className="w-3 h-3" /> {q}
             </button>
           ))}
+          {audience === "pharmacist" && (
+            <ClinicalReplyPicker
+              conditionId={conditionId ?? null}
+              statusContext={consultationStatus ?? null}
+              onPick={(body) => setBody((prev) => (prev.trim() ? `${prev}\n\n${body}` : body))}
+            />
+          )}
         </div>
         <div className="flex items-end gap-2">
           <textarea

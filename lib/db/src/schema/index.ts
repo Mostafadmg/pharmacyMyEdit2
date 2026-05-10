@@ -14,3 +14,5 @@ export * from "./pharmacist_push_tokens";
 export * from "./wishlist";
 export * from "./promo_codes";
 export * from "./referral_credits";
+export * from "./drug_interactions";
+export * from "./clinical_replies";

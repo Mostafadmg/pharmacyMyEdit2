@@ -92,7 +92,12 @@ export default function PharmacistMessageThread() {
           className="flex-1 min-h-0"
         >
           {id ? (
-            <ConsultationChat consultationId={id} audience="pharmacist" />
+            <ConsultationChat
+              consultationId={id}
+              audience="pharmacist"
+              conditionId={(consultation as { conditionId?: string } | undefined)?.conditionId ?? null}
+              consultationStatus={consultation?.status ?? null}
+            />
           ) : (
             <div className="flex flex-col items-center justify-center py-24 text-center">
               <MessageSquare className="w-12 h-12 text-muted-foreground mb-4" />

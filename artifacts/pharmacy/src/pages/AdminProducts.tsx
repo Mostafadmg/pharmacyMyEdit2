@@ -228,6 +228,38 @@ export default function AdminProducts() {
             </div></CardContent></Card>
         </div>
 
+        {(() => {
+          const lowStockItems = (products ?? []).filter(p => p.active && p.stock <= 10);
+          if (lowStockItems.length === 0) return null;
+          const oos = lowStockItems.filter(p => p.stock <= 0).length;
+          return (
+            <Card className="mb-4 border-amber-300 bg-amber-50/60">
+              <CardContent className="p-3 sm:p-4 flex items-center gap-3 flex-wrap">
+                <Package className="w-5 h-5 text-amber-700 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-amber-900 text-sm">
+                    {lowStockItems.length} product{lowStockItems.length > 1 ? "s" : ""} need restocking
+                    {oos > 0 && <span className="ml-2 text-rose-700">· {oos} out of stock</span>}
+                  </p>
+                  <p className="text-xs text-amber-800/80 mt-0.5">
+                    {lowStockItems.slice(0, 4).map(p => `${p.name} (${p.stock})`).join(" · ")}
+                    {lowStockItems.length > 4 ? ` · +${lowStockItems.length - 4} more` : ""}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="rounded-full border-amber-400 text-amber-900 hover:bg-amber-100"
+                  onClick={() => setSearch("")}
+                  data-testid="btn-low-stock-summary"
+                >
+                  Review
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         <div className="flex gap-3 mb-4 flex-wrap">
           <div className="relative flex-1 min-w-[200px] max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

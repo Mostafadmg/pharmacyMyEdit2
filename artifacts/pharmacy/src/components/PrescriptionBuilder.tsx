@@ -10,17 +10,20 @@ import {
   type MedicationEntry,
   type PrescriptionItemDraft,
 } from "@/data/medications";
+import DrugInteractionPanel, { type InteractionState } from "@/components/pharmacist/DrugInteractionPanel";
 
 interface PrescriptionBuilderProps {
   items: PrescriptionItemDraft[];
   onChange: (next: PrescriptionItemDraft[]) => void;
+  patientMedications?: string[];
+  onInteractionStateChange?: (state: InteractionState) => void;
 }
 
 function emptyItem(): PrescriptionItemDraft {
   return { name: "", strength: "", form: "", quantity: "", sig: "", duration: "" };
 }
 
-export default function PrescriptionBuilder({ items, onChange }: PrescriptionBuilderProps) {
+export default function PrescriptionBuilder({ items, onChange, patientMedications, onInteractionStateChange }: PrescriptionBuilderProps) {
   const update = (idx: number, patch: Partial<PrescriptionItemDraft>) => {
     onChange(items.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
   };
@@ -43,6 +46,13 @@ export default function PrescriptionBuilder({ items, onChange }: PrescriptionBui
           onRemove={() => remove(idx)}
         />
       ))}
+      {items.length > 0 && (
+        <DrugInteractionPanel
+          itemNames={items.map((i) => i.name)}
+          patientMedications={patientMedications}
+          onChange={onInteractionStateChange}
+        />
+      )}
       <Button
         type="button"
         variant="outline"

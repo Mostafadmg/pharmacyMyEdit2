@@ -21,6 +21,7 @@ import messageThreadsRouter from "./message-threads";
 import pharmacistPushTokensRouter from "./pharmacist-push-tokens";
 import seoRouter from "./seo";
 import patientAccountRouter from "./patient-account";
+import pharmacistToolsRouter from "./pharmacist-tools";
 
 const router: IRouter = Router();
 
@@ -46,5 +47,6 @@ router.use(messageThreadsRouter);
 router.use(pharmacistPushTokensRouter);
 router.use(seoRouter);
 router.use(patientAccountRouter);
+router.use(pharmacistToolsRouter);
 
 export default router;

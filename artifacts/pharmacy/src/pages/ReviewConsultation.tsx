@@ -44,6 +44,7 @@ import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import PrescriptionBuilder from "@/components/PrescriptionBuilder";
 import { type PrescriptionItemDraft, formatPrescriptionItems } from "@/data/medications";
+import type { InteractionState } from "@/components/pharmacist/DrugInteractionPanel";
 
 export default function ReviewConsultation() {
   const { id } = useParams();
@@ -52,6 +53,9 @@ export default function ReviewConsultation() {
   
   const [prescriptionDetails, setPrescriptionDetails] = useState("");
   const [prescriptionItems, setPrescriptionItems] = useState<PrescriptionItemDraft[]>([]);
+  const [interactionState, setInteractionState] = useState<InteractionState>({
+    warnings: [], blocking: false, loading: false,
+  });
 
   // Structured fields
   const [rejectReason, setRejectReason] = useState<string>("");
@@ -117,6 +121,7 @@ export default function ReviewConsultation() {
       toast.error("Tell the patient what info is needed");
       return;
     }
+    let interactionsAck = false;
     if (action === 'approve') {
       if (prescriptionItems.length === 0) {
         toast.error("Add at least one prescription item before approving");
@@ -128,6 +133,22 @@ export default function ReviewConsultation() {
       if (incomplete) {
         toast.error("Each item needs a medication, strength, and dosing instructions (sig)");
         return;
+      }
+      // Drug interaction safety gate
+      const contras = interactionState.warnings.filter((w) => w.severity === "contraindicated");
+      if (contras.length > 0) {
+        toast.error("Cannot approve: contraindicated drug interaction detected. Choose a different medication.");
+        return;
+      }
+      const majors = interactionState.warnings.filter((w) => w.severity === "major");
+      if (majors.length > 0) {
+        const ok = window.confirm(
+          `${majors.length} MAJOR drug interaction${majors.length > 1 ? "s" : ""} detected:\n\n` +
+          majors.map((m) => `• ${m.drugA} + ${m.drugB} — ${m.advice}`).join("\n") +
+          `\n\nAre you sure you want to override and approve this prescription?`,
+        );
+        if (!ok) return;
+        interactionsAck = true;
       }
     }
 
@@ -152,6 +173,7 @@ export default function ReviewConsultation() {
       data.referRecipientName = referRecipientName;
       data.referUrgency = referUrgency;
     }
+    if (action === 'approve' && interactionsAck) data.interactionsAck = true;
 
     reviewMutation.mutate({ id, data }, {
       onSuccess: () => {
@@ -690,7 +712,16 @@ export default function ReviewConsultation() {
                           </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-2">
-                          <PrescriptionBuilder items={prescriptionItems} onChange={setPrescriptionItems} />
+                          <PrescriptionBuilder
+                            items={prescriptionItems}
+                            onChange={setPrescriptionItems}
+                            patientMedications={
+                              consultation?.currentMedications
+                                ? consultation.currentMedications.split(/[,\n;]+/).map((s: string) => s.trim()).filter((s: string) => s && s.toLowerCase() !== "none" && s.toLowerCase() !== "n/a")
+                                : []
+                            }
+                            onInteractionStateChange={setInteractionState}
+                          />
                         </div>
                         <DialogFooter className="gap-2">
                           <Button

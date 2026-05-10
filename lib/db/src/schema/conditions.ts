@@ -14,6 +14,7 @@ export const conditionsTable = pgTable("conditions", {
   redFlags: text("red_flags").array().notNull().default([]),
   questionsCount: integer("questions_count").notNull().default(5),
   questionsJson: jsonb("questions_json").notNull().default([]),
+  decisionTemplate: jsonb("decision_template").notNull().default({}),
   priceGbp: integer("price_gbp_pence").notNull().default(2500),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
