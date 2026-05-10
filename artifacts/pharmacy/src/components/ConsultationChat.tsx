@@ -85,6 +85,20 @@ function avatarColor(name: string) {
   return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
 }
 
+// Known prescriber portraits — keyed by normalised name (lowercase, no "Dr.").
+// When a sender's name matches, we render their photo instead of the initials.
+// Add new pharmacists here as they're onboarded.
+const PRESCRIBER_PHOTOS: Record<string, string> = {
+  "sarah mitchell":
+    "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=200&h=200&fit=crop&crop=faces",
+};
+function normaliseName(name: string): string {
+  return name.trim().replace(/^Dr\.?\s+/i, "").toLowerCase();
+}
+function photoFor(name: string): string | undefined {
+  return PRESCRIBER_PHOTOS[normaliseName(name)];
+}
+
 function dayLabel(d: Date): string {
   if (isToday(d)) return "TODAY";
   if (isYesterday(d)) return "YESTERDAY";
@@ -95,6 +109,19 @@ function dayLabel(d: Date): string {
 function Avatar({ name, size = "md" }: { name: string; size?: "sm" | "md" | "lg" }) {
   const c = avatarColor(name);
   const dim = size === "lg" ? "w-10 h-10 text-sm" : size === "sm" ? "w-7 h-7 text-[10px]" : "w-8 h-8 text-xs";
+  const photo = photoFor(name);
+  const [broken, setBroken] = useState(false);
+
+  if (photo && !broken) {
+    return (
+      <img
+        src={photo}
+        alt={name}
+        onError={() => setBroken(true)}
+        className={`${dim} rounded-full object-cover flex-shrink-0 shadow-sm bg-muted`}
+      />
+    );
+  }
   return (
     <div className={`${dim} ${c.bg} rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 shadow-sm`}>
       {getInitials(name)}
