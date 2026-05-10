@@ -69,6 +69,7 @@ export default function OrderConfirmation() {
           body: JSON.stringify({
             orderId: data.order.id,
             orderKey: data.order.orderNumber,
+            email: data.order.customerEmail,
             password: upgradePassword,
             name: data.order.customerName,
           }),

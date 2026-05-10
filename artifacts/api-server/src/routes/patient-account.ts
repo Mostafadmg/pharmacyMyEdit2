@@ -245,15 +245,33 @@ router.post("/promo-codes/validate", async (req, res): Promise<void> => {
  * confirmation page — same key the OrderConfirmation page already holds.
  */
 
+const upgradeAttempts = new Map<string, { count: number; firstAt: number }>();
+const UPGRADE_WINDOW_MS = 60 * 60 * 1000;
+const UPGRADE_MAX_PER_WINDOW = 5;
+
 router.post("/auth/patient-upgrade-guest", async (req, res): Promise<void> => {
-  const { orderId, orderKey, password, name } = req.body as {
+  const { orderId, orderKey, password, name, email: providedEmail } = req.body as {
     orderId?: string;
     orderKey?: string;
     password?: string;
     name?: string;
+    email?: string;
   };
-  if (!orderId || !orderKey || !password) {
-    res.status(400).json({ error: "Order id, order key and password are required" });
+  const ip = (req.ip || req.socket.remoteAddress || "unknown").toString();
+  const slot = upgradeAttempts.get(ip);
+  const nowMs = Date.now();
+  if (slot && nowMs - slot.firstAt < UPGRADE_WINDOW_MS) {
+    if (slot.count >= UPGRADE_MAX_PER_WINDOW) {
+      res.status(429).json({ error: "Too many attempts. Please try again later." });
+      return;
+    }
+    slot.count++;
+  } else {
+    upgradeAttempts.set(ip, { count: 1, firstAt: nowMs });
+  }
+
+  if (!orderId || !orderKey || !password || !providedEmail) {
+    res.status(400).json({ error: "Order id, order key, email and password are required" });
     return;
   }
   if (password.length < 8) {
@@ -261,7 +279,8 @@ router.post("/auth/patient-upgrade-guest", async (req, res): Promise<void> => {
     return;
   }
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId));
-  if (!order || order.orderNumber.toUpperCase() !== orderKey.toUpperCase()) {
+  const emailMatches = !!order && order.customerEmail.toLowerCase() === providedEmail.trim().toLowerCase();
+  if (!order || order.orderNumber.toUpperCase() !== orderKey.toUpperCase() || !emailMatches) {
     res.status(404).json({ error: "Order not found" });
     return;
   }
