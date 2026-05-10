@@ -3,10 +3,10 @@ import { Link, useLocation, useParams } from "wouter";
 import {
   useGetCondition,
   getGetConditionQueryKey,
-  useGetConsultation,
-  getGetConsultationQueryKey,
   NewConsultationInputPatientSex,
+  type Consultation as ConsultationDto,
 } from "@workspace/api-client-react";
+import { apiFetch } from "@/lib/api";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -152,12 +152,26 @@ export default function Consultation() {
     return v && v.trim() ? v.trim() : null;
   });
   const [repeatPrefilled, setRepeatPrefilled] = useState(false);
-  const { data: priorConsultation } = useGetConsultation(repeatOfId || "", {
-    query: {
-      enabled: !!repeatOfId,
-      queryKey: getGetConsultationQueryKey(repeatOfId || ""),
-    },
-  });
+  // ── Fetch the prior consultation with EXPLICIT patient auth ──
+  // We do NOT use the generated `useGetConsultation` hook here because the
+  // shared api-client token getter falls back to a pharmacist token when one
+  // is present in localStorage. Using `apiFetch(..., { auth: "patient" })`
+  // guarantees the request is made under the current patient's identity, so
+  // the server's patient-ownership check on `GET /consultations/:id` is the
+  // source of truth and a tampered `repeatOf` cannot reveal another
+  // patient's record.
+  const [priorConsultation, setPriorConsultation] = useState<ConsultationDto | null>(null);
+  useEffect(() => {
+    if (!repeatOfId) return;
+    let cancelled = false;
+    apiFetch<ConsultationDto>(
+      `/api/consultations/${encodeURIComponent(repeatOfId)}`,
+      { auth: "patient" },
+    )
+      .then((c) => { if (!cancelled) setPriorConsultation(c); })
+      .catch(() => { /* silent — banner just won't render and prefill won't run */ });
+    return () => { cancelled = true; };
+  }, [repeatOfId]);
 
   const [step, setStep] = useState<number>(STEPS.ELIGIBILITY);
   const [isSubmitted, setIsSubmitted] = useState(false);
