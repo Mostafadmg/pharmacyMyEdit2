@@ -10,7 +10,7 @@ import {
   deliveriesTable,
   patientAccountsTable,
 } from "@workspace/db";
-import { requirePharmacist, type AuthedRequest } from "../middlewares/auth";
+import { requirePharmacist, resolveAuthActor, type AuthedRequest } from "../middlewares/auth";
 import {
   ListConsultationsQueryParams,
   ListConsultationsResponse,
@@ -56,7 +56,7 @@ function detectRedFlags(answers: Record<string, unknown>): boolean {
   return RED_FLAG_KEYWORDS.some(flag => answersStr.includes(flag));
 }
 
-router.get("/consultations", async (req, res): Promise<void> => {
+router.get("/consultations", requirePharmacist, async (req, res): Promise<void> => {
   const query = ListConsultationsQueryParams.safeParse(req.query);
   if (!query.success) {
     res.status(400).json({ error: query.error.message });
@@ -154,11 +154,18 @@ router.get("/consultations/patient/:email", requirePharmacist, async (req, res):
   res.json({ consultations, total: consultations.length });
 });
 
-router.get("/consultations/:id", async (req, res): Promise<void> => {
+router.get("/consultations/:id", async (req: AuthedRequest, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = GetConsultationParams.safeParse({ id: raw });
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  // Authz: pharmacist (any consultation) OR the patient who owns this consultation.
+  const actor = await resolveAuthActor(req.headers.authorization);
+  if (!actor) {
+    res.status(401).json({ error: "Authentication required" });
     return;
   }
 
@@ -172,6 +179,12 @@ router.get("/consultations/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  if (actor.role === "patient" && actor.email?.toLowerCase() !== consultation.patientEmail.toLowerCase()) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+
+  req.authActor = actor;
   res.json(GetConsultationResponse.parse(consultation));
 });
 
@@ -235,6 +248,19 @@ router.post("/consultations/:id/review", requirePharmacist, async (req: AuthedRe
   if (action === "more_info" && !pharmacistNote?.trim()) {
     res.status(400).json({ error: "Please describe what additional information is needed." });
     return;
+  }
+  if (action === "approve") {
+    if (items.length === 0) {
+      res.status(400).json({ error: "At least one prescription item is required to approve a consultation." });
+      return;
+    }
+    const incomplete = items.find(
+      (it) => !it?.name?.trim() || !it?.strength?.trim() || !it?.sig?.trim(),
+    );
+    if (incomplete) {
+      res.status(400).json({ error: "Each prescription item needs a medication name, strength, and dosing instructions (sig)." });
+      return;
+    }
   }
 
   const statusMap: Record<string, string> = {
@@ -374,7 +400,11 @@ router.post("/consultations/:id/review", requirePharmacist, async (req: AuthedRe
             const trackingNumber = `PCX${Math.floor(Math.random() * 1e10).toString().padStart(10, "0")}`;
             const eta = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
 
-            await tx.insert(ordersTable).values({
+            // Race-safe insert: the partial unique index on orders.consultation_id
+            // guarantees only one RX order per consultation. If a concurrent approve
+            // wins the race, our insert returns no rows; we then re-select the
+            // winner's order and skip the delivery insert (winner created its own).
+            const inserted = await tx.insert(ordersTable).values({
               id: orderId,
               orderNumber,
               customerEmail: row.patientEmail,
@@ -389,25 +419,33 @@ router.post("/consultations/:id/review", requirePharmacist, async (req: AuthedRe
               consultationId: row.id,
               prescriptionItems: itemsToStore,
               notes: `Prescription order for consultation ${row.id} (${row.conditionName})`,
-            });
+            }).onConflictDoNothing({ target: ordersTable.consultationId }).returning({ id: ordersTable.id });
 
-            await tx.insert(deliveriesTable).values({
-              id: randomUUID(),
-              orderId,
-              carrier: "PharmaCare Express",
-              trackingNumber,
-              status: "preparing",
-              estimatedDelivery: eta,
-              events: [
-                {
-                  ts: new Date().toISOString(),
-                  status: "preparing",
-                  message: "Prescription approved by pharmacist — preparing for tracked delivery.",
-                },
-              ],
-            });
-
-            createdOrderId = orderId;
+            if (inserted.length > 0) {
+              await tx.insert(deliveriesTable).values({
+                id: randomUUID(),
+                orderId,
+                carrier: "PharmaCare Express",
+                trackingNumber,
+                status: "preparing",
+                estimatedDelivery: eta,
+                events: [
+                  {
+                    ts: new Date().toISOString(),
+                    status: "preparing",
+                    message: "Prescription approved by pharmacist — preparing for tracked delivery.",
+                  },
+                ],
+              });
+              createdOrderId = orderId;
+            } else {
+              const [winner] = await tx
+                .select({ id: ordersTable.id })
+                .from(ordersTable)
+                .where(eq(ordersTable.consultationId, row.id))
+                .limit(1);
+              createdOrderId = winner?.id ?? null;
+            }
           }
         }
       }

@@ -1,4 +1,5 @@
-import { pgTable, text, integer, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp, jsonb, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const ordersTable = pgTable("orders", {
   id: text("id").primaryKey(),
@@ -21,7 +22,13 @@ export const ordersTable = pgTable("orders", {
   consultationId: text("consultation_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-});
+}, (t) => ({
+  // Prevent duplicate auto-created RX orders for the same consultation under
+  // concurrent approval. Partial index — shop orders (no consultationId) are unaffected.
+  consultationIdUnique: uniqueIndex("orders_consultation_id_uniq")
+    .on(t.consultationId)
+    .where(sql`${t.consultationId} IS NOT NULL`),
+}));
 
 export const orderItemsTable = pgTable("order_items", {
   id: text("id").primaryKey(),

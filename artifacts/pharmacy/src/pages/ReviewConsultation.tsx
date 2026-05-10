@@ -117,6 +117,19 @@ export default function ReviewConsultation() {
       toast.error("Tell the patient what info is needed");
       return;
     }
+    if (action === 'approve') {
+      if (prescriptionItems.length === 0) {
+        toast.error("Add at least one prescription item before approving");
+        return;
+      }
+      const incomplete = prescriptionItems.find(
+        (it) => !it.name.trim() || !it.strength.trim() || !it.sig.trim(),
+      );
+      if (incomplete) {
+        toast.error("Each item needs a medication, strength, and dosing instructions (sig)");
+        return;
+      }
+    }
 
     const pharmacistNote =
       action === 'reject' ? rejectExplanation
