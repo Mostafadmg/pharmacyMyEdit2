@@ -11,6 +11,28 @@ function paramAsString(value: string | string[] | undefined): string {
   return v ?? "";
 }
 
+// GET /consultation-notes — all notes (for Notes hub page)
+router.get("/consultation-notes", requirePharmacist, async (_req: AuthedRequest, res: Response): Promise<void> => {
+  const notes = await db
+    .select({
+      id: consultationNotesTable.id,
+      consultationId: consultationNotesTable.consultationId,
+      note: consultationNotesTable.note,
+      createdBy: consultationNotesTable.createdBy,
+      createdById: consultationNotesTable.createdById,
+      updatedBy: consultationNotesTable.updatedBy,
+      createdAt: consultationNotesTable.createdAt,
+      updatedAt: consultationNotesTable.updatedAt,
+      patientName: consultationsTable.patientName,
+      patientEmail: consultationsTable.patientEmail,
+      conditionName: consultationsTable.conditionName,
+    })
+    .from(consultationNotesTable)
+    .leftJoin(consultationsTable, eq(consultationNotesTable.consultationId, consultationsTable.id))
+    .orderBy(desc(consultationNotesTable.createdAt));
+  res.json({ notes });
+});
+
 router.get("/consultation-notes/:consultationId", requirePharmacist, async (req: AuthedRequest, res: Response): Promise<void> => {
   const consultationId = paramAsString(req.params.consultationId);
   if (!consultationId) {

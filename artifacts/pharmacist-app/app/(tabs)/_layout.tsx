@@ -4,10 +4,46 @@ import { Tabs } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import { Feather } from "@expo/vector-icons";
-import React from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Platform, StyleSheet, View, useColorScheme } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
+import { getCurrentToken } from "@/context/AuthContext";
+
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
+
+function useUnreadMessageCount(): number {
+  const [count, setCount] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const poll = useCallback(async () => {
+    try {
+      const token = getCurrentToken();
+      if (!token) return;
+      const res = await fetch(`${BASE_URL}/api/pharmacist/message-threads`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const json = await res.json();
+      const unread = (json.threads ?? []).filter(
+        (t: { unreadCount: number }) => Number(t.unreadCount) > 0,
+      ).length;
+      setCount(unread);
+    } catch {
+      // ignore network errors
+    }
+  }, []);
+
+  useEffect(() => {
+    poll();
+    timerRef.current = setInterval(poll, 30000);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [poll]);
+
+  return count;
+}
 
 // IMPORTANT: iOS 26 uses NativeTabs for native tabs with liquid glass support.
 // NativeTabs intentionally does NOT use custom design tokens — liquid glass
@@ -50,6 +86,7 @@ function ClassicTabLayout() {
   const isDark = colorScheme === "dark";
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
+  const unreadCount = useUnreadMessageCount();
 
   return (
     <Tabs
@@ -126,6 +163,7 @@ function ClassicTabLayout() {
         name="inbox"
         options={{
           title: "Messages",
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
           tabBarIcon: ({ color }) =>
             isIOS ? (
               <SymbolView name="message.badge" tintColor={color} size={24} />

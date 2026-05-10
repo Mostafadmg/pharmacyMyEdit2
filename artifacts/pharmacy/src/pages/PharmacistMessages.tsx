@@ -1,13 +1,17 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Link } from "wouter";
-import { useListConsultations } from "@workspace/api-client-react";
 import PharmacistLayout from "@/components/layout/PharmacistLayout";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageSquare, Search, ArrowRight, Clock } from "lucide-react";
+import { MessageSquare, Search, ArrowRight, Clock, User } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
+
+const authHeaders = (): Record<string, string> => {
+  const token = typeof localStorage !== "undefined" ? localStorage.getItem("pharmacist_token") : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 const STATUS_COLORS: Record<string, string> = {
   patient_responded: "bg-orange-100 text-orange-800 border-orange-200",
@@ -29,14 +33,19 @@ const STATUS_LABELS: Record<string, string> = {
   red_flag: "Urgent",
 };
 
-const PRIORITY_ORDER: Record<string, number> = {
-  patient_responded: 0,
-  red_flag: 1,
-  more_info_needed: 2,
-  pending: 3,
-  approved: 4,
-  referred: 5,
-  rejected: 6,
+type Thread = {
+  id: string;
+  patientName: string;
+  patientEmail: string;
+  conditionName: string;
+  consultationStatus: string;
+  createdAt: string;
+  lastMsgBody: string | null;
+  lastMsgAt: string | null;
+  lastMsgRole: string | null;
+  lastMsgSender: string | null;
+  unreadCount: number;
+  totalMessages: number;
 };
 
 type FilterKey = "all" | "unread" | "awaiting";
@@ -44,56 +53,53 @@ type FilterKey = "all" | "unread" | "awaiting";
 export default function PharmacistMessages() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [threads, setThreads] = useState<Thread[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const { data, isLoading } = useListConsultations(
-    { limit: 200 },
-    { query: { refetchInterval: 30000 } as never },
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch("/api/pharmacist/message-threads", { headers: authHeaders() });
+      if (!res.ok) throw new Error("Failed");
+      const json = await res.json();
+      setThreads(json.threads ?? []);
+    } catch {
+      // silently fail — show empty state
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+    const interval = setInterval(load, 30000);
+    return () => clearInterval(interval);
+  }, [load]);
+
+  const unreadCount = useMemo(() => threads.filter((t) => Number(t.unreadCount) > 0).length, [threads]);
+  const awaitingCount = useMemo(
+    () => threads.filter((t) => t.consultationStatus === "more_info_needed").length,
+    [threads],
   );
 
-  const threads = useMemo(() => {
-    const all = (data?.consultations ?? []).filter(
-      (c) =>
-        c.status === "patient_responded" ||
-        c.status === "more_info_needed" ||
-        c.status === "pending" ||
-        c.status === "approved" ||
-        c.status === "red_flag" ||
-        c.status === "referred",
-    );
-
-    const filtered = all.filter((c) => {
-      if (filter === "unread") return c.status === "patient_responded";
-      if (filter === "awaiting") return c.status === "more_info_needed";
-      return true;
-    });
-
-    const searched = search.trim()
-      ? filtered.filter(
-          (c) =>
-            c.patientName.toLowerCase().includes(search.toLowerCase()) ||
-            c.patientEmail.toLowerCase().includes(search.toLowerCase()) ||
-            c.conditionName.toLowerCase().includes(search.toLowerCase()),
-        )
-      : filtered;
-
-    return searched.sort((a, b) => {
-      const pA = PRIORITY_ORDER[a.status] ?? 9;
-      const pB = PRIORITY_ORDER[b.status] ?? 9;
-      if (pA !== pB) return pA - pB;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-  }, [data, search, filter]);
-
-  const unreadCount = (data?.consultations ?? []).filter(
-    (c) => c.status === "patient_responded",
-  ).length;
-
-  const awaitingCount = (data?.consultations ?? []).filter(
-    (c) => c.status === "more_info_needed",
-  ).length;
+  const filtered = useMemo(() => {
+    let list = threads;
+    if (filter === "unread") list = list.filter((t) => Number(t.unreadCount) > 0);
+    if (filter === "awaiting") list = list.filter((t) => t.consultationStatus === "more_info_needed");
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (t) =>
+          t.patientName.toLowerCase().includes(q) ||
+          t.patientEmail.toLowerCase().includes(q) ||
+          t.conditionName.toLowerCase().includes(q) ||
+          (t.lastMsgBody ?? "").toLowerCase().includes(q),
+      );
+    }
+    return list;
+  }, [threads, filter, search]);
 
   const filters: { key: FilterKey; label: string; count?: number }[] = [
-    { key: "all", label: "All threads" },
+    { key: "all", label: "All threads", count: threads.length },
     { key: "unread", label: "Patient replied", count: unreadCount },
     { key: "awaiting", label: "Awaiting reply", count: awaitingCount },
   ];
@@ -112,7 +118,7 @@ export default function PharmacistMessages() {
             )}
           </div>
           <p className="text-muted-foreground ml-10">
-            Patient conversation threads. Click any row to open the full thread in the consultation.
+            Patient conversation threads, sorted by most recent reply.
           </p>
         </motion.div>
 
@@ -122,12 +128,12 @@ export default function PharmacistMessages() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by patient name, email or condition…"
+              placeholder="Search by patient, condition or message content…"
               className="pl-9 rounded-xl h-11"
               data-testid="input-messages-search"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {filters.map((f) => (
               <button
                 key={f.key}
@@ -141,7 +147,11 @@ export default function PharmacistMessages() {
               >
                 {f.label}
                 {f.count !== undefined && f.count > 0 && (
-                  <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs font-bold ${filter === f.key ? "bg-white/25 text-white" : "bg-orange-100 text-orange-700"}`}>
+                  <span
+                    className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                      filter === f.key ? "bg-white/25 text-white" : "bg-muted text-muted-foreground"
+                    }`}
+                  >
                     {f.count}
                   </span>
                 )}
@@ -150,49 +160,61 @@ export default function PharmacistMessages() {
           </div>
         </div>
 
-        {isLoading ? (
+        {loading ? (
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-20 rounded-2xl" />
+              <Skeleton key={i} className="h-24 rounded-2xl" />
             ))}
           </div>
-        ) : threads.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="text-center py-24 bg-white rounded-2xl border border-dashed border-border">
             <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-lg font-semibold text-secondary mb-1">No threads found</p>
             <p className="text-sm text-muted-foreground">
-              {search ? "Try a different search term" : "Message threads appear here when patients submit consultations"}
+              {search
+                ? "Try a different search term"
+                : threads.length === 0
+                ? "Threads appear here when patients and pharmacists exchange messages"
+                : "No consultations match this filter"}
             </p>
           </div>
         ) : (
           <div className="space-y-2">
-            {threads.map((c, i) => {
-              const initials = c.patientName
+            {filtered.map((t, i) => {
+              const isUnread = Number(t.unreadCount) > 0;
+              const isUrgent = t.consultationStatus === "red_flag";
+              const initials = t.patientName
                 .split(" ")
                 .map((w: string) => w[0])
                 .slice(0, 2)
                 .join("")
                 .toUpperCase();
-              const isUnread = c.status === "patient_responded";
-              const isUrgent = c.status === "red_flag";
+              const preview = t.lastMsgBody
+                ? t.lastMsgBody.length > 100
+                  ? t.lastMsgBody.slice(0, 100) + "…"
+                  : t.lastMsgBody
+                : null;
+              const timeLabel = t.lastMsgAt
+                ? formatDistanceToNow(new Date(t.lastMsgAt), { addSuffix: true })
+                : formatDistanceToNow(new Date(t.createdAt), { addSuffix: true });
 
               return (
                 <motion.div
-                  key={c.id}
+                  key={t.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03 }}
+                  transition={{ delay: i * 0.025 }}
                 >
-                  <Link href={`/dashboard/consultation/${c.id}`}>
+                  <Link href={`/dashboard/messages/${t.id}`}>
                     <div
-                      className={`flex items-center gap-4 p-4 bg-white rounded-2xl border transition-all hover:shadow-md cursor-pointer ${
+                      className={`flex items-start gap-4 p-4 bg-white rounded-2xl border transition-all hover:shadow-md cursor-pointer ${
                         isUnread
-                          ? "border-orange-200 ring-1 ring-orange-100"
+                          ? "border-orange-200 ring-1 ring-orange-100 bg-orange-50/30"
                           : isUrgent
                           ? "border-red-200 ring-1 ring-red-100"
                           : "border-border hover:border-primary/30"
                       }`}
-                      data-testid={`thread-${c.id}`}
+                      data-testid={`thread-${t.id}`}
                     >
                       <div className="relative shrink-0">
                         <div
@@ -208,29 +230,58 @@ export default function PharmacistMessages() {
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className={`font-bold text-sm ${isUnread ? "text-orange-900" : "text-secondary"}`}>
-                            {c.patientName}
+                        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                          <span
+                            className={`font-bold text-sm ${
+                              isUnread ? "text-orange-900" : "text-secondary"
+                            }`}
+                          >
+                            {t.patientName}
                           </span>
                           <Badge
-                            className={`text-[10px] font-semibold border ${STATUS_COLORS[c.status] ?? "bg-muted text-muted-foreground"}`}
+                            className={`text-[10px] font-semibold border ${
+                              STATUS_COLORS[t.consultationStatus] ?? "bg-muted text-muted-foreground"
+                            }`}
                           >
-                            {STATUS_LABELS[c.status] ?? c.status}
+                            {STATUS_LABELS[t.consultationStatus] ?? t.consultationStatus}
                           </Badge>
+                          {isUnread && (
+                            <span className="text-[10px] font-bold text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded-full">
+                              {t.unreadCount} unread
+                            </span>
+                          )}
                         </div>
-                        <p className="text-xs text-muted-foreground truncate">{c.conditionName}</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">{c.patientEmail}</p>
+
+                        <p className="text-xs text-muted-foreground mb-1.5">{t.conditionName}</p>
+
+                        {preview && (
+                          <p
+                            className={`text-xs truncate ${
+                              isUnread ? "font-semibold text-orange-900" : "text-muted-foreground"
+                            }`}
+                          >
+                            {t.lastMsgRole === "patient" ? (
+                              <User className="inline w-3 h-3 mr-1 text-orange-500" />
+                            ) : (
+                              <span className="text-muted-foreground/60 mr-1">You:</span>
+                            )}
+                            {preview}
+                          </p>
+                        )}
+
+                        <div className="flex items-center gap-1 mt-1.5 text-[11px] text-muted-foreground">
+                          <Clock className="w-3 h-3" />
+                          {timeLabel}
+                          <span className="ml-2 text-muted-foreground/50">·</span>
+                          <span className="text-muted-foreground/70">
+                            {Number(t.totalMessages)} message{Number(t.totalMessages) !== 1 ? "s" : ""}
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="text-right shrink-0">
-                        <div className="flex items-center gap-1 text-[11px] text-muted-foreground mb-1.5">
-                          <Clock className="w-3 h-3" />
-                          {formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })}
-                        </div>
-                        <div className="flex items-center gap-1 text-primary text-xs font-semibold">
-                          Open thread
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </div>
+                      <div className="text-right shrink-0 flex items-center gap-1 text-primary text-xs font-semibold mt-1">
+                        Open
+                        <ArrowRight className="w-3.5 h-3.5" />
                       </div>
                     </div>
                   </Link>

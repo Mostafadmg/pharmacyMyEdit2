@@ -16,6 +16,7 @@ import Dashboard from "./pages/Dashboard";
 import ReviewConsultation from "./pages/ReviewConsultation";
 import PharmacistComplaints from "./pages/PharmacistComplaints";
 import PharmacistMessages from "./pages/PharmacistMessages";
+import PharmacistMessageThread from "./pages/PharmacistMessageThread";
 import PharmacistNotes from "./pages/PharmacistNotes";
 import PharmacistPatients from "./pages/PharmacistPatients";
 import PharmacistPatientDetail from "./pages/PharmacistPatientDetail";
@@ -86,6 +87,7 @@ function Router() {
       <Route path="/dashboard">{() => <ProtectedRoute component={Dashboard} />}</Route>
       <Route path="/dashboard/consultation/:id">{() => <ProtectedRoute component={ReviewConsultation} />}</Route>
       <Route path="/dashboard/messages">{() => <ProtectedRoute component={PharmacistMessages} />}</Route>
+      <Route path="/dashboard/messages/:id">{() => <ProtectedRoute component={PharmacistMessageThread} />}</Route>
       <Route path="/dashboard/notes">{() => <ProtectedRoute component={PharmacistNotes} />}</Route>
       <Route path="/dashboard/complaints">{() => <ProtectedRoute component={PharmacistComplaints} />}</Route>
       <Route path="/dashboard/patients">{() => <ProtectedRoute component={PharmacistPatients} />}</Route>
