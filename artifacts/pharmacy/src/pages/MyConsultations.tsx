@@ -205,7 +205,7 @@ function ConsultationRow({
                       href={`${(import.meta.env.BASE_URL as string).replace(/\/$/, "")}/api/consultations/${consultation.id}/prescription.pdf`}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-colors shadow-sm"
                       data-testid={`button-download-pdf-${ref}`}
                     >
                       <Download className="w-3.5 h-3.5" />
@@ -255,7 +255,7 @@ function ConsultationRow({
                         size="sm"
                         variant="ghost"
                         onClick={() => setShowCancelConfirm(true)}
-                        className="rounded-full text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-semibold"
+                        className="rounded-lg text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-semibold"
                         data-testid={`button-cancel-${ref}`}
                       >
                         <Ban className="w-3.5 h-3.5 mr-1.5" /> Cancel
@@ -265,7 +265,7 @@ function ConsultationRow({
                       type="button"
                       size="sm"
                       onClick={() => setChatOpen(o => !o)}
-                      className={`rounded-full font-bold ${
+                      className={`rounded-lg font-bold shadow-sm ${
                         needsReply
                           ? "bg-sky-600 hover:bg-sky-700 text-white"
                           : "bg-primary hover:bg-primary/90 text-primary-foreground"
@@ -298,7 +298,7 @@ function ConsultationRow({
                         type="button"
                         size="sm"
                         variant="outline"
-                        className="rounded-full border-border bg-white font-semibold"
+                        className="rounded-lg border-border bg-white font-semibold"
                         onClick={() => setShowCancelConfirm(false)}
                       >
                         Keep it
@@ -306,7 +306,7 @@ function ConsultationRow({
                       <Button
                         type="button"
                         size="sm"
-                        className="rounded-full bg-rose-600 hover:bg-rose-700 text-white font-semibold"
+                        className="rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold shadow-sm"
                         disabled={cancelling === consultation.id}
                         onClick={() => onCancel(consultation.id)}
                         data-testid={`button-confirm-cancel-${ref}`}
@@ -449,7 +449,7 @@ export default function MyConsultations() {
             variant="ghost"
             size="sm"
             onClick={fetchConsultations}
-            className="rounded-full text-muted-foreground hover:text-foreground font-semibold"
+            className="rounded-lg text-muted-foreground hover:text-foreground font-semibold"
             data-testid="button-refresh"
           >
             <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? "animate-spin" : ""}`} /> Refresh
@@ -490,7 +490,7 @@ export default function MyConsultations() {
           <div className="flex-1" />
           <Button
             asChild
-            className="rounded-full bg-accent hover:bg-accent/90 text-accent-foreground font-bold shadow-sm"
+            className="rounded-lg bg-accent hover:bg-accent/90 text-accent-foreground font-bold shadow-sm h-10 px-5"
             data-testid="button-new-consultation"
           >
             <Link href="/conditions"><Plus className="w-4 h-4 mr-1.5" /> New consultation</Link>
@@ -516,7 +516,7 @@ export default function MyConsultations() {
                 <XCircle className="w-7 h-7 text-rose-500" />
               </div>
               <p className="text-foreground/80 mb-4">{error}</p>
-              <Button onClick={fetchConsultations} variant="outline" className="rounded-full">Try again</Button>
+              <Button onClick={fetchConsultations} variant="outline" className="rounded-lg">Try again</Button>
             </div>
           ) : filtered.length === 0 ? (
             <div className="bg-white rounded-2xl border border-dashed border-border/60 text-center py-16 px-6">
@@ -532,7 +532,7 @@ export default function MyConsultations() {
                   : `You don't have any ${filter === "pending" ? "in-review" : "completed"} consultations right now.`}
               </p>
               {filter === "all" && (
-                <Button asChild className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold">
+                <Button asChild className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-10 px-5">
                   <Link href="/conditions"><Plus className="w-4 h-4 mr-1.5" /> Start a consultation</Link>
                 </Button>
               )}
