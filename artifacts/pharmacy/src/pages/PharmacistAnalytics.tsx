@@ -47,7 +47,7 @@ export default function PharmacistAnalytics() {
   }, []);
 
   return (
-    <PharmacistLayout current="reports">
+    <PharmacistLayout current="analytics">
       <div className="p-6 max-w-7xl mx-auto">
         <header className="mb-6">
           <h1 className="text-3xl font-serif font-bold text-secondary">Analytics</h1>

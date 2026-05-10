@@ -169,7 +169,7 @@ router.put("/pharmacist/clinical-replies/:id", requirePharmacist, async (req, re
       statusContext: parsed.data.statusContext ?? null,
       category: parsed.data.category,
     })
-    .where(eq(clinicalRepliesTable.id, id))
+    .where(eq(clinicalRepliesTable.id, String(id)))
     .returning();
   if (!row) {
     res.status(404).json({ error: "Not found" });
@@ -184,7 +184,7 @@ router.delete("/pharmacist/clinical-replies/:id", requirePharmacist, async (req,
     res.status(400).json({ error: "id required" });
     return;
   }
-  await db.delete(clinicalRepliesTable).where(eq(clinicalRepliesTable.id, id));
+  await db.delete(clinicalRepliesTable).where(eq(clinicalRepliesTable.id, String(id)));
   res.status(204).send();
 });
 
@@ -197,7 +197,7 @@ router.post("/pharmacist/clinical-replies/:id/use", requirePharmacist, async (re
   await db
     .update(clinicalRepliesTable)
     .set({ useCount: sql`${clinicalRepliesTable.useCount} + 1` })
-    .where(eq(clinicalRepliesTable.id, id));
+    .where(eq(clinicalRepliesTable.id, String(id)));
   res.status(204).send();
 });
 
@@ -229,6 +229,7 @@ router.get("/pharmacist/search", requirePharmacist, async (req, res): Promise<vo
           sql`lower(${consultationsTable.patientEmail}) like ${like}`,
           sql`lower(${consultationsTable.conditionName}) like ${like}`,
           sql`lower(${consultationsTable.id}) like ${like}`,
+          sql`lower(coalesce(${consultationsTable.deliveryAddress}, '')) like ${like}`,
         ),
       )
       .orderBy(desc(consultationsTable.createdAt))
@@ -244,6 +245,7 @@ router.get("/pharmacist/search", requirePharmacist, async (req, res): Promise<vo
         or(
           sql`lower(${patientAccountsTable.name}) like ${like}`,
           sql`lower(${patientAccountsTable.email}) like ${like}`,
+          sql`lower(coalesce(${patientAccountsTable.postcode}, '')) like ${like}`,
         ),
       )
       .limit(8),
