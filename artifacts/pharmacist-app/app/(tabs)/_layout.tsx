@@ -62,12 +62,20 @@ function useUnreadBadgeCounts(): UnreadBadgeCounts {
 // NativeTabs intentionally does NOT use custom design tokens — liquid glass
 // is a system-level appearance provided by iOS and cannot be overridden.
 // Custom brand colors are applied only on the ClassicTabLayout path (older iOS / Android / web).
+// `NativeTabs.Trigger` from expo-router/unstable-native-tabs accepts a `badge`
+// prop on iOS but the public types don't currently expose it. This typed helper
+// produces the right `{ badge?: number }` shape without leaking `any` into the
+// component tree.
+type BadgeProp = { badge?: number };
+function badgeProps(count: number): BadgeProp {
+  return count > 0 ? { badge: count } : {};
+}
+
 function NativeTabLayout() {
   const { unreadMessages, patientResponded } = useUnreadBadgeCounts();
   return (
     <NativeTabs>
-      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-      <NativeTabs.Trigger name="index" {...(patientResponded > 0 ? { badge: patientResponded } as any : {})}>
+      <NativeTabs.Trigger name="index" {...badgeProps(patientResponded)}>
         <Icon sf={{ default: "clock", selected: "clock.fill" }} />
         <Label>Pending</Label>
       </NativeTabs.Trigger>
@@ -79,8 +87,7 @@ function NativeTabLayout() {
         <Icon sf={{ default: "person.2", selected: "person.2.fill" }} />
         <Label>Patients</Label>
       </NativeTabs.Trigger>
-      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-      <NativeTabs.Trigger name="inbox" {...(unreadMessages > 0 ? { badge: unreadMessages } as any : {})}>
+      <NativeTabs.Trigger name="inbox" {...badgeProps(unreadMessages)}>
         <Icon sf={{ default: "message.badge", selected: "message.badge.fill" }} />
         <Label>Messages</Label>
       </NativeTabs.Trigger>

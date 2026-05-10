@@ -17,7 +17,10 @@ import {
   StickyNote,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useGetPharmacistUnreadCounts } from "@workspace/api-client-react";
+import {
+  useGetPharmacistUnreadCounts,
+  getGetPharmacistUnreadCountsQueryKey,
+} from "@workspace/api-client-react";
 
 type NavKey = "queue" | "patients" | "messages" | "notes" | "orders" | "products" | "conditions" | "complaints" | "reports" | "settings";
 
@@ -59,12 +62,11 @@ export default function PharmacistLayout({ current, children }: PharmacistLayout
   // so a pharmacist tabbing back to the dashboard sees fresh numbers right away.
   const { data: unreadCounts } = useGetPharmacistUnreadCounts({
     query: {
+      queryKey: getGetPharmacistUnreadCountsQueryKey(),
       refetchInterval: 60_000,
       refetchOnWindowFocus: true,
       staleTime: 30_000,
-      // queryKey is provided by orval's generated wrapper; this cast just satisfies
-      // its inner UseQueryOptions type which marks queryKey as required.
-    } as Parameters<typeof useGetPharmacistUnreadCounts>[0] extends { query?: infer Q } ? Q : never,
+    },
   });
   const queueBadge = unreadCounts?.patientResponded ?? 0;
   const messagesBadge = unreadCounts?.unreadMessages ?? 0;
