@@ -27,7 +27,7 @@ function AccountCard({
     <Link href={href} data-testid={testId}>
       <motion.div
         whileHover={{ y: -2 }}
-        className="group bg-white rounded-2xl border border-border/40 hover:border-primary/40 hover:shadow-md transition-all p-5 md:p-6 flex items-center gap-4 cursor-pointer"
+        className="group bg-white rounded-2xl border border-border/40 hover:border-primary/40 hover:shadow-md transition-all p-5 md:p-6 flex items-center gap-4 cursor-pointer mt-[10px] mb-[10px]"
       >
         {image ? (
           <img src={image} alt="" className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
