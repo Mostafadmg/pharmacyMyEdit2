@@ -59,6 +59,16 @@ function RootLayoutNav() {
           headerTitleStyle: { fontWeight: "700" },
         }}
       />
+      <Stack.Screen
+        name="messages/[id]"
+        options={{
+          title: "Messages",
+          headerStyle: { backgroundColor: "#FFFFFF" },
+          headerTintColor: "#0E2354",
+          headerTitleStyle: { fontWeight: "700" },
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

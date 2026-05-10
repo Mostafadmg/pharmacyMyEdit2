@@ -14,14 +14,17 @@ import {
   ShoppingBag,
   Stethoscope,
   Package,
+  StickyNote,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-type NavKey = "queue" | "patients" | "orders" | "products" | "conditions" | "complaints" | "reports" | "settings";
+type NavKey = "queue" | "patients" | "messages" | "notes" | "orders" | "products" | "conditions" | "complaints" | "reports" | "settings";
 
 const NAV_ITEMS: { key: NavKey; label: string; icon: React.ElementType; href: string; live: boolean }[] = [
   { key: "queue", label: "Queue", icon: Activity, href: "/dashboard", live: true },
   { key: "patients", label: "Patients", icon: Users, href: "/dashboard/patients", live: true },
+  { key: "messages", label: "Messages", icon: MessageSquare, href: "/dashboard/messages", live: true },
+  { key: "notes", label: "Notes", icon: StickyNote, href: "/dashboard/notes", live: true },
   { key: "orders", label: "Shop Orders", icon: ShoppingBag, href: "/dashboard/orders", live: true },
   { key: "products", label: "Products", icon: Package, href: "/dashboard/products", live: true },
   { key: "conditions", label: "Conditions", icon: Stethoscope, href: "/dashboard/conditions", live: true },

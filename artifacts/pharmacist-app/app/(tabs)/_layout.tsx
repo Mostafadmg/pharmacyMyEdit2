@@ -29,8 +29,8 @@ function NativeTabLayout() {
         <Label>Patients</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="inbox">
-        <Icon sf={{ default: "bell", selected: "bell.fill" }} />
-        <Label>Inbox</Label>
+        <Icon sf={{ default: "message.badge", selected: "message.badge.fill" }} />
+        <Label>Messages</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="orders">
         <Icon sf={{ default: "shippingbox", selected: "shippingbox.fill" }} />
@@ -125,12 +125,12 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="inbox"
         options={{
-          title: "Inbox",
+          title: "Messages",
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="bell" tintColor={color} size={24} />
+              <SymbolView name="message.badge" tintColor={color} size={24} />
             ) : (
-              <Feather name="bell" size={22} color={color} />
+              <Feather name="message-square" size={22} color={color} />
             ),
         }}
       />

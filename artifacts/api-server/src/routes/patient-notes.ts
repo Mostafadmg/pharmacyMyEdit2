@@ -11,6 +11,14 @@ function paramAsString(value: string | string[] | undefined): string {
   return v ?? "";
 }
 
+router.get("/patient-notes", requirePharmacist, async (req: AuthedRequest, res: Response): Promise<void> => {
+  const notes = await db
+    .select()
+    .from(pharmacistNotesTable)
+    .orderBy(desc(pharmacistNotesTable.createdAt));
+  res.json({ notes });
+});
+
 router.get("/patient-notes/:email", requirePharmacist, async (req: AuthedRequest, res: Response): Promise<void> => {
   const email = paramAsString(req.params.email);
   if (!email) {
