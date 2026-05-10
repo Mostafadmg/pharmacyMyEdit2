@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useListConsultations } from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
 import { formatDistanceToNow } from "date-fns";
+import { getCurrentToken } from "@/context/AuthContext";
 
 interface PatientRow {
   email: string;
@@ -30,6 +31,21 @@ interface PatientRow {
   conditions: string[];
 }
 
+interface UnreadInfo {
+  consultationId: string;
+  lastMsgAt: string | null;
+}
+
+interface UnreadThreadResp {
+  id: string;
+  patientEmail: string;
+  unreadCount: number;
+  lastMsgAt: string | null;
+  lastMsgRole: string | null;
+}
+
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
+
 export default function PatientsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -40,6 +56,43 @@ export default function PatientsScreen() {
     { limit: 200 },
     { query: { refetchInterval: 30000 } as never },
   );
+
+  const [unreadByEmail, setUnreadByEmail] = useState<Map<string, UnreadInfo>>(new Map());
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const loadThreads = useCallback(async () => {
+    try {
+      const token = getCurrentToken();
+      const res = await fetch(`${BASE_URL}/api/pharmacist/message-threads`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) return;
+      const json = (await res.json()) as { threads: UnreadThreadResp[] };
+      const map = new Map<string, UnreadInfo>();
+      for (const t of json.threads ?? []) {
+        if (Number(t.unreadCount) <= 0) continue;
+        if (t.lastMsgRole !== "patient") continue;
+        const key = t.patientEmail.toLowerCase();
+        const prev = map.get(key);
+        const prevTs = prev?.lastMsgAt ? new Date(prev.lastMsgAt).getTime() : 0;
+        const curTs = t.lastMsgAt ? new Date(t.lastMsgAt).getTime() : 0;
+        if (!prev || curTs >= prevTs) {
+          map.set(key, { consultationId: t.id, lastMsgAt: t.lastMsgAt });
+        }
+      }
+      setUnreadByEmail(map);
+    } catch {
+      // silent
+    }
+  }, []);
+
+  useEffect(() => {
+    loadThreads();
+    intervalRef.current = setInterval(loadThreads, 30000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [loadThreads]);
 
   const patients = useMemo<PatientRow[]>(() => {
     const map = new Map<string, PatientRow>();
@@ -164,16 +217,23 @@ export default function PatientsScreen() {
             .join("")
             .toUpperCase();
           const isFlagged = item.redFlags > 0;
+          const unread = unreadByEmail.get(item.email.toLowerCase());
+          const hasReplied = !!unread;
           return (
             <Pressable
               style={({ pressed }) => [
                 styles.card,
                 isFlagged && { borderColor: "#FCA5A5" },
+                hasReplied && !isFlagged && { borderColor: "#FED7AA", backgroundColor: "#FFF7ED" },
                 pressed && { opacity: 0.78 },
               ]}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push(`/patient/${encodeURIComponent(item.email)}`);
+                if (unread) {
+                  router.push(`/messages/${unread.consultationId}` as never);
+                } else {
+                  router.push(`/patient/${encodeURIComponent(item.email)}`);
+                }
               }}
               testID={`patient-row-${item.email}`}
             >
@@ -183,6 +243,35 @@ export default function PatientsScreen() {
               <View style={{ flex: 1 }}>
                 <View style={styles.rowTop}>
                   <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+                  {unread && (
+                    <Pressable
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        router.push(`/messages/${unread.consultationId}` as never);
+                      }}
+                      hitSlop={6}
+                      style={({ pressed }) => [
+                        {
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 3,
+                          backgroundColor: "#FED7AA",
+                          borderRadius: 8,
+                          paddingHorizontal: 6,
+                          paddingVertical: 2,
+                          marginLeft: 4,
+                          opacity: pressed ? 0.7 : 1,
+                        },
+                      ]}
+                      testID={`badge-replied-${item.email}`}
+                    >
+                      <Feather name="corner-down-left" size={10} color="#9A3412" />
+                      <Text style={{ fontSize: 9, color: "#9A3412", fontWeight: "800" as const }}>
+                        REPLIED
+                      </Text>
+                    </Pressable>
+                  )}
                   <Text style={styles.timeAgo}>
                     {formatDistanceToNow(new Date(item.lastConsultAt), { addSuffix: true })}
                   </Text>

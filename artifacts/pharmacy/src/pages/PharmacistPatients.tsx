@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { Link } from "wouter";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useLocation } from "wouter";
 import { format, formatDistanceToNow } from "date-fns";
 import { useListConsultations } from "@workspace/api-client-react";
 import {
@@ -11,6 +11,7 @@ import {
   Clock,
   AlertTriangle,
   ArrowRight,
+  Reply,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,21 @@ type PatientRow = {
   lastConditionName: string;
   lastConsultationId: string;
   lastSubmittedAt: string;
+};
+
+type UnreadThread = {
+  id: string;
+  patientEmail: string;
+  unreadCount: number;
+  lastMsgAt: string | null;
+  lastMsgRole: string | null;
+};
+
+type UnreadInfo = { consultationId: string; lastMsgAt: string | null };
+
+const threadsAuthHeaders = (): Record<string, string> => {
+  const token = typeof localStorage !== "undefined" ? localStorage.getItem("pharmacist_token") : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
 function aggregatePatients(consultations: Consultation[]): PatientRow[] {
@@ -102,11 +118,43 @@ function getInitials(name: string) {
 
 export default function PharmacistPatients() {
   const [search, setSearch] = useState("");
+  const [, setLocation] = useLocation();
 
   const { data, isLoading } = useListConsultations({ limit: 200 });
   const consultations = (data as { consultations?: Consultation[] } | undefined)?.consultations ?? [];
 
   const patients = useMemo(() => aggregatePatients(consultations as Consultation[]), [consultations]);
+
+  const [unreadByEmail, setUnreadByEmail] = useState<Map<string, UnreadInfo>>(new Map());
+
+  const loadThreads = useCallback(async () => {
+    try {
+      const res = await fetch("/api/pharmacist/message-threads", { headers: threadsAuthHeaders() });
+      if (!res.ok) return;
+      const json = (await res.json()) as { threads: UnreadThread[] };
+      const map = new Map<string, UnreadInfo>();
+      for (const t of json.threads ?? []) {
+        if (Number(t.unreadCount) <= 0) continue;
+        if (t.lastMsgRole !== "patient") continue;
+        const key = t.patientEmail.toLowerCase();
+        const prev = map.get(key);
+        const prevTs = prev?.lastMsgAt ? new Date(prev.lastMsgAt).getTime() : 0;
+        const curTs = t.lastMsgAt ? new Date(t.lastMsgAt).getTime() : 0;
+        if (!prev || curTs >= prevTs) {
+          map.set(key, { consultationId: t.id, lastMsgAt: t.lastMsgAt });
+        }
+      }
+      setUnreadByEmail(map);
+    } catch {
+      // silent
+    }
+  }, []);
+
+  useEffect(() => {
+    loadThreads();
+    const interval = setInterval(loadThreads, 30000);
+    return () => clearInterval(interval);
+  }, [loadThreads]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return patients;
@@ -220,10 +268,20 @@ export default function PharmacistPatients() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((p) => (
+                  {filtered.map((p) => {
+                    const unread = unreadByEmail.get(p.email.toLowerCase());
+                    return (
                     <tr
                       key={p.email}
-                      className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors"
+                      onClick={(e) => {
+                        const tgt = e.target as HTMLElement;
+                        if (tgt.closest("a,button")) return;
+                        const href = unread
+                          ? `/dashboard/messages/${unread.consultationId}`
+                          : `/dashboard/patients/${encodeURIComponent(p.email)}`;
+                        setLocation(href);
+                      }}
+                      className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors cursor-pointer"
                       data-testid={`row-patient-${p.email}`}
                     >
                       <td className="px-6 py-4">
@@ -255,6 +313,17 @@ export default function PharmacistPatients() {
                           <Badge variant="outline" className="font-semibold">
                             <Activity className="w-3 h-3 mr-1" /> {p.consultationCount}
                           </Badge>
+                          {unread && (
+                            <Link href={`/dashboard/messages/${unread.consultationId}`}>
+                              <a
+                                data-testid={`badge-replied-${p.email}`}
+                                title="Open the conversation — patient is waiting on a reply"
+                                className="inline-flex items-center text-xs font-semibold rounded-md px-2 py-0.5 bg-orange-100 text-orange-800 hover:bg-orange-200 transition-colors"
+                              >
+                                <Reply className="w-3 h-3 mr-1" /> Replied
+                              </a>
+                            </Link>
+                          )}
                           {p.pending > 0 && (
                             <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200 border-none">
                               <Clock className="w-3 h-3 mr-1" /> {p.pending}
@@ -278,6 +347,17 @@ export default function PharmacistPatients() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-3">
+                          {unread && (
+                            <Link href={`/dashboard/messages/${unread.consultationId}`}>
+                              <a
+                                className="inline-flex items-center gap-1 text-orange-700 font-semibold hover:underline"
+                                data-testid={`link-open-chat-${p.email}`}
+                                title="Open chat — patient is waiting"
+                              >
+                                <Reply className="w-4 h-4" /> Reply
+                              </a>
+                            </Link>
+                          )}
                           <Link href={`/dashboard/patients/${encodeURIComponent(p.email)}`}>
                             <a
                               className="inline-flex items-center gap-1 text-secondary font-semibold hover:underline"
@@ -297,7 +377,8 @@ export default function PharmacistPatients() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

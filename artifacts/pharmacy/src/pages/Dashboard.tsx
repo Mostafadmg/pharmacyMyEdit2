@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import {
   useGetDashboardStats,
@@ -16,6 +16,7 @@ import {
   ArrowRight,
   Users,
   MessageSquare,
+  Reply,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import PharmacistLayout from "@/components/layout/PharmacistLayout";
 
+type AwaitingThread = {
+  id: string;
+  patientName: string;
+  patientEmail: string;
+  conditionName: string;
+  consultationStatus: string;
+  lastMsgAt: string | null;
+  unreadCount: number;
+};
+
+const awaitingAuthHeaders = (): Record<string, string> => {
+  const token = typeof localStorage !== "undefined" ? localStorage.getItem("pharmacist_token") : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 export default function Dashboard() {
   const [_, setLocation] = useLocation();
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -35,6 +51,37 @@ export default function Dashboard() {
     status: statusFilter !== "all" ? (statusFilter as ListConsultationsStatus) : undefined,
     limit: 50,
   });
+
+  const [awaiting, setAwaiting] = useState<AwaitingThread[]>([]);
+  const [awaitingLoading, setAwaitingLoading] = useState(true);
+
+  const loadAwaiting = useCallback(async () => {
+    try {
+      const res = await fetch("/api/pharmacist/message-threads", {
+        headers: awaitingAuthHeaders(),
+      });
+      if (!res.ok) throw new Error("Failed");
+      const json = (await res.json()) as { threads: AwaitingThread[] };
+      const filtered = (json.threads ?? [])
+        .filter((t) => t.consultationStatus === "patient_responded")
+        .sort((a, b) => {
+          const at = a.lastMsgAt ? new Date(a.lastMsgAt).getTime() : 0;
+          const bt = b.lastMsgAt ? new Date(b.lastMsgAt).getTime() : 0;
+          return at - bt;
+        });
+      setAwaiting(filtered);
+    } catch {
+      // silent
+    } finally {
+      setAwaitingLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadAwaiting();
+    const interval = setInterval(loadAwaiting, 30000);
+    return () => clearInterval(interval);
+  }, [loadAwaiting]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -199,6 +246,78 @@ export default function Dashboard() {
           </motion.div>
         </div>
       ) : null}
+
+      {!awaitingLoading && awaiting.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          data-testid="awaiting-reply-section"
+        >
+          <Card className="border-orange-200 ring-1 ring-orange-100 bg-orange-50/40 rounded-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-orange-200 flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center">
+                  <Reply className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-serif font-bold text-orange-900">
+                    Awaiting your reply
+                  </h2>
+                  <p className="text-xs text-orange-800/80">
+                    {awaiting.length} patient{awaiting.length === 1 ? "" : "s"} have replied — oldest first.
+                  </p>
+                </div>
+              </div>
+              <Badge className="bg-orange-500 text-white hover:bg-orange-500 border-none font-bold px-3 py-1">
+                {awaiting.length}
+              </Badge>
+            </div>
+            <ul className="divide-y divide-orange-100">
+              {awaiting.map((t) => (
+                <li
+                  key={t.id}
+                  onClick={() => setLocation(`/dashboard/messages/${t.id}`)}
+                  className="px-6 py-3 flex items-center gap-4 cursor-pointer hover:bg-orange-100/40 transition-colors"
+                  data-testid={`awaiting-row-${t.id}`}
+                >
+                  <div className="w-9 h-9 rounded-full bg-orange-200 text-orange-800 font-bold text-xs flex items-center justify-center shrink-0">
+                    {getInitials(t.patientName)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-secondary truncate">
+                      {t.patientName}
+                      <span className="text-muted-foreground font-normal"> · {t.conditionName}</span>
+                    </p>
+                    <p className="text-xs text-orange-800/80 mt-0.5 flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      Replied{" "}
+                      {t.lastMsgAt
+                        ? formatDistanceToNow(new Date(t.lastMsgAt), { addSuffix: true })
+                        : "recently"}
+                      {Number(t.unreadCount) > 0 && (
+                        <span className="ml-2 text-[10px] font-bold text-orange-700 bg-orange-200 px-1.5 py-0.5 rounded-full">
+                          {t.unreadCount} unread
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-full text-orange-700 hover:text-orange-800 hover:bg-orange-200/60 font-bold"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLocation(`/dashboard/messages/${t.id}`);
+                    }}
+                  >
+                    Open chat <ArrowRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </motion.div>
+      )}
 
       <Card className="border-border shadow-md bg-white rounded-2xl overflow-hidden">
         <div className="p-6 border-b border-border bg-muted/10 flex flex-col lg:flex-row lg:items-center justify-between gap-6 sticky top-0 z-10">
