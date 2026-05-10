@@ -1,6 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
+import { registerPushToken, unregisterPushToken } from "@/lib/push-notifications";
+
+const PUSH_TOKEN_KEY = "@pharmacare_expo_push_token";
 
 interface AuthState {
   token: string | null;
@@ -91,6 +94,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (token) {
           currentToken = token;
           setState({ token, pharmacistName: name, pharmacistId: id, role, isLoading: false });
+          // Refresh the push-token registration on app launch (best-effort).
+          registerPushToken()
+            .then((expoToken) => {
+              if (expoToken) AsyncStorage.setItem(PUSH_TOKEN_KEY, expoToken).catch(() => {});
+            })
+            .catch(() => {});
         } else {
           // No saved session — auto-login with demo pharmacist for testing
           const autoToken = btoa(`${DEMO_ID}:${Date.now()}`);
@@ -102,6 +111,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           ]);
           currentToken = autoToken;
           setState({ token: autoToken, pharmacistName: DEMO_NAME, pharmacistId: DEMO_ID, role: DEMO_ROLE, isLoading: false });
+          registerPushToken()
+            .then((expoToken) => {
+              if (expoToken) AsyncStorage.setItem(PUSH_TOKEN_KEY, expoToken).catch(() => {});
+            })
+            .catch(() => {});
         }
       } catch {
         setState(s => ({ ...s, isLoading: false }));
@@ -119,14 +133,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ]);
     currentToken = token;
     setState({ token, pharmacistName: name, pharmacistId: id, role, isLoading: false });
+    // Register Expo push token (best-effort — never block login).
+    registerPushToken()
+      .then((expoToken) => {
+        if (expoToken) AsyncStorage.setItem(PUSH_TOKEN_KEY, expoToken).catch(() => {});
+      })
+      .catch(() => {});
   }, []);
 
   const logout = useCallback(async () => {
+    // Unregister the Expo push token *before* tearing down the auth bearer.
+    try {
+      const [storedAuth, storedPush] = await Promise.all([
+        AsyncStorage.getItem(TOKEN_KEY),
+        AsyncStorage.getItem(PUSH_TOKEN_KEY),
+      ]);
+      if (storedPush && storedAuth) {
+        await unregisterPushToken(storedPush, storedAuth);
+      }
+    } catch {
+      /* best-effort */
+    }
     await Promise.all([
       AsyncStorage.removeItem(TOKEN_KEY),
       AsyncStorage.removeItem(NAME_KEY),
       AsyncStorage.removeItem(ID_KEY),
       AsyncStorage.removeItem(ROLE_KEY),
+      AsyncStorage.removeItem(PUSH_TOKEN_KEY),
     ]);
     currentToken = null;
     setState({ token: null, pharmacistName: null, pharmacistId: null, role: null, isLoading: false });

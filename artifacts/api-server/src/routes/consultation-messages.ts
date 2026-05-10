@@ -9,6 +9,7 @@ import {
 import { eq, asc, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { resolveAuthActor, type AuthedRequest } from "../middlewares/auth";
+import { pushToAllPharmacists } from "../lib/expo-push";
 
 const router: IRouter = Router();
 
@@ -151,6 +152,20 @@ router.post("/consultations/:id/messages", async (req: AuthedRequest, res: Respo
       consultationId,
       orderId: null,
       read: false,
+    });
+    // Fire-and-forget push to pharmacist mobile devices.
+    const snippet = body.trim().slice(0, 140);
+    pushToAllPharmacists({
+      title: `${consultation.patientName} · ${consultation.conditionName}`,
+      body: snippet,
+      data: {
+        type: "patient_message",
+        consultationId,
+        patientName: consultation.patientName,
+        conditionName: consultation.conditionName,
+      },
+    }).catch((err) => {
+      req.log?.error?.({ err, consultationId }, "Expo push to pharmacists failed");
     });
   } else {
     await db.insert(notificationsTable).values({

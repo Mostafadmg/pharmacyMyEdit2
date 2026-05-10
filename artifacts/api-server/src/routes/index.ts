@@ -18,6 +18,7 @@ import consultationMessagesRouter from "./consultation-messages";
 import prescriptionPdfRouter from "./prescription-pdf";
 import pharmacistPatientsRouter from "./pharmacist-patients";
 import messageThreadsRouter from "./message-threads";
+import pharmacistPushTokensRouter from "./pharmacist-push-tokens";
 
 const router: IRouter = Router();
 
@@ -40,5 +41,6 @@ router.use(consultationMessagesRouter);
 router.use(prescriptionPdfRouter);
 router.use(pharmacistPatientsRouter);
 router.use(messageThreadsRouter);
+router.use(pharmacistPushTokensRouter);
 
 export default router;

@@ -13,9 +13,10 @@ import {
   PlusJakartaSans_800ExtraBold,
 } from "@expo-google-fonts/plus-jakarta-sans";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
+import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Text as RNText, TextInput as RNTextInput } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider, KeyboardToolbar } from "react-native-keyboard-controller";
@@ -23,10 +24,12 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider, getCurrentTokenAsync, useAuth } from "@/context/AuthContext";
+import { configureNotificationHandler } from "@/lib/push-notifications";
 import { setBaseUrl, setAuthTokenGetter } from "@workspace/api-client-react";
 
 setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
 setAuthTokenGetter(getCurrentTokenAsync);
+configureNotificationHandler();
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -35,6 +38,37 @@ const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+  const handledInitial = useRef(false);
+
+  // Deep-link handling for patient-message push notifications.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    function handleData(data: unknown): void {
+      if (!data || typeof data !== "object") return;
+      const d = data as { type?: string; consultationId?: string };
+      if (d.type === "patient_message" && typeof d.consultationId === "string") {
+        router.push(`/consultation/${d.consultationId}`);
+      }
+    }
+
+    // Cold-start: a notification tap launched the app.
+    if (!handledInitial.current) {
+      handledInitial.current = true;
+      Notifications.getLastNotificationResponseAsync()
+        .then((resp) => {
+          if (resp) handleData(resp.notification.request.content.data);
+        })
+        .catch(() => {});
+    }
+
+    // Warm-start: tapped while app was backgrounded.
+    const sub = Notifications.addNotificationResponseReceivedListener((resp) => {
+      handleData(resp.notification.request.content.data);
+    });
+    return () => sub.remove();
+  }, [isAuthenticated, router]);
 
   if (isLoading) return null;
 
