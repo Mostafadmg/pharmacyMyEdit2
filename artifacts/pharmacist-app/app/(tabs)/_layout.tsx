@@ -50,6 +50,7 @@ function useUnreadMessageCount(): number {
 // is a system-level appearance provided by iOS and cannot be overridden.
 // Custom brand colors are applied only on the ClassicTabLayout path (older iOS / Android / web).
 function NativeTabLayout() {
+  const unreadCount = useUnreadMessageCount();
   return (
     <NativeTabs>
       <NativeTabs.Trigger name="index">
@@ -64,7 +65,8 @@ function NativeTabLayout() {
         <Icon sf={{ default: "person.2", selected: "person.2.fill" }} />
         <Label>Patients</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="inbox">
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+      <NativeTabs.Trigger name="inbox" {...(unreadCount > 0 ? { badge: unreadCount } as any : {})}>
         <Icon sf={{ default: "message.badge", selected: "message.badge.fill" }} />
         <Label>Messages</Label>
       </NativeTabs.Trigger>

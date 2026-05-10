@@ -1,5 +1,5 @@
 import { Router, type Response } from "express";
-import { db, pharmacistNotesTable } from "@workspace/db";
+import { db, pharmacistNotesTable, patientAccountsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { requirePharmacist, type AuthedRequest } from "../middlewares/auth";
@@ -12,11 +12,22 @@ function paramAsString(value: string | string[] | undefined): string {
 }
 
 router.get("/patient-notes", requirePharmacist, async (req: AuthedRequest, res: Response): Promise<void> => {
-  const notes = await db
-    .select()
+  const rows = await db
+    .select({
+      id: pharmacistNotesTable.id,
+      patientEmail: pharmacistNotesTable.patientEmail,
+      note: pharmacistNotesTable.note,
+      createdBy: pharmacistNotesTable.createdBy,
+      createdById: pharmacistNotesTable.createdById,
+      updatedBy: pharmacistNotesTable.updatedBy,
+      createdAt: pharmacistNotesTable.createdAt,
+      updatedAt: pharmacistNotesTable.updatedAt,
+      patientName: patientAccountsTable.name,
+    })
     .from(pharmacistNotesTable)
+    .leftJoin(patientAccountsTable, eq(patientAccountsTable.email, pharmacistNotesTable.patientEmail))
     .orderBy(desc(pharmacistNotesTable.createdAt));
-  res.json({ notes });
+  res.json({ notes: rows });
 });
 
 router.get("/patient-notes/:email", requirePharmacist, async (req: AuthedRequest, res: Response): Promise<void> => {
@@ -25,12 +36,23 @@ router.get("/patient-notes/:email", requirePharmacist, async (req: AuthedRequest
     res.status(400).json({ error: "Email is required" });
     return;
   }
-  const notes = await db
-    .select()
+  const rows = await db
+    .select({
+      id: pharmacistNotesTable.id,
+      patientEmail: pharmacistNotesTable.patientEmail,
+      note: pharmacistNotesTable.note,
+      createdBy: pharmacistNotesTable.createdBy,
+      createdById: pharmacistNotesTable.createdById,
+      updatedBy: pharmacistNotesTable.updatedBy,
+      createdAt: pharmacistNotesTable.createdAt,
+      updatedAt: pharmacistNotesTable.updatedAt,
+      patientName: patientAccountsTable.name,
+    })
     .from(pharmacistNotesTable)
+    .leftJoin(patientAccountsTable, eq(patientAccountsTable.email, pharmacistNotesTable.patientEmail))
     .where(eq(pharmacistNotesTable.patientEmail, decodeURIComponent(email)))
     .orderBy(desc(pharmacistNotesTable.createdAt));
-  res.json({ notes });
+  res.json({ notes: rows });
 });
 
 router.post("/patient-notes", requirePharmacist, async (req: AuthedRequest, res: Response): Promise<void> => {

@@ -14,6 +14,7 @@ import { Link } from "wouter";
 type PatientNote = {
   id: string;
   patientEmail: string;
+  patientName: string | null;
   note: string;
   createdBy: string;
   updatedBy: string | null;
@@ -195,12 +196,15 @@ export default function PharmacistNotes() {
 
   // Filtered views
   const filteredPatient = search.trim()
-    ? patientNotes.filter(
-        (n) =>
-          n.patientEmail.toLowerCase().includes(search.toLowerCase()) ||
-          n.note.toLowerCase().includes(search.toLowerCase()) ||
-          n.createdBy.toLowerCase().includes(search.toLowerCase()),
-      )
+    ? patientNotes.filter((n) => {
+        const q = search.toLowerCase();
+        return (
+          n.patientEmail.toLowerCase().includes(q) ||
+          (n.patientName ?? "").toLowerCase().includes(q) ||
+          n.note.toLowerCase().includes(q) ||
+          n.createdBy.toLowerCase().includes(q)
+        );
+      })
     : patientNotes;
 
   const groupedPatient = filteredPatient.reduce<Record<string, PatientNote[]>>((acc, n) => {
