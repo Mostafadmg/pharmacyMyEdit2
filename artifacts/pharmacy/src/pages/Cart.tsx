@@ -10,7 +10,7 @@ import { useCart, formatGbp } from "@/hooks/useCart";
 
 export default function Cart() {
   const [, navigate] = useLocation();
-  const { items, updateQty, removeItem, itemsTotal, shipping, total } = useCart();
+  const { items, updateQty, removeItem, itemsTotal, itemsTotalAfterDiscount, discounts, discountTotal, shipping, total } = useCart();
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF7F2]">
@@ -76,12 +76,24 @@ export default function Cart() {
                 <h2 className="font-semibold text-lg">Order summary</h2>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between"><span>Subtotal</span><span>{formatGbp(itemsTotal)}</span></div>
+                  {discounts.map(d => (
+                    <div key={d.ruleId} className="flex justify-between text-emerald-700" data-testid={`discount-${d.ruleId}`}>
+                      <span className="flex items-center gap-1.5">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        {d.label}
+                      </span>
+                      <span className="font-semibold">−{formatGbp(d.amountPence)}</span>
+                    </div>
+                  ))}
                   <div className="flex justify-between">
                     <span>Standard delivery</span>
                     <span>{shipping === 0 ? <span className="text-green-700 font-medium">Free</span> : formatGbp(shipping)}</span>
                   </div>
-                  {itemsTotal < 2500 && (
-                    <p className="text-xs text-muted-foreground">Add {formatGbp(2500 - itemsTotal)} for free delivery</p>
+                  {itemsTotalAfterDiscount > 0 && itemsTotalAfterDiscount < 2500 && (
+                    <p className="text-xs text-muted-foreground">Add {formatGbp(2500 - itemsTotalAfterDiscount)} for free delivery</p>
+                  )}
+                  {discountTotal > 0 && (
+                    <p className="text-xs text-emerald-700 font-medium">You're saving {formatGbp(discountTotal)} 🎉</p>
                   )}
                 </div>
                 <div className="border-t pt-4 flex justify-between items-baseline">

@@ -12,6 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
 import { useCart, formatGbp } from "@/hooks/useCart";
+import WishlistButton from "@/components/WishlistButton";
+import { useSeo } from "@/hooks/useSeo";
 
 type Product = {
   id: string;
@@ -45,6 +47,11 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export default function Shop() {
+  useSeo({
+    title: "Pharmacy Shop · UK pharmacy products with free delivery",
+    description: "Shop UK pharmacy medicines, vitamins and skincare from PharmaCare. Free tracked next-day delivery on orders over £25, dispatched same-day from a GPhC-registered pharmacy.",
+    canonicalPath: "/shop",
+  });
   const [, navigate] = useLocation();
   const [products, setProducts] = useState<Product[] | null>(null);
   const [categories, setCategories] = useState<Array<{ category: string; count: number }>>([]);
@@ -90,6 +97,7 @@ export default function Shop() {
       brand: p.brand,
       imageUrl: p.imageUrl,
       unitPriceGbp: p.priceGbp,
+      category: p.category,
     });
     toast.success(`${p.name} added to basket`);
   };
@@ -110,6 +118,7 @@ export default function Shop() {
       brand: p.brand,
       imageUrl: p.imageUrl,
       unitPriceGbp: p.priceGbp,
+      category: p.category,
     });
     navigate("/checkout");
   };
@@ -206,7 +215,7 @@ export default function Shop() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <Card className="group overflow-hidden border-0 bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 h-full flex flex-col" data-testid={`product-card-${p.slug}`}>
+                    <Card className="group overflow-hidden border-0 bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 h-full flex flex-col relative" data-testid={`product-card-${p.slug}`}>
                       <Link href={`/product/${p.slug}`}>
                         <div className="aspect-square bg-gradient-to-br from-muted/30 to-muted overflow-hidden relative">
                           <img
@@ -225,6 +234,16 @@ export default function Shop() {
                           )}
                         </div>
                       </Link>
+                      <div className="absolute top-3 right-3 z-10">
+                        <WishlistButton
+                          productId={p.id}
+                          slug={p.slug}
+                          name={p.name}
+                          brand={p.brand}
+                          imageUrl={p.imageUrl}
+                          unitPriceGbp={p.priceGbp}
+                        />
+                      </div>
                       <CardContent className="p-5 flex-1 flex flex-col">
                         <Link href={`/product/${p.slug}`}>
                           {p.brand && <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">{p.brand}</p>}

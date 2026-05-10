@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, Plus, User, LogOut, ShoppingBag, ChevronDown, ChevronRight } from "lucide-react";
+import { Menu, X, Plus, User, LogOut, ShoppingBag, ChevronDown, ChevronRight, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/useCart";
+import { useWishlist } from "@/hooks/useWishlist";
 import { TREATMENTS_MENU } from "@/data/treatmentsMenu";
 import NotificationBell from "@/components/NotificationBell";
 
@@ -13,6 +14,7 @@ export default function Header() {
   const [openMobileSection, setOpenMobileSection] = useState<string | null>(null);
   const [patientName, setPatientName] = useState<string | null>(null);
   const { itemCount } = useCart();
+  const { count: wishlistCount } = useWishlist();
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const megaWrapperRef = useRef<HTMLElement | null>(null);
 
@@ -66,6 +68,7 @@ export default function Header() {
 
   const navLinks = [
     { name: "Shop", href: "/shop" },
+    { name: "Health Hub", href: "/health-hub" },
     { name: "Track", href: "/track" },
     { name: "Pharmacist Portal", href: "/dashboard" },
   ];
@@ -128,6 +131,15 @@ export default function Header() {
                 }`}></span>
               </Link>
             ))}
+
+            <Link href="/wishlist" className="relative p-2 text-foreground hover:text-rose-500 transition-colors" data-testid="link-wishlist" aria-label="Wishlist">
+              <Heart className={`w-5 h-5 ${wishlistCount > 0 ? "fill-rose-500 text-rose-500" : ""}`} />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {wishlistCount > 9 ? "9+" : wishlistCount}
+                </span>
+              )}
+            </Link>
 
             <Link href="/cart" className="relative p-2 text-foreground hover:text-primary transition-colors" data-testid="link-cart">
               <ShoppingBag className="w-5 h-5" />

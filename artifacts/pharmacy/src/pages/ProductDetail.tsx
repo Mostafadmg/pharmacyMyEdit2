@@ -12,6 +12,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
 import { useCart, formatGbp } from "@/hooks/useCart";
+import { recordRecentlyViewed } from "@/hooks/useWishlist";
+import RecentlyViewedStrip from "@/components/RecentlyViewedStrip";
+import WishlistButton from "@/components/WishlistButton";
+import { useSeo } from "@/hooks/useSeo";
 
 type Product = {
   id: string;
@@ -47,10 +51,43 @@ export default function ProductDetail() {
     if (!params?.id) return;
     setLoading(true);
     apiFetch<{ product: Product }>(`/api/products/${params.id}`)
-      .then(d => setProduct(d.product))
+      .then(d => {
+        setProduct(d.product);
+        recordRecentlyViewed({
+          productId: d.product.id,
+          slug: d.product.slug,
+          name: d.product.name,
+          brand: d.product.brand,
+          imageUrl: d.product.imageUrl,
+          unitPriceGbp: d.product.priceGbp,
+        });
+      })
       .catch(e => toast.error(e.message))
       .finally(() => setLoading(false));
   }, [params?.id]);
+
+  useSeo(product ? {
+    title: `${product.name}${product.brand ? ` (${product.brand})` : ""}`,
+    description: product.shortDescription,
+    canonicalPath: `/product/${product.slug}`,
+    ogImage: product.imageUrl,
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: product.name,
+      brand: product.brand ? { "@type": "Brand", name: product.brand } : undefined,
+      image: product.imageUrl,
+      description: product.shortDescription,
+      sku: product.id,
+      offers: {
+        "@type": "Offer",
+        priceCurrency: "GBP",
+        price: (product.priceGbp / 100).toFixed(2),
+        availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        url: `/product/${product.slug}`,
+      },
+    },
+  } : { title: "Loading product…" });
 
   const handleAdd = () => {
     if (!product) return;
@@ -61,6 +98,7 @@ export default function ProductDetail() {
       brand: product.brand,
       imageUrl: product.imageUrl,
       unitPriceGbp: product.priceGbp,
+      category: product.category,
     }, qty);
     toast.success(`Added ${qty} × ${product.name} to basket`);
   };
@@ -74,6 +112,7 @@ export default function ProductDetail() {
       brand: product.brand,
       imageUrl: product.imageUrl,
       unitPriceGbp: product.priceGbp,
+      category: product.category,
     }, qty);
     navigate("/checkout");
   };
@@ -98,7 +137,18 @@ export default function ProductDetail() {
         ) : product ? (
           <>
             <div className="grid md:grid-cols-2 gap-10">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white rounded-2xl p-6">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white rounded-2xl p-6 relative">
+                <div className="absolute top-9 right-9 z-10">
+                  <WishlistButton
+                    productId={product.id}
+                    slug={product.slug}
+                    name={product.name}
+                    brand={product.brand}
+                    imageUrl={product.imageUrl}
+                    unitPriceGbp={product.priceGbp}
+                    size="lg"
+                  />
+                </div>
                 <div className="aspect-square overflow-hidden rounded-xl bg-muted">
                   <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
                 </div>
@@ -270,6 +320,7 @@ export default function ProductDetail() {
           <p className="text-center text-muted-foreground py-12">Product not found.</p>
         )}
       </div>
+      <RecentlyViewedStrip excludeProductId={product?.id} />
       <Footer />
     </div>
   );

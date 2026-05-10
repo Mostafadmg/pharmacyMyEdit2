@@ -46,6 +46,10 @@ import AdminConditions from "./pages/AdminConditions";
 import AdminConditionEditor from "./pages/AdminConditionEditor";
 import Contact from "./pages/Contact";
 import Feedback from "./pages/Feedback";
+import HealthHub from "./pages/HealthHub";
+import HealthHubArticle from "./pages/HealthHubArticle";
+import TreatmentLanding from "./pages/TreatmentLanding";
+import Wishlist from "./pages/Wishlist";
 import OurService from "./pages/about/OurService";
 import Regulatory from "./pages/about/Regulatory";
 import SafePrescribing from "./pages/about/SafePrescribing";
@@ -87,6 +91,10 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/conditions" component={Conditions} />
       <Route path="/treatments/weight-loss" component={WeightLoss} />
+      <Route path="/treatments/:slug" component={TreatmentLanding} />
+      <Route path="/health-hub" component={HealthHub} />
+      <Route path="/health-hub/:slug" component={HealthHubArticle} />
+      <Route path="/wishlist" component={Wishlist} />
       <Route path="/conditions/:id" component={ConditionDetail} />
       <Route path="/consult/:conditionId" component={Consultation} />
       <Route path="/dashboard/login" component={PharmacistLogin} />
