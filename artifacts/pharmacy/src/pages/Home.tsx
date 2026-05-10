@@ -100,9 +100,8 @@ export default function Home() {
                 <Button size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold rounded-full px-8 h-14 text-lg shadow-lg shadow-accent/20" asChild data-testid="hero-find-treatment">
                   <Link href="/conditions">Find your treatment</Link>
                 </Button>
-                <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary/5 rounded-full px-8 h-14 text-lg font-semibold" asChild data-testid="hero-track-consultation">
-                  <Link href="/track">Track consultation</Link>
-
+                <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary/5 rounded-full px-8 h-14 text-lg font-semibold" asChild data-testid="hero-my-consultations">
+                  <Link href="/my-consultations">My consultations</Link>
                 </Button>
               </div>
             </motion.div>

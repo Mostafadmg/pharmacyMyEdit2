@@ -61,7 +61,6 @@ export default function Footer() {
             <h3 className="font-semibold text-base mb-4 text-white">Services</h3>
             <ul className="space-y-2.5 text-secondary-foreground/80 text-sm">
               <li><Link href="/conditions" className="hover:text-primary transition-colors">All Conditions</Link></li>
-              <li><Link href="/track" className="hover:text-primary transition-colors">Track Consultation</Link></li>
               <li><Link href="/my-consultations" className="hover:text-primary transition-colors">Patient Portal</Link></li>
               <li><Link href="/contact" className="hover:text-primary transition-colors">Contact Us</Link></li>
             </ul>

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { MessageCircle, X, Phone, Mail, Stethoscope, FileQuestion, ExternalLink } from "lucide-react";
+import { MessageCircle, X, Phone, Mail, FileQuestion, ExternalLink } from "lucide-react";
 import { Link } from "wouter";
 
 export default function LiveHelpFAB() {
@@ -36,20 +36,6 @@ export default function LiveHelpFAB() {
 
           {/* Options */}
           <div className="p-3 space-y-1.5">
-            <Link
-              href="/track"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 transition-colors group"
-              data-testid="help-option-track"
-            >
-              <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <Stethoscope className="w-4 h-4" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-secondary text-sm">Track my consultation</div>
-                <div className="text-xs text-muted-foreground">See where your prescription is in our review queue</div>
-              </div>
-            </Link>
             <Link
               href="/my-consultations"
               onClick={() => setOpen(false)}
