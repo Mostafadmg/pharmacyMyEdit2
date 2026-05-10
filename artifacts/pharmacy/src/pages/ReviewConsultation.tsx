@@ -926,7 +926,7 @@ export default function ReviewConsultation() {
             </CardHeader>
             <CardContent className="p-5 space-y-3">
               <Link
-                href="/dashboard/messages"
+                href={`/dashboard/messages/${id}`}
                 className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-white hover:bg-primary/5 hover:border-primary/30 transition-colors group"
                 data-testid="link-go-messages"
               >
@@ -936,7 +936,7 @@ export default function ReviewConsultation() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-secondary">Message patient</p>
-                    <p className="text-[11px] text-muted-foreground">Open full thread in Messages hub</p>
+                    <p className="text-[11px] text-muted-foreground">Open this consultation's thread</p>
                   </div>
                 </div>
                 <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />

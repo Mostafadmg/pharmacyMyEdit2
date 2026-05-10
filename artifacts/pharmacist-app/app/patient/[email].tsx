@@ -110,7 +110,17 @@ const ORDER_STATUS_META: Record<string, { label: string; bg: string; fg: string 
   pending: { label: "Pending", bg: "#FFF7ED", fg: "#D97706" },
 };
 
-type TabKey = "overview" | "consultations" | "orders" | "messages";
+type TabKey = "overview" | "consultations" | "orders" | "messages" | "notes";
+
+interface PatientNote {
+  id: string;
+  patientEmail: string;
+  note: string;
+  createdBy: string;
+  updatedBy?: string | null;
+  createdAt: string;
+  updatedAt?: string | null;
+}
 
 export default function PatientDetailScreen() {
   const colors = useColors();
@@ -127,6 +137,13 @@ export default function PatientDetailScreen() {
   const [emailSubject, setEmailSubject] = useState("");
   const [emailMessage, setEmailMessage] = useState("");
   const [sending, setSending] = useState(false);
+
+  const [notes, setNotes] = useState<PatientNote[]>([]);
+  const [notesLoading, setNotesLoading] = useState(false);
+  const [noteDraft, setNoteDraft] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingNoteText, setEditingNoteText] = useState("");
 
   const fetchProfile = useCallback(async () => {
     if (!email) return;
@@ -146,14 +163,98 @@ export default function PatientDetailScreen() {
     }
   }, [email]);
 
+  const fetchNotes = useCallback(async () => {
+    if (!email) return;
+    setNotesLoading(true);
+    try {
+      const res = await fetch(
+        `${getApiBase()}/api/patient-notes/${encodeURIComponent(email)}`,
+        { headers: authHeaders() },
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = (await res.json()) as { notes: PatientNote[] };
+      setNotes(json.notes ?? []);
+    } catch (e) {
+      console.warn("Failed to fetch patient notes", e);
+    } finally {
+      setNotesLoading(false);
+    }
+  }, [email]);
+
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
 
+  useEffect(() => {
+    if (tab === "notes") fetchNotes();
+  }, [tab, fetchNotes]);
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchProfile();
-  }, [fetchProfile]);
+    if (tab === "notes") fetchNotes();
+  }, [fetchProfile, fetchNotes, tab]);
+
+  const createNote = useCallback(async () => {
+    if (!noteDraft.trim()) return;
+    setSavingNote(true);
+    try {
+      const res = await fetch(`${getApiBase()}/api/patient-notes`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ patientEmail: email, note: noteDraft.trim() }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setNoteDraft("");
+      await fetchNotes();
+    } catch (e) {
+      Alert.alert("Error", "Could not save note.");
+    } finally {
+      setSavingNote(false);
+    }
+  }, [noteDraft, email, fetchNotes]);
+
+  const saveEditNote = useCallback(async () => {
+    if (!editingNoteId || !editingNoteText.trim()) return;
+    setSavingNote(true);
+    try {
+      const res = await fetch(`${getApiBase()}/api/patient-notes/${editingNoteId}`, {
+        method: "PUT",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ note: editingNoteText.trim() }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setEditingNoteId(null);
+      setEditingNoteText("");
+      await fetchNotes();
+    } catch (e) {
+      Alert.alert("Error", "Could not update note.");
+    } finally {
+      setSavingNote(false);
+    }
+  }, [editingNoteId, editingNoteText, fetchNotes]);
+
+  const deleteNote = useCallback((noteId: string) => {
+    Alert.alert("Delete note", "Remove this clinical note permanently?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const res = await fetch(`${getApiBase()}/api/patient-notes/${noteId}`, {
+              method: "DELETE",
+              headers: authHeaders(),
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            await fetchNotes();
+          } catch {
+            Alert.alert("Error", "Could not delete note.");
+          }
+        },
+      },
+    ]);
+  }, [fetchNotes]);
 
   const sendCustomEmail = useCallback(async () => {
     if (!emailSubject.trim() || !emailMessage.trim()) {
@@ -294,13 +395,21 @@ export default function PatientDetailScreen() {
 
         {/* Tabs */}
         <View style={styles.tabBar}>
-          {(["overview", "consultations", "orders", "messages"] as TabKey[]).map(t => {
+          {(["overview", "consultations", "orders", "messages", "notes"] as TabKey[]).map(t => {
             const active = tab === t;
             const counts: Record<TabKey, number | null> = {
               overview: null,
               consultations: data.consultations.length,
               orders: data.orders.length,
               messages: data.recentMessages.length,
+              notes: null,
+            };
+            const labels: Record<TabKey, string> = {
+              overview: "Overview",
+              consultations: "Consults",
+              orders: "Orders",
+              messages: "Messages",
+              notes: "Notes",
             };
             return (
               <Pressable
@@ -309,7 +418,7 @@ export default function PatientDetailScreen() {
                 style={styles.tabBtn}
               >
                 <Text style={[styles.tabLabel, active && { color: colors.primary, fontWeight: "700" as const }]}>
-                  {t === "overview" ? "Overview" : t === "consultations" ? "Consults" : t === "orders" ? "Orders" : "Messages"}
+                  {labels[t]}
                   {counts[t] !== null && counts[t]! > 0 && ` (${counts[t]})`}
                 </Text>
                 {active && <View style={[styles.tabIndicator, { backgroundColor: colors.primary }]} />}
@@ -456,6 +565,128 @@ export default function PatientDetailScreen() {
                     </View>
                     <Text style={styles.messageBody} numberOfLines={3}>{m.body}</Text>
                   </Pressable>
+                ))
+              )}
+            </View>
+          )}
+
+          {tab === "notes" && (
+            <View style={{ gap: 12, paddingBottom: 8 }}>
+              {/* Compose new note */}
+              <View style={[styles.card, { gap: 10 }]}>
+                <Text style={styles.cardTitle}>Add clinical note</Text>
+                <TextInput
+                  value={noteDraft}
+                  onChangeText={setNoteDraft}
+                  placeholder="Write a note visible to all prescribers…"
+                  placeholderTextColor={colors.mutedForeground}
+                  multiline
+                  style={[
+                    styles.modalInput,
+                    {
+                      borderColor: colors.border,
+                      color: colors.secondary,
+                      minHeight: 90,
+                      textAlignVertical: "top",
+                      paddingTop: 10,
+                      marginTop: 2,
+                    },
+                  ]}
+                />
+                <Pressable
+                  onPress={createNote}
+                  disabled={savingNote || !noteDraft.trim()}
+                  style={({ pressed }) => [
+                    {
+                      backgroundColor: colors.primary,
+                      borderRadius: 10,
+                      paddingVertical: 10,
+                      alignItems: "center" as const,
+                      opacity: savingNote || !noteDraft.trim() ? 0.5 : pressed ? 0.85 : 1,
+                    },
+                  ]}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>
+                    {savingNote ? "Saving…" : "Save note"}
+                  </Text>
+                </Pressable>
+              </View>
+
+              {/* Existing notes */}
+              {notesLoading ? (
+                <View style={{ padding: 24, alignItems: "center" }}>
+                  <ActivityIndicator color={colors.primary} />
+                </View>
+              ) : notes.length === 0 ? (
+                <EmptyBlock icon="file-text" text="No clinical notes yet" />
+              ) : (
+                notes.map(n => (
+                  <View key={n.id} style={[styles.card, { gap: 6 }]}>
+                    {editingNoteId === n.id ? (
+                      <>
+                        <TextInput
+                          value={editingNoteText}
+                          onChangeText={setEditingNoteText}
+                          multiline
+                          autoFocus
+                          style={[
+                            styles.modalInput,
+                            {
+                              borderColor: colors.primary,
+                              color: colors.secondary,
+                              minHeight: 80,
+                              textAlignVertical: "top",
+                              paddingTop: 10,
+                            },
+                          ]}
+                        />
+                        <View style={{ flexDirection: "row", gap: 8, justifyContent: "flex-end" }}>
+                          <Pressable
+                            onPress={() => { setEditingNoteId(null); setEditingNoteText(""); }}
+                            style={{ paddingHorizontal: 12, paddingVertical: 6 }}
+                          >
+                            <Text style={{ fontSize: 13, color: colors.mutedForeground }}>Cancel</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={saveEditNote}
+                            disabled={savingNote}
+                            style={({ pressed }) => [{
+                              backgroundColor: colors.primary,
+                              paddingHorizontal: 16,
+                              paddingVertical: 6,
+                              borderRadius: 8,
+                              opacity: savingNote || pressed ? 0.75 : 1,
+                            }]}
+                          >
+                            <Text style={{ fontSize: 13, color: "#fff", fontWeight: "700" }}>
+                              {savingNote ? "Saving…" : "Save"}
+                            </Text>
+                          </Pressable>
+                        </View>
+                      </>
+                    ) : (
+                      <>
+                        <Text style={{ fontSize: 14, color: colors.secondary, lineHeight: 20 }}>{n.note}</Text>
+                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+                          <Text style={{ fontSize: 10, color: colors.mutedForeground }}>
+                            {n.createdBy} · {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                            {n.updatedAt && n.updatedAt !== n.createdAt ? " (edited)" : ""}
+                          </Text>
+                          <View style={{ flexDirection: "row", gap: 12 }}>
+                            <Pressable
+                              hitSlop={8}
+                              onPress={() => { setEditingNoteId(n.id); setEditingNoteText(n.note); }}
+                            >
+                              <Feather name="edit-2" size={14} color={colors.primary} />
+                            </Pressable>
+                            <Pressable hitSlop={8} onPress={() => deleteNote(n.id)}>
+                              <Feather name="trash-2" size={14} color="#DC2626" />
+                            </Pressable>
+                          </View>
+                        </View>
+                      </>
+                    )}
+                  </View>
                 ))
               )}
             </View>

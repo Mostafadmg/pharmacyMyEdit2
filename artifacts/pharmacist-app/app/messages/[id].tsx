@@ -86,20 +86,44 @@ export default function MessagesScreen() {
           </Text>
         </View>
 
-        <Pressable
-          onPress={() => router.push(`/consultation/${id}` as never)}
-          style={({ pressed }) => [
-            {
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 999,
-              backgroundColor: colors.muted,
-            },
-            pressed && { opacity: 0.7 },
-          ]}
-        >
-          <Text style={{ fontSize: 12, fontWeight: "600", color: colors.primary }}>View consult</Text>
-        </Pressable>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <Pressable
+            onPress={() => {
+              if (consultation.patientEmail) {
+                router.push(`/patient/${encodeURIComponent(consultation.patientEmail)}` as never);
+              }
+            }}
+            style={({ pressed }) => [
+              {
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: 999,
+                backgroundColor: "#FEF3C7",
+                flexDirection: "row" as const,
+                alignItems: "center" as const,
+                gap: 4,
+              },
+              pressed && { opacity: 0.7 },
+            ]}
+          >
+            <Feather name="file-text" size={11} color="#D97706" />
+            <Text style={{ fontSize: 11, fontWeight: "600", color: "#D97706" }}>Notes</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push(`/consultation/${id}` as never)}
+            style={({ pressed }) => [
+              {
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 999,
+                backgroundColor: colors.muted,
+              },
+              pressed && { opacity: 0.7 },
+            ]}
+          >
+            <Text style={{ fontSize: 12, fontWeight: "600", color: colors.primary }}>View consult</Text>
+          </Pressable>
+        </View>
       </View>
 
       <ConsultationChat consultationId={id ?? ""} />
