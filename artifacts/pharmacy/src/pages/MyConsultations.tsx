@@ -3,7 +3,8 @@ import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Clock, CheckCircle2, XCircle, AlertTriangle, MessageSquare, ExternalLink,
-  Plus, FileText, Pill, RefreshCw, Ban, Download, ChevronLeft,
+  Plus, FileText, Pill, RefreshCw, Ban, Download, ChevronLeft, ChevronDown,
+  Stethoscope, CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/layout/Header";
@@ -81,201 +82,263 @@ function StatusPill({ status }: { status: string }) {
   );
 }
 
-// ── Card ─────────────────────────────────────────────────────────────────────
-function ConsultationCard({
-  consultation, index, onCancel, cancelling,
+// ── Status accent map (left bar + soft icon tile) ────────────────────────────
+const STATUS_ACCENT: Record<string, { bar: string; tile: string; tileText: string }> = {
+  pending:          { bar: "bg-amber-400",   tile: "bg-amber-50",   tileText: "text-amber-700" },
+  red_flag:         { bar: "bg-rose-500",    tile: "bg-rose-50",    tileText: "text-rose-700" },
+  approved:         { bar: "bg-emerald-500", tile: "bg-emerald-50", tileText: "text-emerald-700" },
+  rejected:         { bar: "bg-rose-500",    tile: "bg-rose-50",    tileText: "text-rose-700" },
+  more_info_needed: { bar: "bg-sky-500",     tile: "bg-sky-50",     tileText: "text-sky-700" },
+  referred:         { bar: "bg-violet-500",  tile: "bg-violet-50",  tileText: "text-violet-700" },
+  cancelled:        { bar: "bg-gray-300",    tile: "bg-gray-100",   tileText: "text-gray-500" },
+};
+
+// ── Collapsible row ──────────────────────────────────────────────────────────
+function ConsultationRow({
+  consultation, index, onCancel, cancelling, defaultOpen,
 }: {
   consultation: Consultation;
   index: number;
   onCancel: (id: string) => void;
   cancelling: string | null;
+  defaultOpen?: boolean;
 }) {
   const cfg = STATUS_CONFIG[consultation.status] ?? STATUS_CONFIG.pending;
+  const accent = STATUS_ACCENT[consultation.status] ?? STATUS_ACCENT.pending;
   const placed = new Date(consultation.createdAt).toLocaleDateString("en-GB", {
     day: "numeric", month: "short", year: "numeric",
   });
   const isPending = consultation.status === "pending" || consultation.status === "red_flag";
   const needsReply = consultation.status === "more_info_needed";
+  const hasUpdate = !!(consultation.prescription || consultation.pharmacistNote || consultation.referralInfo);
   const ref = consultation.id.toUpperCase().slice(0, 8);
 
+  const [open, setOpen] = useState(!!defaultOpen);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
 
   return (
     <motion.article
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ delay: index * 0.05 }}
-      className="bg-white rounded-2xl border border-border/40 hover:shadow-md transition-shadow overflow-hidden"
+      exit={{ opacity: 0, y: -6 }}
+      transition={{ delay: index * 0.04, duration: 0.25 }}
+      className="bg-white rounded-2xl border border-border/40 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
       data-testid={`consult-card-${ref}`}
     >
-      {/* Top meta row */}
-      <div className="px-5 md:px-7 pt-6 pb-5 flex items-start justify-between gap-4 flex-wrap border-b border-border/40">
-        <div className="min-w-0 flex-1">
-          <h3 className="text-lg md:text-xl font-extrabold text-secondary truncate">{consultation.conditionName}</h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            <span className="font-semibold uppercase tracking-wider">Placed</span> {placed}
-            <span className="mx-2 text-border">·</span>
-            <span className="font-semibold uppercase tracking-wider">Ref</span> {ref}
-          </p>
-        </div>
-        <StatusPill status={consultation.status} />
-      </div>
+      {/* Notification-style header (always visible, click to expand) */}
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        className="w-full text-left flex items-stretch gap-0 group"
+        data-testid={`consult-toggle-${ref}`}
+      >
+        {/* Left status bar */}
+        <span className={`w-1.5 ${accent.bar} flex-shrink-0`} aria-hidden="true" />
 
-      {/* Body */}
-      <div className="px-5 md:px-7 py-5 space-y-4">
-        <p className="text-sm text-foreground/80 leading-relaxed">{cfg.description}</p>
-
-        {consultation.pharmacistNote && (
-          <div className="bg-primary/5 border border-primary/15 rounded-xl p-4">
-            <p className="text-[11px] font-bold text-primary uppercase tracking-wider mb-1">Pharmacist's note</p>
-            <p className="text-sm text-foreground/90 leading-relaxed">{consultation.pharmacistNote}</p>
+        <div className="flex-1 flex items-center gap-4 px-4 md:px-6 py-5 min-w-0">
+          {/* Icon tile */}
+          <div className={`hidden sm:flex w-12 h-12 rounded-xl ${accent.tile} ${accent.tileText} items-center justify-center flex-shrink-0`}>
+            <Stethoscope className="w-5 h-5" />
           </div>
-        )}
 
-        {consultation.prescription && (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-            <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
-              <div className="inline-flex items-center gap-2">
-                <Pill className="w-4 h-4 text-emerald-700" />
-                <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Prescription issued</p>
-              </div>
-              <a
-                href={`${(import.meta.env.BASE_URL as string).replace(/\/$/, "")}/api/consultations/${consultation.id}/prescription.pdf`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-colors"
-                data-testid={`button-download-pdf-${ref}`}
-              >
-                <Download className="w-3.5 h-3.5" />
-                Download PDF
-              </a>
+          {/* Title + meta */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-base md:text-lg font-extrabold text-secondary truncate">
+                {consultation.conditionName}
+              </h3>
+              {hasUpdate && !open && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Update
+                </span>
+              )}
             </div>
-            <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line">{consultation.prescription}</p>
+            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarDays className="w-3 h-3" /> {placed}
+              </span>
+              <span className="hidden sm:inline text-border">·</span>
+              <span className="font-mono text-[11px]">REF {ref}</span>
+            </div>
           </div>
-        )}
 
-        {consultation.referralInfo && (
-          <div className="bg-violet-50 border border-violet-200 rounded-xl p-4">
-            <div className="inline-flex items-center gap-2 mb-1.5">
-              <ExternalLink className="w-4 h-4 text-violet-700" />
-              <p className="text-[11px] font-bold text-violet-800 uppercase tracking-wider">Referral information</p>
-            </div>
-            <p className="text-sm text-foreground/90 leading-relaxed">{consultation.referralInfo}</p>
-          </div>
-        )}
-
-        {!isPending && consultation.reviewedAt && (
-          <p className="text-xs text-muted-foreground">
-            Reviewed {new Date(consultation.reviewedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-          </p>
-        )}
-      </div>
-
-      {/* Action row */}
-      {consultation.status !== "cancelled" && (
-        <div className="px-5 md:px-7 pb-5 pt-4 border-t border-border/40 flex items-center justify-between gap-3 flex-wrap">
-          {isPending ? (
-            <div className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-              Our pharmacist is reviewing your case
-            </div>
-          ) : needsReply ? (
-            <p className="text-xs font-semibold text-sky-700 inline-flex items-center gap-1.5">
-              <MessageSquare className="w-3.5 h-3.5" /> Pharmacist is waiting for your reply
-            </p>
-          ) : (
-            <p className="text-xs text-muted-foreground">Need to ask the pharmacist a question?</p>
-          )}
-
-          <div className="flex items-center gap-2">
-            {isPending && (
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={() => setShowCancelConfirm(true)}
-                className="rounded-full text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-semibold"
-                data-testid={`button-cancel-${ref}`}
-              >
-                <Ban className="w-3.5 h-3.5 mr-1.5" /> Cancel
-              </Button>
-            )}
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => setChatOpen(o => !o)}
-              className={`rounded-full font-bold ${
-                needsReply
-                  ? "bg-sky-600 hover:bg-sky-700 text-white"
-                  : "bg-primary hover:bg-primary/90 text-primary-foreground"
-              }`}
-              data-testid={`button-chat-${ref}`}
-            >
-              <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
-              {chatOpen ? "Close conversation" : needsReply ? "Reply to pharmacist" : "Open conversation"}
-            </Button>
+          {/* Status + chevron */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <StatusPill status={consultation.status} />
+            <ChevronDown
+              className={`w-5 h-5 text-muted-foreground group-hover:text-foreground transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+            />
           </div>
         </div>
-      )}
+      </button>
 
-      {/* Cancel confirm */}
-      <AnimatePresence>
-        {showCancelConfirm && (
-          <motion.div
+      {/* Expanded body */}
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.section
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="bg-rose-50 border-t border-rose-200 overflow-hidden"
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="overflow-hidden border-t border-border/40"
           >
-            <div className="px-5 md:px-7 py-4">
-              <p className="text-sm font-semibold text-rose-800 mb-3">
-                Cancel this consultation? This can't be undone.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="rounded-full border-border bg-white font-semibold"
-                  onClick={() => setShowCancelConfirm(false)}
-                >
-                  Keep it
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  className="rounded-full bg-rose-600 hover:bg-rose-700 text-white font-semibold"
-                  disabled={cancelling === consultation.id}
-                  onClick={() => onCancel(consultation.id)}
-                  data-testid={`button-confirm-cancel-${ref}`}
-                >
-                  {cancelling === consultation.id ? "Cancelling…" : "Yes, cancel consultation"}
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <div className="px-5 md:px-7 py-6 space-y-5 bg-[#FCFAF6]">
+              <p className="text-sm text-foreground/85 leading-relaxed">{cfg.description}</p>
 
-      {/* Chat thread */}
-      <AnimatePresence>
-        {chatOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="border-t border-border/40 bg-[#FAF7F2] overflow-hidden"
-          >
-            <div className="px-5 md:px-7 py-5">
-              <ConsultationChat
-                consultationId={consultation.id}
-                audience="patient"
-                onClose={() => setChatOpen(false)}
-              />
+              {consultation.pharmacistNote && (
+                <div className="bg-white border border-primary/20 rounded-xl p-5 shadow-sm">
+                  <p className="text-[11px] font-bold text-primary uppercase tracking-wider mb-2">Pharmacist's note</p>
+                  <p className="text-sm text-foreground/90 leading-relaxed">{consultation.pharmacistNote}</p>
+                </div>
+              )}
+
+              {consultation.prescription && (
+                <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-5">
+                  <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+                    <div className="inline-flex items-center gap-2">
+                      <Pill className="w-4 h-4 text-emerald-700" />
+                      <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Prescription issued</p>
+                    </div>
+                    <a
+                      href={`${(import.meta.env.BASE_URL as string).replace(/\/$/, "")}/api/consultations/${consultation.id}/prescription.pdf`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-colors"
+                      data-testid={`button-download-pdf-${ref}`}
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Download PDF
+                    </a>
+                  </div>
+                  <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line">{consultation.prescription}</p>
+                </div>
+              )}
+
+              {consultation.referralInfo && (
+                <div className="bg-violet-50/70 border border-violet-200 rounded-xl p-5">
+                  <div className="inline-flex items-center gap-2 mb-2">
+                    <ExternalLink className="w-4 h-4 text-violet-700" />
+                    <p className="text-[11px] font-bold text-violet-800 uppercase tracking-wider">Referral information</p>
+                  </div>
+                  <p className="text-sm text-foreground/90 leading-relaxed">{consultation.referralInfo}</p>
+                </div>
+              )}
+
+              {!isPending && consultation.reviewedAt && (
+                <p className="text-xs text-muted-foreground">
+                  Reviewed {new Date(consultation.reviewedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                </p>
+              )}
+
+              {/* Action row */}
+              {consultation.status !== "cancelled" && (
+                <div className="pt-4 border-t border-border/40 flex items-center justify-between gap-3 flex-wrap">
+                  {isPending ? (
+                    <div className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                      <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                      Our pharmacist is reviewing your case
+                    </div>
+                  ) : needsReply ? (
+                    <p className="text-xs font-semibold text-sky-700 inline-flex items-center gap-1.5">
+                      <MessageSquare className="w-3.5 h-3.5" /> Pharmacist is waiting for your reply
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Need to ask the pharmacist a question?</p>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    {isPending && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setShowCancelConfirm(true)}
+                        className="rounded-full text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-semibold"
+                        data-testid={`button-cancel-${ref}`}
+                      >
+                        <Ban className="w-3.5 h-3.5 mr-1.5" /> Cancel
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => setChatOpen(o => !o)}
+                      className={`rounded-full font-bold ${
+                        needsReply
+                          ? "bg-sky-600 hover:bg-sky-700 text-white"
+                          : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                      }`}
+                      data-testid={`button-chat-${ref}`}
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
+                      {chatOpen ? "Close conversation" : needsReply ? "Reply to pharmacist" : "Open conversation"}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
-          </motion.div>
+
+            {/* Cancel confirm */}
+            <AnimatePresence>
+              {showCancelConfirm && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="bg-rose-50 border-t border-rose-200 overflow-hidden"
+                >
+                  <div className="px-5 md:px-7 py-4">
+                    <p className="text-sm font-semibold text-rose-800 mb-3">
+                      Cancel this consultation? This can't be undone.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="rounded-full border-border bg-white font-semibold"
+                        onClick={() => setShowCancelConfirm(false)}
+                      >
+                        Keep it
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="rounded-full bg-rose-600 hover:bg-rose-700 text-white font-semibold"
+                        disabled={cancelling === consultation.id}
+                        onClick={() => onCancel(consultation.id)}
+                        data-testid={`button-confirm-cancel-${ref}`}
+                      >
+                        {cancelling === consultation.id ? "Cancelling…" : "Yes, cancel consultation"}
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Chat thread */}
+            <AnimatePresence>
+              {chatOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="border-t border-border/40 bg-white overflow-hidden"
+                >
+                  <div className="px-5 md:px-7 py-5">
+                    <ConsultationChat
+                      consultationId={consultation.id}
+                      audience="patient"
+                      onClose={() => setChatOpen(false)}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.section>
         )}
       </AnimatePresence>
     </motion.article>
@@ -475,10 +538,10 @@ export default function MyConsultations() {
               )}
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <AnimatePresence>
                 {filtered.map((c, i) => (
-                  <ConsultationCard
+                  <ConsultationRow
                     key={c.id}
                     consultation={c}
                     index={i}
