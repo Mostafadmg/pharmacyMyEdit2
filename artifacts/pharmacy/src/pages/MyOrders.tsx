@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Package, Truck, Check, Clock, ArrowRight, ShoppingBag, Pill } from "lucide-react";
+import { Package, Truck, Check, Clock, ArrowRight, ShoppingBag, Pill, RotateCcw } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,6 +38,27 @@ export default function MyOrders() {
   const [, navigate] = useLocation();
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [repeatLoadingId, setRepeatLoadingId] = useState<string | null>(null);
+
+  async function startRepeat(consultationId: string) {
+    if (repeatLoadingId) return;
+    setRepeatLoadingId(consultationId);
+    try {
+      const consult = await apiFetch<{ id: string; conditionId: string }>(
+        `/api/consultations/${encodeURIComponent(consultationId)}`,
+        { auth: "patient" },
+      );
+      if (!consult?.conditionId) {
+        toast.error("We couldn't find the original consultation to repeat.");
+        return;
+      }
+      navigate(`/consultation/${consult.conditionId}?repeatOf=${encodeURIComponent(consult.id)}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not start a repeat consultation.");
+    } finally {
+      setRepeatLoadingId(null);
+    }
+  }
 
   useEffect(() => {
     const token = localStorage.getItem("patient_token");
@@ -76,11 +97,12 @@ export default function MyOrders() {
               const Icon = isRx ? Pill : meta.icon;
               const rxItems = isRx && Array.isArray(o.prescriptionItems) && o.prescriptionItems.length > 0
                 ? o.prescriptionItems : null;
+              const canRepeat = isRx && !!o.consultationId;
               return (
                 <motion.div key={o.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                  <Link href={href}>
-                    <Card className="border-0 bg-white rounded-2xl hover:shadow-md transition-shadow cursor-pointer">
-                      <CardContent className="p-5 flex items-center gap-4 flex-wrap">
+                  <Card className="border-0 bg-white rounded-2xl hover:shadow-md transition-shadow">
+                    <Link href={href}>
+                      <CardContent className="p-5 flex items-center gap-4 flex-wrap cursor-pointer">
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${isRx ? "bg-emerald-50" : "bg-[#168A7B]/10"}`}>
                           <Icon className={`w-5 h-5 ${isRx ? "text-emerald-600" : "text-[#168A7B]"}`} />
                         </div>
@@ -116,8 +138,28 @@ export default function MyOrders() {
                         </div>
                         <ArrowRight className="w-5 h-5 text-muted-foreground" />
                       </CardContent>
-                    </Card>
-                  </Link>
+                    </Link>
+                    {canRepeat && (
+                      <div className="px-5 pb-4 -mt-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 font-semibold"
+                          disabled={repeatLoadingId === o.consultationId}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (o.consultationId) startRepeat(o.consultationId);
+                          }}
+                          data-testid={`button-repeat-${o.orderNumber}`}
+                        >
+                          <RotateCcw className="w-4 h-4 mr-2" />
+                          {repeatLoadingId === o.consultationId ? "Starting…" : "Request repeat / follow-up"}
+                        </Button>
+                      </div>
+                    )}
+                  </Card>
                 </motion.div>
               );
             })}

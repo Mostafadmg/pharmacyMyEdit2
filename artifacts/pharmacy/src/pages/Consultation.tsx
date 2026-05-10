@@ -1,6 +1,12 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
-import { useGetCondition, getGetConditionQueryKey, NewConsultationInputPatientSex } from "@workspace/api-client-react";
+import {
+  useGetCondition,
+  getGetConditionQueryKey,
+  useGetConsultation,
+  getGetConsultationQueryKey,
+  NewConsultationInputPatientSex,
+} from "@workspace/api-client-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -14,7 +20,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, ShieldCheck, CheckCircle2, UploadCloud, AlertCircle,
   AlertTriangle, XCircle, ChevronRight, Eye, EyeOff, User, Mail,
-  Lock, MapPin, Phone, LogIn, Stethoscope, FileCheck2, Truck,
+  Lock, MapPin, Phone, LogIn, Stethoscope, FileCheck2, Truck, RotateCcw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getConditionQuestions, type EligibilityQuestion, type ClinicalQuestion } from "@/data/conditionQuestions";
@@ -137,6 +143,21 @@ function StepWrapper({ children, stepKey }: { children: React.ReactNode; stepKey
 export default function Consultation() {
   const { conditionId } = useParams();
   const [_, setLocation] = useLocation();
+
+  // ── Repeat / follow-up: read ?repeatOf=<consultationId> from the URL ──
+  // Set on first render so it's stable for the lifetime of this page.
+  const [repeatOfId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    const v = new URLSearchParams(window.location.search).get("repeatOf");
+    return v && v.trim() ? v.trim() : null;
+  });
+  const [repeatPrefilled, setRepeatPrefilled] = useState(false);
+  const { data: priorConsultation } = useGetConsultation(repeatOfId || "", {
+    query: {
+      enabled: !!repeatOfId,
+      queryKey: getGetConsultationQueryKey(repeatOfId || ""),
+    },
+  });
 
   const [step, setStep] = useState<number>(STEPS.ELIGIBILITY);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -299,6 +320,51 @@ export default function Consultation() {
 
   const questions = conditionId ? getConditionQuestions(conditionId) : null;
   const requiresPhoto = condition?.requiresPhoto ?? false;
+
+  // ── Pre-fill the form once when a prior consultation has loaded for repeat ──
+  // Only applies if the prior consultation is for THIS condition; if conditions
+  // differ (patient changed condition), we skip pre-fill but still send the
+  // linkage so the pharmacist sees the "Repeat" badge.
+  useEffect(() => {
+    if (repeatPrefilled || !priorConsultation || !repeatOfId) return;
+    if (priorConsultation.conditionId !== conditionId) {
+      setRepeatPrefilled(true);
+      return;
+    }
+    const priorAnswers = (priorConsultation.answers ?? {}) as Record<string, unknown>;
+    if (questions) {
+      const next: Record<string, string | string[]> = {};
+      for (const q of questions.clinicalQuestions) {
+        const raw = priorAnswers[q.id];
+        if (typeof raw !== "string" || !raw) continue;
+        if (q.type === "checkbox_group") {
+          next[q.id] = raw.split(",").map(s => s.trim()).filter(Boolean);
+        } else {
+          next[q.id] = raw;
+        }
+      }
+      if (Object.keys(next).length > 0) setClinicalAnswers(prev => ({ ...next, ...prev }));
+    }
+    if (priorConsultation.allergies) {
+      const a = priorConsultation.allergies.trim();
+      if (a.toLowerCase() === "none") setNoAllergies(true);
+      else setAllergies(a);
+    }
+    if (priorConsultation.currentMedications) {
+      const m = priorConsultation.currentMedications.trim();
+      if (m.toLowerCase() === "none") setNoMedications(true);
+      else setMedications(m);
+    }
+    if (priorConsultation.medicalHistory) {
+      const h = priorConsultation.medicalHistory.trim();
+      if (h.toLowerCase() === "none") setNoMedicalHistory(true);
+      else setMedicalHistory(h);
+    }
+    setRepeatPrefilled(true);
+  }, [priorConsultation, repeatOfId, conditionId, questions, repeatPrefilled]);
+
+  const isRepeat = !!repeatOfId;
+  const repeatConditionMatches = isRepeat && priorConsultation?.conditionId === conditionId;
   const isHighRisk = conditionId ? HIGH_RISK_CONDITION_IDS.has(conditionId) : false;
   const isWeightMgmt = conditionId ? WEIGHT_MGMT_IDS.has(conditionId) : false;
 
@@ -629,8 +695,15 @@ export default function Consultation() {
       }
       answersPayload._deliveryAddress = deliveryAddress;
 
+      // Defense in depth: only forward the repeat link when we actually loaded
+      // the prior consultation client-side (which already required patient
+      // auth via GET /consultations/:id). The server enforces ownership again,
+      // but this avoids sending IDs we couldn't verify the patient owns.
+      const verifiedRepeatOfId =
+        repeatOfId && priorConsultation?.id === repeatOfId ? repeatOfId : undefined;
       const body = {
         conditionId,
+        previousConsultationId: verifiedRepeatOfId,
         patientName,
         patientEmail,
         patientAge: age,
@@ -900,6 +973,43 @@ export default function Consultation() {
       </header>
 
       <main className="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 py-10 md:py-14">
+        {/* ── Repeat / follow-up context banner ───────────────────────────── */}
+        {isRepeat && priorConsultation && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 rounded-2xl border-2 border-violet-200 bg-violet-50 p-5"
+            data-testid="banner-repeat-consultation"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center shrink-0">
+                <RotateCcw className="w-5 h-5 text-violet-700" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-violet-900">
+                  Follow-up of your {priorConsultation.conditionName} consultation
+                </p>
+                <p className="text-sm text-violet-800 mt-0.5">
+                  Submitted {new Date(priorConsultation.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+                  {priorConsultation.reviewedBy ? ` · reviewed by ${priorConsultation.reviewedBy}` : ""}.
+                </p>
+                {repeatConditionMatches ? (
+                  <p className="text-sm text-violet-800 mt-2">
+                    Your previous answers, allergies and medical history have been pre-filled below.
+                    <strong> Please review every answer carefully</strong> and update anything that has changed
+                    before submitting — your pharmacist will see this is a repeat request.
+                  </p>
+                ) : (
+                  <p className="text-sm text-violet-800 mt-2">
+                    You've started a new consultation for a different condition. We've kept the link to your
+                    previous one for your pharmacist's reference, but answers have not been pre-filled.
+                  </p>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         <AnimatePresence mode="wait">
 
           {/* ── Step 1: Safety Check — one question at a time ────────────── */}

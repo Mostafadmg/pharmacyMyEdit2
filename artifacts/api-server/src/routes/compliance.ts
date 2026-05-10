@@ -181,6 +181,31 @@ router.post("/compliance/consultations", async (req, res): Promise<void> => {
       bmi = Math.round((b.verifiedWeightKg as number) / (m * m));
     }
 
+    // ── Validate previousConsultationId ownership (Task #3 follow-up) ──
+    // Client-supplied linkage cannot be trusted: ensure the referenced prior
+    // consultation exists AND belongs to the same patient (by email,
+    // case-insensitive). Otherwise drop or reject to prevent forging links to
+    // other patients' clinical records.
+    let safePreviousConsultationId: string | null = null;
+    if (typeof b.previousConsultationId === "string" && b.previousConsultationId.trim()) {
+      const wantedId = b.previousConsultationId.trim();
+      const [prior] = await db
+        .select({
+          id: consultationsTable.id,
+          patientEmail: consultationsTable.patientEmail,
+        })
+        .from(consultationsTable)
+        .where(eq(consultationsTable.id, wantedId));
+      const newEmail = String(b.patientEmail ?? "").toLowerCase();
+      if (!prior || prior.patientEmail.toLowerCase() !== newEmail) {
+        res.status(403).json({
+          error: "previousConsultationId does not belong to this patient.",
+        });
+        return;
+      }
+      safePreviousConsultationId = prior.id;
+    }
+
     const [consultation] = await db
       .insert(consultationsTable)
       .values({
@@ -219,6 +244,7 @@ router.post("/compliance/consultations", async (req, res): Promise<void> => {
         verifiedHeightCm: b.verifiedHeightCm ?? null,
         verifiedWeightKg: b.verifiedWeightKg ?? null,
         bmi,
+        previousConsultationId: safePreviousConsultationId,
       })
       .returning();
 

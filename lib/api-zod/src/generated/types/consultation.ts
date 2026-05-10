@@ -64,4 +64,6 @@ export interface Consultation {
   deliveryTrackingNumber?: string | null;
   deliveredAt?: Date | null;
   dispatchedAt?: Date | null;
+  /** ID of the previous consultation this one is a repeat / follow-up of. */
+  previousConsultationId?: string | null;
 }

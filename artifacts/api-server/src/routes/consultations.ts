@@ -113,6 +113,27 @@ router.post("/consultations", async (req, res): Promise<void> => {
   const hasRedFlag = detectRedFlags(data.answers as Record<string, unknown>);
   const id = randomUUID();
 
+  // ── Validate previousConsultationId ownership ──
+  // Same protection as the compliance route: never trust the client's claim
+  // that a previous consultation belongs to them.
+  let safePreviousConsultationId: string | null = null;
+  if (data.previousConsultationId) {
+    const [prior] = await db
+      .select({
+        id: consultationsTable.id,
+        patientEmail: consultationsTable.patientEmail,
+      })
+      .from(consultationsTable)
+      .where(eq(consultationsTable.id, data.previousConsultationId));
+    if (!prior || prior.patientEmail.toLowerCase() !== data.patientEmail.toLowerCase()) {
+      res.status(403).json({
+        error: "previousConsultationId does not belong to this patient.",
+      });
+      return;
+    }
+    safePreviousConsultationId = prior.id;
+  }
+
   const [consultation] = await db
     .insert(consultationsTable)
     .values({
@@ -132,6 +153,7 @@ router.post("/consultations", async (req, res): Promise<void> => {
       allergies: data.allergies ?? null,
       currentMedications: data.currentMedications ?? null,
       medicalHistory: data.medicalHistory ?? null,
+      previousConsultationId: safePreviousConsultationId,
     })
     .returning();
 

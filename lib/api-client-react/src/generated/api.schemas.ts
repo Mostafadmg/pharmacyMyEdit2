@@ -133,6 +133,8 @@ export interface Consultation {
   deliveryTrackingNumber?: string | null;
   deliveredAt?: string | null;
   dispatchedAt?: string | null;
+  /** ID of the previous consultation this one is a repeat / follow-up of. */
+  previousConsultationId?: string | null;
 }
 
 export type NewConsultationInputPatientSex =
@@ -159,6 +161,8 @@ export interface NewConsultationInput {
   allergies?: string | null;
   currentMedications?: string | null;
   medicalHistory?: string | null;
+  /** Optional id of a previous consultation this one is a repeat of. */
+  previousConsultationId?: string | null;
 }
 
 export type ConsultationReviewInputAction =

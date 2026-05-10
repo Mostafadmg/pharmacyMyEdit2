@@ -21,4 +21,6 @@ export interface NewConsultationInput {
   allergies?: string | null;
   currentMedications?: string | null;
   medicalHistory?: string | null;
+  /** Optional id of a previous consultation this one is a repeat of. */
+  previousConsultationId?: string | null;
 }

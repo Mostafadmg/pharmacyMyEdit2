@@ -322,11 +322,22 @@ export default function Dashboard() {
                     </td>
                     <td className="px-6 py-4">
                       <p className="font-semibold text-secondary">{consultation.conditionName}</p>
-                      {consultation.hasPhoto && (
-                        <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded uppercase tracking-wide mt-1 inline-block">
-                          Includes Photo
-                        </span>
-                      )}
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {consultation.previousConsultationId && (
+                          <span
+                            className="text-xs font-bold text-violet-700 bg-violet-100 px-2 py-0.5 rounded uppercase tracking-wide inline-block"
+                            data-testid={`badge-repeat-${consultation.id}`}
+                            title="Patient booked this as a follow-up of a previous consultation."
+                          >
+                            Repeat
+                          </span>
+                        )}
+                        {consultation.hasPhoto && (
+                          <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded uppercase tracking-wide inline-block">
+                            Includes Photo
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <p className="text-sm font-semibold text-secondary">

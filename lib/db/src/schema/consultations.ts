@@ -67,6 +67,12 @@ export const consultationsTable = pgTable("consultations", {
   // ─── Patient-uploaded photos (data URLs or stored URLs) ───
   photoUrls: jsonb("photo_urls").notNull().default([]),
 
+  // ─── Repeat / follow-up linkage ───
+  // When a patient books a follow-up from the My Orders page, this stores the
+  // id of the previous consultation they're repeating. Null for first-time
+  // (de novo) consultations.
+  previousConsultationId: text("previous_consultation_id"),
+
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
   reviewedAt: timestamp("reviewed_at", { withTimezone: true }),

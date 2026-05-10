@@ -631,6 +631,10 @@ components:
           type: string
           format: date-time
           nullable: true
+        previousConsultationId:
+          type: string
+          nullable: true
+          description: ID of the previous consultation this one is a repeat / follow-up of.
       required:
         - id
         - patientName
@@ -681,6 +685,10 @@ components:
         medicalHistory:
           type: string
           nullable: true
+        previousConsultationId:
+          type: string
+          nullable: true
+          description: Optional id of a previous consultation this one is a repeat of.
       required:
         - patientName
         - patientEmail

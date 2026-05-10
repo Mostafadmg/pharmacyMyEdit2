@@ -57,6 +57,15 @@ The project is built as a monorepo using `pnpm workspaces`, targeting Node.js 24
 
 ## Recent Work (May 2026)
 
+**Repeat / follow-up consultations from order page (Task #3):**
+- New nullable column `consultations.previous_consultation_id` (`lib/db/src/schema/consultations.ts`) links a follow-up consultation to its parent. Pushed via `pnpm --filter @workspace/db run push-force`.
+- OpenAPI: added `previousConsultationId` to both `Consultation` (response) and `NewConsultationInput` (request); regenerated client + Zod via `pnpm --filter @workspace/api-spec run codegen`.
+- Patient web `MyOrders.tsx`: outline "Request repeat / follow-up" button under each RX order card (`paymentStatus === "rx_internal"` with non-null `consultationId`). Click handler does a one-shot `GET /api/consultations/:id` to resolve the original `conditionId`, then navigates to `/consultation/<conditionId>?repeatOf=<id>`. Button is rendered outside the wrapping `<Link>` to avoid nested-anchor warnings.
+- Patient web `Consultation.tsx`: reads `?repeatOf=<id>` once at mount, fetches prior consult with `useGetConsultation`, pre-fills `clinicalAnswers` (splitting `checkbox_group` answers back into arrays), `allergies`, `medications`, `medicalHistory` (treating "None" as the appropriate "no X" toggle). Shows a violet `<RotateCcw>` banner — different copy when the patient picked the same vs a different condition. Submission body sends `previousConsultationId` only when the prior consult was actually loaded client-side.
+- Pharmacist web `Dashboard.tsx`: violet "Repeat" badge next to condition name when `previousConsultationId` is set (`data-testid="badge-repeat-<id>"`).
+- **Authz hardening (architect-flagged):** both `POST /api/compliance/consultations` and `POST /api/consultations` now refuse the request with 403 if `previousConsultationId` either doesn't exist or its `patientEmail` doesn't match the new consultation's email (case-insensitive). Prevents forging a link to another patient's clinical record.
+
+
 **Critical mobile auth pattern (Metro live-binding fix):**
 - Metro bundler's CommonJS interop captures `import { currentToken }` at module-load time and freezes it to `null`. NEVER directly import `currentToken` from `AuthContext` — always call `getCurrentToken()` getter at request time. Migrated `app/(tabs)/orders.tsx` (3 sites) and `app/consultation/[id].tsx` `authHeaders()` helper. Without this fix, all pharmacist actions return 401 "Pharmacist authentication required" after login.
 

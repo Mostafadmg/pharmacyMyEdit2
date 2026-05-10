@@ -186,6 +186,12 @@ export const ListConsultationsResponse = zod.object({
       deliveryTrackingNumber: zod.string().nullish(),
       deliveredAt: zod.coerce.date().nullish(),
       dispatchedAt: zod.coerce.date().nullish(),
+      previousConsultationId: zod
+        .string()
+        .nullish()
+        .describe(
+          "ID of the previous consultation this one is a repeat \/ follow-up of.",
+        ),
     }),
   ),
   total: zod.number(),
@@ -207,6 +213,12 @@ export const CreateConsultationBody = zod.object({
   allergies: zod.string().nullish(),
   currentMedications: zod.string().nullish(),
   medicalHistory: zod.string().nullish(),
+  previousConsultationId: zod
+    .string()
+    .nullish()
+    .describe(
+      "Optional id of a previous consultation this one is a repeat of.",
+    ),
 });
 
 /**
@@ -290,6 +302,12 @@ export const GetConsultationResponse = zod.object({
   deliveryTrackingNumber: zod.string().nullish(),
   deliveredAt: zod.coerce.date().nullish(),
   dispatchedAt: zod.coerce.date().nullish(),
+  previousConsultationId: zod
+    .string()
+    .nullish()
+    .describe(
+      "ID of the previous consultation this one is a repeat \/ follow-up of.",
+    ),
 });
 
 /**
@@ -410,6 +428,12 @@ export const ReviewConsultationResponse = zod.object({
   deliveryTrackingNumber: zod.string().nullish(),
   deliveredAt: zod.coerce.date().nullish(),
   dispatchedAt: zod.coerce.date().nullish(),
+  previousConsultationId: zod
+    .string()
+    .nullish()
+    .describe(
+      "ID of the previous consultation this one is a repeat \/ follow-up of.",
+    ),
 });
 
 /**
@@ -638,6 +662,12 @@ export const GetPatientConsultationsResponse = zod.object({
       deliveryTrackingNumber: zod.string().nullish(),
       deliveredAt: zod.coerce.date().nullish(),
       dispatchedAt: zod.coerce.date().nullish(),
+      previousConsultationId: zod
+        .string()
+        .nullish()
+        .describe(
+          "ID of the previous consultation this one is a repeat \/ follow-up of.",
+        ),
     }),
   ),
 });
@@ -748,6 +778,12 @@ export const GetRecentConsultationsResponseItem = zod.object({
   deliveryTrackingNumber: zod.string().nullish(),
   deliveredAt: zod.coerce.date().nullish(),
   dispatchedAt: zod.coerce.date().nullish(),
+  previousConsultationId: zod
+    .string()
+    .nullish()
+    .describe(
+      "ID of the previous consultation this one is a repeat \/ follow-up of.",
+    ),
 });
 export const GetRecentConsultationsResponse = zod.array(
   GetRecentConsultationsResponseItem,
