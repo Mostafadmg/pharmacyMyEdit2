@@ -286,6 +286,13 @@ export interface DashboardStats {
   byStatus: DashboardStatsByStatusItem[];
 }
 
+export interface PharmacistUnreadCounts {
+  /** Total messages from non-pharmacist senders not yet read by a pharmacist */
+  unreadMessages: number;
+  /** Consultations currently in the `patient_responded` status */
+  patientResponded: number;
+}
+
 export type ListConsultationsParams = {
   status?: ListConsultationsStatus;
   limit?: number;

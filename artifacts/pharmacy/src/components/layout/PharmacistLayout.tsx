@@ -17,13 +17,14 @@ import {
   StickyNote,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useGetPharmacistUnreadCounts } from "@workspace/api-client-react";
 
 type NavKey = "queue" | "patients" | "messages" | "notes" | "orders" | "products" | "conditions" | "complaints" | "reports" | "settings";
 
-const NAV_ITEMS: { key: NavKey; label: string; icon: React.ElementType; href: string; live: boolean }[] = [
-  { key: "queue", label: "Queue", icon: Activity, href: "/dashboard", live: true },
+const NAV_ITEMS: { key: NavKey; label: string; icon: React.ElementType; href: string; live: boolean; badgeKey?: "queue" | "messages" }[] = [
+  { key: "queue", label: "Queue", icon: Activity, href: "/dashboard", live: true, badgeKey: "queue" },
   { key: "patients", label: "Patients", icon: Users, href: "/dashboard/patients", live: true },
-  { key: "messages", label: "Messages", icon: MessageSquare, href: "/dashboard/messages", live: true },
+  { key: "messages", label: "Messages", icon: MessageSquare, href: "/dashboard/messages", live: true, badgeKey: "messages" },
   { key: "notes", label: "Notes", icon: StickyNote, href: "/dashboard/notes", live: true },
   { key: "orders", label: "Shop Orders", icon: ShoppingBag, href: "/dashboard/orders", live: true },
   { key: "products", label: "Products", icon: Package, href: "/dashboard/products", live: true },
@@ -33,6 +34,18 @@ const NAV_ITEMS: { key: NavKey; label: string; icon: React.ElementType; href: st
   { key: "settings", label: "Settings", icon: Settings, href: "/dashboard/settings", live: false },
 ];
 
+function NavBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span
+      className="ml-2 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-rose-500 text-white text-[11px] font-bold leading-none shadow-sm"
+      data-testid="badge-unread-count"
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
 export interface PharmacistLayoutProps {
   current: NavKey;
   children: React.ReactNode;
@@ -41,6 +54,20 @@ export interface PharmacistLayoutProps {
 export default function PharmacistLayout({ current, children }: PharmacistLayoutProps) {
   const [, navigate] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Live unread badge counts. Polled every 60s; refetches on window focus too,
+  // so a pharmacist tabbing back to the dashboard sees fresh numbers right away.
+  const { data: unreadCounts } = useGetPharmacistUnreadCounts({
+    query: {
+      refetchInterval: 60_000,
+      refetchOnWindowFocus: true,
+      staleTime: 30_000,
+      // queryKey is provided by orval's generated wrapper; this cast just satisfies
+      // its inner UseQueryOptions type which marks queryKey as required.
+    } as Parameters<typeof useGetPharmacistUnreadCounts>[0] extends { query?: infer Q } ? Q : never,
+  });
+  const queueBadge = unreadCounts?.patientResponded ?? 0;
+  const messagesBadge = unreadCounts?.unreadMessages ?? 0;
 
   useEffect(() => {
     setMobileOpen(false);
@@ -83,8 +110,10 @@ export default function PharmacistLayout({ current, children }: PharmacistLayout
       <div className="p-4 px-6 flex-1">
         <div className="text-xs font-bold text-white/50 uppercase tracking-wider mb-4 mt-4">Menu</div>
         <nav className="space-y-2">
-          {NAV_ITEMS.map(({ key, label, icon: Icon, href, live }) => {
+          {NAV_ITEMS.map(({ key, label, icon: Icon, href, live, badgeKey }) => {
             const isActive = key === current;
+            const badgeCount =
+              badgeKey === "queue" ? queueBadge : badgeKey === "messages" ? messagesBadge : 0;
             const baseCls =
               "w-full flex items-center justify-between font-medium rounded-xl p-3 transition-colors";
             const stateCls = isActive
@@ -100,6 +129,7 @@ export default function PharmacistLayout({ current, children }: PharmacistLayout
                       soon
                     </span>
                   )}
+                  {badgeKey && <NavBadge count={badgeCount} />}
                 </div>
                 {isActive && <ChevronRight className="w-4 h-4 opacity-50" />}
               </>

@@ -788,3 +788,17 @@ export const GetRecentConsultationsResponseItem = zod.object({
 export const GetRecentConsultationsResponse = zod.array(
   GetRecentConsultationsResponseItem,
 );
+
+/**
+ * @summary Counts of unread messages and patient-responded consultations for the pharmacist sidebar / tab badges
+ */
+export const GetPharmacistUnreadCountsResponse = zod.object({
+  unreadMessages: zod
+    .number()
+    .describe(
+      "Total messages from non-pharmacist senders not yet read by a pharmacist",
+    ),
+  patientResponded: zod
+    .number()
+    .describe("Consultations currently in the `patient_responded` status"),
+});

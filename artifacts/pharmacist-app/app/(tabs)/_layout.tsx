@@ -12,25 +12,38 @@ import { getCurrentToken } from "@/context/AuthContext";
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
 
-function useUnreadMessageCount(): number {
-  const [count, setCount] = useState(0);
+interface UnreadBadgeCounts {
+  unreadMessages: number;
+  patientResponded: number;
+}
+
+/**
+ * Polls the dedicated `/api/pharmacist/unread-counts` endpoint every 30s and
+ * returns counts for both the Inbox tab (unread patient messages) and the
+ * Pending tab (consultations now in `patient_responded` after a reply).
+ */
+function useUnreadBadgeCounts(): UnreadBadgeCounts {
+  const [counts, setCounts] = useState<UnreadBadgeCounts>({
+    unreadMessages: 0,
+    patientResponded: 0,
+  });
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const poll = useCallback(async () => {
     try {
       const token = getCurrentToken();
       if (!token) return;
-      const res = await fetch(`${BASE_URL}/api/pharmacist/message-threads`, {
+      const res = await fetch(`${BASE_URL}/api/pharmacist/unread-counts`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) return;
-      const json = await res.json();
-      const unread = (json.threads ?? []).filter(
-        (t: { unreadCount: number }) => Number(t.unreadCount) > 0,
-      ).length;
-      setCount(unread);
+      const json = (await res.json()) as Partial<UnreadBadgeCounts>;
+      setCounts({
+        unreadMessages: Number(json.unreadMessages ?? 0),
+        patientResponded: Number(json.patientResponded ?? 0),
+      });
     } catch {
-      // ignore network errors
+      // ignore network errors — badge just stays at last known value
     }
   }, []);
 
@@ -42,7 +55,7 @@ function useUnreadMessageCount(): number {
     };
   }, [poll]);
 
-  return count;
+  return counts;
 }
 
 // IMPORTANT: iOS 26 uses NativeTabs for native tabs with liquid glass support.
@@ -50,10 +63,11 @@ function useUnreadMessageCount(): number {
 // is a system-level appearance provided by iOS and cannot be overridden.
 // Custom brand colors are applied only on the ClassicTabLayout path (older iOS / Android / web).
 function NativeTabLayout() {
-  const unreadCount = useUnreadMessageCount();
+  const { unreadMessages, patientResponded } = useUnreadBadgeCounts();
   return (
     <NativeTabs>
-      <NativeTabs.Trigger name="index">
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+      <NativeTabs.Trigger name="index" {...(patientResponded > 0 ? { badge: patientResponded } as any : {})}>
         <Icon sf={{ default: "clock", selected: "clock.fill" }} />
         <Label>Pending</Label>
       </NativeTabs.Trigger>
@@ -66,7 +80,7 @@ function NativeTabLayout() {
         <Label>Patients</Label>
       </NativeTabs.Trigger>
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-      <NativeTabs.Trigger name="inbox" {...(unreadCount > 0 ? { badge: unreadCount } as any : {})}>
+      <NativeTabs.Trigger name="inbox" {...(unreadMessages > 0 ? { badge: unreadMessages } as any : {})}>
         <Icon sf={{ default: "message.badge", selected: "message.badge.fill" }} />
         <Label>Messages</Label>
       </NativeTabs.Trigger>
@@ -88,7 +102,7 @@ function ClassicTabLayout() {
   const isDark = colorScheme === "dark";
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
-  const unreadCount = useUnreadMessageCount();
+  const { unreadMessages, patientResponded } = useUnreadBadgeCounts();
 
   return (
     <Tabs
@@ -130,6 +144,7 @@ function ClassicTabLayout() {
         options={{
           title: "Pending",
           headerShown: false,
+          tabBarBadge: patientResponded > 0 ? patientResponded : undefined,
           tabBarIcon: ({ color }) =>
             isIOS ? (
               <SymbolView name="clock" tintColor={color} size={24} />
@@ -166,7 +181,7 @@ function ClassicTabLayout() {
         name="inbox"
         options={{
           title: "Messages",
-          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+          tabBarBadge: unreadMessages > 0 ? unreadMessages : undefined,
           tabBarIcon: ({ color }) =>
             isIOS ? (
               <SymbolView name="message.badge" tintColor={color} size={24} />

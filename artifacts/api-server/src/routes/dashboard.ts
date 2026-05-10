@@ -1,13 +1,58 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Response } from "express";
 import { db, consultationsTable } from "@workspace/db";
 import {
   GetDashboardStatsResponse,
   GetRecentConsultationsQueryParams,
   GetRecentConsultationsResponse,
+  GetPharmacistUnreadCountsResponse,
 } from "@workspace/api-zod";
 import { sql, desc, gte } from "drizzle-orm";
+import { requirePharmacist, type AuthedRequest } from "../middlewares/auth";
 
 const router: IRouter = Router();
+
+/**
+ * GET /api/pharmacist/unread-counts
+ *
+ * Lightweight polling endpoint used by the pharmacist sidebar (web) and the
+ * mobile tab bar to render unread badges without re-fetching the full
+ * message-threads or consultations lists.
+ *
+ * - `unreadMessages`     – total messages from non-pharmacist senders that
+ *                          have not yet been marked read by a pharmacist.
+ * - `patientResponded`   – consultations currently sitting in the
+ *                          `patient_responded` status (queue items that need
+ *                          re-review after the patient replied).
+ */
+router.get(
+  "/pharmacist/unread-counts",
+  requirePharmacist,
+  async (_req: AuthedRequest, res: Response): Promise<void> => {
+    const [unreadResult, respondedResult] = await Promise.all([
+      db.execute(sql`
+        SELECT COUNT(*)::int AS total
+        FROM consultation_messages
+        WHERE read_by_pharmacist = false
+          AND sender_role <> 'pharmacist'
+      `),
+      db.execute(sql`
+        SELECT COUNT(*)::int AS total
+        FROM consultations
+        WHERE status = 'patient_responded'
+      `),
+    ]);
+
+    const unreadMessages = (unreadResult.rows[0] as { total: number } | undefined)?.total ?? 0;
+    const patientResponded = (respondedResult.rows[0] as { total: number } | undefined)?.total ?? 0;
+
+    res.json(
+      GetPharmacistUnreadCountsResponse.parse({
+        unreadMessages,
+        patientResponded,
+      }),
+    );
+  },
+);
 
 router.get("/dashboard/stats", async (_req, res): Promise<void> => {
   const today = new Date();

@@ -420,6 +420,21 @@ paths:
                 items:
                   $ref: "#/components/schemas/Consultation"
 
+  /pharmacist/unread-counts:
+    get:
+      operationId: getPharmacistUnreadCounts
+      tags: [dashboard]
+      summary: Counts of unread messages and patient-responded consultations for the pharmacist sidebar / tab badges
+      responses:
+        "200":
+          description: Unread counts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PharmacistUnreadCounts"
+        "401":
+          description: Unauthorized
+
 components:
   schemas:
     HealthStatus:
@@ -961,3 +976,16 @@ components:
         - averageReviewTime
         - byConditionCategory
         - byStatus
+
+    PharmacistUnreadCounts:
+      type: object
+      properties:
+        unreadMessages:
+          type: integer
+          description: Total messages from non-pharmacist senders not yet read by a pharmacist
+        patientResponded:
+          type: integer
+          description: Consultations currently in the `patient_responded` status
+      required:
+        - unreadMessages
+        - patientResponded

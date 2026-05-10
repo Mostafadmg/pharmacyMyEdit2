@@ -39,6 +39,7 @@ import type {
   PatientRegisterInput,
   PharmacistAuthResponse,
   PharmacistLoginInput,
+  PharmacistUnreadCounts,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -1594,6 +1595,85 @@ export function useGetRecentConsultations<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetRecentConsultationsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Counts of unread messages and patient-responded consultations for the pharmacist sidebar / tab badges
+ */
+export const getGetPharmacistUnreadCountsUrl = () => {
+  return `/api/pharmacist/unread-counts`;
+};
+
+export const getPharmacistUnreadCounts = async (
+  options?: RequestInit,
+): Promise<PharmacistUnreadCounts> => {
+  return customFetch<PharmacistUnreadCounts>(
+    getGetPharmacistUnreadCountsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetPharmacistUnreadCountsQueryKey = () => {
+  return [`/api/pharmacist/unread-counts`] as const;
+};
+
+export const getGetPharmacistUnreadCountsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPharmacistUnreadCounts>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPharmacistUnreadCounts>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPharmacistUnreadCountsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPharmacistUnreadCounts>>
+  > = ({ signal }) => getPharmacistUnreadCounts({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPharmacistUnreadCounts>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPharmacistUnreadCountsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPharmacistUnreadCounts>>
+>;
+export type GetPharmacistUnreadCountsQueryError = ErrorType<void>;
+
+/**
+ * @summary Counts of unread messages and patient-responded consultations for the pharmacist sidebar / tab badges
+ */
+
+export function useGetPharmacistUnreadCounts<
+  TData = Awaited<ReturnType<typeof getPharmacistUnreadCounts>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPharmacistUnreadCounts>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPharmacistUnreadCountsQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
