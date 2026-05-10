@@ -18,9 +18,12 @@ interface UnreadBadgeCounts {
 }
 
 /**
- * Polls the dedicated `/api/pharmacist/unread-counts` endpoint every 30s and
+ * Polls the dedicated `/api/pharmacist/unread-counts` endpoint every 60s and
  * returns counts for both the Inbox tab (unread patient messages) and the
  * Pending tab (consultations now in `patient_responded` after a reply).
+ *
+ * The 60s cadence intentionally matches the web sidebar's `refetchInterval`
+ * so the two clients put roughly the same load on the unread-counts endpoint.
  */
 function useUnreadBadgeCounts(): UnreadBadgeCounts {
   const [counts, setCounts] = useState<UnreadBadgeCounts>({
@@ -49,7 +52,7 @@ function useUnreadBadgeCounts(): UnreadBadgeCounts {
 
   useEffect(() => {
     poll();
-    timerRef.current = setInterval(poll, 30000);
+    timerRef.current = setInterval(poll, 60000);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
