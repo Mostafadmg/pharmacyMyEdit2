@@ -76,7 +76,7 @@ export default function DrugInteractionPanel({ itemNames, patientMedications, on
 
   useEffect(() => {
     onChange?.(state);
-  }, [state.warnings.length, state.blocking, state.loading]);
+  }, [state]);
 
   if (state.loading && state.warnings.length === 0) {
     return (
