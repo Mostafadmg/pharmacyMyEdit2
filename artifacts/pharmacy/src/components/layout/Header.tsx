@@ -142,7 +142,11 @@ export default function Header() {
               {patientName && <NotificationBell audience="patient" />}
               {patientName ? (
                 <div className="flex items-center gap-2">
-                  <Link href="/my-consultations" className="flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary transition-colors px-3 py-1.5 rounded-full hover:bg-primary/5">
+                  <Link
+                    href="/account"
+                    className="flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary transition-colors px-3 py-1.5 rounded-full hover:bg-primary/5"
+                    data-testid="link-account"
+                  >
                     <User className="w-4 h-4" />
                     {patientName.split(" ")[0]}
                   </Link>

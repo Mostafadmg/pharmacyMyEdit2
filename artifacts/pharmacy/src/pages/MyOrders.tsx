@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Package, Truck, Check, Clock, ArrowRight, ShoppingBag, Pill, RotateCcw } from "lucide-react";
+import {
+  Package, Truck, Check, Clock, ShoppingBag, RotateCcw,
+  ChevronLeft, MessageSquare, HelpCircle, AlertTriangle,
+} from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -22,17 +24,200 @@ type Order = {
   paymentStatus: string;
   consultationId: string | null;
   prescriptionItems: Array<{ name: string; strength: string; form: string }> | null;
+  shippingAddress?: { line1?: string; line2?: string; city?: string; postcode?: string } | null;
   createdAt: string;
 };
 
-const STATUS_META: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  pending: { label: "Received", icon: Clock, color: "bg-blue-100 text-blue-700" },
-  paid: { label: "Confirmed", icon: Check, color: "bg-blue-100 text-blue-700" },
-  preparing: { label: "Preparing", icon: Package, color: "bg-amber-100 text-amber-700" },
-  shipped: { label: "Shipped", icon: Truck, color: "bg-indigo-100 text-indigo-700" },
-  delivered: { label: "Delivered", icon: Check, color: "bg-green-100 text-green-700" },
-  cancelled: { label: "Cancelled", icon: Clock, color: "bg-rose-100 text-rose-700" },
-};
+// ── Timeline definition ───────────────────────────────────────────────────────
+// Mirrors the MedExpress order-timeline pattern: clinical review → awaiting
+// dispatch → dispatched. Maps onto our existing `status` column so the same
+// data drives both Rx and shop orders.
+const TIMELINE_STAGES = [
+  { key: "review", label: "Under clinical review", icon: Clock, statuses: ["pending", "paid"] as string[] },
+  { key: "awaiting", label: "Awaiting dispatch", icon: Package, statuses: ["preparing"] as string[] },
+  { key: "dispatched", label: "Dispatched", icon: Truck, statuses: ["shipped", "delivered"] as string[] },
+];
+
+function stageIndexFor(status: string): number {
+  if (status === "cancelled") return -1;
+  for (let i = 0; i < TIMELINE_STAGES.length; i++) {
+    if (TIMELINE_STAGES[i].statuses.includes(status)) return i;
+  }
+  // Anything we don't recognise: assume the latest stage so the UI doesn't
+  // hide progress.
+  return TIMELINE_STAGES.length - 1;
+}
+
+function shortAddress(addr: Order["shippingAddress"]): string {
+  if (!addr) return "—";
+  return [addr.line1, addr.city, addr.postcode].filter(Boolean).join(", ").toUpperCase();
+}
+
+function OrderTimelineCard({
+  order,
+  onRepeat,
+  onReorder,
+  repeatLoading,
+}: {
+  order: Order;
+  onRepeat: (consultationId: string) => void;
+  onReorder: (order: Order) => void;
+  repeatLoading: boolean;
+}) {
+  const isRx = order.paymentStatus === "rx_internal";
+  const cancelled = order.status === "cancelled";
+  const stageIdx = stageIndexFor(order.status);
+  const items = order.prescriptionItems ?? [];
+
+  const placedDate = new Date(order.createdAt).toLocaleDateString("en-GB", {
+    day: "numeric", month: "short", year: "numeric",
+  });
+
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-2xl border border-border/40 hover:shadow-md transition-shadow"
+      data-testid={`order-card-${order.orderNumber}`}
+    >
+      {/* ── Top meta row (placed / order # / delivery / total) ── */}
+      <div className="px-5 md:px-7 pt-6 pb-5 grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6 border-b border-border/40">
+        <div>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Order placed</p>
+          <p className="font-bold text-secondary mt-1">{placedDate}</p>
+        </div>
+        <div>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Order number</p>
+          <p className="font-mono font-bold text-secondary mt-1 truncate" data-testid={`order-number-${order.orderNumber}`}>
+            {order.orderNumber}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Delivery method</p>
+          <p className="font-bold text-secondary mt-1">Royal Mail Tracked</p>
+        </div>
+        <div className="col-span-2 md:col-span-1">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Delivered to</p>
+          <p className="font-bold text-secondary mt-1 truncate" title={shortAddress(order.shippingAddress)}>
+            {shortAddress(order.shippingAddress)}
+          </p>
+        </div>
+        <div className="text-right md:text-left">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Total cost</p>
+          <p className="font-bold text-primary text-lg mt-1">
+            {isRx ? "NHS Rx" : formatGbp(order.totalGbp)}
+          </p>
+        </div>
+      </div>
+
+      {/* ── Timeline ── */}
+      <div className="px-5 md:px-7 py-6">
+        {cancelled ? (
+          <div className="flex items-center gap-3 text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
+            <AlertTriangle className="w-5 h-5" />
+            <p className="font-semibold">This order was cancelled.</p>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-2">
+            {TIMELINE_STAGES.map((stage, i) => {
+              const reached = i <= stageIdx;
+              const Icon = stage.icon;
+              const isLast = i === TIMELINE_STAGES.length - 1;
+              return (
+                <React.Fragment key={stage.key}>
+                  <div className="flex flex-col items-center text-center gap-2 min-w-0">
+                    <div
+                      className={`w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center border-2 transition-colors ${
+                        reached
+                          ? "bg-primary border-primary text-white"
+                          : "bg-white border-border text-muted-foreground"
+                      }`}
+                      data-testid={`timeline-${stage.key}-${reached ? "done" : "pending"}`}
+                    >
+                      {reached ? <Check className="w-4 h-4 md:w-5 md:h-5" strokeWidth={3} /> : <Icon className="w-4 h-4 md:w-5 md:h-5" />}
+                    </div>
+                    <p className={`text-[11px] md:text-xs font-bold leading-tight max-w-[7rem] ${reached ? "text-secondary" : "text-muted-foreground"}`}>
+                      {stage.label}
+                    </p>
+                  </div>
+                  {!isLast && (
+                    <div className={`flex-1 h-0.5 mx-1 mb-7 ${i < stageIdx ? "bg-primary" : "bg-border"}`} />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Treatment lines ── */}
+      {items.length > 0 && (
+        <div className="px-5 md:px-7 pb-5 border-t border-border/40 pt-5 space-y-2">
+          {items.map((it, idx) => (
+            <div key={idx} className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                <Package className="w-5 h-5 text-emerald-700" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-secondary truncate">
+                  {it.name}{it.strength ? ` ${it.strength}` : ""}{it.form ? ` ${it.form}` : ""}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {isRx ? "Prescription · " : ""}One-time purchase
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Action row ── */}
+      <div className="px-5 md:px-7 pb-6 pt-2 flex flex-wrap gap-2 border-t border-border/40 mt-2 pt-5">
+        <Button asChild variant="outline" className="rounded-full border-2 border-primary text-primary hover:bg-primary/5 font-semibold">
+          <Link href={isRx ? `/track-order/${order.id}` : `/order-confirmation/${order.id}`} data-testid={`button-track-${order.orderNumber}`}>
+            <Truck className="w-4 h-4 mr-2" /> Track delivery
+          </Link>
+        </Button>
+
+        {isRx && order.consultationId ? (
+          <Button
+            type="button"
+            disabled={repeatLoading}
+            className="rounded-full bg-accent hover:bg-accent/90 text-accent-foreground font-semibold"
+            onClick={() => order.consultationId && onRepeat(order.consultationId)}
+            data-testid={`button-repeat-${order.orderNumber}`}
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            {repeatLoading ? "Starting…" : "Reorder treatment"}
+          </Button>
+        ) : items.length > 0 ? (
+          <Button
+            type="button"
+            className="rounded-full bg-accent hover:bg-accent/90 text-accent-foreground font-semibold"
+            onClick={() => onReorder(order)}
+            data-testid={`button-reorder-${order.orderNumber}`}
+          >
+            <RotateCcw className="w-4 h-4 mr-2" /> Reorder this order
+          </Button>
+        ) : null}
+
+        {order.consultationId && (
+          <Button asChild variant="ghost" className="rounded-full text-secondary hover:bg-secondary/5 font-semibold">
+            <Link href={`/my-consultations`} data-testid={`button-message-${order.orderNumber}`}>
+              <MessageSquare className="w-4 h-4 mr-2" /> Message your prescriber
+            </Link>
+          </Button>
+        )}
+
+        <Button asChild variant="ghost" className="rounded-full text-muted-foreground hover:text-foreground font-semibold ml-auto">
+          <Link href="/account/customer-service" data-testid={`button-help-${order.orderNumber}`}>
+            <HelpCircle className="w-4 h-4 mr-2" /> Need help?
+          </Link>
+        </Button>
+      </div>
+    </motion.article>
+  );
+}
 
 export default function MyOrders() {
   const [, navigate] = useLocation();
@@ -60,6 +245,14 @@ export default function MyOrders() {
     }
   }
 
+  function reorderShopOrder(order: Order) {
+    // Shop orders don't carry full product refs in `prescriptionItems`, so we
+    // route the patient to the original confirmation where items + Buy-again
+    // links already work via the existing order-detail page.
+    toast.info("Opening your original order so you can re-add the items.");
+    navigate(`/order-confirmation/${order.id}`);
+  }
+
   useEffect(() => {
     const token = localStorage.getItem("patient_token");
     if (!token) {
@@ -68,114 +261,61 @@ export default function MyOrders() {
     }
     apiFetch<{ orders: Order[] }>("/api/orders", { auth: "patient" })
       .then(d => setOrders(d.orders))
-      .catch(e => toast.error(e.message))
+      .catch(e => toast.error(e instanceof Error ? e.message : "Couldn't load your orders."))
       .finally(() => setLoading(false));
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF7F2]">
+    <div className="min-h-screen flex flex-col bg-[#F4F1EC]">
       <Header />
-      <div className="max-w-5xl mx-auto px-6 py-10 w-full flex-1">
+      <main className="flex-1 max-w-5xl mx-auto px-5 md:px-6 py-8 md:py-12 w-full">
+        {/* Breadcrumb */}
+        <nav className="flex items-center text-sm text-muted-foreground mb-6">
+          <Link href="/" className="hover:text-primary">Home</Link>
+          <span className="mx-2">/</span>
+          <Link href="/account" className="hover:text-primary inline-flex items-center gap-1">
+            <ChevronLeft className="w-4 h-4" /> Your account
+          </Link>
+          <span className="mx-2">/</span>
+          <span className="text-foreground font-medium">Order history</span>
+        </nav>
+
         <div className="flex items-center justify-between mb-8 flex-wrap gap-3">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold">My orders</h1>
-            <p className="text-muted-foreground mt-1">Track your pharmacy orders & deliveries.</p>
+            <h1 className="text-3xl md:text-4xl font-extrabold text-secondary">Order history</h1>
+            <p className="text-muted-foreground mt-1">All your orders, in one place. Track delivery, message your prescriber, or reorder a treatment.</p>
           </div>
-          <Button asChild variant="outline" className="rounded-full">
-            <Link href="/shop"><ShoppingBag className="w-4 h-4 mr-2" /> Continue shopping</Link>
+          <Button asChild variant="ghost" className="rounded-full text-primary hover:text-primary/80 font-semibold underline">
+            <Link href="/account/customer-service">Need help?</Link>
           </Button>
         </div>
 
         {loading ? (
-          <div className="space-y-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}</div>
+          <div className="space-y-4">{[...Array(2)].map((_, i) => <Skeleton key={i} className="h-72 rounded-2xl" />)}</div>
         ) : orders && orders.length > 0 ? (
-          <div className="space-y-3">
-            {orders.map(o => {
-              const isRx = o.paymentStatus === "rx_internal";
-              const href = isRx ? `/track-order/${o.id}` : `/order-confirmation/${o.id}`;
-              const meta = STATUS_META[o.status] ?? STATUS_META.pending;
-              const Icon = isRx ? Pill : meta.icon;
-              const rxItems = isRx && Array.isArray(o.prescriptionItems) && o.prescriptionItems.length > 0
-                ? o.prescriptionItems : null;
-              const canRepeat = isRx && !!o.consultationId;
-              return (
-                <motion.div key={o.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                  <Card className="border-0 bg-white rounded-2xl hover:shadow-md transition-shadow">
-                    <Link href={href}>
-                      <CardContent className="p-5 flex items-center gap-4 flex-wrap cursor-pointer">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${isRx ? "bg-emerald-50" : "bg-[#168A7B]/10"}`}>
-                          <Icon className={`w-5 h-5 ${isRx ? "text-emerald-600" : "text-[#168A7B]"}`} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-semibold" data-testid={`order-number-${o.orderNumber}`}>{o.orderNumber}</p>
-                            {isRx && (
-                              <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-0 font-semibold">Prescription</Badge>
-                            )}
-                            <Badge className={`${meta.color} hover:${meta.color} border-0`}>{meta.label}</Badge>
-                          </div>
-                          {rxItems ? (
-                            <p className="text-sm text-muted-foreground truncate">
-                              {rxItems.map(it => `${it.name}${it.strength ? ` ${it.strength}` : ""}`).join(", ")}
-                            </p>
-                          ) : (
-                            <p className="text-sm text-muted-foreground">
-                              {new Date(o.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
-                            </p>
-                          )}
-                          {rxItems && (
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {new Date(o.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
-                            </p>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          {isRx ? (
-                            <p className="text-sm font-semibold text-emerald-700">NHS Rx</p>
-                          ) : (
-                            <p className="font-bold text-lg text-[#168A7B]">{formatGbp(o.totalGbp)}</p>
-                          )}
-                        </div>
-                        <ArrowRight className="w-5 h-5 text-muted-foreground" />
-                      </CardContent>
-                    </Link>
-                    {canRepeat && (
-                      <div className="px-5 pb-4 -mt-1">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="rounded-full border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 font-semibold"
-                          disabled={repeatLoadingId === o.consultationId}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (o.consultationId) startRepeat(o.consultationId);
-                          }}
-                          data-testid={`button-repeat-${o.orderNumber}`}
-                        >
-                          <RotateCcw className="w-4 h-4 mr-2" />
-                          {repeatLoadingId === o.consultationId ? "Starting…" : "Request repeat / follow-up"}
-                        </Button>
-                      </div>
-                    )}
-                  </Card>
-                </motion.div>
-              );
-            })}
+          <div className="space-y-4">
+            {orders.map(o => (
+              <OrderTimelineCard
+                key={o.id}
+                order={o}
+                onRepeat={startRepeat}
+                onReorder={reorderShopOrder}
+                repeatLoading={repeatLoadingId === o.consultationId}
+              />
+            ))}
           </div>
         ) : (
           <Card className="border-0 bg-white rounded-2xl">
-            <CardContent className="p-12 text-center">
+            <div className="p-12 text-center">
               <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-lg mb-4">You haven't placed any orders yet.</p>
-              <Button asChild className="rounded-full bg-[#168A7B] hover:bg-[#0E5A52]">
-                <Link href="/shop">Browse shop</Link>
+              <Button asChild className="rounded-full bg-primary hover:bg-primary/90">
+                <Link href="/shop"><ShoppingBag className="w-4 h-4 mr-2" /> Browse the shop</Link>
               </Button>
-            </CardContent>
+            </div>
           </Card>
         )}
-      </div>
+      </main>
       <Footer />
     </div>
   );

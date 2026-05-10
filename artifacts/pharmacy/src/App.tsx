@@ -28,6 +28,14 @@ import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import MyOrders from "./pages/MyOrders";
+import AccountHub from "./pages/account/AccountHub";
+import YourDetails from "./pages/account/YourDetails";
+import MyPayments from "./pages/account/MyPayments";
+import ChangePassword from "./pages/account/ChangePassword";
+import GPDetails from "./pages/account/GPDetails";
+import MySubscriptions from "./pages/account/MySubscriptions";
+import ReferFriend from "./pages/account/ReferFriend";
+import CustomerService from "./pages/account/CustomerService";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import OrderTracking from "./pages/OrderTracking";
 import AdminOrders from "./pages/AdminOrders";
@@ -105,6 +113,14 @@ function Router() {
       <Route path="/cart" component={Cart} />
       <Route path="/checkout" component={Checkout} />
       <Route path="/my-orders" component={MyOrders} />
+      <Route path="/account" component={AccountHub} />
+      <Route path="/account/details" component={YourDetails} />
+      <Route path="/account/details/payments" component={MyPayments} />
+      <Route path="/account/details/password" component={ChangePassword} />
+      <Route path="/account/details/gp" component={GPDetails} />
+      <Route path="/account/subscriptions" component={MySubscriptions} />
+      <Route path="/account/refer" component={ReferFriend} />
+      <Route path="/account/customer-service" component={CustomerService} />
       <Route path="/order-confirmation/:id" component={OrderConfirmation} />
       <Route path="/track-order/:id" component={OrderTracking} />
       <Route path="/contact" component={Contact} />
