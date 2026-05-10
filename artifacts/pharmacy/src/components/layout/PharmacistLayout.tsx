@@ -60,13 +60,11 @@ export default function PharmacistLayout({ current, children }: PharmacistLayout
   const sidebarContent = (
     <>
       <div className="p-6 border-b border-white/10 flex items-center justify-between">
-        <Link href="/dashboard">
-          <a className="flex items-center gap-3" data-testid="link-sidebar-brand">
-            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center font-bold text-lg shadow-sm">
-              <Pill className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-2xl font-serif font-bold tracking-tight">PharmaCare</span>
-          </a>
+        <Link href="/dashboard" className="flex items-center gap-3" data-testid="link-sidebar-brand">
+          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center font-bold text-lg shadow-sm">
+            <Pill className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-2xl font-serif font-bold tracking-tight">PharmaCare</span>
         </Link>
         <button
           type="button"
@@ -119,10 +117,8 @@ export default function PharmacistLayout({ current, children }: PharmacistLayout
             }
 
             return (
-              <Link key={key} href={href}>
-                <a className={`${baseCls} ${stateCls}`} data-testid={`nav-${key}`}>
-                  {inner}
-                </a>
+              <Link key={key} href={href} className={`${baseCls} ${stateCls}`} data-testid={`nav-${key}`}>
+                {inner}
               </Link>
             );
           })}
@@ -157,13 +153,11 @@ export default function PharmacistLayout({ current, children }: PharmacistLayout
     <div className="min-h-screen bg-muted/30 flex flex-col md:flex-row font-sans">
       {/* Mobile top bar */}
       <header className="md:hidden bg-secondary text-white px-4 py-3 flex items-center justify-between shadow-md sticky top-0 z-30">
-        <Link href="/dashboard">
-          <a className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-              <Pill className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-lg font-serif font-bold tracking-tight">PharmaCare</span>
-          </a>
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+            <Pill className="w-4 h-4 text-white" />
+          </div>
+          <span className="text-lg font-serif font-bold tracking-tight">PharmaCare</span>
         </Link>
         <button
           type="button"
