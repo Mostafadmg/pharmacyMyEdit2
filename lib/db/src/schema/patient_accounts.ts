@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core";
 
 export const patientAccountsTable = pgTable("patient_accounts", {
   id: text("id").primaryKey(),
@@ -21,6 +21,14 @@ export const patientAccountsTable = pgTable("patient_accounts", {
   identityVerificationMethod: text("identity_verification_method"),
   identityVerificationRef: text("identity_verification_ref"),
   identityVerifiedAt: timestamp("identity_verified_at", { withTimezone: true }),
+  // Communication preferences (defaults: transactional email on, marketing/SMS off)
+  commsEmail: boolean("comms_email").notNull().default(true),
+  commsSms: boolean("comms_sms").notNull().default(false),
+  marketingOptIn: boolean("marketing_opt_in").notNull().default(false),
+  // Per-user referral code (auto-generated on first request)
+  referralCode: text("referral_code").unique(),
+  // GDPR self-serve account deletion request (30-day soft-delete window)
+  deletionRequestedAt: timestamp("deletion_requested_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

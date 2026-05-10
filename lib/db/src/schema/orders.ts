@@ -20,6 +20,10 @@ export const ordersTable = pgTable("orders", {
   internalNotes: jsonb("internal_notes").notNull().default([]),
   prescriptionItems: jsonb("prescription_items").notNull().default([]),
   consultationId: text("consultation_id"),
+  // Patient-facing discount provenance — both nullable, both in pence.
+  promoCode: text("promo_code"),
+  promoDiscountPence: integer("promo_discount_pence").notNull().default(0),
+  creditsAppliedPence: integer("credits_applied_pence").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (t) => ({

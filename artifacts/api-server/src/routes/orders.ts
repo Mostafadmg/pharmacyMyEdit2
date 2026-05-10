@@ -1,11 +1,12 @@
 import { Router, type IRouter } from "express";
-import { db, productsTable, ordersTable, orderItemsTable, deliveriesTable, patientAccountsTable, notificationsTable } from "@workspace/db";
+import { db, productsTable, ordersTable, orderItemsTable, deliveriesTable, patientAccountsTable, notificationsTable, referralCreditsTable, promoCodesTable } from "@workspace/db";
 import { eq, desc, inArray, and, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { decodeBearerId, requirePharmacist } from "../middlewares/auth";
 import { isStripeEnabled } from "../lib/stripe";
 import { buildTrackingUrl, getCarrierLabel } from "../utils/carriers";
 import { sendDispatchEmail } from "../utils/email";
+import { creditsBalance, evaluatePromo } from "./patient-account";
 
 const router: IRouter = Router();
 
@@ -44,6 +45,8 @@ router.post("/orders", async (req, res): Promise<void> => {
     customerPhone?: string;
     shippingAddress?: ShippingAddress;
     notes?: string;
+    promoCode?: string;
+    applyCreditsPence?: number;
   };
 
   if (!Array.isArray(b.items) || b.items.length === 0) {
@@ -106,42 +109,99 @@ router.post("/orders", async (req, res): Promise<void> => {
   }
 
   const shipping = itemsTotal >= 2500 ? 0 : 299;
-  const total = itemsTotal + shipping;
 
   // Optional patient ownership: link if logged-in patient
   const actorId = decodeBearerId(req.headers.authorization);
   let linkedEmail = b.customerEmail.trim().toLowerCase();
+  let isLoggedInPatient = false;
   if (actorId && !PHARMACIST_IDS.has(actorId)) {
     const [p] = await db.select().from(patientAccountsTable).where(eq(patientAccountsTable.id, actorId)).limit(1);
-    if (p) linkedEmail = p.email.toLowerCase();
+    if (p) {
+      linkedEmail = p.email.toLowerCase();
+      isLoggedInPatient = true;
+    }
   }
+
+  const promoEval = await evaluatePromo(b.promoCode, itemsTotal);
+  const promoDiscount = promoEval?.discountPence ?? 0;
 
   const orderId = randomUUID();
   const orderNumber = generateOrderNumber();
   const stripeOn = isStripeEnabled();
 
-  const [order] = await db.insert(ordersTable).values({
-    id: orderId,
-    orderNumber,
-    customerEmail: linkedEmail,
-    customerName: b.customerName.trim(),
-    customerPhone: b.customerPhone?.trim() || null,
-    shippingAddress: {
-      line1: addr.line1.trim(),
-      line2: addr.line2?.trim() || "",
-      city: addr.city.trim(),
-      postcode: addr.postcode.trim().toUpperCase(),
-      country: addr.country?.trim() || "United Kingdom",
-    },
-    itemsTotalGbp: itemsTotal,
-    shippingGbp: shipping,
-    totalGbp: total,
-    status: stripeOn ? "pending_payment" : "paid",
-    paymentStatus: stripeOn ? "pending" : "paid_demo",
-    notes: b.notes?.trim() || null,
-  }).returning();
+  let order: typeof ordersTable.$inferSelect;
+  let creditsApplied = 0;
+  try {
+    order = await db.transaction(async tx => {
+      if (promoEval) {
+        const limit = promoEval.promo.usageLimit;
+        const upd = await tx.update(promoCodesTable)
+          .set({ usageCount: sql`${promoCodesTable.usageCount} + 1` })
+          .where(and(
+            eq(promoCodesTable.id, promoEval.promo.id),
+            eq(promoCodesTable.active, true),
+            limit === null ? sql`TRUE` : sql`${promoCodesTable.usageCount} < ${limit}`,
+          ))
+          .returning({ id: promoCodesTable.id });
+        if (upd.length === 0) throw new Error("PROMO_EXHAUSTED");
+      }
 
-  await db.insert(orderItemsTable).values(itemRows.map(r => ({ ...r, orderId })));
+      if (isLoggedInPatient && b.applyCreditsPence && b.applyCreditsPence > 0) {
+        const [bal] = await tx
+          .select({ s: sql<number>`COALESCE(SUM(${referralCreditsTable.amountPence}), 0)::int` })
+          .from(referralCreditsTable)
+          .where(eq(referralCreditsTable.patientEmail, linkedEmail));
+        const balance = bal?.s ?? 0;
+        const remainingBeforeCredits = Math.max(0, itemsTotal - promoDiscount);
+        creditsApplied = Math.max(0, Math.min(balance, Math.floor(b.applyCreditsPence), remainingBeforeCredits));
+      }
+      const total = Math.max(0, itemsTotal - promoDiscount - creditsApplied + shipping);
+
+      const [inserted] = await tx.insert(ordersTable).values({
+        id: orderId,
+        orderNumber,
+        customerEmail: linkedEmail,
+        customerName: (b.customerName ?? "").trim(),
+        customerPhone: b.customerPhone?.trim() || null,
+        shippingAddress: {
+          line1: addr.line1.trim(),
+          line2: addr.line2?.trim() || "",
+          city: addr.city.trim(),
+          postcode: addr.postcode.trim().toUpperCase(),
+          country: addr.country?.trim() || "United Kingdom",
+        },
+        itemsTotalGbp: itemsTotal,
+        shippingGbp: shipping,
+        totalGbp: total,
+        status: stripeOn ? "pending_payment" : "paid",
+        paymentStatus: stripeOn ? "pending" : "paid_demo",
+        notes: b.notes?.trim() || null,
+        promoCode: promoEval?.promo.code ?? null,
+        promoDiscountPence: promoDiscount,
+        creditsAppliedPence: creditsApplied,
+      }).returning();
+
+      if (creditsApplied > 0) {
+        await tx.insert(referralCreditsTable).values({
+          id: randomUUID(),
+          patientEmail: linkedEmail,
+          amountPence: -creditsApplied,
+          sourceType: "checkout_apply",
+          sourceRef: orderId,
+          description: `Applied to order ${orderNumber}`,
+        });
+      }
+
+      await tx.insert(orderItemsTable).values(itemRows.map(r => ({ ...r, orderId })));
+      return inserted;
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message === "PROMO_EXHAUSTED") {
+      res.status(409).json({ error: "Sorry — that promo code has just been fully redeemed." });
+      return;
+    }
+    throw err;
+  }
 
   // Decrement stock only when the order is actually paid right now (demo mode).
   // For Stripe-pending orders, stock is decremented on payment confirmation

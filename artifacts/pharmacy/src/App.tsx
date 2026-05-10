@@ -36,6 +36,10 @@ import GPDetails from "./pages/account/GPDetails";
 import MySubscriptions from "./pages/account/MySubscriptions";
 import ReferFriend from "./pages/account/ReferFriend";
 import CustomerService from "./pages/account/CustomerService";
+import Notifications from "./pages/account/Notifications";
+import Prescriptions from "./pages/account/Prescriptions";
+import Preferences from "./pages/account/Preferences";
+import DataAndPrivacy from "./pages/account/DataAndPrivacy";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import OrderTracking from "./pages/OrderTracking";
 import AdminOrders from "./pages/AdminOrders";
@@ -129,6 +133,10 @@ function Router() {
       <Route path="/account/subscriptions" component={MySubscriptions} />
       <Route path="/account/refer" component={ReferFriend} />
       <Route path="/account/customer-service" component={CustomerService} />
+      <Route path="/account/notifications" component={Notifications} />
+      <Route path="/account/prescriptions" component={Prescriptions} />
+      <Route path="/account/preferences" component={Preferences} />
+      <Route path="/account/data-and-privacy" component={DataAndPrivacy} />
       <Route path="/order-confirmation/:id" component={OrderConfirmation} />
       <Route path="/track-order/:id" component={OrderTracking} />
       <Route path="/contact" component={Contact} />

@@ -12,3 +12,5 @@ export * from "./notifications";
 export * from "./consultation_actions";
 export * from "./pharmacist_push_tokens";
 export * from "./wishlist";
+export * from "./promo_codes";
+export * from "./referral_credits";

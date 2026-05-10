@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Lock, CreditCard, ShieldCheck } from "lucide-react";
+import { Lock, CreditCard, ShieldCheck, Tag, Wallet, Loader2, X } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -12,23 +12,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
 import { useCart, formatGbp } from "@/hooks/useCart";
+import { DeliveryPromise } from "@/components/checkout/DeliveryPromise";
+
+type AppliedPromo = { code: string; label: string; discountPence: number };
+type Referral = { balancePence: number };
 
 export default function Checkout() {
   const [, navigate] = useLocation();
-  const { items, itemsTotal, shipping, total, clear } = useCart();
+  const { items, itemsTotal, clear } = useCart();
   const [submitting, setSubmitting] = useState(false);
   const [stripeEnabled, setStripeEnabled] = useState<boolean | null>(null);
 
   const [form, setForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    line1: "",
-    line2: "",
-    city: "",
-    postcode: "",
-    notes: "",
+    name: "", email: "", phone: "", line1: "", line2: "", city: "", postcode: "", notes: "",
   });
+
+  // Discount state
+  const [promoInput, setPromoInput] = useState("");
+  const [promo, setPromo] = useState<AppliedPromo | null>(null);
+  const [validating, setValidating] = useState(false);
+  const [creditsBalance, setCreditsBalance] = useState(0);
+  const [useCredits, setUseCredits] = useState(true);
+  const isLoggedIn = typeof window !== "undefined" && !!localStorage.getItem("patient_token");
 
   useEffect(() => {
     setForm(f => ({
@@ -39,10 +44,52 @@ export default function Checkout() {
     apiFetch<{ stripeEnabled: boolean }>("/api/payments/status")
       .then(r => setStripeEnabled(r.stripeEnabled))
       .catch(() => setStripeEnabled(false));
-  }, []);
+    if (isLoggedIn) {
+      apiFetch<Referral>("/api/patient/referral", { auth: "patient" })
+        .then(r => setCreditsBalance(r.balancePence))
+        .catch(() => setCreditsBalance(0));
+    }
+  }, [isLoggedIn]);
+
+  // Re-validate promo if subtotal changes underneath us (e.g. min-spend gate fails).
+  useEffect(() => {
+    if (!promo) return;
+    if (itemsTotal < promo.discountPence) {
+      setPromo(null);
+      toast.info("Promo removed — basket no longer eligible.");
+    }
+  }, [itemsTotal, promo]);
+
+  const totals = useMemo(() => {
+    const promoDiscount = promo ? Math.min(itemsTotal, promo.discountPence) : 0;
+    const remainingAfterPromo = Math.max(0, itemsTotal - promoDiscount);
+    const credits = isLoggedIn && useCredits ? Math.min(creditsBalance, remainingAfterPromo) : 0;
+    const subAfterDiscounts = Math.max(0, remainingAfterPromo - credits);
+    const shipping = itemsTotal >= 2500 ? 0 : 299;
+    const total = subAfterDiscounts + shipping;
+    return { promoDiscount, credits, shipping, total };
+  }, [itemsTotal, promo, useCredits, creditsBalance, isLoggedIn]);
 
   const handleChange = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm({ ...form, [k]: e.target.value });
+
+  async function applyPromo() {
+    if (!promoInput.trim()) return;
+    setValidating(true);
+    try {
+      const res = await apiFetch<AppliedPromo>("/api/promo-codes/validate", {
+        method: "POST",
+        body: JSON.stringify({ code: promoInput.trim(), subtotalPence: itemsTotal }),
+      });
+      setPromo(res);
+      setPromoInput("");
+      toast.success(`Applied ${res.label}.`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't apply that code.");
+    } finally {
+      setValidating(false);
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,16 +108,14 @@ export default function Checkout() {
           customerEmail: form.email,
           customerPhone: form.phone || undefined,
           shippingAddress: {
-            line1: form.line1,
-            line2: form.line2,
-            city: form.city,
-            postcode: form.postcode,
+            line1: form.line1, line2: form.line2, city: form.city, postcode: form.postcode,
           },
           notes: form.notes || undefined,
+          promoCode: promo?.code,
+          applyCreditsPence: totals.credits > 0 ? totals.credits : undefined,
         }),
       });
 
-      // Remember guest order so /order-confirmation can authenticate without login
       try {
         const raw = localStorage.getItem("pharmacare_guest_orders");
         const map: Record<string, string> = raw ? JSON.parse(raw) : {};
@@ -79,7 +124,6 @@ export default function Checkout() {
       } catch { /* ignore */ }
 
       if (stripeEnabled) {
-        // Create Stripe Checkout Session and redirect to Stripe-hosted page
         const origin = window.location.origin;
         const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         const session = await apiFetch<{ url: string }>(`/api/orders/${res.order.id}/checkout-session`, {
@@ -94,7 +138,6 @@ export default function Checkout() {
         return;
       }
 
-      // Demo mode (no Stripe key configured)
       clear();
       toast.success("Order placed successfully!");
       navigate(`/order-confirmation/${res.order.id}?key=${res.order.orderNumber}`);
@@ -149,6 +192,7 @@ export default function Checkout() {
                   <div><Label>Town/City</Label><Input value={form.city} onChange={handleChange("city")} placeholder="Manchester" required data-testid="input-city" /></div>
                   <div><Label>Postcode</Label><Input value={form.postcode} onChange={handleChange("postcode")} placeholder="M1 1AB" required data-testid="input-postcode" /></div>
                 </div>
+                <DeliveryPromise postcode={form.postcode} />
                 <div><Label>Notes for the pharmacist (optional)</Label>
                   <Textarea rows={2} value={form.notes} onChange={handleChange("notes")} placeholder="Allergies, delivery instructions, etc." data-testid="input-notes" />
                 </div>
@@ -183,7 +227,7 @@ export default function Checkout() {
             </Card>
           </div>
 
-          {/* Order summary: NOT sticky on mobile to avoid overlap */}
+          {/* Order summary */}
           <Card className="border-0 bg-white rounded-2xl h-fit lg:sticky lg:top-24">
             <CardContent className="p-5 sm:p-6 space-y-4">
               <h2 className="font-semibold text-lg">Your order</h2>
@@ -199,11 +243,73 @@ export default function Checkout() {
                   </div>
                 ))}
               </div>
+
+              {/* Promo code */}
+              <div className="border-t pt-4 space-y-2">
+                <Label className="flex items-center gap-1.5 text-sm"><Tag className="w-3.5 h-3.5" /> Promo code</Label>
+                {promo ? (
+                  <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-sm" data-testid="promo-applied">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-emerald-900 truncate">{promo.code}</p>
+                      <p className="text-xs text-emerald-800 truncate">{promo.label}</p>
+                    </div>
+                    <button type="button" onClick={() => setPromo(null)} className="p-1 text-emerald-700 hover:text-emerald-900" aria-label="Remove promo" data-testid="button-remove-promo">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      value={promoInput}
+                      onChange={e => setPromoInput(e.target.value.toUpperCase())}
+                      placeholder="WELCOME10"
+                      className="text-sm"
+                      data-testid="input-promo-code"
+                    />
+                    <Button
+                      type="button"
+                      onClick={applyPromo}
+                      disabled={validating || !promoInput.trim()}
+                      variant="outline"
+                      className="rounded-full"
+                      data-testid="button-apply-promo"
+                    >
+                      {validating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Credits */}
+              {isLoggedIn && creditsBalance > 0 && (
+                <label className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-lg px-3 py-2 cursor-pointer text-sm">
+                  <span className="flex items-center gap-2">
+                    <Wallet className="w-4 h-4 text-primary" />
+                    <span>Apply £{(creditsBalance / 100).toFixed(2)} credit</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={useCredits}
+                    onChange={e => setUseCredits(e.target.checked)}
+                    className="h-4 w-4"
+                    data-testid="checkbox-use-credits"
+                  />
+                </label>
+              )}
+
+              {/* Totals */}
               <div className="border-t pt-4 space-y-2 text-sm">
                 <div className="flex justify-between"><span>Subtotal</span><span>{formatGbp(itemsTotal)}</span></div>
-                <div className="flex justify-between"><span>Delivery</span><span>{shipping === 0 ? "Free" : formatGbp(shipping)}</span></div>
-                <div className="flex justify-between font-bold text-lg pt-2"><span>Total</span><span className="text-[#168A7B]">{formatGbp(total)}</span></div>
+                {totals.promoDiscount > 0 && (
+                  <div className="flex justify-between text-emerald-700"><span>Promo ({promo?.code})</span><span>−{formatGbp(totals.promoDiscount)}</span></div>
+                )}
+                {totals.credits > 0 && (
+                  <div className="flex justify-between text-primary"><span>Credit applied</span><span>−{formatGbp(totals.credits)}</span></div>
+                )}
+                <div className="flex justify-between"><span>Delivery</span><span>{totals.shipping === 0 ? "Free" : formatGbp(totals.shipping)}</span></div>
+                <div className="flex justify-between font-bold text-lg pt-2"><span>Total</span><span className="text-[#168A7B]">{formatGbp(totals.total)}</span></div>
               </div>
+
               <Button type="submit" disabled={submitting || stripeEnabled === null} className="w-full rounded-full bg-[#168A7B] hover:bg-[#0E5A52] h-12" data-testid="btn-place-order">
                 {submitting
                   ? (stripeEnabled ? "Redirecting to Stripe…" : "Placing order…")

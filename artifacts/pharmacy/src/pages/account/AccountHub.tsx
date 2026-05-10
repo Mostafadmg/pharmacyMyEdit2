@@ -3,14 +3,14 @@ import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import {
   Package, CreditCard, Repeat, Gift, LifeBuoy, LogOut, ChevronRight,
-  Stethoscope, Bell, ChevronLeft,
+  Stethoscope, Bell, ChevronLeft, Pill, Settings, ShieldCheck,
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api";
 
-type Counts = { ordersTotal: number; ordersOpen: number; consultsOpen: number; unreadMessages: number };
+type Counts = { ordersTotal: number; ordersOpen: number; consultsOpen: number; unreadMessages: number; unreadNotifications: number; rxCount: number; creditsPence: number };
 
 function AccountCard({
   href, icon: Icon, title, description, badge, image, "data-testid": testId,
@@ -57,7 +57,7 @@ export default function AccountHub() {
   const [, navigate] = useLocation();
   const [name, setName] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
-  const [counts, setCounts] = useState<Counts>({ ordersTotal: 0, ordersOpen: 0, consultsOpen: 0, unreadMessages: 0 });
+  const [counts, setCounts] = useState<Counts>({ ordersTotal: 0, ordersOpen: 0, consultsOpen: 0, unreadMessages: 0, unreadNotifications: 0, rxCount: 0, creditsPence: 0 });
 
   useEffect(() => {
     const token = localStorage.getItem("patient_token");
@@ -72,14 +72,23 @@ export default function AccountHub() {
     Promise.allSettled([
       apiFetch<{ orders: Array<{ status: string }> }>("/api/orders", { auth: "patient" }),
       apiFetch<{ consultations: Array<{ status: string }> }>("/api/patient/consultations", { auth: "patient" }).catch(() => ({ consultations: [] })),
-    ]).then(([oRes, cRes]) => {
+      apiFetch<{ unreadCount: number }>("/api/notifications?unreadOnly=true&limit=1", { auth: "patient" }).catch(() => ({ unreadCount: 0 })),
+      apiFetch<{ prescriptions: Array<unknown> }>("/api/patient/prescriptions", { auth: "patient" }).catch(() => ({ prescriptions: [] })),
+      apiFetch<{ balancePence: number }>("/api/patient/referral", { auth: "patient" }).catch(() => ({ balancePence: 0 })),
+    ]).then(([oRes, cRes, nRes, rxRes, refRes]) => {
       const orders = oRes.status === "fulfilled" ? oRes.value.orders : [];
       const consults = cRes.status === "fulfilled" ? (cRes.value as { consultations: Array<{ status: string }> }).consultations : [];
+      const unread = nRes.status === "fulfilled" ? (nRes.value as { unreadCount: number }).unreadCount : 0;
+      const rx = rxRes.status === "fulfilled" ? (rxRes.value as { prescriptions: Array<unknown> }).prescriptions.length : 0;
+      const credits = refRes.status === "fulfilled" ? (refRes.value as { balancePence: number }).balancePence : 0;
       setCounts({
         ordersTotal: orders.length,
         ordersOpen: orders.filter(o => !["delivered", "cancelled"].includes(o.status)).length,
         consultsOpen: consults.filter(c => ["pending", "in_review"].includes(c.status)).length,
         unreadMessages: 0,
+        unreadNotifications: unread,
+        rxCount: rx,
+        creditsPence: credits,
       });
     });
   }, [navigate]);
@@ -162,11 +171,42 @@ export default function AccountHub() {
             data-testid="card-details"
           />
           <AccountCard
+            href="/account/notifications"
+            icon={Bell}
+            title="Notifications"
+            description="Replies from your prescriber, dispatch updates and account alerts"
+            badge={counts.unreadNotifications > 0 ? `${counts.unreadNotifications} unread` : undefined}
+            data-testid="card-notifications"
+          />
+          <AccountCard
+            href="/account/prescriptions"
+            icon={Pill}
+            title="My prescriptions"
+            description="Download signed PDFs and request repeats from your prescriber"
+            badge={counts.rxCount > 0 ? `${counts.rxCount}` : undefined}
+            data-testid="card-prescriptions"
+          />
+          <AccountCard
             href="/account/refer"
             icon={Gift}
             title="£25 off for you and your friends"
             description="Refer a friend and you'll both get £25 credit"
+            badge={counts.creditsPence > 0 ? `£${(counts.creditsPence / 100).toFixed(2)} balance` : undefined}
             data-testid="card-refer"
+          />
+          <AccountCard
+            href="/account/preferences"
+            icon={Settings}
+            title="Communication preferences"
+            description="Choose which emails, SMS and offers you receive"
+            data-testid="card-preferences"
+          />
+          <AccountCard
+            href="/account/data-and-privacy"
+            icon={ShieldCheck}
+            title="Data & privacy"
+            description="Download your data or close your account (UK GDPR)"
+            data-testid="card-data-privacy"
           />
           <AccountCard
             href="/account/customer-service"

@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { Link, useRoute } from "wouter";
+import { Link, useLocation, useRoute } from "wouter";
 import { motion } from "framer-motion";
-import { CheckCircle2, Package, Truck, Clock, Home, ShoppingBag, MapPin } from "lucide-react";
+import { CheckCircle2, Package, Truck, Clock, Home, ShoppingBag, MapPin, UserPlus, Lock, Loader2, Tag, Wallet } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
@@ -23,6 +25,9 @@ type Order = {
   itemsTotalGbp: number;
   shippingGbp: number;
   totalGbp: number;
+  promoCode: string | null;
+  promoDiscountPence: number;
+  creditsAppliedPence: number;
   status: string;
   createdAt: string;
 };
@@ -43,8 +48,44 @@ const TRACKING_STAGES = [
 
 export default function OrderConfirmation() {
   const [, params] = useRoute<{ id: string }>("/order-confirmation/:id");
+  const [, navigate] = useLocation();
   const [data, setData] = useState<{ order: Order; items: Item[]; delivery: Delivery | null } | null>(null);
   const [loading, setLoading] = useState(true);
+  const isLoggedIn = typeof window !== "undefined" && !!localStorage.getItem("patient_token");
+  const [upgradePassword, setUpgradePassword] = useState("");
+  const [upgrading, setUpgrading] = useState(false);
+  const [upgraded, setUpgraded] = useState(false);
+
+  async function handleUpgrade(e: React.FormEvent) {
+    e.preventDefault();
+    if (!data) return;
+    if (upgradePassword.length < 8) { toast.error("Password must be at least 8 characters."); return; }
+    setUpgrading(true);
+    try {
+      const res = await apiFetch<{ token: string; patientId: string; name: string; email: string }>(
+        "/api/auth/patient-upgrade-guest",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            orderId: data.order.id,
+            orderKey: data.order.orderNumber,
+            password: upgradePassword,
+            name: data.order.customerName,
+          }),
+        },
+      );
+      localStorage.setItem("patient_token", res.token);
+      localStorage.setItem("patient_id", res.patientId);
+      localStorage.setItem("patient_name", res.name);
+      localStorage.setItem("patient_email", res.email);
+      setUpgraded(true);
+      toast.success("Account created — you're signed in.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't create your account.");
+    } finally {
+      setUpgrading(false);
+    }
+  }
 
   useEffect(() => {
     if (!params?.id) return;
@@ -214,6 +255,18 @@ export default function OrderConfirmation() {
             </div>
             <div className="border-t pt-4 space-y-1.5 text-sm">
               <div className="flex justify-between"><span>Subtotal</span><span>{formatGbp(order.itemsTotalGbp)}</span></div>
+              {order.promoDiscountPence > 0 && (
+                <div className="flex justify-between text-emerald-700">
+                  <span className="inline-flex items-center gap-1"><Tag className="w-3.5 h-3.5" /> Promo {order.promoCode}</span>
+                  <span>−{formatGbp(order.promoDiscountPence)}</span>
+                </div>
+              )}
+              {order.creditsAppliedPence > 0 && (
+                <div className="flex justify-between text-[#168A7B]">
+                  <span className="inline-flex items-center gap-1"><Wallet className="w-3.5 h-3.5" /> Credit applied</span>
+                  <span>−{formatGbp(order.creditsAppliedPence)}</span>
+                </div>
+              )}
               <div className="flex justify-between"><span>Delivery</span><span>{order.shippingGbp === 0 ? "Free" : formatGbp(order.shippingGbp)}</span></div>
               <div className="flex justify-between font-bold text-lg pt-2"><span>Total</span><span className="text-[#168A7B]">{formatGbp(order.totalGbp)}</span></div>
             </div>
@@ -234,8 +287,72 @@ export default function OrderConfirmation() {
           </CardContent>
         </Card>
 
+        {/* Guest → account upsell. Hidden once signed in or after upgrade. */}
+        {!isLoggedIn && !upgraded && (
+          <Card className="border-0 bg-gradient-to-br from-[#168A7B]/5 to-[#168A7B]/10 border-2 border-[#168A7B]/20 rounded-2xl">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full bg-[#168A7B]/15 flex items-center justify-center flex-shrink-0">
+                  <UserPlus className="w-6 h-6 text-[#168A7B]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="font-bold text-lg text-secondary">Save your details for next time</h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Set a password to track this order, message your prescriber, and reorder treatments faster. We'll attach this order to your new account.
+                  </p>
+                  <form onSubmit={handleUpgrade} className="mt-4 flex flex-col sm:flex-row gap-2 max-w-lg">
+                    <div className="flex-1">
+                      <Label className="sr-only">Choose a password</Label>
+                      <Input
+                        type="password"
+                        value={upgradePassword}
+                        onChange={e => setUpgradePassword(e.target.value)}
+                        placeholder="Choose a password (8+ characters)"
+                        autoComplete="new-password"
+                        minLength={8}
+                        required
+                        data-testid="input-upgrade-password"
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={upgrading}
+                      className="rounded-full bg-[#168A7B] hover:bg-[#0E5A52] whitespace-nowrap"
+                      data-testid="button-create-account"
+                    >
+                      {upgrading
+                        ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating…</>
+                        : <><Lock className="w-4 h-4 mr-2" />Create account</>}
+                    </Button>
+                  </form>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    By creating an account, you agree to our <Link href="/legal/terms" className="underline">terms</Link> and <Link href="/legal/privacy" className="underline">privacy policy</Link>.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {upgraded && (
+          <Card className="border-0 bg-emerald-50 border-2 border-emerald-200 rounded-2xl">
+            <CardContent className="p-5 flex items-center gap-3">
+              <CheckCircle2 className="w-6 h-6 text-emerald-700 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="font-bold text-emerald-900">Welcome to PharmaCare!</p>
+                <p className="text-sm text-emerald-800">Your account is ready. Find this order anytime in Your Account.</p>
+              </div>
+              <Button onClick={() => navigate("/account")} className="rounded-full bg-emerald-700 hover:bg-emerald-800">Go to account</Button>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="flex gap-3 flex-wrap">
-          <Button asChild variant="outline" className="rounded-full"><Link href="/my-orders">View all my orders</Link></Button>
+          {isLoggedIn ? (
+            <Button asChild variant="outline" className="rounded-full"><Link href="/my-orders">View all my orders</Link></Button>
+          ) : (
+            <Button asChild variant="outline" className="rounded-full"><Link href="/shop"><Home className="w-4 h-4 mr-2" /> Back to home</Link></Button>
+          )}
           <Button asChild className="rounded-full bg-[#168A7B] hover:bg-[#0E5A52]"><Link href="/shop"><ShoppingBag className="w-4 h-4 mr-2" /> Continue shopping</Link></Button>
         </div>
       </div>
