@@ -13,11 +13,9 @@ export const FONT = {
   bodyBold: "PlusJakartaSans_700Bold",
   display: "PlusJakartaSans_700Bold",
   displayExtra: "PlusJakartaSans_800ExtraBold",
-  serifItalic: Platform.select({
-    ios: "Georgia-Italic",
-    android: "serif",
-    default: "Georgia, serif",
-  }) as string,
+  serifItalic: "Fraunces_400Regular_Italic",
+  serif: "Fraunces_600SemiBold",
+  serifBold: "Fraunces_700Bold",
 };
 
 export function useBrandTopPad() {

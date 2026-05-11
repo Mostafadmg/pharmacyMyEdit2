@@ -74,7 +74,7 @@ type Demo = {
   riskCategory?: "low" | "medium" | "high";
   pharmacistNote?: string;
   prescription?: string;
-  prescriptionItems?: Array<{ name: string; dose: string; quantity: string; instructions: string }>;
+  prescriptionItems?: Array<{ name: string; strength: string; form: string; quantity: string; sig: string; duration: string; notes?: string }>;
   reviewedBy?: string;
   clinicalDecisionRationale?: string;
   referralInfo?: string;
@@ -353,7 +353,7 @@ const DEMOS: Demo[] = [
     pharmacistNote: "Classic uncomplicated lower UTI. No red flags. Safe to prescribe nitrofurantoin 100mg MR BD x 3 days per NICE NG109.",
     prescription: "Nitrofurantoin 100mg MR — one capsule twice daily for 3 days",
     prescriptionItems: [
-      { name: "Nitrofurantoin 100mg MR capsules", dose: "100mg", quantity: "6 capsules", instructions: "Take ONE capsule TWICE a day for 3 days, with food" },
+      { name: "Nitrofurantoin", strength: "100mg MR", form: "Capsules", quantity: "6 capsules", sig: "Take ONE capsule TWICE a day, with food", duration: "3 days" },
     ],
     reviewedBy: "Pharmacist Sarah Wells",
     clinicalDecisionRationale: "Uncomplicated lower UTI in a non-pregnant adult female; no red flags; eGFR assumed normal at age 31 with no history of renal impairment.",
@@ -385,7 +385,7 @@ const DEMOS: Demo[] = [
     pharmacistNote: "Healthy 47y male, BP normal, no contraindications. Starting low dose sildenafil.",
     prescription: "Sildenafil 50mg — take one tablet 30–60 min before activity",
     prescriptionItems: [
-      { name: "Sildenafil 50mg tablets", dose: "50mg", quantity: "8 tablets", instructions: "Take ONE tablet 30 to 60 minutes before sexual activity. Maximum one dose per 24 hours." },
+      { name: "Sildenafil", strength: "50mg", form: "Tablets", quantity: "8 tablets", sig: "Take ONE tablet 30 to 60 minutes before sexual activity. Maximum one dose per 24 hours.", duration: "As required" },
     ],
     reviewedBy: "Pharmacist Ahmed Khan",
     clinicalDecisionRationale: "No cardiovascular risk factors, BP within normal range, no nitrate use.",
@@ -422,7 +422,7 @@ const DEMOS: Demo[] = [
     pharmacistNote: "Long-standing seasonal allergic rhinitis, well controlled with loratadine.",
     prescription: "Loratadine 10mg — one tablet daily as needed during pollen season",
     prescriptionItems: [
-      { name: "Loratadine 10mg tablets", dose: "10mg", quantity: "84 tablets", instructions: "Take ONE tablet daily when symptoms are present" },
+      { name: "Loratadine", strength: "10mg", form: "Tablets", quantity: "84 tablets", sig: "Take ONE tablet daily when symptoms are present", duration: "Up to 12 weeks" },
     ],
     reviewedBy: "Pharmacist Sarah Wells",
     actions: [{ action: "approve", actor: "Pharmacist Sarah Wells" }],
@@ -454,7 +454,7 @@ const DEMOS: Demo[] = [
     pharmacistNote: "Suitable for Malarone — high-risk falciparum area, prior tolerance, no contraindications.",
     prescription: "Atovaquone/Proguanil 250/100mg (Malarone) — one tablet daily with food",
     prescriptionItems: [
-      { name: "Malarone 250/100mg tablets", dose: "250/100mg", quantity: "31 tablets", instructions: "Take ONE tablet daily with food, starting 1–2 days before travel and continuing for 7 days after leaving the malaria area." },
+      { name: "Atovaquone / Proguanil (Malarone)", strength: "250mg / 100mg", form: "Tablets", quantity: "31 tablets", sig: "Take ONE tablet daily with food, starting 1–2 days before travel and continuing for 7 days after leaving the malaria area.", duration: "Travel + 7 days" },
     ],
     reviewedBy: "Pharmacist Ahmed Khan",
     actions: [{ action: "approve", actor: "Pharmacist Ahmed Khan" }],
@@ -559,7 +559,7 @@ const DEMOS: Demo[] = [
     pharmacistNote: "Confirmed live lice in child age 7. Dimeticone 4% lotion appropriate first-line.",
     prescription: "Dimeticone 4% lotion — apply to dry hair, leave 8 hours, repeat after 7 days",
     prescriptionItems: [
-      { name: "Hedrin 4% Lotion (dimeticone)", dose: "4%", quantity: "150ml bottle", instructions: "Apply enough to coat dry hair and scalp. Leave on for at least 8 hours (overnight is fine). Wash out and comb. Repeat after 7 days to catch newly hatched lice." },
+      { name: "Dimeticone (Hedrin)", strength: "4%", form: "Lotion", quantity: "150ml bottle", sig: "Apply enough to coat dry hair and scalp. Leave on for at least 8 hours (overnight is fine). Wash out and comb. Repeat after 7 days to catch newly hatched lice.", duration: "Two applications, 7 days apart" },
     ],
     reviewedBy: "Pharmacist Sarah Wells",
     actions: [{ action: "approve", actor: "Pharmacist Sarah Wells" }],

@@ -12,6 +12,11 @@ import {
   PlusJakartaSans_700Bold,
   PlusJakartaSans_800ExtraBold,
 } from "@expo-google-fonts/plus-jakarta-sans";
+import {
+  Fraunces_400Regular_Italic,
+  Fraunces_600SemiBold,
+  Fraunces_700Bold,
+} from "@expo-google-fonts/fraunces";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter } from "expo-router";
 import * as Notifications from "expo-notifications";
@@ -22,6 +27,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider, KeyboardToolbar } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import brandColors from "@/constants/colors";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider, getCurrentTokenAsync, useAuth } from "@/context/AuthContext";
 import { configureNotificationHandler } from "@/lib/push-notifications";
@@ -80,37 +86,19 @@ function RootLayoutNav() {
     );
   }
 
+  // Inline brand-aligned header style — these screens render before
+  // tab context is mounted, so we read directly from the design-token
+  // module instead of useColors() to keep them in lockstep with the
+  // rest of the app and the patient web theme.
+  const headerStyle = { backgroundColor: brandColors.light.card };
+  const headerTintColor = brandColors.light.secondary;
+  const headerTitleStyle = { fontFamily: "PlusJakartaSans_700Bold", color: brandColors.light.secondary };
   return (
-    <Stack screenOptions={{ headerBackTitle: "Back" }}>
+    <Stack screenOptions={{ headerBackTitle: "Back", headerStyle, headerTintColor, headerTitleStyle }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="consultation/[id]"
-        options={{
-          title: "Consultation",
-          headerStyle: { backgroundColor: "#FFFFFF" },
-          headerTintColor: "#0E2354",
-          headerTitleStyle: { fontFamily: "PlusJakartaSans_700Bold" },
-        }}
-      />
-      <Stack.Screen
-        name="patient/[email]"
-        options={{
-          title: "Patient Profile",
-          headerStyle: { backgroundColor: "#FFFFFF" },
-          headerTintColor: "#0E2354",
-          headerTitleStyle: { fontFamily: "PlusJakartaSans_700Bold" },
-        }}
-      />
-      <Stack.Screen
-        name="messages/[id]"
-        options={{
-          title: "Messages",
-          headerStyle: { backgroundColor: "#FFFFFF" },
-          headerTintColor: "#0E2354",
-          headerTitleStyle: { fontFamily: "PlusJakartaSans_700Bold" },
-          headerShown: false,
-        }}
-      />
+      <Stack.Screen name="consultation/[id]" options={{ title: "Consultation" }} />
+      <Stack.Screen name="patient/[email]" options={{ title: "Patient Profile" }} />
+      <Stack.Screen name="messages/[id]" options={{ title: "Messages", headerShown: false }} />
     </Stack>
   );
 }
@@ -126,6 +114,9 @@ export default function RootLayout() {
     PlusJakartaSans_600SemiBold,
     PlusJakartaSans_700Bold,
     PlusJakartaSans_800ExtraBold,
+    Fraunces_400Regular_Italic,
+    Fraunces_600SemiBold,
+    Fraunces_700Bold,
   });
 
   useEffect(() => {

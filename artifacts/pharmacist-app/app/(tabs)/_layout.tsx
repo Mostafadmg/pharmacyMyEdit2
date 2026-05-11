@@ -120,9 +120,9 @@ function ClassicTabLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.mutedForeground,
         headerShown: true,
-        headerStyle: { backgroundColor: "#FFFFFF" },
-        headerTintColor: "#0E2354",
-        headerTitleStyle: { fontFamily: "PlusJakartaSans_700Bold", fontSize: 18, color: "#0E2354" },
+        headerStyle: { backgroundColor: colors.card },
+        headerTintColor: colors.secondary,
+        headerTitleStyle: { fontFamily: "PlusJakartaSans_700Bold", fontSize: 18, color: colors.secondary },
         tabBarLabelStyle: { fontSize: 10, fontFamily: "PlusJakartaSans_600SemiBold" },
         tabBarStyle: {
           position: "absolute",
