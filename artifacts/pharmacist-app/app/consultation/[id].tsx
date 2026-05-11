@@ -331,7 +331,7 @@ export default function ConsultationDetail() {
       </View>
 
       {/* Patient hero — gradient */}
-      <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+      <View style={{ paddingHorizontal: 16, paddingTop: 18 }}>
         <GradientHero
           variant={consultation.hasRedFlag ? "danger" : "brand"}
           style={{ padding: 18 }}
@@ -1537,24 +1537,23 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingHorizontal: 14,
+      paddingTop: 10,
+      paddingBottom: 16,
       backgroundColor: colors.card,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
     },
     backButton: {
       flexDirection: "row",
       alignItems: "center",
       gap: 2,
       paddingHorizontal: 6,
-      paddingVertical: 6,
+      paddingVertical: 8,
       borderRadius: 10,
     },
-    backButtonText: { fontSize: 15, fontWeight: "600" },
+    backButtonText: { fontSize: 17, fontWeight: "700" },
     backBarTitle: {
-      fontSize: 13,
-      fontWeight: "600",
+      fontSize: 17,
+      fontWeight: "700",
       color: colors.foreground,
       flex: 1,
       textAlign: "center",
