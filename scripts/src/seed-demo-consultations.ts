@@ -26,6 +26,8 @@ async function wipe() {
         ilike(consultationsTable.patientEmail, "e2e-test%"),
         ilike(consultationsTable.patientEmail, "alice+%"),
         ilike(consultationsTable.patientEmail, "jane.test%"),
+        // Always sweep prior demo-* seeds so re-runs pick up new shapes
+        ilike(consultationsTable.id, "demo-%"),
       ),
     );
 

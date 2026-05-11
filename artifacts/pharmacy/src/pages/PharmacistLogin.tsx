@@ -38,12 +38,14 @@ export default function PharmacistLogin() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-teal-50/30 to-slate-100 flex items-center justify-center px-4 py-12">
-      <Link href="/">
-        <a className="fixed top-6 left-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur border border-slate-200 shadow-sm text-slate-700 hover:text-teal-700 hover:border-teal-300 hover:shadow-md transition-all text-sm font-semibold z-10" data-testid="link-back-home">
-          <ArrowLeft className="w-4 h-4" />
-          <Home className="w-4 h-4" />
-          <span>Back to PharmaCare</span>
-        </a>
+      <Link
+        href="/"
+        className="fixed top-6 left-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur border border-slate-200 shadow-sm text-slate-700 hover:text-teal-700 hover:border-teal-300 hover:shadow-md transition-all text-sm font-semibold z-10"
+        data-testid="link-back-home"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <Home className="w-4 h-4" />
+        <span>Back to PharmaCare</span>
       </Link>
       <div className="w-full max-w-md">
         <div className="flex items-center gap-4 mb-10">

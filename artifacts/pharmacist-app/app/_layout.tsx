@@ -46,6 +46,12 @@ function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const handledInitial = useRef(false);
+  // IMPORTANT: call all hooks unconditionally (rules of hooks). Previously
+  // useColorScheme was invoked AFTER the `if (!isAuthenticated) return` early
+  // exit, so the hook count changed between renders when auth transitioned
+  // from `false` → `true`, crashing the root layout with
+  // "Rendered more hooks than during the previous render".
+  const scheme = useColorScheme();
 
   // Deep-link handling for patient-message push notifications.
   useEffect(() => {
@@ -88,8 +94,8 @@ function RootLayoutNav() {
 
   // Theme-aware stack header — picks the same palette useColors()
   // would resolve in tab screens, so the root stack respects dark
-  // mode just like the rest of the app.
-  const scheme = useColorScheme();
+  // mode just like the rest of the app. (`scheme` is hoisted above
+  // any early returns to keep hook order stable.)
   const palette = scheme === "dark" ? brandColors.dark : brandColors.light;
   const headerStyle = { backgroundColor: palette.card };
   const headerTintColor = palette.secondary;
