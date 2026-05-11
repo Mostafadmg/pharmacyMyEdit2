@@ -298,7 +298,9 @@ export default function ConsultationDetail() {
   }
 
   const isAlreadyReviewed = consultation.status !== "pending" && consultation.status !== "red_flag";
-  const answers = consultation.answers as Record<string, string>;
+  const answers = (consultation.answers && typeof consultation.answers === "object" && !Array.isArray(consultation.answers)
+    ? consultation.answers
+    : {}) as Record<string, unknown>;
   const createdDate = new Date(consultation.createdAt);
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
@@ -647,13 +649,15 @@ export default function ConsultationDetail() {
             );
           })()}
 
-          <CollapsibleSection title="Questionnaire Answers" icon="list" defaultOpen={false} colors={colors}>
-            {Object.entries(answers).map(([key, val]) => (
-              <View key={key} style={styles.qaCard}>
-                <Text style={styles.qaQuestion}>{key.replace(/([A-Z])/g, " $1").replace(/_/g, " ").replace(/^\s/, "")}</Text>
-                <Text style={styles.qaAnswer}>{val || "No answer provided"}</Text>
-              </View>
+          <CollapsibleSection title={`Questionnaire (${Object.keys(answers).length})`} icon="list" defaultOpen={true} colors={colors}>
+            {Object.entries(answers).map(([key, val], i) => (
+              <QuestionAnswerRow key={key} index={i + 1} questionKey={key} value={val} colors={colors} />
             ))}
+            {Object.keys(answers).length === 0 && (
+              <View style={[styles.qaCard, { alignItems: "center" }]}>
+                <Text style={{ fontSize: 13, color: colors.mutedForeground }}>No questionnaire answers were submitted.</Text>
+              </View>
+            )}
           </CollapsibleSection>
 
           {!isAlreadyReviewed && (
@@ -1335,6 +1339,170 @@ function InfoRow({ icon, label, value, colors }: { icon: string; label: string; 
     </View>
   );
 }
+
+/**
+ * Humanise a question key like "bowel_bladder" or "previousTreatments" into
+ * "Bowel & Bladder" / "Previous Treatments". Falls back gracefully.
+ */
+function humaniseKey(k: string): string {
+  const SPECIAL: Record<string, string> = {
+    bowel_bladder: "Bowel & Bladder",
+    loin_pain: "Loin pain",
+    hormonal_link: "Possible hormonal link",
+    previous_treatments: "Previous treatments",
+    previous_episodes: "Previous episodes",
+    catheterised: "Currently catheterised",
+    self_medication: "Tried self-medication",
+    duration: "How long have you had it?",
+    severity: "Severity",
+    location: "Where on the body?",
+    radiation: "Pain radiating elsewhere?",
+    symptoms: "Symptoms reported",
+    fever: "Fever present?",
+    pregnant: "Currently pregnant?",
+    breastfeeding: "Breastfeeding?",
+    smoker: "Currently smoke?",
+    alcohol: "Alcohol use",
+  };
+  if (SPECIAL[k]) return SPECIAL[k];
+  return k
+    .replace(/_/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/^./, (c) => c.toUpperCase());
+}
+
+function QuestionAnswerRow({
+  index, questionKey, value, colors,
+}: {
+  index: number;
+  questionKey: string;
+  value: unknown;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const isBool = typeof value === "boolean";
+  const isArr = Array.isArray(value);
+  const isNum = typeof value === "number";
+  const isObj = !isArr && value !== null && typeof value === "object";
+  const isStr = typeof value === "string";
+  const empty = value === null || value === undefined || value === "" || (isArr && (value as unknown[]).length === 0);
+
+  const isUrgent = isBool && value === true && /fever|pain|emergency|red|severe|allergy|allergic|breathless|chest|bleeding|pregnant/i.test(questionKey);
+
+  return (
+    <View
+      style={[
+        qaStyles.qaCardRich,
+        { backgroundColor: colors.card, borderColor: colors.border },
+      ]}
+    >
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <View style={[qaStyles.qaIndex, { backgroundColor: colors.primary + "1A" }]}>
+          <Text style={[qaStyles.qaIndexText, { color: colors.primary }]}>{index}</Text>
+        </View>
+        <View style={{ flex: 1, gap: 6 }}>
+          <Text style={[qaStyles.qaQuestionRich, { color: colors.secondary }]}>
+            {humaniseKey(questionKey)}
+          </Text>
+
+          {empty ? (
+            <Text style={{ fontSize: 13, fontStyle: "italic", color: colors.mutedForeground }}>
+              No answer provided
+            </Text>
+          ) : isBool ? (
+            <View style={{ flexDirection: "row" }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: 999,
+                  backgroundColor: value
+                    ? (isUrgent ? colors.urgent + "1F" : colors.success + "1F")
+                    : colors.mutedForeground + "14",
+                }}
+              >
+                <Feather
+                  name={value ? (isUrgent ? "alert-triangle" : "check") : "x"}
+                  size={12}
+                  color={value ? (isUrgent ? colors.urgent : colors.success) : colors.mutedForeground}
+                />
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontFamily: "PlusJakartaSans_700Bold",
+                    color: value ? (isUrgent ? colors.urgent : colors.success) : colors.mutedForeground,
+                  }}
+                >
+                  {value ? "YES" : "NO"}
+                </Text>
+              </View>
+            </View>
+          ) : isArr ? (
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+              {(value as unknown[]).map((v, i) => (
+                <View
+                  key={i}
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 5,
+                    borderRadius: 999,
+                    backgroundColor: colors.primary + "14",
+                    borderWidth: 1,
+                    borderColor: colors.primary + "33",
+                  }}
+                >
+                  <Text style={{ fontSize: 12, color: colors.primary, fontFamily: "PlusJakartaSans_600SemiBold" }}>
+                    {String(v)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : isNum ? (
+            <Text style={{ fontSize: 16, fontFamily: "PlusJakartaSans_700Bold", color: colors.foreground }}>
+              {String(value)}
+            </Text>
+          ) : isObj ? (
+            <Text style={{ fontSize: 13, color: colors.foreground, fontFamily: "PlusJakartaSans_500Medium" }}>
+              {JSON.stringify(value, null, 2)}
+            </Text>
+          ) : (
+            <Text style={{ fontSize: 15, color: colors.foreground, lineHeight: 21 }}>
+              {isStr ? (value as string) : String(value)}
+            </Text>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const qaStyles = StyleSheet.create({
+  qaCardRich: {
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 8,
+    borderWidth: 1,
+  },
+  qaIndex: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+  },
+  qaIndexText: {
+    fontSize: 12,
+    fontFamily: "PlusJakartaSans_700Bold",
+  },
+  qaQuestionRich: {
+    fontSize: 13.5,
+    fontFamily: "PlusJakartaSans_700Bold",
+    lineHeight: 19,
+  },
+});
 
 function ActionButton({ icon, label, color, onPress, disabled, outline }: {
   icon: string; label: string; color: string; onPress: () => void; disabled?: boolean; outline?: boolean;

@@ -22,7 +22,7 @@ import { Stack, useRouter } from "expo-router";
 import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useRef } from "react";
-import { Text as RNText, TextInput as RNTextInput, useColorScheme } from "react-native";
+import { Text as RNText, TextInput as RNTextInput } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider, KeyboardToolbar } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -30,6 +30,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import brandColors from "@/constants/colors";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider, getCurrentTokenAsync, useAuth } from "@/context/AuthContext";
+import { ThemeProvider, useResolvedScheme } from "@/context/ThemeContext";
 import { configureNotificationHandler } from "@/lib/push-notifications";
 import { setBaseUrl, setAuthTokenGetter } from "@workspace/api-client-react";
 
@@ -51,7 +52,7 @@ function RootLayoutNav() {
   // exit, so the hook count changed between renders when auth transitioned
   // from `false` → `true`, crashing the root layout with
   // "Rendered more hooks than during the previous render".
-  const scheme = useColorScheme();
+  const scheme = useResolvedScheme();
 
   // Deep-link handling for patient-message push notifications.
   useEffect(() => {
@@ -155,10 +156,12 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView>
             <KeyboardProvider>
-              <AuthProvider>
-                <RootLayoutNav />
-                <KeyboardToolbar />
-              </AuthProvider>
+              <ThemeProvider>
+                <AuthProvider>
+                  <RootLayoutNav />
+                  <KeyboardToolbar />
+                </AuthProvider>
+              </ThemeProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>

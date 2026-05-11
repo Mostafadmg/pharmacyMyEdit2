@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useGetDashboardStats, useListConsultations } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { useTheme } from "@/context/ThemeContext";
 
 export default function ProfileScreen() {
   const colors = useColors();
@@ -28,7 +29,7 @@ export default function ProfileScreen() {
   const [urgentAlerts, setUrgentAlerts] = useState(true);
   const [orderUpdates, setOrderUpdates] = useState(true);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
-  const [themeOverride, setThemeOverride] = useState<"system" | "light" | "dark">("system");
+  const { mode: themeOverride, setMode: setThemeOverride } = useTheme();
 
   const nativeTabs = Platform.OS !== "web" && isLiquidGlassAvailable();
   const topPad = Platform.OS === "web" ? 67 : nativeTabs ? insets.top + 8 : 0;

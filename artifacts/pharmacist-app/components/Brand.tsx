@@ -1,11 +1,12 @@
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { Platform, StyleSheet, Text, useColorScheme, View, ViewStyle } from "react-native";
+import { Platform, StyleSheet, Text, View, ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 
 import { useColors } from "@/hooks/useColors";
+import { useResolvedScheme } from "@/context/ThemeContext";
 
 export const FONT = {
   body: "PlusJakartaSans_400Regular",
@@ -33,7 +34,7 @@ export function useBrandTopPad() {
  * on a navy background instead of bright pastel patches.
  */
 export function useTint() {
-  const scheme = useColorScheme();
+  const scheme = useResolvedScheme();
   const isDark = scheme === "dark";
   return (fg: string, lightBg: string): { fg: string; bg: string; border: string } => {
     if (!isDark) return { fg, bg: lightBg, border: fg + "26" };
@@ -279,7 +280,7 @@ interface StatTileProps {
 
 export function StatTile({ icon, value, label, tint, tintBg }: StatTileProps) {
   const colors = useColors();
-  const scheme = useColorScheme();
+  const scheme = useResolvedScheme();
   const isDark = scheme === "dark";
   const chipBg = isDark ? tint + "26" : tintBg;
   return (
