@@ -22,7 +22,7 @@ import { Stack, useRouter } from "expo-router";
 import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useRef } from "react";
-import { Text as RNText, TextInput as RNTextInput } from "react-native";
+import { Text as RNText, TextInput as RNTextInput, useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider, KeyboardToolbar } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -86,13 +86,14 @@ function RootLayoutNav() {
     );
   }
 
-  // Inline brand-aligned header style — these screens render before
-  // tab context is mounted, so we read directly from the design-token
-  // module instead of useColors() to keep them in lockstep with the
-  // rest of the app and the patient web theme.
-  const headerStyle = { backgroundColor: brandColors.light.card };
-  const headerTintColor = brandColors.light.secondary;
-  const headerTitleStyle = { fontFamily: "PlusJakartaSans_700Bold", color: brandColors.light.secondary };
+  // Theme-aware stack header — picks the same palette useColors()
+  // would resolve in tab screens, so the root stack respects dark
+  // mode just like the rest of the app.
+  const scheme = useColorScheme();
+  const palette = scheme === "dark" ? brandColors.dark : brandColors.light;
+  const headerStyle = { backgroundColor: palette.card };
+  const headerTintColor = palette.secondary;
+  const headerTitleStyle = { fontFamily: "PlusJakartaSans_700Bold", color: palette.secondary };
   return (
     <Stack screenOptions={{ headerBackTitle: "Back", headerStyle, headerTintColor, headerTitleStyle }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
