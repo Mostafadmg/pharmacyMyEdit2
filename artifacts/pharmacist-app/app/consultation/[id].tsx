@@ -26,6 +26,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { getCurrentToken, getCurrentTokenAsync } from "@/context/AuthContext";
 import PrescriptionBuilder from "@/components/PrescriptionBuilder";
 import { type PrescriptionItemDraft, formatPrescriptionItems } from "@/data/medications";
+import { GradientHero, FONT } from "@/components/Brand";
 
 function authHeaders(extra?: Record<string, string>): Record<string, string> {
   const currentToken = getCurrentToken();
@@ -327,27 +328,57 @@ export default function ConsultationDetail() {
         <View style={{ width: 60 }} />
       </View>
 
-      {/* Patient header */}
-      <View style={styles.patientHeader}>
-        <View style={styles.avatarLarge}>
-          <Text style={styles.avatarLargeText}>
-            {consultation.patientName.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}
-          </Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.patientHeaderName}>{consultation.patientName}</Text>
-          <Text style={styles.patientHeaderEmail}>{consultation.patientEmail}</Text>
-          <Text style={styles.patientHeaderMeta}>{consultation.patientAge} yrs · {consultation.patientSex}</Text>
-        </View>
-        <View style={[styles.statusChip, { backgroundColor: (STATUS_COLORS[consultation.status] ?? "#888") + "22" }]}>
-          <Text style={[styles.statusChipText, { color: STATUS_COLORS[consultation.status] ?? "#888" }]}>
-            {STATUS_LABELS[consultation.status] ?? consultation.status}
-          </Text>
-        </View>
+      {/* Patient hero — gradient */}
+      <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+        <GradientHero
+          variant={consultation.hasRedFlag ? "danger" : "brand"}
+          style={{ padding: 18 }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+            <View style={styles.heroAvatar}>
+              <Text style={styles.heroAvatarText}>
+                {consultation.patientName.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}
+              </Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.heroPatientName} numberOfLines={1}>
+                {consultation.patientName}
+              </Text>
+              <Text style={styles.heroPatientMeta} numberOfLines={1}>
+                {consultation.patientAge} yrs · {consultation.patientSex}
+              </Text>
+              <Text style={styles.heroPatientEmail} numberOfLines={1}>
+                {consultation.patientEmail}
+              </Text>
+            </View>
+            <View style={styles.heroStatusChip}>
+              <View style={[styles.heroStatusDot, { backgroundColor: STATUS_COLORS[consultation.status] ?? "#fff" }]} />
+              <Text style={styles.heroStatusText}>
+                {STATUS_LABELS[consultation.status] ?? consultation.status}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.heroConditionRow}>
+            <Feather name="activity" size={13} color="rgba(255,255,255,0.85)" />
+            <Text style={styles.heroConditionText} numberOfLines={1}>
+              {consultation.conditionName}
+            </Text>
+            <Text style={styles.heroDot}>·</Text>
+            <Feather name="calendar" size={12} color="rgba(255,255,255,0.7)" />
+            <Text style={styles.heroSubmitted} numberOfLines={1}>
+              {format(createdDate, "d MMM, HH:mm")}
+            </Text>
+          </View>
+        </GradientHero>
       </View>
 
-      {/* Quick action bar */}
-      <View style={styles.quickActionBar}>
+      {/* Quick action bar — horizontal scroll, no truncation */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.quickActionScroll}
+        style={{ flexGrow: 0 }}
+      >
         <Pressable
           onPress={() => { Haptics.selectionAsync(); setMessageModal(true); }}
           style={({ pressed }) => [styles.quickActionPill, styles.quickActionPrimary, pressed && { opacity: 0.75 }]}
@@ -378,7 +409,7 @@ export default function ConsultationDetail() {
           <Feather name="message-square" size={14} color={colors.foreground} />
           <Text style={styles.quickActionSecondaryText}>Thread</Text>
         </Pressable>
-      </View>
+      </ScrollView>
 
       {/* Tab bar */}
       <View style={styles.tabBar}>
@@ -457,23 +488,23 @@ export default function ConsultationDetail() {
                 </View>
 
                 {flags.length > 0 ? (
-                  <View style={[styles.infoCard, { backgroundColor: "#FEF2F2", borderColor: "#FCA5A5", borderWidth: 1 }]}>
+                  <View style={[styles.infoCard, { backgroundColor: colors.urgent + "14", borderColor: colors.urgent + "55", borderWidth: 1 }]}>
                     <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
-                      <Feather name="alert-triangle" size={14} color={colors.destructive} />
-                      <Text style={{ fontSize: 12, fontWeight: "700", color: colors.destructive, marginLeft: 6, textTransform: "uppercase" }}>
+                      <Feather name="alert-triangle" size={14} color={colors.urgent} />
+                      <Text style={{ fontSize: 12, fontWeight: "700", color: colors.urgent, marginLeft: 6, textTransform: "uppercase" }}>
                         Auto-detected flags ({flags.length})
                       </Text>
                     </View>
                     {flags.map((f) => (
-                      <Text key={f} style={{ fontSize: 13, color: "#991B1B", marginTop: 2 }}>
+                      <Text key={f} style={{ fontSize: 13, color: colors.foreground, marginTop: 2 }}>
                         • {f.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())}
                       </Text>
                     ))}
                   </View>
                 ) : (
-                  <View style={[styles.infoCard, { backgroundColor: "#ECFDF5", borderColor: "#A7F3D0", borderWidth: 1, flexDirection: "row", alignItems: "center" }]}>
+                  <View style={[styles.infoCard, { backgroundColor: colors.success + "14", borderColor: colors.success + "55", borderWidth: 1, flexDirection: "row", alignItems: "center" }]}>
                     <Feather name="check-circle" size={14} color={colors.success} />
-                    <Text style={{ fontSize: 13, color: "#065F46", marginLeft: 8 }}>No automated flags detected</Text>
+                    <Text style={{ fontSize: 13, color: colors.foreground, marginLeft: 8 }}>No automated flags detected</Text>
                   </View>
                 )}
 
@@ -1368,6 +1399,34 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
     patientHeaderMeta: { fontSize: 12, color: colors.mutedForeground, marginTop: 1 },
     statusChip: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
     statusChipText: { fontSize: 11, fontWeight: "700" as const },
+    heroAvatar: {
+      width: 56, height: 56, borderRadius: 28,
+      backgroundColor: "rgba(255,255,255,0.18)",
+      borderWidth: 1.5, borderColor: "rgba(255,255,255,0.4)",
+      alignItems: "center", justifyContent: "center",
+    },
+    heroAvatarText: { color: "#fff", fontFamily: FONT.displayExtra, fontSize: 19, letterSpacing: -0.4 },
+    heroPatientName: { fontFamily: FONT.displayExtra, fontSize: 19, color: "#fff", letterSpacing: -0.4 },
+    heroPatientMeta: { fontFamily: FONT.bodyMedium, fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 2 },
+    heroPatientEmail: { fontFamily: FONT.body, fontSize: 11, color: "rgba(255,255,255,0.65)", marginTop: 1 },
+    heroStatusChip: {
+      flexDirection: "row", alignItems: "center", gap: 6,
+      backgroundColor: "rgba(255,255,255,0.16)",
+      borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(255,255,255,0.3)",
+      borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6,
+    },
+    heroStatusDot: { width: 7, height: 7, borderRadius: 4 },
+    heroStatusText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 10.5, letterSpacing: 0.3, textTransform: "uppercase" },
+    heroConditionRow: {
+      flexDirection: "row", alignItems: "center", gap: 6,
+      marginTop: 14, paddingTop: 12,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: "rgba(255,255,255,0.18)",
+    },
+    heroConditionText: { color: "#fff", fontFamily: FONT.bodySemibold, fontSize: 13.5, flexShrink: 1 },
+    heroDot: { color: "rgba(255,255,255,0.5)", fontSize: 12, marginHorizontal: 2 },
+    heroSubmitted: { color: "rgba(255,255,255,0.85)", fontFamily: FONT.body, fontSize: 12 },
+    quickActionScroll: { paddingHorizontal: 16, paddingVertical: 12, gap: 8, alignItems: "center" },
     tabBar: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: colors.card },
     tabItem: { flex: 1, paddingVertical: 12, alignItems: "center", borderBottomWidth: 2, borderBottomColor: "transparent" },
     tabItemActive: { borderBottomColor: colors.primary },

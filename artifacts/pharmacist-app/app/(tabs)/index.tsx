@@ -201,17 +201,17 @@ export default function PendingScreen() {
                     styles.avatar,
                     {
                       backgroundColor: isUrgent
-                        ? "#FEE2E2"
+                        ? colors.urgent + "22"
                         : isReplied
-                          ? "#FFEDD5"
-                          : "#E6F4F2",
+                          ? "#F9731622"
+                          : colors.primary + "1E",
                     },
                   ]}
                 >
                   <Text
                     style={[
                       styles.avatarText,
-                      { color: isUrgent ? "#B91C1C" : isReplied ? "#C2410C" : colors.primary },
+                      { color: isUrgent ? colors.urgent : isReplied ? "#F97316" : colors.primary },
                     ]}
                   >
                     {initials}
@@ -280,7 +280,7 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
       borderRadius: 999,
       borderWidth: 1,
       borderColor: colors.border,
-      backgroundColor: "#FFFFFF",
+      backgroundColor: colors.card,
     },
     filterText: {
       fontSize: 13,
@@ -307,7 +307,7 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
     listContent: { paddingTop: 6, paddingHorizontal: 0 },
     card: {
       flexDirection: "row",
-      backgroundColor: "#FFFFFF",
+      backgroundColor: colors.card,
       borderRadius: 18,
       marginHorizontal: 16,
       marginBottom: 12,
@@ -349,7 +349,7 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
       borderRadius: 6,
       backgroundColor: "#F97316",
       borderWidth: 2,
-      borderColor: "#FFFFFF",
+      borderColor: colors.card,
     },
     cardBody: { flex: 1 },
     cardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
@@ -373,10 +373,10 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
       borderRadius: 999,
       paddingHorizontal: 6,
       paddingVertical: 4,
-      backgroundColor: "#E6F4F2",
+      backgroundColor: colors.primary + "1E",
     },
     emptyWrap: { alignItems: "center", justifyContent: "center", paddingTop: 60, gap: 12 },
-    emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#E6F4F2", alignItems: "center", justifyContent: "center" },
+    emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.primary + "1E", alignItems: "center", justifyContent: "center" },
     emptyTitle: { fontSize: 18, fontFamily: FONT.displayExtra, color: colors.secondary, marginTop: 4 },
     emptySubtitle: { fontSize: 13, color: colors.mutedForeground, textAlign: "center", paddingHorizontal: 32, fontFamily: FONT.body },
   });

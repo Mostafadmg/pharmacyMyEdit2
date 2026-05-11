@@ -159,9 +159,9 @@ export default function PatientsScreen() {
   const Header = (
     <View>
       <View style={styles.statsRow}>
-        <StatPill icon="users" value={totalPatients} label="Patients" color={colors.primary} bg={colors.muted} />
-        <StatPill icon="repeat" value={repeatPatients} label="Repeat" color="#0E7490" bg="#ECFEFF" />
-        <StatPill icon="alert-triangle" value={redFlagPatients} label="Flagged" color="#EF4444" bg="#FFF1F2" />
+        <StatPill icon="users" value={totalPatients} label="Patients" color={colors.primary} bg={colors.primary + "14"} />
+        <StatPill icon="repeat" value={repeatPatients} label="Repeat" color="#0E7490" bg="#0E749014" />
+        <StatPill icon="alert-triangle" value={redFlagPatients} label="Flagged" color={colors.urgent} bg={colors.urgent + "14"} />
       </View>
 
       <View style={styles.searchWrap}>
@@ -223,8 +223,8 @@ export default function PatientsScreen() {
             <Pressable
               style={({ pressed }) => [
                 styles.card,
-                isFlagged && { borderColor: "#FCA5A5" },
-                hasReplied && !isFlagged && { borderColor: "#FED7AA", backgroundColor: "#FFF7ED" },
+                isFlagged && { borderColor: colors.urgent + "66" },
+                hasReplied && !isFlagged && { borderColor: "#F9731666", backgroundColor: "#F9731614" },
                 pressed && { opacity: 0.78 },
               ]}
               onPress={() => {
@@ -237,7 +237,7 @@ export default function PatientsScreen() {
               }}
               testID={`patient-row-${item.email}`}
             >
-              <View style={[styles.avatar, { backgroundColor: isFlagged ? "#EF4444" : colors.primary }]}>
+              <View style={[styles.avatar, { backgroundColor: isFlagged ? colors.urgent : colors.primary }]}>
                 <Text style={styles.avatarText}>{initials}</Text>
               </View>
               <View style={{ flex: 1 }}>
@@ -256,7 +256,7 @@ export default function PatientsScreen() {
                           flexDirection: "row",
                           alignItems: "center",
                           gap: 3,
-                          backgroundColor: "#FED7AA",
+                          backgroundColor: "#F9731622",
                           borderRadius: 8,
                           paddingHorizontal: 6,
                           paddingVertical: 2,
@@ -266,8 +266,8 @@ export default function PatientsScreen() {
                       ]}
                       testID={`badge-replied-${item.email}`}
                     >
-                      <Feather name="corner-down-left" size={10} color="#9A3412" />
-                      <Text style={{ fontSize: 9, color: "#9A3412", fontWeight: "800" as const }}>
+                      <Feather name="corner-down-left" size={10} color="#F97316" />
+                      <Text style={{ fontSize: 9, color: "#F97316", fontWeight: "800" as const }}>
                         REPLIED
                       </Text>
                     </Pressable>

@@ -238,8 +238,8 @@ export default function MessagesTab() {
             <Pressable
               style={({ pressed }) => [
                 styles.card,
-                isUnread && { borderColor: "#F97316", backgroundColor: "#FFF7ED" },
-                isUrgent && { borderColor: "#DC2626", backgroundColor: "#FFF1F2" },
+                isUnread && { borderColor: "#F97316", backgroundColor: "#F9731614" },
+                isUrgent && { borderColor: colors.urgent, backgroundColor: colors.urgent + "14" },
                 pressed && { opacity: 0.78 },
               ]}
               onPress={() => {
@@ -262,7 +262,7 @@ export default function MessagesTab() {
                   <Text
                     style={[
                       styles.patientName,
-                      isUnread && { color: "#C2410C", fontWeight: "800" as const },
+                      isUnread && { color: colors.foreground, fontWeight: "800" as const },
                     ]}
                     numberOfLines={1}
                   >
@@ -279,7 +279,7 @@ export default function MessagesTab() {
                   <Text
                     style={[
                       styles.previewText,
-                      isUnread && { color: "#92400E", fontWeight: "600" as const },
+                      isUnread && { color: colors.foreground, fontWeight: "600" as const },
                     ]}
                     numberOfLines={1}
                   >
