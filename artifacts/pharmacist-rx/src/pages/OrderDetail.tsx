@@ -1425,30 +1425,45 @@ function DecisionPanel({ consultationId }: { consultationId: string }) {
 
   return (
     <>
-      <div className="text-[10px] uppercase tracking-wide text-stone-400 font-semibold">
-        Make a Decision
+      <div className="text-[10px] uppercase tracking-[0.14em] text-stone-500 font-semibold pl-1">
+        Make a decision
       </div>
 
-      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs">
-        <div className="flex items-start gap-2">
-          <CheckCircle2 className="h-4 w-4 text-emerald-700 shrink-0 mt-0.5" />
-          <div>
-            <div className="font-bold text-emerald-900 uppercase tracking-wide text-[11px]">
-              Returned to Review
+      <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="h-8 w-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="h-[18px] w-[18px]" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] uppercase tracking-[0.14em] font-semibold text-emerald-700">
+              Returned to review
             </div>
-            <div className="text-emerald-800 mt-1">
-              Released by Om Khetia on 19 May 2026, 15:57
+            <div className="text-sm text-stone-900 font-medium mt-1.5 leading-snug">
+              Released by Om Khetia
             </div>
-            <div className="text-emerald-700 mt-1">provided everything asked for</div>
+            <div className="text-xs text-stone-500 mt-0.5">
+              19 May 2026 · 15:57
+            </div>
+            <div className="text-xs text-stone-600 mt-2 leading-relaxed">
+              Provided everything asked for.
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900">
-        <div className="mb-2">
-          Review checklist incomplete. Mark these as done before approving:
+      <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm">
+        <div className="flex items-center gap-2">
+          <div className="h-7 w-7 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+            <AlertTriangle className="h-[14px] w-[14px]" />
+          </div>
+          <div className="text-sm font-semibold text-stone-900">
+            Review checklist
+          </div>
         </div>
-        <ul className="space-y-1">
+        <p className="text-xs text-stone-500 mt-2 leading-relaxed">
+          Mark each section as done before approving this order.
+        </p>
+        <ul className="mt-3 space-y-1.5">
           {[
             "Clinical Review",
             "Consultation",
@@ -1457,71 +1472,74 @@ function DecisionPanel({ consultationId }: { consultationId: string }) {
             "Patient Counselling",
             "Monitoring",
           ].map((it) => (
-            <li key={it} className="flex items-center gap-2 italic">
-              <Lock className="h-3 w-3 shrink-0" />
+            <li
+              key={it}
+              className="flex items-center gap-2.5 text-[13px] text-stone-600"
+            >
+              <Lock className="h-3 w-3 text-stone-400 shrink-0" />
               {it}
             </li>
           ))}
         </ul>
       </div>
 
-      <ActionCard
-        color="indigo"
-        title="Place on Prescriber Hold"
-        sub="Pause for prescriber action"
-        onClick={() => setOpen("prescriber_hold")}
-        iconBg="bg-white"
-        IconCmp={Pin}
-      />
-      <ActionCard
-        color="amber"
-        title="Place on hold"
-        sub="Move to CS Hold"
-        onClick={() => setOpen("cs_hold")}
-        iconBg="bg-white"
-        IconCmp={Clock}
-      />
-      <ActionCard
-        color="rose"
-        title="Decline order"
-        sub="Reject & refund"
-        onClick={() => setOpen("decline")}
-        iconBg="bg-white"
-        IconCmp={AlertTriangle}
-      />
-      <ActionCard
-        color="yellow"
-        title="Mark as urgent"
-        sub="Prioritize in queue"
-        onClick={() => setOpen("urgent")}
-        iconBg="bg-white"
-        IconCmp={FlagIcon}
-      />
+      <div className="space-y-2">
+        <ActionCard
+          tone="primary"
+          title="Place on Prescriber Hold"
+          sub="Pause for prescriber action"
+          onClick={() => setOpen("prescriber_hold")}
+          IconCmp={Pin}
+        />
+        <ActionCard
+          tone="neutral"
+          title="Place on CS hold"
+          sub="Move to customer support hold"
+          onClick={() => setOpen("cs_hold")}
+          IconCmp={Clock}
+        />
+        <ActionCard
+          tone="danger"
+          title="Decline order"
+          sub="Reject and refund"
+          onClick={() => setOpen("decline")}
+          IconCmp={AlertTriangle}
+        />
+        <ActionCard
+          tone="warning"
+          title="Mark as urgent"
+          sub="Prioritise in queue"
+          onClick={() => setOpen("urgent")}
+          IconCmp={FlagIcon}
+        />
+      </div>
 
-      <div className="bg-white border border-stone-200 rounded-xl p-3 mt-2">
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-[10px] uppercase tracking-wide text-stone-400 font-semibold">
-            Last Contacted
+      <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-[10px] uppercase tracking-[0.14em] text-stone-500 font-semibold">
+            Last contacted
           </div>
-          <button className="inline-flex items-center gap-1 text-[10px] bg-emerald-700 text-white rounded-full px-2 py-1">
+          <button className="inline-flex items-center gap-1 text-[11px] font-semibold text-[hsl(var(--primary))] hover:bg-[hsl(var(--accent))] rounded-full px-2.5 py-1 transition-colors">
             <Plus className="h-3 w-3" /> Log
           </button>
         </div>
-        <div className="flex items-center gap-2 mb-1">
-          <span className="inline-flex items-center gap-1 text-[11px] bg-sky-50 text-sky-700 px-2 py-0.5 rounded-full">
-            <Phone className="h-3 w-3" /> Phone Call
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium bg-sky-50 text-sky-700 px-2 py-0.5 rounded-full">
+            <Phone className="h-3 w-3" /> Phone call
           </span>
           <span className="text-[11px] text-stone-500">3 days ago</span>
         </div>
-        <div className="text-[11px] text-stone-400">18 May 2026, 09:06</div>
-        <div className="text-xs text-stone-700 mt-1.5">
-          Spoke to CS - Will upload documents later
+        <div className="text-[11px] text-stone-400 mt-1.5">
+          18 May 2026, 09:06
         </div>
-        <div className="flex items-center gap-1.5 mt-2">
-          <div className="h-5 w-5 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center text-[10px] font-semibold">
+        <p className="text-[13px] text-stone-700 mt-2.5 leading-relaxed">
+          Spoke to CS — will upload documents later.
+        </p>
+        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-stone-100">
+          <div className="h-6 w-6 rounded-full bg-[hsl(var(--accent))] text-[hsl(var(--primary))] flex items-center justify-center text-[10px] font-semibold">
             SI
           </div>
-          <span className="text-[11px] text-stone-600">Sadia Islam</span>
+          <span className="text-[12px] text-stone-600">Sadia Islam</span>
         </div>
       </div>
 
@@ -1570,46 +1588,44 @@ function DecisionPanel({ consultationId }: { consultationId: string }) {
 }
 
 function ActionCard({
-  color,
+  tone,
   title,
   sub,
   onClick,
-  iconBg,
   IconCmp,
 }: {
-  color: "indigo" | "amber" | "rose" | "yellow";
+  tone: "primary" | "neutral" | "danger" | "warning";
   title: string;
   sub: string;
   onClick: () => void;
-  iconBg: string;
   IconCmp: typeof Pin;
 }) {
-  const cls: Record<string, string> = {
-    indigo: "bg-indigo-50 border-indigo-200 hover:bg-indigo-100 text-indigo-900",
-    amber: "bg-amber-50 border-amber-200 hover:bg-amber-100 text-amber-900",
-    rose: "bg-rose-50 border-rose-200 hover:bg-rose-100 text-rose-900",
-    yellow: "bg-yellow-50 border-yellow-200 hover:bg-yellow-100 text-yellow-900",
+  const iconCls: Record<typeof tone, string> = {
+    primary: "bg-[hsl(var(--accent))] text-[hsl(var(--primary))]",
+    neutral: "bg-stone-100 text-stone-600",
+    danger: "bg-rose-50 text-rose-600",
+    warning: "bg-amber-50 text-amber-600",
   };
   return (
     <button
       onClick={onClick}
-      className={cn(
-        "w-full text-left rounded-xl p-3 border transition-colors flex items-start gap-2 hover:shadow-sm",
-        cls[color],
-      )}
+      className="group w-full text-left rounded-2xl p-4 bg-white border border-stone-200 hover:border-stone-300 hover:shadow-sm transition-all flex items-center gap-3"
     >
       <div
         className={cn(
-          "h-7 w-7 rounded-md flex items-center justify-center shrink-0",
-          iconBg,
+          "h-9 w-9 rounded-full flex items-center justify-center shrink-0",
+          iconCls[tone],
         )}
       >
-        <IconCmp className="h-4 w-4" />
+        <IconCmp className="h-[16px] w-[16px]" />
       </div>
-      <div className="min-w-0">
-        <div className="text-sm font-semibold leading-tight">{title}</div>
-        <div className="text-xs opacity-80 mt-0.5">{sub}</div>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-semibold text-stone-900 leading-tight">
+          {title}
+        </div>
+        <div className="text-xs text-stone-500 mt-0.5 leading-snug">{sub}</div>
       </div>
+      <ChevronRight className="h-4 w-4 text-stone-300 group-hover:text-stone-500 transition-colors shrink-0" />
     </button>
   );
 }
