@@ -6,6 +6,7 @@ import {
   UserPlus, Upload, ExternalLink, FileText, User, Heart,
   Pill as PillIcon, CheckCircle2, ClipboardCheck, Stethoscope,
   Syringe, Plus, Minus, Sparkles, Clock, Star, TrendingDown,
+  Check, Leaf,
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -216,30 +217,32 @@ const RadioRow: React.FC<{
     type="button"
     onClick={onSelect}
     data-testid={testId}
-    className={`w-full text-left rounded-2xl border-2 px-5 py-4 flex items-center gap-4 transition-all ${
+    className={`w-full text-left rounded-2xl border px-5 py-4 flex items-center gap-4 transition-all ${
       selected
-        ? "border-primary bg-primary/5 shadow-sm"
-        : "border-border bg-white hover:border-primary/40"
+        ? "border-[#0E3D2D] bg-[#F3F9F1]"
+        : "border-stone-200 bg-white hover:border-stone-400"
     }`}
   >
     {icon && (
       <span
         className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-          selected ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
+          selected ? "bg-[#D4EFE2] text-[#0E3D2D]" : "bg-stone-100 text-stone-500"
         }`}
       >
         {icon}
       </span>
     )}
     <span className="flex-1 min-w-0">
-      <span className="block font-semibold text-secondary">{title}</span>
+      <span className="block font-semibold text-[#0E3D2D]">{title}</span>
       {subtitle && <span className="block text-sm text-muted-foreground mt-0.5">{subtitle}</span>}
     </span>
     <span
-      className={`w-5 h-5 rounded-full border-2 shrink-0 transition-all ${
-        selected ? "border-primary bg-primary ring-4 ring-primary/15" : "border-border"
+      className={`w-5 h-5 rounded-full shrink-0 flex items-center justify-center transition-all ${
+        selected ? "bg-[#0E3D2D]" : "border-2 border-stone-300"
       }`}
-    />
+    >
+      {selected && <Check className="h-3 w-3 text-white" />}
+    </span>
   </button>
 );
 
@@ -262,9 +265,23 @@ const YesNoChoice: React.FC<{
 );
 
 const SectionCard: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Card className="rounded-3xl border-border shadow-sm">
+  <Card className="rounded-3xl border border-stone-200 shadow-sm bg-white">
     <CardContent className="p-6 md:p-7">{children}</CardContent>
   </Card>
+);
+
+const BrandHeader: React.FC = () => (
+  <div className="pt-8 pb-4 flex flex-col items-center">
+    <div className="flex items-center gap-2">
+      <span className="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
+        <Leaf className="w-4 h-4 text-white" />
+      </span>
+      <span className="text-2xl font-serif font-bold text-[#0E3D2D]">PharmaCare</span>
+    </div>
+    <p className="text-[10px] tracking-widest uppercase text-muted-foreground mt-1">
+      Everyday Care. Expertly Delivered.
+    </p>
+  </div>
 );
 
 const StepShell: React.FC<{
@@ -292,27 +309,28 @@ const StepShell: React.FC<{
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -24 }}
       transition={{ duration: 0.25 }}
-      className="max-w-2xl mx-auto px-5 pt-8 pb-16"
+      className="max-w-2xl mx-auto px-5 pb-16"
     >
+      <BrandHeader />
+
       {/* Progress header */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
+      <div className="grid grid-cols-3 items-center text-xs text-muted-foreground mb-3">
         <button
           type="button"
           onClick={onBack}
-          className={`flex items-center gap-1 hover:text-secondary transition-colors ${hideBack ? "invisible" : ""}`}
+          className={`flex items-center gap-1 text-muted-foreground hover:text-[#0E3D2D] transition-colors justify-self-start ${hideBack ? "invisible" : ""}`}
           data-testid="button-step-back"
         >
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
-        <div className="text-center">
-          <p className="uppercase tracking-wider font-semibold">Step {step} of {totalSteps}</p>
-          <p className="text-secondary font-semibold text-sm mt-0.5">{label}</p>
+        <div className="text-center col-start-2">
+          <p className="uppercase tracking-widest text-muted-foreground">Step {step} of {totalSteps}</p>
+          <p className="text-[#0E3D2D] font-bold text-base mt-0.5">{label}</p>
         </div>
-        <span className="w-12" />
       </div>
-      <div className="h-1.5 rounded-full bg-muted overflow-hidden mb-10">
+      <div className="h-1 rounded-full bg-stone-200 overflow-hidden mb-10">
         <motion.div
-          className="h-full bg-secondary"
+          className="h-full bg-[#0E3D2D] rounded-full"
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.4 }}
@@ -321,10 +339,10 @@ const StepShell: React.FC<{
 
       {/* Title block */}
       <div className="text-center mb-7">
-        <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary inline-flex items-center justify-center mb-4">
+        <div className="w-14 h-14 rounded-2xl bg-[#D4EFE2] text-[#0E3D2D] inline-flex items-center justify-center mb-4">
           {icon}
         </div>
-        <h1 className="text-2xl md:text-3xl font-serif font-bold text-secondary">{title}</h1>
+        <h1 className="text-[2rem] leading-tight font-serif font-bold text-[#0E3D2D]">{title}</h1>
         {subtitle && <p className="text-muted-foreground mt-2 text-sm md:text-base max-w-md mx-auto">{subtitle}</p>}
       </div>
 
@@ -333,19 +351,19 @@ const StepShell: React.FC<{
 
       {/* Continue */}
       <div className="mt-8 space-y-3">
-        <div className="rounded-xl bg-muted/50 border border-border px-4 py-2.5 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-          <Clock className="w-3.5 h-3.5" /> Takes about 3 minutes. Don't close this tab — your answers stay in this session.
+        <div className="rounded-xl bg-white border border-stone-200 px-4 py-2.5 flex items-center justify-center gap-2 text-xs text-stone-500">
+          <Clock className="w-3.5 h-3.5" /> Takes about 3 minutes. Progress saved automatically.
         </div>
         <Button
           onClick={onContinue}
           disabled={!canContinue}
           size="lg"
-          className="w-full h-14 rounded-2xl bg-secondary hover:bg-secondary/90 text-white text-base font-semibold disabled:opacity-50"
+          className="w-full h-14 rounded-2xl bg-[#0E3D2D] hover:bg-[#0a2e22] text-white text-base font-semibold disabled:bg-[#9CB8A6] disabled:hover:bg-[#9CB8A6] disabled:cursor-not-allowed"
           data-testid="button-step-continue"
         >
           {continueLabel ?? "Continue"} <ArrowRight className="w-4 h-4 ml-1.5" />
         </Button>
-        <p className="text-center text-xs text-muted-foreground">
+        <p className="text-center text-xs text-stone-400">
           Your information is secure and confidential.
         </p>
       </div>
@@ -354,10 +372,18 @@ const StepShell: React.FC<{
 };
 
 const TrustRow: React.FC = () => (
-  <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+  <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs text-muted-foreground">
+    <span className="flex flex-col items-center text-[9px] leading-tight text-stone-600">
+      <span className="font-semibold text-[10px]">General</span>
+      <span className="font-semibold text-[10px]">Pharmaceutical</span>
+      <span className="font-semibold text-[10px]">Council</span>
+    </span>
+    <span className="font-extrabold text-[#005EB8] text-lg tracking-tight">NHS</span>
+    <span className="w-8 h-8 rounded-full bg-[#D52B1E] text-white flex items-center justify-center font-serif italic font-bold text-lg">L</span>
+    <span className="text-[10px] font-semibold text-stone-700">novo nordisk</span>
     <span className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-primary" /> GPhC Registered</span>
-    <span className="flex items-center gap-1.5"><Lock className="w-3.5 h-3.5 text-primary" /> 256-bit encrypted</span>
-    <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-primary" /> MHRA compliant</span>
+    <span className="flex items-center gap-1.5"><Lock className="w-3.5 h-3.5 text-primary" /> Encrypted</span>
+    <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-primary" /> MHRA</span>
   </div>
 );
 
@@ -518,10 +544,10 @@ export default function InjectableWeightLossConsultation() {
 
   // ── Render ─────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#fdf7ec]">
+    <div className="min-h-screen bg-[#FAF6F0]">
       <Header />
 
-      <div className="bg-[#fdf7ec]">
+      <div className="bg-[#FAF6F0]">
         <AnimatePresence mode="wait">
           {/* ───── Step 1 — Eligibility / Intro */}
           {step === 1 && (
@@ -531,8 +557,9 @@ export default function InjectableWeightLossConsultation() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="max-w-2xl mx-auto px-5 pt-10 pb-16"
+              className="max-w-2xl mx-auto px-5 pb-16"
             >
+              <BrandHeader />
               <div className="flex items-center justify-center gap-3 mb-4">
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -708,12 +735,15 @@ export default function InjectableWeightLossConsultation() {
               subtitle="We'll use these to keep you updated about your consultation."
               onBack={back} onContinue={next} canContinue={canContinue}
             >
-              <div className="rounded-2xl bg-primary/5 border border-primary/15 p-4 text-sm text-foreground/80">
-                <p className="font-semibold text-secondary mb-1.5">Why do we need this?</p>
+              <div className="rounded-2xl bg-white border border-stone-200 p-4 text-sm text-foreground/80">
+                <p className="text-sm mb-2">
+                  <span className="font-bold text-[#0E3D2D]">Why do we need this?</span>{" "}
+                  <span className="text-muted-foreground">Your email and phone help us:</span>
+                </p>
                 <ul className="space-y-1">
-                  <li className="flex items-start gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" /> Send prescription updates & tracking info</li>
-                  <li className="flex items-start gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" /> Reach you if our prescribing team has questions</li>
-                  <li className="flex items-start gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" /> Save your progress so you can pick up where you left off</li>
+                  <li className="flex items-start gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#0E3D2D] mt-2 shrink-0" /> Send prescription updates & tracking info</li>
+                  <li className="flex items-start gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#0E3D2D] mt-2 shrink-0" /> Reach you if our prescribing team has any questions</li>
+                  <li className="flex items-start gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#0E3D2D] mt-2 shrink-0" /> Save your progress so you can pick up where you left off anytime</li>
                 </ul>
               </div>
               <SectionCard>
@@ -756,16 +786,17 @@ export default function InjectableWeightLossConsultation() {
                   </div>
                 </div>
               </SectionCard>
-              <div className="rounded-2xl bg-muted/40 border border-border p-4 text-sm">
-                <p className="font-semibold text-secondary mb-1.5 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-primary" /> Your data is protected
+              <div className="rounded-2xl bg-white border border-stone-200 p-4 text-sm">
+                <p className="font-bold text-[#0E3D2D] mb-2 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-[#0E3D2D]" /> Your data is protected
                 </p>
                 <ul className="text-xs text-muted-foreground space-y-1">
-                  <li>· 256-bit SSL encryption</li>
-                  <li>· GDPR-compliant data handling</li>
-                  <li>· We never share your details with third parties</li>
+                  <li className="flex items-start gap-2"><span className="w-1 h-1 rounded-full bg-stone-400 mt-2 shrink-0" /> 256-bit SSL encryption</li>
+                  <li className="flex items-start gap-2"><span className="w-1 h-1 rounded-full bg-stone-400 mt-2 shrink-0" /> GDPR compliant data handling</li>
+                  <li className="flex items-start gap-2"><span className="w-1 h-1 rounded-full bg-stone-400 mt-2 shrink-0" /> We never share your details with third parties</li>
                 </ul>
               </div>
+              <TrustRow />
             </StepShell>
           )}
 
@@ -773,18 +804,20 @@ export default function InjectableWeightLossConsultation() {
           {step === 3 && (
             <StepShell
               step={3} label="BMI Check" icon={<ClipboardCheck className="w-6 h-6" />}
-              title="Where are you in your weight-loss journey?"
+              title="BMI Assessment"
+              subtitle="Let's calculate your BMI to confirm your eligibility"
               onBack={back} onContinue={next} canContinue={canContinue}
             >
-              <RadioRow icon={<UserPlus className="w-5 h-5" />} title="New patient" subtitle="Starting treatment"
+              <p className="text-center text-sm font-bold text-[#0E3D2D]">Where are you in your weight loss journey?</p>
+              <RadioRow icon={<UserPlus className="w-5 h-5" />} title="New Patient" subtitle="Starting Treatment"
                 selected={state.journey === "new"} onSelect={() => update("journey", "new")}
                 testId="journey-new"
               />
-              <RadioRow icon={<Upload className="w-5 h-5" />} title="Existing patient" subtitle="Reorder your next dose"
+              <RadioRow icon={<Upload className="w-5 h-5" />} title="Existing Patient" subtitle="Reorder Your Next Dose"
                 selected={state.journey === "existing"} onSelect={() => update("journey", "existing")}
                 testId="journey-existing"
               />
-              <RadioRow icon={<ExternalLink className="w-5 h-5" />} title="Transferring" subtitle="From another provider"
+              <RadioRow icon={<ExternalLink className="w-5 h-5" />} title="Transferring" subtitle="From Another Provider"
                 selected={state.journey === "transferring"} onSelect={() => update("journey", "transferring")}
                 testId="journey-transferring"
               />
@@ -841,8 +874,8 @@ export default function InjectableWeightLossConsultation() {
                       {(["cm", "ftin"] as UnitHeight[]).map((u) => (
                         <button key={u} type="button"
                           onClick={() => update("heightUnit", u)}
-                          className={`h-10 rounded-xl font-semibold text-sm transition-colors ${
-                            state.heightUnit === u ? "bg-secondary text-white" : "bg-emerald-50 text-emerald-700"
+                          className={`h-11 rounded-xl font-semibold text-sm transition-colors ${
+                            state.heightUnit === u ? "bg-[#0E3D2D] text-white" : "bg-[#D4EFE2] text-[#0E3D2D]"
                           }`}
                           data-testid={`unit-height-${u}`}
                         >
@@ -875,8 +908,8 @@ export default function InjectableWeightLossConsultation() {
                       {(["kg", "stlbs"] as UnitWeight[]).map((u) => (
                         <button key={u} type="button"
                           onClick={() => update("weightUnit", u)}
-                          className={`h-10 rounded-xl font-semibold text-sm transition-colors ${
-                            state.weightUnit === u ? "bg-secondary text-white" : "bg-emerald-50 text-emerald-700"
+                          className={`h-11 rounded-xl font-semibold text-sm transition-colors ${
+                            state.weightUnit === u ? "bg-[#0E3D2D] text-white" : "bg-[#D4EFE2] text-[#0E3D2D]"
                           }`}
                           data-testid={`unit-weight-${u}`}
                         >
@@ -969,7 +1002,7 @@ export default function InjectableWeightLossConsultation() {
                 <p className="font-semibold text-secondary mb-2">
                   Have you been diagnosed with or had surgery for any of the following? *
                 </p>
-                <ul className="text-sm text-foreground/80 space-y-1 mb-4 list-disc pl-5">
+                <ul className="text-sm text-foreground/80 space-y-1.5 mb-4 bg-[#F3F9F1] rounded-xl p-4">
                   {[
                     "Pancreatitis",
                     "Gallstones or gallbladder problems",
@@ -979,13 +1012,18 @@ export default function InjectableWeightLossConsultation() {
                     "Bariatric or gastric surgery",
                     "Liver disease",
                     "Kidney disease",
-                    "Type 1 diabetes",
+                    "Type 1 Diabetes",
                     "Diabetic eye disease (retinopathy)",
                     "Heart disease or rhythm issues",
                     "Cancer",
                     "Serious condition needing hospitalisation",
                     "Other condition not listed above",
-                  ].map((c) => <li key={c}>{c}</li>)}
+                  ].map((c) => (
+                    <li key={c} className="flex items-start gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#0E3D2D] mt-2 shrink-0" />
+                      <span>{c}</span>
+                    </li>
+                  ))}
                 </ul>
                 <YesNoChoice
                   value={state.excludingConditions}
@@ -1082,8 +1120,9 @@ export default function InjectableWeightLossConsultation() {
               subtitle="We need to contact your GP for your safety."
               onBack={back} onContinue={next} canContinue={canContinue}
             >
-              <div className="rounded-2xl bg-muted/50 border border-border p-4 text-sm text-muted-foreground flex items-center gap-2">
-                <Phone className="w-4 h-4" /> Need help? Our team is here Mon–Fri 9 am – 5 pm · 0333 207 0413
+              <div className="rounded-xl bg-white border border-stone-200 p-3 text-sm text-stone-600 flex items-center justify-center gap-2">
+                <Phone className="w-4 h-4 text-[#0E3D2D]" /> Need help? Our team is here Mon-Fri 9am-5pm{" "}
+                <a href="tel:03332070413" className="underline font-semibold text-[#0E3D2D]">0333 2070 413</a>
               </div>
               <SectionCard>
                 <p className="font-semibold text-secondary mb-3">
@@ -1109,9 +1148,9 @@ export default function InjectableWeightLossConsultation() {
                   </div>
                 )}
               </SectionCard>
-              <div className="rounded-2xl bg-primary/5 border border-primary/15 p-4 text-sm text-foreground/80">
-                <p className="font-semibold text-secondary mb-1.5">Why do we need this?</p>
-                <p>For your safety, we need to share information about your prescription with your GP to ensure continuity of care.</p>
+              <div className="rounded-xl bg-[#D4EFE2] p-4 text-sm text-[#0E3D2D]">
+                <p className="font-bold mb-1.5">Why do we need this?</p>
+                <p className="text-stone-700">For your safety, we need to share information about your prescription with your GP to ensure continuity of care.</p>
               </div>
               <TrustRow />
             </StepShell>
@@ -1144,7 +1183,7 @@ export default function InjectableWeightLossConsultation() {
               canContinue={!submitting}
               continueLabel={submitting ? "Submitting…" : "Submit for review"}
             >
-              <div className="grid sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {ADD_ONS.map((a) => (
                   <AddOnCard
                     key={a.id}
@@ -1167,8 +1206,9 @@ export default function InjectableWeightLossConsultation() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="max-w-2xl mx-auto px-5 pt-10 pb-16"
+              className="max-w-2xl mx-auto px-5 pb-16"
             >
+              <BrandHeader />
               <div className="text-center mb-6">
                 <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 inline-flex items-center justify-center mb-4">
                   <ShieldCheck className="w-6 h-6" />
@@ -1242,41 +1282,41 @@ const PlanSelector: React.FC<{
   return (
     <>
       <SectionCard>
-        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">All treatments include</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">All treatments include:</p>
         <ul className="space-y-1.5 text-sm">
-          <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-primary" /> Free private prescription</li>
-          <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-primary" /> 4 needles & alcohol swabs</li>
-          <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-primary" /> Secure, tracked next-day delivery</li>
+          <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#0E3D2D]" /> Free Private Prescription</li>
+          <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#0E3D2D]" /> x4 Needles & x4 Alcohol Swabs</li>
+          <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#0E3D2D]" /> Secure, Tracked Delivery</li>
         </ul>
       </SectionCard>
 
       <SectionCard>
         <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Available discounts</p>
         <div className="space-y-2">
-          <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 flex items-center justify-between text-sm">
-            <span className="font-mono font-bold text-amber-700">NEW30</span>
-            <span className="text-muted-foreground">£30 off your consultation</span>
+          <div className="rounded-xl bg-[#FEF6B8] border border-amber-200 px-3 py-2 flex items-center justify-between text-sm">
+            <span className="font-mono font-bold text-amber-800">FIRST30</span>
+            <span className="text-stone-700">£30 off your consultation</span>
           </div>
-          <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 flex items-center justify-between text-sm">
-            <span className="font-mono font-bold text-emerald-700">RETURN25</span>
-            <span className="text-muted-foreground">£25 off your consultation</span>
+          <div className="rounded-xl bg-[#D4EFE2] border border-emerald-200 px-3 py-2 flex items-center justify-between text-sm">
+            <span className="font-mono font-bold text-[#0E3D2D]">DOSE25</span>
+            <span className="text-stone-700">£25 off your next dose</span>
           </div>
         </div>
       </SectionCard>
 
       <SectionCard>
-        <p className="font-semibold text-secondary mb-3">Select your plan</p>
-        <div className="flex gap-1.5 p-1 bg-muted rounded-xl mb-4">
+        <p className="font-semibold text-[#0E3D2D] mb-3">Select your plan</p>
+        <div className="flex gap-1.5 p-1 bg-stone-100 rounded-xl mb-4">
           {([
-            ["single", "Single pen"],
-            ["two-pen", "2-pen bundle"],
-            ["three-pen", "3-pen bundle"],
+            ["single", "Single Pens"],
+            ["two-pen", "2-Pen Bundles"],
+            ["three-pen", "3-Pen Bundles"],
           ] as [PlanType, string][]).map(([id, label]) => (
             <button
               key={id} type="button"
               onClick={() => { setTab(id); onChange(null); }}
               className={`flex-1 h-9 rounded-lg text-xs font-semibold transition-colors ${
-                tab === id ? "bg-secondary text-white" : "text-muted-foreground hover:text-secondary"
+                tab === id ? "bg-[#0E3D2D] text-white" : "text-stone-600 hover:text-[#0E3D2D]"
               }`}
               data-testid={`plan-tab-${id}`}
             >
@@ -1289,10 +1329,10 @@ const PlanSelector: React.FC<{
           {(["mounjaro", "wegovy"] as MedicineId[]).map((m) => (
             <button key={m} type="button"
               onClick={() => { setMed(m); onChange(null); }}
-              className={`flex-1 h-10 rounded-xl text-sm font-semibold border-2 transition-colors ${
+              className={`flex-1 h-10 rounded-full text-sm font-semibold transition-colors ${
                 med === m
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border bg-white text-muted-foreground hover:border-primary/40"
+                  ? (m === "mounjaro" ? "bg-[#0E3D2D] text-white" : "bg-[#D4EFE2] text-[#0E3D2D]")
+                  : "bg-stone-100 text-stone-600 hover:bg-stone-200"
               }`}
               data-testid={`plan-med-${m}`}
             >
@@ -1311,19 +1351,19 @@ const PlanSelector: React.FC<{
             return (
               <button key={p.id} type="button"
                 onClick={() => togglePen(p.id)}
-                className={`w-full text-left rounded-2xl border-2 p-4 transition-all ${
-                  selected ? "border-primary bg-primary/5" : "border-border bg-white hover:border-primary/40"
+                className={`w-full text-left rounded-2xl border p-4 transition-all ${
+                  selected ? "border-[#0E3D2D] bg-[#F3F9F1]" : "border-stone-200 bg-white hover:border-stone-400"
                 }`}
                 data-testid={`plan-pen-${p.id}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-bold text-secondary">{p.label}</p>
+                    <p className="font-bold text-[#0E3D2D]">{p.label}</p>
                     <p className="text-xs text-muted-foreground">{p.weeks}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground line-through">£{p.originalPerPen.toFixed(2)}</p>
-                    <p className="text-lg font-extrabold text-primary">£{p.pricePerPen.toFixed(2)}</p>
+                    <p className="text-lg font-extrabold text-[#0E3D2D]">£{p.pricePerPen.toFixed(2)}</p>
                   </div>
                 </div>
               </button>
@@ -1359,33 +1399,33 @@ const AddOnCard: React.FC<{
 }> = ({ addon, qty, onChange }) => {
   const Icon = addon.icon;
   return (
-    <Card className="rounded-2xl border-border" data-testid={`addon-${addon.id}`}>
+    <Card className="rounded-2xl border border-stone-200 bg-white shadow-none" data-testid={`addon-${addon.id}`}>
       <CardContent className="p-4 flex flex-col h-full">
-        <div className="aspect-[4/3] rounded-xl bg-primary/5 border border-primary/10 flex items-center justify-center mb-3">
-          <Icon className="w-10 h-10 text-primary/60" />
+        <div className="bg-stone-100 rounded-xl h-36 flex items-center justify-center">
+          <Icon className="h-12 w-12 text-[#0E3D2D]/30" />
         </div>
-        <p className="font-bold text-secondary text-sm leading-tight">{addon.name}</p>
+        <p className="font-semibold text-[#0E3D2D] text-sm leading-tight mt-3">{addon.name}</p>
         <p className="text-xs text-muted-foreground mt-1 flex-1">{addon.blurb}</p>
-        <p className="text-lg font-extrabold text-primary mt-2">£{addon.price.toFixed(2)}</p>
+        <p className="text-base font-semibold text-[#0E3D2D] mt-2">£{addon.price.toFixed(2)}</p>
         {qty === 0 ? (
           <Button
             type="button" onClick={() => onChange(1)}
-            className="w-full mt-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl h-10 text-sm font-semibold"
+            className="w-full mt-3 bg-[#0E3D2D] hover:bg-[#0a2e22] text-white rounded-xl h-10 text-sm font-semibold"
             data-testid={`addon-add-${addon.id}`}
           >
-            Add to cart
+            Add to Cart
           </Button>
         ) : (
-          <div className="mt-2 grid grid-cols-3 items-center gap-1 bg-primary/10 rounded-xl p-1">
+          <div className="mt-3 grid grid-cols-3 items-center gap-1 bg-[#D4EFE2] rounded-xl p-1">
             <button type="button" onClick={() => onChange(Math.max(0, qty - 1))}
-              className="h-9 rounded-lg bg-white text-primary font-bold flex items-center justify-center"
+              className="h-9 rounded-lg bg-white text-[#0E3D2D] font-bold flex items-center justify-center"
               data-testid={`addon-dec-${addon.id}`}
             >
               <Minus className="w-4 h-4" />
             </button>
-            <span className="text-center font-bold text-secondary tabular-nums" data-testid={`addon-qty-${addon.id}`}>{qty}</span>
+            <span className="text-center font-bold text-[#0E3D2D] tabular-nums" data-testid={`addon-qty-${addon.id}`}>{qty}</span>
             <button type="button" onClick={() => onChange(qty + 1)}
-              className="h-9 rounded-lg bg-white text-primary font-bold flex items-center justify-center"
+              className="h-9 rounded-lg bg-white text-[#0E3D2D] font-bold flex items-center justify-center"
               data-testid={`addon-inc-${addon.id}`}
             >
               <Plus className="w-4 h-4" />
