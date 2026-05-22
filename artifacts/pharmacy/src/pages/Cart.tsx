@@ -24,7 +24,7 @@ export default function Cart() {
             <CardContent className="p-12 text-center">
               <ShoppingBag className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-lg mb-4">Your basket is currently empty.</p>
-              <Button asChild className="rounded-full bg-[#168A7B] hover:bg-[#0E5A52]">
+              <Button asChild className="rounded-full bg-[#0E3D2D] hover:bg-[#0E5A52]">
                 <Link href="/shop">Browse shop</Link>
               </Button>
             </CardContent>
@@ -48,7 +48,7 @@ export default function Cart() {
                         </Link>
                         <div className="flex-1 min-w-0">
                           {item.brand && <p className="text-xs uppercase tracking-wide text-muted-foreground">{item.brand}</p>}
-                          <Link href={`/product/${item.slug}`} className="font-semibold hover:text-[#168A7B]">{item.name}</Link>
+                          <Link href={`/product/${item.slug}`} className="font-semibold hover:text-[#0E3D2D]">{item.name}</Link>
                           <p className="text-sm text-muted-foreground">{formatGbp(item.unitPriceGbp)} each</p>
                           <div className="flex items-center gap-3 mt-3">
                             <div className="flex items-center border rounded-full overflow-hidden">
@@ -62,7 +62,7 @@ export default function Cart() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-[#168A7B]">{formatGbp(item.unitPriceGbp * item.quantity)}</p>
+                          <p className="font-bold text-[#0E3D2D]">{formatGbp(item.unitPriceGbp * item.quantity)}</p>
                         </div>
                       </CardContent>
                     </Card>
@@ -98,9 +98,9 @@ export default function Cart() {
                 </div>
                 <div className="border-t pt-4 flex justify-between items-baseline">
                   <span className="font-semibold">Total</span>
-                  <span className="text-2xl font-bold text-[#168A7B]" data-testid="cart-total">{formatGbp(total)}</span>
+                  <span className="text-2xl font-bold text-[#0E3D2D]" data-testid="cart-total">{formatGbp(total)}</span>
                 </div>
-                <Button onClick={() => navigate("/checkout")} className="w-full rounded-full bg-[#168A7B] hover:bg-[#0E5A52] h-12" data-testid="btn-checkout">
+                <Button onClick={() => navigate("/checkout")} className="w-full rounded-full bg-[#0E3D2D] hover:bg-[#0E5A52] h-12" data-testid="btn-checkout">
                   Checkout <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
                 <Button asChild variant="ghost" className="w-full rounded-full">

@@ -167,7 +167,7 @@ export default function OrderConfirmation() {
       <Header />
       <div className="max-w-4xl mx-auto px-6 py-10 w-full flex-1 space-y-6">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="border-0 bg-gradient-to-br from-[#168A7B] to-[#0E5A52] text-white rounded-2xl">
+          <Card className="border-0 bg-gradient-to-br from-[#0E3D2D] to-[#0E5A52] text-white rounded-2xl">
             <CardContent className="p-8">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
@@ -199,7 +199,7 @@ export default function OrderConfirmation() {
               <div className="relative">
                 <div className="absolute top-5 left-0 right-0 h-1 bg-muted rounded-full" />
                 <div
-                  className="absolute top-5 left-0 h-1 bg-[#168A7B] rounded-full transition-all duration-500"
+                  className="absolute top-5 left-0 h-1 bg-[#0E3D2D] rounded-full transition-all duration-500"
                   style={{ width: `${(stageIdx / (TRACKING_STAGES.length - 1)) * 100}%` }}
                 />
                 <div className="relative flex justify-between">
@@ -209,7 +209,7 @@ export default function OrderConfirmation() {
                     return (
                       <div key={stage.key} className="flex flex-col items-center text-center" style={{ width: `${100 / TRACKING_STAGES.length}%` }}>
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 z-10 ${
-                          done ? "bg-[#168A7B] border-[#168A7B] text-white" : "bg-white border-muted text-muted-foreground"
+                          done ? "bg-[#0E3D2D] border-[#0E3D2D] text-white" : "bg-white border-muted text-muted-foreground"
                         }`}>
                           <Icon className="w-4 h-4" />
                         </div>
@@ -247,7 +247,7 @@ export default function OrderConfirmation() {
                 <div key={i.id} className="flex gap-3 items-center">
                   {i.imageUrl && <img src={i.imageUrl} alt={i.productName} className="w-14 h-14 rounded-lg object-cover bg-muted flex-shrink-0" />}
                   <div className="flex-1 min-w-0">
-                    <Link href={`/product/${i.productSlug}`} className="font-medium hover:text-[#168A7B] line-clamp-1">{i.productName}</Link>
+                    <Link href={`/product/${i.productSlug}`} className="font-medium hover:text-[#0E3D2D] line-clamp-1">{i.productName}</Link>
                     <p className="text-xs text-muted-foreground">Qty {i.quantity} · {formatGbp(i.unitPriceGbp)}</p>
                   </div>
                   <p className="font-semibold whitespace-nowrap">{formatGbp(i.lineTotalGbp)}</p>
@@ -263,20 +263,20 @@ export default function OrderConfirmation() {
                 </div>
               )}
               {order.creditsAppliedPence > 0 && (
-                <div className="flex justify-between text-[#168A7B]">
+                <div className="flex justify-between text-[#0E3D2D]">
                   <span className="inline-flex items-center gap-1"><Wallet className="w-3.5 h-3.5" /> Credit applied</span>
                   <span>−{formatGbp(order.creditsAppliedPence)}</span>
                 </div>
               )}
               <div className="flex justify-between"><span>Delivery</span><span>{order.shippingGbp === 0 ? "Free" : formatGbp(order.shippingGbp)}</span></div>
-              <div className="flex justify-between font-bold text-lg pt-2"><span>Total</span><span className="text-[#168A7B]">{formatGbp(order.totalGbp)}</span></div>
+              <div className="flex justify-between font-bold text-lg pt-2"><span>Total</span><span className="text-[#0E3D2D]">{formatGbp(order.totalGbp)}</span></div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-0 bg-white rounded-2xl">
           <CardContent className="p-6">
-            <h2 className="font-semibold text-lg mb-4 flex items-center gap-2"><MapPin className="w-5 h-5 text-[#168A7B]" /> Delivery address</h2>
+            <h2 className="font-semibold text-lg mb-4 flex items-center gap-2"><MapPin className="w-5 h-5 text-[#0E3D2D]" /> Delivery address</h2>
             <p className="text-sm">
               <span className="font-medium">{order.customerName}</span><br />
               {order.shippingAddress.line1}<br />
@@ -290,11 +290,11 @@ export default function OrderConfirmation() {
 
         {/* Guest → account upsell. Hidden once signed in or after upgrade. */}
         {!isLoggedIn && !upgraded && (
-          <Card className="border-0 bg-gradient-to-br from-[#168A7B]/5 to-[#168A7B]/10 border-2 border-[#168A7B]/20 rounded-2xl">
+          <Card className="border-0 bg-gradient-to-br from-[#0E3D2D]/5 to-[#0E3D2D]/10 border-2 border-[#0E3D2D]/20 rounded-2xl">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full bg-[#168A7B]/15 flex items-center justify-center flex-shrink-0">
-                  <UserPlus className="w-6 h-6 text-[#168A7B]" />
+                <div className="w-12 h-12 rounded-full bg-[#0E3D2D]/15 flex items-center justify-center flex-shrink-0">
+                  <UserPlus className="w-6 h-6 text-[#0E3D2D]" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h2 className="font-bold text-lg text-secondary">Save your details for next time</h2>
@@ -318,7 +318,7 @@ export default function OrderConfirmation() {
                     <Button
                       type="submit"
                       disabled={upgrading}
-                      className="rounded-full bg-[#168A7B] hover:bg-[#0E5A52] whitespace-nowrap"
+                      className="rounded-full bg-[#0E3D2D] hover:bg-[#0E5A52] whitespace-nowrap"
                       data-testid="button-create-account"
                     >
                       {upgrading
@@ -354,7 +354,7 @@ export default function OrderConfirmation() {
           ) : (
             <Button asChild variant="outline" className="rounded-full"><Link href="/shop"><Home className="w-4 h-4 mr-2" /> Back to home</Link></Button>
           )}
-          <Button asChild className="rounded-full bg-[#168A7B] hover:bg-[#0E5A52]"><Link href="/shop"><ShoppingBag className="w-4 h-4 mr-2" /> Continue shopping</Link></Button>
+          <Button asChild className="rounded-full bg-[#0E3D2D] hover:bg-[#0E5A52]"><Link href="/shop"><ShoppingBag className="w-4 h-4 mr-2" /> Continue shopping</Link></Button>
         </div>
       </div>
       <Footer />

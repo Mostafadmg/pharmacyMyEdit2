@@ -154,7 +154,7 @@ export default function Checkout() {
         <Header />
         <div className="max-w-2xl mx-auto px-6 py-16 w-full flex-1 text-center">
           <p className="text-lg mb-4">Your basket is empty.</p>
-          <Button asChild className="rounded-full bg-[#168A7B] hover:bg-[#0E5A52]"><Link href="/shop">Back to shop</Link></Button>
+          <Button asChild className="rounded-full bg-[#0E3D2D] hover:bg-[#0E5A52]"><Link href="/shop">Back to shop</Link></Button>
         </div>
         <Footer />
       </div>
@@ -201,7 +201,7 @@ export default function Checkout() {
 
             <Card className="border-0 bg-white rounded-2xl">
               <CardContent className="p-5 sm:p-6 space-y-3">
-                <h2 className="font-semibold text-lg flex items-center gap-2"><CreditCard className="w-5 h-5 text-[#168A7B]" /> Payment</h2>
+                <h2 className="font-semibold text-lg flex items-center gap-2"><CreditCard className="w-5 h-5 text-[#0E3D2D]" /> Payment</h2>
                 {stripeEnabled === null ? (
                   <Badge variant="outline">Loading…</Badge>
                 ) : stripeEnabled ? (
@@ -307,10 +307,10 @@ export default function Checkout() {
                   <div className="flex justify-between text-primary"><span>Credit applied</span><span>−{formatGbp(totals.credits)}</span></div>
                 )}
                 <div className="flex justify-between"><span>Delivery</span><span>{totals.shipping === 0 ? "Free" : formatGbp(totals.shipping)}</span></div>
-                <div className="flex justify-between font-bold text-lg pt-2"><span>Total</span><span className="text-[#168A7B]">{formatGbp(totals.total)}</span></div>
+                <div className="flex justify-between font-bold text-lg pt-2"><span>Total</span><span className="text-[#0E3D2D]">{formatGbp(totals.total)}</span></div>
               </div>
 
-              <Button type="submit" disabled={submitting || stripeEnabled === null} className="w-full rounded-full bg-[#168A7B] hover:bg-[#0E5A52] h-12" data-testid="btn-place-order">
+              <Button type="submit" disabled={submitting || stripeEnabled === null} className="w-full rounded-full bg-[#0E3D2D] hover:bg-[#0E5A52] h-12" data-testid="btn-place-order">
                 {submitting
                   ? (stripeEnabled ? "Redirecting to Stripe…" : "Placing order…")
                   : (stripeEnabled ? "Pay securely" : "Place order")}

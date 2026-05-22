@@ -162,7 +162,7 @@ export default function ProductDetail() {
                     <Badge className="bg-amber-500 hover:bg-amber-500 text-white border-0">Pharmacy Medicine</Badge>
                   )}
                   {product.classification === "GSL" && (
-                    <Badge variant="outline" className="border-[#168A7B]/40 text-[#168A7B]">General Sales</Badge>
+                    <Badge variant="outline" className="border-[#0E3D2D]/40 text-[#0E3D2D]">General Sales</Badge>
                   )}
                   {product.packSize && <Badge variant="outline">{product.packSize}</Badge>}
                   {product.stock > 10 ? (
@@ -177,7 +177,7 @@ export default function ProductDetail() {
                 <p className="text-lg text-muted-foreground">{product.shortDescription}</p>
 
                 <div className="flex items-baseline gap-3">
-                  <span className="text-4xl font-bold text-[#168A7B]" data-testid="product-detail-price">{formatGbp(product.priceGbp)}</span>
+                  <span className="text-4xl font-bold text-[#0E3D2D]" data-testid="product-detail-price">{formatGbp(product.priceGbp)}</span>
                   {product.rrpGbp && product.rrpGbp > product.priceGbp && (
                     <>
                       <span className="text-lg text-muted-foreground line-through">{formatGbp(product.rrpGbp)}</span>
@@ -191,12 +191,12 @@ export default function ProductDetail() {
                 {!product.requiresConsultation && product.stock > 0 ? (
                   inCartQty > 0 ? (
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-3 px-4 py-3 bg-[#168A7B]/5 border border-[#168A7B]/30 rounded-xl">
+                      <div className="flex items-center justify-between gap-3 px-4 py-3 bg-[#0E3D2D]/5 border border-[#0E3D2D]/30 rounded-xl">
                         <div className="flex items-center gap-2 text-sm font-medium text-[#0E5A52]">
                           <Check className="w-4 h-4" />
                           <span>{inCartQty} in your basket</span>
                         </div>
-                        <div className="flex items-center border border-[#168A7B] rounded-full overflow-hidden bg-white">
+                        <div className="flex items-center border border-[#0E3D2D] rounded-full overflow-hidden bg-white">
                           <button
                             type="button"
                             aria-label="Decrease basket quantity"
@@ -204,7 +204,7 @@ export default function ProductDetail() {
                               if (inCartQty <= 1) removeItem(product.id);
                               else updateQty(product.id, inCartQty - 1);
                             }}
-                            className="p-2 hover:bg-muted text-[#168A7B]"
+                            className="p-2 hover:bg-muted text-[#0E3D2D]"
                             data-testid="btn-cart-qty-minus"
                           >
                             <Minus className="w-4 h-4" />
@@ -220,14 +220,14 @@ export default function ProductDetail() {
                               }
                               updateQty(product.id, inCartQty + 1);
                             }}
-                            className="p-2 hover:bg-muted text-[#168A7B]"
+                            className="p-2 hover:bg-muted text-[#0E3D2D]"
                             data-testid="btn-cart-qty-plus"
                           >
                             <Plus className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
-                      <Button asChild size="lg" className="w-full rounded-full bg-[#168A7B] hover:bg-[#0E5A52]" data-testid="btn-go-to-basket">
+                      <Button asChild size="lg" className="w-full rounded-full bg-[#0E3D2D] hover:bg-[#0E5A52]" data-testid="btn-go-to-basket">
                         <Link href="/cart"><ShoppingBag className="w-4 h-4 mr-2" /> View basket</Link>
                       </Button>
                     </div>
@@ -243,10 +243,10 @@ export default function ProductDetail() {
                       </div>
 
                       <div className="grid sm:grid-cols-2 gap-3">
-                        <Button onClick={handleAdd} variant="outline" size="lg" className="rounded-full border-[#168A7B] text-[#168A7B] hover:bg-[#168A7B]/5" data-testid="btn-add-to-cart">
+                        <Button onClick={handleAdd} variant="outline" size="lg" className="rounded-full border-[#0E3D2D] text-[#0E3D2D] hover:bg-[#0E3D2D]/5" data-testid="btn-add-to-cart">
                           <ShoppingBag className="w-4 h-4 mr-2" /> Add to basket
                         </Button>
-                        <Button onClick={handleBuyNow} size="lg" className="rounded-full bg-[#168A7B] hover:bg-[#0E5A52]" data-testid="btn-buy-now">
+                        <Button onClick={handleBuyNow} size="lg" className="rounded-full bg-[#0E3D2D] hover:bg-[#0E5A52]" data-testid="btn-buy-now">
                           Buy now
                         </Button>
                       </div>
@@ -271,13 +271,13 @@ export default function ProductDetail() {
 
                 <div className="grid grid-cols-3 gap-3 pt-2 border-t">
                   <div className="text-center text-xs text-muted-foreground">
-                    <Truck className="w-5 h-5 mx-auto mb-1 text-[#168A7B]" /> Same-day dispatch
+                    <Truck className="w-5 h-5 mx-auto mb-1 text-[#0E3D2D]" /> Same-day dispatch
                   </div>
                   <div className="text-center text-xs text-muted-foreground">
-                    <ShieldCheck className="w-5 h-5 mx-auto mb-1 text-[#168A7B]" /> GPhC pharmacy
+                    <ShieldCheck className="w-5 h-5 mx-auto mb-1 text-[#0E3D2D]" /> GPhC pharmacy
                   </div>
                   <div className="text-center text-xs text-muted-foreground">
-                    <Check className="w-5 h-5 mx-auto mb-1 text-[#168A7B]" /> Free over £25
+                    <Check className="w-5 h-5 mx-auto mb-1 text-[#0E3D2D]" /> Free over £25
                   </div>
                 </div>
               </motion.div>

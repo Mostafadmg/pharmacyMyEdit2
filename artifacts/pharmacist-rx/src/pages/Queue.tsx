@@ -13,14 +13,13 @@ import {
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-type TypeFilter = "all" | "new_starter" | "transfer" | "simple_repeat" | "custom_request";
+type TypeFilter = "all" | "new_starter" | "transfer" | "simple_repeat";
 
 const TYPE_FILTERS: { id: TypeFilter; label: string; tint: string }[] = [
-  { id: "all", label: "All Status", tint: "bg-stone-100 text-stone-700" },
-  { id: "new_starter", label: "New Starter", tint: "bg-[#F1F8E9] text-[#0E3D2D]" },
+  { id: "all", label: "All", tint: "bg-stone-100 text-stone-700" },
+  { id: "new_starter", label: "New Starter", tint: "bg-[hsl(var(--accent))] text-[hsl(var(--primary))]" },
   { id: "transfer", label: "Transfer", tint: "bg-violet-50 text-violet-700" },
   { id: "simple_repeat", label: "Simple Repeat", tint: "bg-blue-50 text-blue-700" },
-  { id: "custom_request", label: "Custom Request", tint: "bg-orange-50 text-orange-700" },
 ];
 
 function computeAgeBucketCounts(rows: Consultation[]): Record<string, number> {
@@ -43,14 +42,6 @@ function computeAgeBucketCounts(rows: Consultation[]): Record<string, number> {
   }
   return counts;
 }
-
-const TYPE_TOGGLES = [
-  { label: "Awaiting Review", active: true },
-  { label: "New Starter", active: false },
-  { label: "Transfer", active: false },
-  { label: "Simple Repeat", active: false },
-  { label: "Customer Repeat", active: false },
-];
 
 function getType(c: Consultation): { label: string; tint: string; rowBg: string } {
   if (c.previousConsultationId) {
@@ -125,7 +116,6 @@ export function Queue() {
       if (typeFilter === "new_starter" && t !== "new_starter") return false;
       if (typeFilter === "transfer" && t !== "transfer") return false;
       if (typeFilter === "simple_repeat" && t !== "simple_repeat") return false;
-      if (typeFilter === "custom_request") return false;
     }
     return true;
   });
@@ -180,8 +170,8 @@ export function Queue() {
                 className={cn(
                   "px-3 py-1 text-xs rounded-full font-medium border border-transparent",
                   typeFilter === t.id
-                    ? "ring-2 ring-[#7DBE3F]/40 " + t.tint
-                    : t.tint + " opacity-90 hover:opacity-100",
+                    ? "ring-2 ring-[hsl(var(--primary))]/30 " + t.tint
+                    : t.tint + " opacity-70 hover:opacity-100",
                 )}
               >
                 {t.label}
@@ -209,25 +199,6 @@ export function Queue() {
                 </button>
               );
             })}
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap mt-3 pt-3 border-t border-stone-100">
-            <span className="text-[11px] uppercase tracking-wide text-stone-500 font-semibold mr-1">
-              Type
-            </span>
-            {TYPE_TOGGLES.map((t) => (
-              <button
-                key={t.label}
-                className={cn(
-                  "px-3 py-1 text-xs rounded-full font-medium",
-                  t.active
-                    ? "bg-[#7DBE3F] text-white"
-                    : "bg-stone-100 text-stone-700 hover:bg-stone-200",
-                )}
-              >
-                {t.label}
-              </button>
-            ))}
           </div>
 
           <div className="flex items-center gap-3 mt-4 pt-3 border-t border-stone-100 flex-wrap">
@@ -301,7 +272,7 @@ export function Queue() {
                 className={cn(
                   "h-7 w-7 rounded-md text-xs font-medium",
                   p === 1
-                    ? "bg-[#7DBE3F] text-white"
+                    ? "bg-[hsl(var(--primary))] text-white"
                     : "bg-white border border-stone-200 text-stone-700 hover:bg-stone-50",
                 )}
               >

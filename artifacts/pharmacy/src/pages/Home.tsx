@@ -31,10 +31,10 @@ const categoryColors: Record<string, { bg: string; text: string; border: string;
   eye_care: { bg: "bg-[#4B9FE1]/10", text: "text-[#4B9FE1]", border: "border-[#4B9FE1]", icon: "text-[#4B9FE1]" },
   digestive: { bg: "bg-[#F97316]/10", text: "text-[#F97316]", border: "border-[#F97316]", icon: "text-[#F97316]" },
   children_family: { bg: "bg-[#8B5CF6]/10", text: "text-[#8B5CF6]", border: "border-[#8B5CF6]", icon: "text-[#8B5CF6]" },
-  pain_minor_illness: { bg: "bg-[#168A7B]/10", text: "text-[#168A7B]", border: "border-[#168A7B]", icon: "text-[#168A7B]" },
+  pain_minor_illness: { bg: "bg-[#0E3D2D]/10", text: "text-[#0E3D2D]", border: "border-[#0E3D2D]", icon: "text-[#0E3D2D]" },
   allergy: { bg: "bg-[#D97706]/10", text: "text-[#D97706]", border: "border-[#D97706]", icon: "text-[#D97706]" },
   respiratory: { bg: "bg-[#0EA5E9]/10", text: "text-[#0EA5E9]", border: "border-[#0EA5E9]", icon: "text-[#0EA5E9]" },
-  ear: { bg: "bg-[#168A7B]/10", text: "text-[#168A7B]", border: "border-[#168A7B]", icon: "text-[#168A7B]" },
+  ear: { bg: "bg-[#0E3D2D]/10", text: "text-[#0E3D2D]", border: "border-[#0E3D2D]", icon: "text-[#0E3D2D]" },
   urinary: { bg: "bg-[#FF6B6B]/10", text: "text-[#FF6B6B]", border: "border-[#FF6B6B]", icon: "text-[#FF6B6B]" },
   default: { bg: "bg-primary/10", text: "text-primary", border: "border-primary", icon: "text-primary" }
 };

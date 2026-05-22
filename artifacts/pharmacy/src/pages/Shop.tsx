@@ -128,7 +128,7 @@ export default function Shop() {
       <Header />
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-[#168A7B] to-[#0E5A52] text-white py-16">
+      <section className="bg-gradient-to-br from-[#0E3D2D] to-[#0E5A52] text-white py-16">
         <div className="max-w-7xl mx-auto px-6">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl">
             <Badge className="bg-white/20 text-white border-0 mb-4">UK Registered Pharmacy · GPhC 9011677</Badge>
@@ -137,7 +137,7 @@ export default function Shop() {
               Trusted UK pharmacy products, dispatched same-day from our Manchester pharmacy. Free standard delivery on orders over £25.
             </p>
             <div className="relative max-w-xl">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#168A7B]" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#0E3D2D]" />
               <Input
                 placeholder="Search paracetamol, hayfever, vitamins..."
                 value={search}
@@ -153,10 +153,10 @@ export default function Shop() {
       {/* Trust strip */}
       <section className="bg-white border-b border-border/40">
         <div className="max-w-7xl mx-auto px-6 py-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div className="flex items-center gap-2"><Truck className="w-4 h-4 text-[#168A7B]" /> Free UK delivery £25+</div>
-          <div className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-[#168A7B]" /> GPhC registered</div>
-          <div className="flex items-center gap-2"><Star className="w-4 h-4 text-[#168A7B]" /> 4.8 rating from 12k reviews</div>
-          <div className="flex items-center gap-2"><ShoppingBag className="w-4 h-4 text-[#168A7B]" /> Same-day dispatch</div>
+          <div className="flex items-center gap-2"><Truck className="w-4 h-4 text-[#0E3D2D]" /> Free UK delivery £25+</div>
+          <div className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-[#0E3D2D]" /> GPhC registered</div>
+          <div className="flex items-center gap-2"><Star className="w-4 h-4 text-[#0E3D2D]" /> 4.8 rating from 12k reviews</div>
+          <div className="flex items-center gap-2"><ShoppingBag className="w-4 h-4 text-[#0E3D2D]" /> Same-day dispatch</div>
         </div>
       </section>
 
@@ -168,8 +168,8 @@ export default function Shop() {
               onClick={() => setActiveCategory("all")}
               className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all border-2 ${
                 activeCategory === "all"
-                  ? "bg-[#168A7B] border-[#168A7B] text-white shadow-sm"
-                  : "bg-white border-border text-foreground hover:border-[#168A7B]/40 hover:text-[#168A7B]"
+                  ? "bg-[#0E3D2D] border-[#0E3D2D] text-white shadow-sm"
+                  : "bg-white border-border text-foreground hover:border-[#0E3D2D]/40 hover:text-[#0E3D2D]"
               }`}
               data-testid="btn-category-all"
             >
@@ -181,8 +181,8 @@ export default function Shop() {
                 onClick={() => setActiveCategory(c.category)}
                 className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all border-2 ${
                   activeCategory === c.category
-                    ? "bg-[#168A7B] border-[#168A7B] text-white shadow-sm"
-                    : "bg-white border-border text-foreground hover:border-[#168A7B]/40 hover:text-[#168A7B]"
+                    ? "bg-[#0E3D2D] border-[#0E3D2D] text-white shadow-sm"
+                    : "bg-white border-border text-foreground hover:border-[#0E3D2D]/40 hover:text-[#0E3D2D]"
                 }`}
                 data-testid={`btn-category-${c.category}`}
               >
@@ -247,14 +247,14 @@ export default function Shop() {
                       <CardContent className="p-5 flex-1 flex flex-col">
                         <Link href={`/product/${p.slug}`}>
                           {p.brand && <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">{p.brand}</p>}
-                          <h3 className="font-semibold leading-snug text-base line-clamp-2 mb-1.5 hover:text-[#168A7B] transition-colors">{p.name}</h3>
+                          <h3 className="font-semibold leading-snug text-base line-clamp-2 mb-1.5 hover:text-[#0E3D2D] transition-colors">{p.name}</h3>
                           <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{p.shortDescription}</p>
                           {p.packSize && <p className="text-xs text-muted-foreground mb-3">{p.packSize}</p>}
                         </Link>
                         <div className="mt-auto space-y-2">
                           <div className="flex items-end justify-between">
                             <div>
-                              <p className="text-2xl font-bold text-[#168A7B]" data-testid={`product-price-${p.slug}`}>{formatGbp(p.priceGbp)}</p>
+                              <p className="text-2xl font-bold text-[#0E3D2D]" data-testid={`product-price-${p.slug}`}>{formatGbp(p.priceGbp)}</p>
                               {p.rrpGbp && p.rrpGbp > p.priceGbp && (
                                 <p className="text-xs text-muted-foreground line-through">{formatGbp(p.rrpGbp)}</p>
                               )}
@@ -272,14 +272,14 @@ export default function Shop() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => handleQuickAdd(p)}
-                                  className="rounded-full border-[#168A7B] text-[#168A7B] hover:bg-[#168A7B]/5"
+                                  className="rounded-full border-[#0E3D2D] text-[#0E3D2D] hover:bg-[#0E3D2D]/5"
                                   data-testid={`btn-add-${p.slug}`}
                                 >
                                   <Plus className="w-4 h-4 mr-1" /> Add
                                 </Button>
                               ) : (
                                 <div
-                                  className="flex items-center justify-between rounded-full border border-[#168A7B] bg-[#168A7B]/5 overflow-hidden h-9"
+                                  className="flex items-center justify-between rounded-full border border-[#0E3D2D] bg-[#0E3D2D]/5 overflow-hidden h-9"
                                   data-testid={`stepper-${p.slug}`}
                                 >
                                   <button
@@ -290,7 +290,7 @@ export default function Shop() {
                                       if (next <= 0) removeItem(p.id);
                                       else updateQty(p.id, next);
                                     }}
-                                    className="px-3 h-full text-[#168A7B] hover:bg-[#168A7B]/10 flex items-center"
+                                    className="px-3 h-full text-[#0E3D2D] hover:bg-[#0E3D2D]/10 flex items-center"
                                     data-testid={`btn-stepper-minus-${p.slug}`}
                                   >
                                     <Minus className="w-4 h-4" />
@@ -309,7 +309,7 @@ export default function Shop() {
                                       }
                                       updateQty(p.id, cur + 1);
                                     }}
-                                    className="px-3 h-full text-[#168A7B] hover:bg-[#168A7B]/10 flex items-center"
+                                    className="px-3 h-full text-[#0E3D2D] hover:bg-[#0E3D2D]/10 flex items-center"
                                     data-testid={`btn-stepper-plus-${p.slug}`}
                                   >
                                     <Plus className="w-4 h-4" />
