@@ -507,7 +507,17 @@ export default function InjectableWeightLossConsultation() {
         addons: Object.entries(state.addOns).filter(([, q]) => q > 0).map(([id, q]) => ({ id, qty: q })),
       };
 
-      const sexForApi: "male" | "female" = state.assignedSex === "male" ? "male" : "female";
+      if (state.assignedSex !== "male" && state.assignedSex !== "female") {
+        toast({
+          title: "We need your assigned sex at birth",
+          description:
+            "Weight-loss medicines are dosed and contraindicated based on sex at birth. Please go back to Step 6 and select Male or Female so our pharmacists can review safely.",
+          variant: "destructive",
+        });
+        setSubmitting(false);
+        return;
+      }
+      const sexForApi: "male" | "female" = state.assignedSex;
 
       await apiFetch("/api/consultations", {
         method: "POST",
