@@ -5,7 +5,7 @@ import {
   ArrowLeft, ArrowRight, ShieldCheck, Lock, Mail, Phone,
   UserPlus, Upload, ExternalLink, FileText, User, Heart,
   Pill as PillIcon, CheckCircle2, ClipboardCheck, Stethoscope,
-  Syringe, Plus, Minus, Sparkles, Clock,
+  Syringe, Plus, Minus, Sparkles, Clock, Star, TrendingDown,
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -581,21 +581,110 @@ export default function InjectableWeightLossConsultation() {
                 </CardContent></Card>
               </div>
 
+              {/* ── PharmaCare Tracker partner banner ───────────────────── */}
+              <div className="rounded-2xl overflow-hidden mb-5 border border-violet-200 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white">
+                <div className="p-5 flex items-center gap-4">
+                  <div className="w-12 h-12 shrink-0 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center">
+                    <TrendingDown className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] uppercase tracking-wider font-semibold text-white/70">PharmaCare Tracker</p>
+                    <p className="font-bold text-base md:text-lg leading-tight">Track your weight-loss journey with AI</p>
+                    <p className="text-xs text-white/80 mt-0.5">50% off for founding members of our companion app.</p>
+                  </div>
+                  <button type="button" className="hidden sm:inline-flex shrink-0 text-xs font-bold px-3 py-2 rounded-xl bg-white text-violet-700 hover:bg-violet-50">
+                    Join waitlist
+                  </button>
+                </div>
+              </div>
+
+              {/* ── Real Transformations ────────────────────────────────── */}
+              <div className="mb-5">
+                <h2 className="text-center font-serif text-2xl font-bold text-secondary">Real transformations</h2>
+                <p className="text-center text-xs text-muted-foreground mb-4">Verified patient results — anonymised</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    { name: "James, 34", text: "Lost 2 stone on Mounjaro in 5 months", from: "from-sky-100", to: "to-sky-50", accent: "text-sky-700" },
+                    { name: "Sarah, 41", text: "Lost 2.5 stone on Wegovy in 6 months", from: "from-rose-100", to: "to-rose-50", accent: "text-rose-700" },
+                  ].map((t) => (
+                    <Card key={t.name} className="rounded-2xl border-border overflow-hidden">
+                      <div className={`grid grid-cols-2 h-36 bg-gradient-to-br ${t.from} ${t.to}`}>
+                        <div className="relative flex items-end justify-center">
+                          <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary text-white">BEFORE</span>
+                          <User className="w-16 h-16 text-secondary/30 mb-2" />
+                        </div>
+                        <div className="relative flex items-end justify-center border-l border-white/40">
+                          <span className="absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-600 text-white">AFTER</span>
+                          <User className="w-14 h-14 text-secondary/30 mb-2" />
+                        </div>
+                      </div>
+                      <CardContent className="p-3 text-center">
+                        <p className="font-semibold text-secondary text-sm">{t.name}</p>
+                        <p className={`text-xs ${t.accent}`}>{t.text}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Trusted & Certified (enhanced) ─────────────────────── */}
               <SectionCard>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <p className="text-center font-serif font-bold text-secondary text-lg mb-4">Trusted & Certified</p>
+                <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-muted/30">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                     <ShieldCheck className="w-5 h-5" />
                   </div>
-                  <div>
-                    <p className="font-bold text-secondary">Trusted & certified</p>
-                    <p className="text-xs text-muted-foreground">GPhC pharmacy · Reg 9011677 · Superintendent M Zuvaid Patel</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-secondary text-sm">GPhC Registered Pharmacy</p>
+                    <p className="text-xs text-muted-foreground">Reg 9011677 · Superintendent M Zuvaid Patel</p>
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  We're a UK-registered online pharmacy. All consultations are reviewed by an independent pharmacist
-                  prescriber, and we only dispense from licensed UK wholesalers.
-                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center font-extrabold text-xs">EL</div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-rose-800 text-sm leading-tight">Eli Lilly</p>
+                      <p className="text-[10px] text-rose-700">Authorised supplier</p>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-sky-200 bg-sky-50 p-3 flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center font-extrabold text-xs">NN</div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-sky-800 text-sm leading-tight">Novo Nordisk</p>
+                      <p className="text-[10px] text-sky-700">Authorised supplier</p>
+                    </div>
+                  </div>
+                </div>
               </SectionCard>
+
+              {/* ── Why Patients Choose Us ────────────────────────────── */}
+              <div className="mt-5">
+                <h2 className="text-center font-serif text-2xl font-bold text-secondary mb-4">Why patients choose us</h2>
+                <div className="grid grid-cols-1 gap-3">
+                  {[
+                    { name: "Dave", text: "Customer service was excellent. Emailed to say there was a problem with my order due to the delivery — it was in no way PharmaCare's fault, but still organised a full re-order to be sent again soon. Excellent company that I'll be using in the future." },
+                    { name: "Marison", text: "Very happy with this company and my order — best thing was actually being able to speak to someone in person about the process!" },
+                  ].map((r) => (
+                    <Card key={r.name} className="rounded-2xl border-border">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-0.5 mb-2 text-amber-400">
+                          {[0,1,2,3,4].map(i => <Star key={i} className="w-4 h-4 fill-current" />)}
+                        </div>
+                        <p className="text-sm text-foreground/80 mb-3 leading-relaxed">"{r.text}"</p>
+                        <div className="flex items-center gap-2 pt-2 border-t border-border/60">
+                          <div className="w-7 h-7 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-bold">
+                            {r.name.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-secondary text-sm leading-tight">{r.name}</p>
+                            <p className="text-[10px] text-muted-foreground">Verified purchase</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
 
               <div className="mt-8">
                 <Button

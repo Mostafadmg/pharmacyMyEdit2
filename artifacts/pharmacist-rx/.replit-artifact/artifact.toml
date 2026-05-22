@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/rx/"
+title = "PharmaCare Rx — Prescriber Portal"
+version = "1.0.0"
+id = "artifacts/pharmacist-rx"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/rx/" ]
+localPort = 20823
+
+[services.development]
+run = "pnpm --filter @workspace/pharmacist-rx run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/pharmacist-rx", "run", "build" ]
+publicDir = "artifacts/pharmacist-rx/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20823"
+BASE_PATH = "/rx/"
