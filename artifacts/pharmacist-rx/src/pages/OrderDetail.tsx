@@ -419,8 +419,11 @@ function AutoFlags({ c }: { c: Consultation }) {
 // ─── CENTER: TABS BAR ──────────────────────────────────────────────────────
 function TabsBar({ current, onChange }: { current: TabId; onChange: (t: TabId) => void }) {
   return (
-    <div className="bg-white border border-stone-200 rounded-xl px-2">
-      <div className="flex items-center gap-1 overflow-x-auto">
+    <div className="bg-white border border-stone-200 rounded-xl p-1.5">
+      <div
+        className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        role="tablist"
+      >
         {TABS.map((t) => {
           const Icon = t.icon;
           const active = current === t.id;
@@ -429,21 +432,23 @@ function TabsBar({ current, onChange }: { current: TabId; onChange: (t: TabId) =
               key={t.id}
               onClick={() => onChange(t.id)}
               data-testid={`tab-${t.id}`}
+              role="tab"
+              aria-selected={active}
               className={cn(
-                "shrink-0 inline-flex items-center gap-1.5 px-3 py-3 text-sm border-b-2 -mb-px transition-colors",
+                "shrink-0 inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-2 text-[13px] sm:text-sm rounded-lg transition-colors whitespace-nowrap",
                 active
-                  ? "border-[#0E3D2D] text-[#0E3D2D] font-semibold"
-                  : "border-transparent text-stone-500 hover:text-stone-700",
+                  ? "bg-[hsl(var(--accent))] text-[hsl(var(--primary))] font-semibold"
+                  : "text-stone-600 hover:bg-stone-50 hover:text-stone-900",
               )}
             >
-              <Icon className="h-4 w-4" />
-              {t.label}
+              <Icon className="h-4 w-4 shrink-0" />
+              <span>{t.label}</span>
               {t.badge && (
                 <span
                   className={cn(
-                    "ml-1 text-[10px] px-1.5 py-0.5 rounded-full",
+                    "ml-0.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 text-[10px] font-semibold rounded-full",
                     active
-                      ? "bg-emerald-100 text-emerald-700"
+                      ? "bg-white text-[hsl(var(--primary))]"
                       : "bg-rose-100 text-rose-600",
                   )}
                 >
