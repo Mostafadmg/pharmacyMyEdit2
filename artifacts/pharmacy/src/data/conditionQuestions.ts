@@ -1,27 +1,94 @@
-import { newConditionQuestions, conditionAliases } from './newConditionsData';
+// Consumer (Consultation.tsx) needs migration to new question kinds — see session plan T003.
+//
+// Per-condition clinical questionnaire schemas for the patient pharmacy app.
+// Data-only module. Strict types, no `any`. Single source of truth for clinical
+// + eligibility questions used during the consultation flow.
 
-export type QuestionType = 'radio' | 'textarea' | 'checkbox_group';
+export type QuestionKind =
+  | 'radio'
+  | 'yesno'
+  | 'checkbox-multi'
+  | 'number'
+  | 'date'
+  | 'text'
+  | 'textarea'
+  | 'select';
 
-export interface Option {
+export interface QOption {
   value: string;
   label: string;
+  subtitle?: string;
 }
 
-export interface ClinicalQuestion {
+export interface BaseQuestion {
   id: string;
   text: string;
   subtext?: string;
-  type: QuestionType;
-  options?: Option[];
+  kind: QuestionKind;
   required?: boolean;
 }
+
+export interface RadioQuestion extends BaseQuestion {
+  kind: 'radio';
+  options: QOption[];
+}
+
+export interface YesNoQuestion extends BaseQuestion {
+  kind: 'yesno';
+}
+
+export interface CheckboxMultiQuestion extends BaseQuestion {
+  kind: 'checkbox-multi';
+  options: QOption[];
+  noneValue?: string;
+}
+
+export interface NumberQuestion extends BaseQuestion {
+  kind: 'number';
+  unit?: string;
+  unitToggle?: { options: { value: string; label: string }[]; default: string };
+  min?: number;
+  max?: number;
+  placeholder?: string;
+}
+
+export interface DateQuestion extends BaseQuestion {
+  kind: 'date';
+  min?: string;
+  max?: string;
+}
+
+export interface TextQuestion extends BaseQuestion {
+  kind: 'text' | 'textarea';
+  placeholder?: string;
+  maxLength?: number;
+}
+
+export interface SelectQuestion extends BaseQuestion {
+  kind: 'select';
+  options: QOption[];
+  placeholder?: string;
+}
+
+export type ClinicalQuestion =
+  | RadioQuestion
+  | YesNoQuestion
+  | CheckboxMultiQuestion
+  | NumberQuestion
+  | DateQuestion
+  | TextQuestion
+  | SelectQuestion;
+
+export type EligibilitySeverity = 'soft' | 'hard';
 
 export interface EligibilityQuestion {
   id: string;
   text: string;
   subtext?: string;
   blockingAnswer: 'yes' | 'no';
-  blockingMessage: string;
+  severity: EligibilitySeverity;
+  blockMessage: string;
+  blockTitle?: string;
 }
 
 export interface ConditionQuestionnaire {
@@ -29,2102 +96,2236 @@ export interface ConditionQuestionnaire {
   clinicalQuestions: ClinicalQuestion[];
 }
 
-const YES_NO: Option[] = [
-  { value: 'yes', label: 'Yes' },
-  { value: 'no', label: 'No' },
-];
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
 
-export const conditionQuestions: Record<string, ConditionQuestionnaire> = {
+const softReview = (reason: string): string =>
+  `Thanks for telling us. Because of ${reason}, our pharmacist will need to review this carefully before prescribing. You can still continue and we'll route it to a clinician — or change your answer if you've thought again.`;
 
-  'acne-vulgaris': {
-    eligibilityQuestions: [
-      {
-        id: 'fever_with_acne',
-        text: 'Do you have a high temperature (above 38°C) alongside your acne?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'A fever with acne may indicate a serious skin infection. Please see your GP or call NHS 111 for advice.',
-      },
-      {
-        id: 'isotretinoin',
-        text: 'Are you currently taking or have you taken isotretinoin (Roaccutane) in the past 6 months?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'We are unable to treat patients currently on or recently off isotretinoin online. Please speak to your dermatologist or GP.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'duration',
-        text: 'How long have you been experiencing acne?',
-        type: 'radio',
-        options: [
-          { value: 'less_3mo', label: 'Less than 3 months' },
-          { value: '3_to_12mo', label: '3 to 12 months' },
-          { value: 'over_1yr', label: 'Over 1 year' },
-        ],
-        required: true,
-      },
-      {
-        id: 'severity',
-        text: 'How would you rate the severity of your acne?',
-        type: 'radio',
-        options: [
-          { value: 'mild', label: 'Mild – a few blackheads or small spots' },
-          { value: 'moderate', label: 'Moderate – many spots with some redness and inflammation' },
-          { value: 'severe', label: 'Severe – widespread inflamed spots, but no large cysts' },
-        ],
-        required: true,
-      },
-      {
-        id: 'location',
-        text: 'Where on your body is the acne mainly located?',
-        type: 'radio',
-        options: [
-          { value: 'face', label: 'Face only' },
-          { value: 'face_neck', label: 'Face and neck' },
-          { value: 'back_chest', label: 'Back and chest' },
-          { value: 'multiple', label: 'Multiple areas' },
-        ],
-        required: true,
-      },
-      {
-        id: 'previous_treatments',
-        text: 'Have you tried any acne treatments before?',
-        subtext: 'Include any creams, gels, antibiotics or other treatments, and whether they helped.',
-        type: 'textarea',
-      },
-      {
-        id: 'skincare',
-        text: 'Are you currently using any skincare products?',
-        subtext: 'E.g. cleansers, moisturisers, SPF, makeup. Some products can worsen acne.',
-        type: 'textarea',
-      },
-      {
-        id: 'contraception',
-        text: 'Do you use any hormonal contraception?',
-        subtext: 'This is relevant as some contraceptives can affect acne.',
-        type: 'radio',
-        options: [
-          { value: 'yes', label: 'Yes – combined pill or patch' },
-          { value: 'progesterone_only', label: 'Yes – progesterone-only pill or implant' },
-          { value: 'no', label: 'No' },
-          { value: 'not_applicable', label: 'Not applicable' },
-        ],
-      },
-    ],
-  },
+// ─────────────────────────────────────────────────────────────────────────────
+// Common eligibility templates
+// ─────────────────────────────────────────────────────────────────────────────
 
-  'allergic-rhinitis': {
-    eligibilityQuestions: [
-      {
-        id: 'breathing_difficulty',
-        text: 'Do you experience difficulty breathing, severe shortness of breath, or wheezing?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'These symptoms may indicate asthma or a serious allergic reaction. Please see your GP or call NHS 111 immediately.',
-      },
-      {
-        id: 'anaphylaxis',
-        text: 'Have you ever had a severe allergic reaction (anaphylaxis) with facial swelling or throat tightness?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'A history of anaphylaxis requires specialist allergy management. Please see your GP who can refer you to an allergy clinic.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'duration',
-        text: 'How long have you experienced hayfever or allergic rhinitis?',
-        type: 'radio',
-        options: [
-          { value: 'first', label: 'This is a new problem' },
-          { value: 'under_1yr', label: 'Less than 1 year' },
-          { value: '1_5yr', label: '1–5 years' },
-          { value: 'over_5yr', label: 'Over 5 years' },
-        ],
-        required: true,
-      },
-      {
-        id: 'symptoms',
-        text: 'Which symptoms do you experience?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'sneezing', label: 'Sneezing' },
-          { value: 'runny_nose', label: 'Runny nose' },
-          { value: 'blocked_nose', label: 'Blocked nose' },
-          { value: 'itchy_eyes', label: 'Itchy eyes' },
-          { value: 'watery_eyes', label: 'Watery eyes' },
-          { value: 'itchy_throat', label: 'Itchy throat' },
-          { value: 'loss_of_smell', label: 'Loss of smell' },
-        ],
-        required: true,
-      },
-      {
-        id: 'triggers',
-        text: 'When do your symptoms typically occur?',
-        type: 'radio',
-        options: [
-          { value: 'year_round', label: 'Year round (perennial)' },
-          { value: 'seasonal', label: 'Mainly spring/summer – pollen season' },
-          { value: 'animals', label: 'Around animals' },
-          { value: 'dusty', label: 'In dusty or damp environments' },
-          { value: 'multiple', label: 'Multiple triggers' },
-        ],
-        required: true,
-      },
-      {
-        id: 'impact',
-        text: 'How much do the symptoms affect your daily life?',
-        type: 'radio',
-        options: [
-          { value: 'mild', label: 'Mild – annoying but manageable' },
-          { value: 'moderate', label: 'Moderate – significantly affects work, sleep or quality of life' },
-          { value: 'severe', label: 'Severe – prevents normal daily activities' },
-        ],
-        required: true,
-      },
-      {
-        id: 'previous_treatments',
-        text: 'Have you tried any allergy treatments?',
-        subtext: 'Including antihistamines, nasal sprays, or eye drops – and how well they worked.',
-        type: 'textarea',
-      },
-    ],
-  },
+const softPregnancy = (drugContext = 'this treatment'): EligibilityQuestion => ({
+  id: 'pregnant_or_breastfeeding',
+  text: 'Are you pregnant, trying to conceive, or breastfeeding?',
+  blockingAnswer: 'yes',
+  severity: 'soft',
+  blockMessage: softReview(`${drugContext} needs careful review in pregnancy or while breastfeeding`),
+  blockTitle: 'Pharmacist review needed',
+});
 
-  'athletes-foot': {
-    eligibilityQuestions: [
-      {
-        id: 'infection_signs',
-        text: 'Is the skin broken, severely cracked, or showing signs of spreading infection (redness spreading up the foot, pus, increasing warmth)?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'These signs may indicate a bacterial infection (cellulitis) that requires antibiotics. Please see your GP or visit an urgent care centre.',
-      },
-      {
-        id: 'diabetes',
-        text: 'Do you have diabetes or a condition that affects your immune system?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Fungal foot infections in people with diabetes or immune conditions require closer medical supervision. Please see your GP or diabetic foot team.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'duration',
-        text: 'How long have you had athlete\'s foot?',
-        type: 'radio',
-        options: [
-          { value: 'under_1wk', label: 'Less than 1 week' },
-          { value: '1_4wk', label: '1–4 weeks' },
-          { value: '1_3mo', label: '1–3 months' },
-          { value: 'over_3mo', label: 'Over 3 months' },
-        ],
-        required: true,
-      },
-      {
-        id: 'location',
-        text: 'Where on your foot is it mainly located?',
-        type: 'radio',
-        options: [
-          { value: 'between_toes', label: 'Between the toes' },
-          { value: 'sole', label: 'Sole of the foot' },
-          { value: 'heel', label: 'Around the heel' },
-          { value: 'multiple', label: 'Multiple areas' },
-        ],
-        required: true,
-      },
-      {
-        id: 'symptoms',
-        text: 'What symptoms are you experiencing?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'itching', label: 'Itching or burning between toes' },
-          { value: 'peeling', label: 'Peeling or flaking skin' },
-          { value: 'red_raw', label: 'Red, raw skin' },
-          { value: 'blisters', label: 'Small blisters' },
-          { value: 'thickened', label: 'Thickened or dry skin' },
-          { value: 'odour', label: 'Unpleasant odour' },
-        ],
-        required: true,
-      },
-      {
-        id: 'previous_treatments',
-        text: 'Have you tried any antifungal treatments?',
-        subtext: 'Please include what you used, for how long, and whether it helped.',
-        type: 'textarea',
-      },
-      {
-        id: 'lifestyle',
-        text: 'Do you regularly use communal changing areas such as gyms or swimming pools?',
-        type: 'radio',
-        options: YES_NO,
-      },
-    ],
-  },
+// ─────────────────────────────────────────────────────────────────────────────
+// Questionnaires
+// ─────────────────────────────────────────────────────────────────────────────
 
-  'back-pain': {
-    eligibilityQuestions: [
-      {
-        id: 'cauda_equina',
-        text: 'Do you have any problems with bladder or bowel control, or numbness/tingling in your groin or inner thighs?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'These symptoms may indicate cauda equina syndrome — a medical emergency. Please call 999 or go to A&E immediately.',
-      },
-      {
-        id: 'trauma',
-        text: 'Did your back pain start after a significant fall, road traffic accident, or direct impact?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Back pain following trauma requires physical examination to rule out fractures. Please go to A&E or an urgent care centre.',
-      },
-      {
-        id: 'cancer_weightloss',
-        text: 'Do you have unexplained weight loss, or a personal history of cancer?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Back pain with these features requires urgent investigation. Please see your GP today or call NHS 111.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'location',
-        text: 'Where is your pain located?',
-        type: 'radio',
-        options: [
-          { value: 'lower', label: 'Lower back' },
-          { value: 'middle', label: 'Middle back' },
-          { value: 'upper', label: 'Upper back / between shoulder blades' },
-          { value: 'radiating', label: 'Back with pain radiating into the leg (sciatica)' },
-          { value: 'multiple', label: 'Multiple areas' },
-        ],
-        required: true,
-      },
-      {
-        id: 'duration',
-        text: 'How long have you had this pain?',
-        type: 'radio',
-        options: [
-          { value: 'under_1wk', label: 'Less than 1 week' },
-          { value: '1_4wk', label: '1–4 weeks' },
-          { value: '1_3mo', label: '1–3 months' },
-          { value: 'over_3mo', label: 'Over 3 months (chronic)' },
-        ],
-        required: true,
-      },
-      {
-        id: 'nature',
-        text: 'How would you describe the pain?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'aching', label: 'Aching or dull' },
-          { value: 'sharp', label: 'Sharp or stabbing' },
-          { value: 'burning', label: 'Burning' },
-          { value: 'shooting', label: 'Shooting down into the leg' },
-          { value: 'stiffness', label: 'Stiffness' },
-          { value: 'spasm', label: 'Muscle spasm' },
-        ],
-        required: true,
-      },
-      {
-        id: 'severity',
-        text: 'How would you rate your pain on average?',
-        type: 'radio',
-        options: [
-          { value: '1_3', label: '1–3 out of 10 – Mild (background discomfort)' },
-          { value: '4_6', label: '4–6 out of 10 – Moderate (noticeably affects daily life)' },
-          { value: '7_10', label: '7–10 out of 10 – Severe (difficult to function)' },
-        ],
-        required: true,
-      },
-      {
-        id: 'aggravating',
-        text: 'What makes your pain worse?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'sitting', label: 'Sitting for long periods' },
-          { value: 'standing', label: 'Standing' },
-          { value: 'walking', label: 'Walking' },
-          { value: 'bending', label: 'Bending or lifting' },
-          { value: 'morning', label: 'Morning stiffness' },
-          { value: 'nothing', label: 'No particular trigger' },
-        ],
-      },
-      {
-        id: 'previous_treatments',
-        text: 'What have you tried so far for the pain?',
-        subtext: 'Include any painkillers, physiotherapy, or other treatments and their effectiveness.',
-        type: 'textarea',
-      },
-    ],
-  },
+const erectileDysfunction: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    {
+      id: 'chest_pain_now',
+      text: 'Are you experiencing chest pain, severe breathlessness, or symptoms of a heart attack right now?',
+      blockingAnswer: 'yes',
+      severity: 'hard',
+      blockMessage: 'Please call 999 or go to A&E immediately. Do not continue with this consultation.',
+      blockTitle: 'Medical emergency',
+    },
+    {
+      id: 'nitrates',
+      text: 'Do you take any nitrate medicines (e.g. GTN spray, isosorbide mononitrate/dinitrate) for chest pain?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('PDE5 inhibitors are contraindicated with nitrates'),
+    },
+    {
+      id: 'riociguat',
+      text: 'Do you take riociguat (Adempas) for pulmonary hypertension?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('riociguat must not be combined with PDE5 inhibitors'),
+    },
+    {
+      id: 'recent_cardiac_event',
+      text: 'Have you had a heart attack, stroke, or unstable angina in the last 6 months?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('a recent cardiac event'),
+    },
+    {
+      id: 'recreational_nitrates',
+      text: 'Do you use recreational drugs such as amyl nitrate ("poppers")?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('amyl nitrate interacts dangerously with ED medicines'),
+    },
+  ],
+  clinicalQuestions: [
+    {
+      id: 'duration',
+      text: 'How long have you been experiencing erection problems?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'under_3mo', label: 'Less than 3 months' },
+        { value: '3_12mo', label: '3 – 12 months' },
+        { value: '1_3yr', label: '1 – 3 years' },
+        { value: 'over_3yr', label: 'More than 3 years' },
+      ],
+    },
+    {
+      id: 'onset',
+      text: 'Did the problem come on gradually or suddenly?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'gradual', label: 'Gradually over weeks or months' },
+        { value: 'sudden', label: 'Suddenly' },
+      ],
+    },
+    {
+      id: 'morning_erections',
+      text: 'Do you still get spontaneous erections in the morning or at night?',
+      kind: 'yesno',
+      required: true,
+    },
+    {
+      id: 'context',
+      text: 'Does the difficulty seem more related to physical or psychological factors?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'physical', label: 'Mostly physical (always, in any situation)' },
+        { value: 'psychological', label: 'Mostly psychological (varies with partner / stress)' },
+        { value: 'mixed', label: 'A mix of both' },
+        { value: 'unsure', label: 'Not sure' },
+      ],
+    },
+    {
+      id: 'previous_pde5',
+      text: 'Have you taken ED medicines before (sildenafil, tadalafil, vardenafil, avanafil)?',
+      kind: 'yesno',
+    },
+    {
+      id: 'previous_pde5_which',
+      text: 'If yes, which medicine(s) and dose worked best for you?',
+      kind: 'text',
+      placeholder: 'e.g. Sildenafil 100mg worked well',
+    },
+    {
+      id: 'preferred_treatment',
+      text: 'Which treatment would you prefer?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'sildenafil', label: 'Sildenafil (generic Viagra) — on-demand' },
+        { value: 'tadalafil_prn', label: 'Tadalafil on-demand — works up to 36 hours' },
+        { value: 'tadalafil_daily', label: 'Tadalafil daily 5mg — for spontaneity' },
+        { value: 'vardenafil', label: 'Vardenafil (Levitra)' },
+        { value: 'avanafil', label: 'Avanafil (Spedra) — fast onset' },
+        { value: 'unsure', label: 'Not sure — recommend based on my answers' },
+      ],
+    },
+    {
+      id: 'cv_conditions',
+      text: 'Do you have any of the following cardiovascular conditions?',
+      kind: 'checkbox-multi',
+      noneValue: 'none',
+      options: [
+        { value: 'high_bp', label: 'High blood pressure' },
+        { value: 'angina', label: 'Angina (stable)' },
+        { value: 'previous_mi', label: 'Previous heart attack (>6 months ago)' },
+        { value: 'previous_stroke', label: 'Previous stroke (>6 months ago)' },
+        { value: 'heart_failure', label: 'Heart failure' },
+        { value: 'arrhythmia', label: 'Irregular heartbeat / arrhythmia' },
+        { value: 'pulmonary_htn', label: 'Pulmonary hypertension' },
+        { value: 'none', label: 'None of these' },
+      ],
+    },
+    {
+      id: 'systolic_bp',
+      text: 'If you know it, what is your systolic blood pressure (top number)?',
+      kind: 'number',
+      unit: 'mmHg',
+      min: 70,
+      max: 250,
+      placeholder: 'e.g. 128',
+    },
+    {
+      id: 'diastolic_bp',
+      text: 'If you know it, what is your diastolic blood pressure (bottom number)?',
+      kind: 'number',
+      unit: 'mmHg',
+      min: 40,
+      max: 150,
+      placeholder: 'e.g. 82',
+    },
+    {
+      id: 'alpha_blockers',
+      text: 'Do you take an alpha-blocker (e.g. tamsulosin, doxazosin, alfuzosin) for prostate or blood pressure?',
+      kind: 'yesno',
+    },
+    {
+      id: 'current_meds',
+      text: 'Please list any other prescription or over-the-counter medicines you take.',
+      kind: 'textarea',
+      placeholder: 'Include doses if you know them',
+    },
+    {
+      id: 'allergies',
+      text: 'Do you have any medicine allergies?',
+      kind: 'text',
+      placeholder: 'e.g. penicillin — rash',
+    },
+  ],
+};
 
-  'chickenpox': {
-    eligibilityQuestions: [
-      {
-        id: 'adult',
-        text: 'Is this consultation for an adult aged 18 or over?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Chickenpox in adults is often more severe and may require antiviral medication. Please contact your GP today for advice.',
-      },
-      {
-        id: 'immunocompromised',
-        text: 'Does the child have a weakened immune system, or are they taking steroids or chemotherapy?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Chickenpox in immunocompromised children is a medical emergency. Call your GP or NHS 111 immediately.',
-      },
-      {
-        id: 'eye_rash',
-        text: 'Is there a rash involving or around the eyes?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'A rash near the eyes requires urgent ophthalmological assessment. Please go to A&E or an eye emergency department.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'age',
-        text: 'How old is the child?',
-        type: 'radio',
-        options: [
-          { value: 'under_1', label: 'Under 1 year' },
-          { value: '1_5', label: '1–5 years' },
-          { value: '6_10', label: '6–10 years' },
-          { value: '11_17', label: '11–17 years' },
-        ],
-        required: true,
-      },
-      {
-        id: 'rash_onset',
-        text: 'When did the rash appear?',
-        type: 'radio',
-        options: [
-          { value: 'today', label: 'Today' },
-          { value: '1_2d', label: '1–2 days ago' },
-          { value: '3_5d', label: '3–5 days ago' },
-          { value: 'over_5d', label: 'Over 5 days ago' },
-        ],
-        required: true,
-      },
-      {
-        id: 'wellbeing',
-        text: 'How is the child feeling generally?',
-        type: 'radio',
-        options: [
-          { value: 'well', label: 'Well – eating, drinking and playing normally' },
-          { value: 'unwell', label: 'Unwell – off food but no significant distress' },
-          { value: 'very_unwell', label: 'Very unwell – high fever and significant distress' },
-        ],
-        required: true,
-      },
-      {
-        id: 'rash_description',
-        text: 'What does the rash look like?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'red_spots', label: 'Small red or pink spots' },
-          { value: 'blisters', label: 'Fluid-filled blisters' },
-          { value: 'scabs', label: 'Scabbed or crusted spots' },
-          { value: 'widespread', label: 'Spots all over the body' },
-          { value: 'trunk_mainly', label: 'Mainly on the trunk/body' },
-        ],
-        required: true,
-      },
-      {
-        id: 'vaccinated',
-        text: 'Has the child had the chickenpox vaccine?',
-        type: 'radio',
-        options: [
-          { value: 'yes', label: 'Yes' },
-          { value: 'no', label: 'No' },
-          { value: 'unsure', label: 'Unsure' },
-        ],
-      },
-    ],
-  },
+const prematureEjaculation: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    {
+      id: 'maoi',
+      text: 'Are you taking a MAOI antidepressant (e.g. phenelzine, isocarboxazid, moclobemide, selegiline)?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('MAOIs interact dangerously with dapoxetine/SSRIs'),
+    },
+    {
+      id: 'ssri',
+      text: 'Are you currently taking an SSRI or SNRI antidepressant?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('combining serotonergic medicines can be risky'),
+    },
+    {
+      id: 'fainting',
+      text: 'Have you ever fainted, or do you have a history of orthostatic hypotension?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('dapoxetine can cause fainting in susceptible patients'),
+    },
+  ],
+  clinicalQuestions: [
+    {
+      id: 'duration',
+      text: 'How long has premature ejaculation been a concern for you?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'lifelong', label: 'Since I became sexually active (lifelong)' },
+        { value: 'over_1yr', label: 'Over a year' },
+        { value: '6_12mo', label: '6 – 12 months' },
+        { value: 'under_6mo', label: 'Less than 6 months' },
+      ],
+    },
+    {
+      id: 'ielt',
+      text: 'On average, roughly how long from penetration to ejaculation?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'under_1', label: 'Less than 1 minute' },
+        { value: '1_3', label: '1 – 3 minutes' },
+        { value: '3_5', label: '3 – 5 minutes' },
+        { value: 'over_5', label: 'More than 5 minutes (but still distressing)' },
+      ],
+    },
+    {
+      id: 'distress',
+      text: 'How much distress does this cause you or your partner?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'mild', label: 'Mild' },
+        { value: 'moderate', label: 'Moderate' },
+        { value: 'severe', label: 'Severe — significantly affects relationships or confidence' },
+      ],
+    },
+    {
+      id: 'previous_treatments',
+      text: 'Have you tried any treatments for PE before?',
+      kind: 'text',
+      placeholder: 'e.g. lidocaine spray, dapoxetine 30mg',
+    },
+    {
+      id: 'preferred_treatment',
+      text: 'Which treatment would you prefer?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'dapoxetine', label: 'Dapoxetine (Priligy) — on-demand tablet' },
+        { value: 'ssri', label: 'Off-label daily SSRI' },
+        { value: 'lidocaine', label: 'Lidocaine/prilocaine spray or cream (topical)' },
+        { value: 'unsure', label: 'Not sure — recommend based on my answers' },
+      ],
+    },
+  ],
+};
 
-  'cold-sores': {
-    eligibilityQuestions: [
-      {
-        id: 'eye_involvement',
-        text: 'Is the cold sore near your eye, or do you have any redness, pain, or visual changes in the eye?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Cold sores near the eye can cause serious vision damage (ocular herpes). Please see your GP or go to an eye emergency department today.',
-      },
-      {
-        id: 'immunocompromised',
-        text: 'Do you have a weakened immune system (e.g. HIV, cancer treatment, organ transplant, high-dose steroids)?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Cold sores in immunocompromised individuals can be severe and require medical management. Please see your GP.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'stage',
-        text: 'Which stage is your cold sore currently at?',
-        type: 'radio',
-        options: [
-          { value: 'tingling', label: 'Tingling, itching or burning (no visible sore yet)' },
-          { value: 'blisters', label: 'Small blisters have appeared' },
-          { value: 'weeping', label: 'Blisters have burst and are weeping' },
-          { value: 'scabbing', label: 'Scabbing over and healing' },
-        ],
-        required: true,
-      },
-      {
-        id: 'onset',
-        text: 'When did symptoms first start?',
-        type: 'radio',
-        options: [
-          { value: 'under_24h', label: 'In the last 24 hours' },
-          { value: '1_3d', label: '1–3 days ago' },
-          { value: '4_7d', label: '4–7 days ago' },
-          { value: 'over_7d', label: 'Over 7 days ago' },
-        ],
-        required: true,
-      },
-      {
-        id: 'frequency',
-        text: 'How often do you get cold sores?',
-        type: 'radio',
-        options: [
-          { value: 'first', label: 'This is my first cold sore' },
-          { value: 'few_yr', label: 'A few times a year' },
-          { value: 'monthly', label: 'Monthly or more frequently' },
-        ],
-        required: true,
-      },
-      {
-        id: 'previous_treatments',
-        text: 'Have you used antiviral cold sore treatments before (e.g. aciclovir cream)?',
-        subtext: 'Please include how effective they were.',
-        type: 'textarea',
-      },
-      {
-        id: 'triggers',
-        text: 'Do you know what triggered this outbreak?',
-        type: 'textarea',
-        subtext: 'E.g. stress, sun exposure, illness, tiredness.',
-      },
-    ],
-  },
+const hairLoss: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    {
+      id: 'female_or_trans_female',
+      text: 'Were you assigned female at birth?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('finasteride is not licensed for female-pattern hair loss and needs specialist review'),
+    },
+    {
+      id: 'prostate_cancer',
+      text: 'Do you have, or have you had, prostate cancer?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('finasteride affects PSA monitoring in prostate cancer'),
+    },
+  ],
+  clinicalQuestions: [
+    {
+      id: 'onset_age',
+      text: 'At what age did you first notice hair loss?',
+      kind: 'number',
+      min: 10,
+      max: 100,
+      unit: 'years',
+      placeholder: 'e.g. 28',
+    },
+    {
+      id: 'duration',
+      text: 'How long have you been losing hair?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'under_6mo', label: 'Less than 6 months' },
+        { value: '6_12mo', label: '6 – 12 months' },
+        { value: '1_3yr', label: '1 – 3 years' },
+        { value: 'over_3yr', label: 'Over 3 years' },
+      ],
+    },
+    {
+      id: 'pattern',
+      text: 'Which pattern best describes your hair loss?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'receding', label: 'Receding hairline / temples' },
+        { value: 'crown', label: 'Thinning at the crown' },
+        { value: 'both', label: 'Both receding and crown thinning' },
+        { value: 'diffuse', label: 'Diffuse thinning all over' },
+      ],
+    },
+    {
+      id: 'family_history',
+      text: 'Is there a family history of male-pattern baldness?',
+      kind: 'yesno',
+    },
+    {
+      id: 'rate',
+      text: 'Has the loss been gradual or sudden?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'gradual', label: 'Gradual' },
+        { value: 'sudden', label: 'Sudden (over weeks)' },
+      ],
+    },
+    {
+      id: 'other_hair_changes',
+      text: 'Have you noticed other body hair changes, beard thinning, or patchy bald spots?',
+      kind: 'yesno',
+    },
+    {
+      id: 'previous_treatments',
+      text: 'Have you used finasteride or minoxidil before?',
+      kind: 'yesno',
+    },
+    {
+      id: 'previous_duration',
+      text: 'If yes, which one(s) and for how long?',
+      kind: 'text',
+      placeholder: 'e.g. Minoxidil 5% topical for 8 months',
+    },
+    {
+      id: 'preferred_treatment',
+      text: 'Which treatment would you prefer?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'finasteride', label: 'Finasteride 1mg tablet' },
+        { value: 'minoxidil', label: 'Minoxidil 5% topical' },
+        { value: 'both', label: 'Both finasteride and minoxidil' },
+        { value: 'unsure', label: 'Not sure — recommend based on my answers' },
+      ],
+    },
+    {
+      id: 'prostate_issues',
+      text: 'Do you have any known prostate issues (e.g. enlarged prostate)?',
+      kind: 'yesno',
+    },
+    {
+      id: 'allergies',
+      text: 'Do you have any medicine allergies?',
+      kind: 'text',
+    },
+    {
+      id: 'photo_prompt',
+      text: 'Please upload a clear photo of the affected area (top of head and hairline).',
+      subtext: 'You will be prompted to upload at the end of this consultation.',
+      kind: 'textarea',
+      placeholder: 'Any extra context about your photos (optional)',
+    },
+  ],
+};
 
-  'conjunctivitis': {
-    eligibilityQuestions: [
-      {
-        id: 'vision_changes',
-        text: 'Are you experiencing any changes in your vision, or significant pain inside the eye (not just surface discomfort)?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Vision changes or severe eye pain require urgent assessment. Please go to an eye emergency department or A&E immediately.',
-      },
-      {
-        id: 'contact_lens',
-        text: 'Are you a contact lens wearer whose symptoms have not improved after 24 hours of not wearing your lenses?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Contact lens-related eye infections need prompt assessment by an optometrist or GP. Please remove your lenses and seek advice today.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'eye_affected',
-        text: 'Which eye(s) are affected?',
-        type: 'radio',
-        options: [
-          { value: 'left', label: 'Left eye only' },
-          { value: 'right', label: 'Right eye only' },
-          { value: 'both', label: 'Both eyes' },
-        ],
-        required: true,
-      },
-      {
-        id: 'duration',
-        text: 'How long have you had the symptoms?',
-        type: 'radio',
-        options: [
-          { value: 'under_24h', label: 'Less than 24 hours' },
-          { value: '1_3d', label: '1–3 days' },
-          { value: '3_7d', label: '3–7 days' },
-          { value: 'over_1wk', label: 'Over 1 week' },
-        ],
-        required: true,
-      },
-      {
-        id: 'symptoms',
-        text: 'What symptoms do you have?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'discharge', label: 'Sticky yellow or green discharge' },
-          { value: 'red', label: 'Red or pink eye' },
-          { value: 'crusty', label: 'Crusted or sticky eyelids on waking' },
-          { value: 'watery', label: 'Watery or runny eyes' },
-          { value: 'gritty', label: 'Gritty or sandy feeling' },
-          { value: 'light_sensitive', label: 'Sensitivity to light' },
-        ],
-        required: true,
-      },
-      {
-        id: 'contact',
-        text: 'Have you been in contact with someone who has had an eye infection recently?',
-        type: 'radio',
-        options: [
-          { value: 'yes', label: 'Yes' },
-          { value: 'no', label: 'No' },
-          { value: 'unsure', label: 'Unsure' },
-        ],
-      },
-      {
-        id: 'household',
-        text: 'Does anyone else in your household have similar eye symptoms?',
-        type: 'radio',
-        options: YES_NO,
-      },
-    ],
-  },
+const acneVulgaris: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    {
+      id: 'isotretinoin',
+      text: 'Are you currently taking, or have you taken isotretinoin (Roaccutane) in the last 6 months?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('recent isotretinoin requires dermatology follow-up'),
+    },
+    softPregnancy('acne treatments such as retinoids and some antibiotics'),
+  ],
+  clinicalQuestions: [
+    {
+      id: 'duration',
+      text: 'How long have you been experiencing acne?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'under_3mo', label: 'Less than 3 months' },
+        { value: '3_12mo', label: '3 – 12 months' },
+        { value: '1_3yr', label: '1 – 3 years' },
+        { value: 'over_3yr', label: 'Over 3 years' },
+      ],
+    },
+    {
+      id: 'severity',
+      text: 'How would you rate your acne overall?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'mild', label: 'Mild — mostly blackheads/whiteheads, a few spots' },
+        { value: 'moderate', label: 'Moderate — many inflamed spots, some pus-filled' },
+        { value: 'severe', label: 'Severe — widespread, painful nodules or cysts' },
+      ],
+    },
+    {
+      id: 'location',
+      text: 'Where is your acne located?',
+      kind: 'checkbox-multi',
+      required: true,
+      options: [
+        { value: 'face', label: 'Face' },
+        { value: 'back', label: 'Back' },
+        { value: 'chest', label: 'Chest' },
+        { value: 'shoulders', label: 'Shoulders' },
+        { value: 'neck', label: 'Neck' },
+      ],
+    },
+    {
+      id: 'previous_treatments',
+      text: 'Which acne treatments have you tried?',
+      kind: 'checkbox-multi',
+      noneValue: 'none',
+      options: [
+        { value: 'benzoyl_peroxide', label: 'Benzoyl peroxide' },
+        { value: 'topical_retinoid', label: 'Topical retinoid (e.g. adapalene, tretinoin)' },
+        { value: 'topical_antibiotic', label: 'Topical antibiotic (e.g. clindamycin)' },
+        { value: 'oral_antibiotic', label: 'Oral antibiotic (e.g. lymecycline, doxycycline)' },
+        { value: 'cocp', label: 'Combined contraceptive pill (for acne)' },
+        { value: 'none', label: 'None of these' },
+      ],
+    },
+    {
+      id: 'scarring',
+      text: 'Has your acne caused any scarring?',
+      kind: 'yesno',
+    },
+    {
+      id: 'preferred_treatment',
+      text: 'Which treatment would you prefer?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'topical_only', label: 'Topical only (gel/cream)' },
+        { value: 'topical_combo', label: 'Topical combination (e.g. adapalene + benzoyl peroxide)' },
+        { value: 'oral_antibiotic', label: 'Oral antibiotic + topical' },
+        { value: 'unsure', label: 'Not sure — recommend based on my answers' },
+      ],
+    },
+    {
+      id: 'photo_prompt',
+      text: 'Please upload clear photos of the affected areas.',
+      subtext: 'You will be prompted to upload at the end of this consultation.',
+      kind: 'textarea',
+      placeholder: 'Any extra context (optional)',
+    },
+  ],
+};
 
-  'constipation': {
-    eligibilityQuestions: [
-      {
-        id: 'blood_in_stool',
-        text: 'Have you noticed any blood in your stools or on the toilet paper?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Blood in the stool requires medical assessment to identify the cause. Please see your GP today or call NHS 111.',
-      },
-      {
-        id: 'weight_loss',
-        text: 'Have you had unexplained weight loss alongside your constipation?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Constipation with unexplained weight loss requires urgent investigation. Please see your GP.',
-      },
-      {
-        id: 'new_over_50',
-        text: 'Are you over 50 and experiencing a significant change in bowel habit for the first time?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'New or changing bowel habits in people over 50 need medical assessment to rule out serious causes. Please see your GP.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'duration',
-        text: 'How long have you been experiencing constipation?',
-        type: 'radio',
-        options: [
-          { value: 'few_days', label: 'A few days' },
-          { value: '1_2wk', label: '1–2 weeks' },
-          { value: '2_4wk', label: '2–4 weeks' },
-          { value: 'over_1mo', label: 'Over 1 month' },
-        ],
-        required: true,
-      },
-      {
-        id: 'frequency',
-        text: 'How many times per week are you opening your bowels?',
-        type: 'radio',
-        options: [
-          { value: 'less_1', label: 'Less than once a week' },
-          { value: '1_2', label: 'Once or twice a week' },
-          { value: '3_4', label: 'Three or four times a week' },
-          { value: 'varies', label: 'It varies greatly' },
-        ],
-        required: true,
-      },
-      {
-        id: 'stool_type',
-        text: 'What are your stools typically like?',
-        type: 'radio',
-        options: [
-          { value: 'hard_pellets', label: 'Very hard, separate pellets' },
-          { value: 'hard', label: 'Hard lumps, difficult to pass' },
-          { value: 'soft_infrequent', label: 'Normal consistency but infrequent' },
-          { value: 'incomplete', label: 'Formed but I feel like I can\'t fully empty my bowels' },
-        ],
-        required: true,
-      },
-      {
-        id: 'straining',
-        text: 'Do you experience pain or significant straining when passing stools?',
-        type: 'radio',
-        options: [
-          { value: 'yes_significant', label: 'Yes – significant pain' },
-          { value: 'yes_mild', label: 'Yes – mild discomfort' },
-          { value: 'no', label: 'No' },
-        ],
-        required: true,
-      },
-      {
-        id: 'diet_fluid',
-        text: 'How would you describe your diet and fluid intake?',
-        subtext: 'E.g. fibre-rich foods, water intake, any recent dietary changes.',
-        type: 'textarea',
-      },
-      {
-        id: 'previous_treatments',
-        text: 'Have you tried any laxatives or other treatments?',
-        subtext: 'Include what you tried and whether it helped.',
-        type: 'textarea',
-      },
-    ],
-  },
+const cystitis: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    {
+      id: 'male_at_birth',
+      text: 'Were you assigned male at birth?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('UTIs in men require a pharmacist to confirm differential diagnosis'),
+    },
+    {
+      id: 'fever_high',
+      text: 'Do you have a temperature of 38°C or higher, or feel shivery/very unwell?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('these symptoms may suggest the infection has reached the kidneys'),
+    },
+    {
+      id: 'flank_pain',
+      text: 'Do you have pain in your back/flank, or feel nauseous or have been vomiting?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('upper-tract symptoms need careful pharmacist review'),
+    },
+    {
+      id: 'pregnancy_possible',
+      text: 'Is there any chance you could be pregnant?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('several UTI antibiotics need to be avoided in pregnancy'),
+    },
+    {
+      id: 'kidney_disease',
+      text: 'Do you have moderate or severe kidney disease (eGFR < 45)?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('nitrofurantoin must be avoided in reduced kidney function'),
+    },
+  ],
+  clinicalQuestions: [
+    {
+      id: 'age_band',
+      text: 'Are you aged between 16 and 65?',
+      kind: 'yesno',
+      required: true,
+    },
+    {
+      id: 'symptoms',
+      text: 'Which symptoms do you have?',
+      kind: 'checkbox-multi',
+      required: true,
+      options: [
+        { value: 'dysuria', label: 'Burning or stinging when you wee' },
+        { value: 'frequency', label: 'Needing to wee more often' },
+        { value: 'urgency', label: 'Sudden urgent need to wee' },
+        { value: 'suprapubic', label: 'Lower tummy pain or pressure' },
+        { value: 'cloudy', label: 'Cloudy urine' },
+        { value: 'smelly', label: 'Strong-smelling urine' },
+        { value: 'blood', label: 'Blood in urine' },
+      ],
+    },
+    {
+      id: 'duration',
+      text: 'How long have you had these symptoms?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'under_48h', label: 'Less than 48 hours' },
+        { value: '2_7d', label: '2 – 7 days' },
+        { value: 'over_7d', label: 'More than 7 days' },
+      ],
+    },
+    {
+      id: 'recurrent',
+      text: 'Have you had 3 or more UTIs in the last year?',
+      kind: 'yesno',
+    },
+    {
+      id: 'recent_antibiotic',
+      text: 'Have you taken an antibiotic for a UTI in the last 6 weeks?',
+      kind: 'yesno',
+    },
+    {
+      id: 'preferred_antibiotic',
+      text: 'Which antibiotic would you prefer (if suitable)?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'nitrofurantoin', label: 'Nitrofurantoin 100mg (3-day course)' },
+        { value: 'trimethoprim', label: 'Trimethoprim 200mg (3-day course)' },
+        { value: 'fosfomycin', label: 'Fosfomycin 3g (single dose)' },
+        { value: 'unsure', label: 'Not sure — recommend based on my answers' },
+      ],
+    },
+    {
+      id: 'penicillin_allergy',
+      text: 'Are you allergic to penicillin or any other antibiotic?',
+      kind: 'yesno',
+    },
+  ],
+};
 
-  'diarrhoea': {
-    eligibilityQuestions: [
-      {
-        id: 'blood_mucus',
-        text: 'Do you have any blood or mucus in your stools?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Blood or mucus in diarrhoea can indicate a serious infection or inflammatory bowel condition. Please see your GP today or call NHS 111.',
-      },
-      {
-        id: 'prolonged_or_dehydrated',
-        text: 'Has your diarrhoea lasted over 7 days, or are you unable to keep fluids down?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Prolonged diarrhoea or significant dehydration needs medical attention. Please contact your GP or call NHS 111.',
-      },
-      {
-        id: 'travel',
-        text: 'Have you returned from abroad within the last 4 weeks, particularly from a developing country?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Diarrhoea after overseas travel may be caused by a specific infection requiring targeted treatment. Please see your GP.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'duration',
-        text: 'How long have you had diarrhoea?',
-        type: 'radio',
-        options: [
-          { value: 'under_24h', label: 'Less than 24 hours' },
-          { value: '1_3d', label: '1–3 days' },
-          { value: '4_7d', label: '4–7 days' },
-        ],
-        required: true,
-      },
-      {
-        id: 'frequency',
-        text: 'How many loose stools are you passing per day?',
-        type: 'radio',
-        options: [
-          { value: '1_2', label: '1–2 per day' },
-          { value: '3_5', label: '3–5 per day' },
-          { value: '6_10', label: '6–10 per day' },
-          { value: 'over_10', label: 'More than 10 per day' },
-        ],
-        required: true,
-      },
-      {
-        id: 'other_symptoms',
-        text: 'Do you have any other symptoms?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'cramps', label: 'Stomach cramps' },
-          { value: 'nausea', label: 'Nausea' },
-          { value: 'vomiting', label: 'Vomiting' },
-          { value: 'fever', label: 'Fever or chills' },
-          { value: 'headache', label: 'Headache' },
-        ],
-      },
-      {
-        id: 'fluids',
-        text: 'Are you able to keep fluids down?',
-        type: 'radio',
-        options: [
-          { value: 'yes_well', label: 'Yes – drinking well' },
-          { value: 'yes_difficult', label: 'Yes – with difficulty' },
-          { value: 'no', label: 'No – unable to keep fluids down' },
-        ],
-        required: true,
-      },
-      {
-        id: 'contact',
-        text: 'Has anyone around you had similar symptoms or could you identify a suspect food or event?',
-        type: 'textarea',
-      },
-    ],
-  },
+const allergicRhinitis: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    softPregnancy('some hay fever treatments'),
+    {
+      id: 'severe_asthma',
+      text: 'Do you have severe or poorly-controlled asthma?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('uncontrolled asthma needs review before adding new treatments'),
+    },
+  ],
+  clinicalQuestions: [
+    {
+      id: 'age',
+      text: 'How old are you?',
+      kind: 'number',
+      min: 0,
+      max: 120,
+      unit: 'years',
+      required: true,
+    },
+    {
+      id: 'triggers',
+      text: 'What triggers your symptoms?',
+      kind: 'checkbox-multi',
+      required: true,
+      options: [
+        { value: 'pollen', label: 'Pollen (grass, tree, weed)' },
+        { value: 'dust', label: 'House dust / dust mites' },
+        { value: 'pets', label: 'Pets / animal dander' },
+        { value: 'mould', label: 'Mould' },
+        { value: 'unknown', label: 'Not sure / unknown' },
+      ],
+    },
+    {
+      id: 'symptoms',
+      text: 'Which symptoms do you have?',
+      kind: 'checkbox-multi',
+      required: true,
+      options: [
+        { value: 'sneezing', label: 'Sneezing' },
+        { value: 'runny_nose', label: 'Runny nose' },
+        { value: 'blocked_nose', label: 'Blocked nose' },
+        { value: 'itchy_eyes', label: 'Itchy / watery eyes' },
+        { value: 'post_nasal_drip', label: 'Post-nasal drip / cough' },
+      ],
+    },
+    {
+      id: 'duration_year',
+      text: 'How long have your symptoms been bothering you this year?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'under_2wk', label: 'Less than 2 weeks' },
+        { value: '2_8wk', label: '2 – 8 weeks' },
+        { value: 'over_8wk', label: 'Over 2 months' },
+      ],
+    },
+    {
+      id: 'severity',
+      text: 'How severe are your symptoms?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'mild', label: 'Mild — annoying but manageable' },
+        { value: 'moderate', label: 'Moderate — affects work or sleep' },
+        { value: 'severe', label: 'Severe — stops normal activities' },
+      ],
+    },
+    {
+      id: 'previous_treatments',
+      text: 'Which treatments have you already tried?',
+      kind: 'checkbox-multi',
+      noneValue: 'none',
+      options: [
+        { value: 'oral_antihistamine', label: 'OTC oral antihistamine (cetirizine, loratadine)' },
+        { value: 'nasal_steroid', label: 'Nasal corticosteroid spray' },
+        { value: 'eye_drops', label: 'Antihistamine eye drops' },
+        { value: 'none', label: 'None of these' },
+      ],
+    },
+    {
+      id: 'preferred_treatment',
+      text: 'Which treatment would you prefer?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'oral_antihistamine', label: 'Stronger oral antihistamine (e.g. fexofenadine)' },
+        { value: 'nasal_steroid', label: 'Nasal corticosteroid spray' },
+        { value: 'eye_drops', label: 'Eye drops' },
+        { value: 'combination', label: 'Combination' },
+        { value: 'unsure', label: 'Not sure — recommend based on my answers' },
+      ],
+    },
+  ],
+};
 
-  'dry-eye': {
-    eligibilityQuestions: [
-      {
-        id: 'vision_loss',
-        text: 'Have you experienced sudden or significant vision loss or vision changes?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Sudden vision changes are a medical emergency. Please call 999 or go to A&E immediately.',
-      },
-      {
-        id: 'eye_injury',
-        text: 'Did your eye symptoms start following an injury, foreign body, or chemical entering the eye?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Eye injuries require urgent assessment. Please go to an eye emergency department immediately.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'duration',
-        text: 'How long have you experienced dry eye symptoms?',
-        type: 'radio',
+const periodDelay: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    {
+      id: 'on_cocp',
+      text: 'Are you currently taking the combined contraceptive pill?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('there are better ways to delay your period if you are on the COCP — our pharmacist can advise'),
+    },
+    {
+      id: 'pregnant_possible',
+      text: 'Is there any chance you could be pregnant?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('pregnancy needs to be ruled out before prescribing'),
+    },
+    {
+      id: 'dvt_pe',
+      text: 'Have you ever had a DVT, pulmonary embolism, or other blood clot?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('norethisterone has clot risk and needs careful review'),
+    },
+    {
+      id: 'breast_cancer',
+      text: 'Do you have, or have you ever had, breast cancer?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('hormone treatments need specialist review with a personal cancer history'),
+    },
+    {
+      id: 'liver_disease',
+      text: 'Do you have liver disease?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('norethisterone is metabolised by the liver'),
+    },
+  ],
+  clinicalQuestions: [
+    {
+      id: 'expected_period_date',
+      text: 'When is your next period expected to start?',
+      kind: 'date',
+      required: true,
+    },
+    {
+      id: 'days_to_delay',
+      text: 'How many days would you like to delay your period?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: '3', label: '3 days' },
+        { value: '5', label: '5 days' },
+        { value: '7', label: '7 days' },
+        { value: '10', label: '10 days' },
+        { value: '14', label: '14 days' },
+        { value: '17', label: '17 days (maximum)' },
+      ],
+    },
+    {
+      id: 'reason',
+      text: 'What is the reason for delaying?',
+      kind: 'select',
+      placeholder: 'Choose one',
+      options: [
+        { value: 'holiday', label: 'Holiday' },
+        { value: 'event', label: 'Wedding or special event' },
+        { value: 'exam', label: 'Exam' },
+        { value: 'sport', label: 'Sport / competition' },
+        { value: 'other', label: 'Other' },
+      ],
+    },
+    {
+      id: 'regular_cycles',
+      text: 'Are your periods usually regular?',
+      kind: 'yesno',
+      required: true,
+    },
+    {
+      id: 'smoker',
+      text: 'Do you smoke?',
+      kind: 'yesno',
+    },
+    {
+      id: 'cigarettes_per_day',
+      text: 'If yes, how many cigarettes per day?',
+      kind: 'number',
+      min: 0,
+      max: 60,
+      placeholder: 'e.g. 10',
+    },
+    {
+      id: 'height',
+      text: 'What is your height?',
+      kind: 'number',
+      unit: 'cm',
+      unitToggle: {
         options: [
-          { value: 'few_days', label: 'A few days' },
-          { value: 'few_wk', label: 'A few weeks' },
-          { value: 'several_mo', label: 'Several months' },
-          { value: 'over_1yr', label: 'Over 1 year' },
+          { value: 'cm', label: 'cm' },
+          { value: 'ft_in', label: 'ft/in' },
         ],
-        required: true,
+        default: 'cm',
       },
-      {
-        id: 'symptoms',
-        text: 'Which symptoms do you experience?',
-        type: 'checkbox_group',
+      min: 120,
+      max: 230,
+    },
+    {
+      id: 'weight',
+      text: 'What is your weight?',
+      kind: 'number',
+      unit: 'kg',
+      unitToggle: {
         options: [
-          { value: 'dryness', label: 'Dryness or scratchiness' },
-          { value: 'burning', label: 'Burning or stinging' },
-          { value: 'gritty', label: 'Gritty or sandy feeling' },
-          { value: 'blurred', label: 'Blurred vision that clears when you blink' },
-          { value: 'redness', label: 'Redness' },
-          { value: 'watery', label: 'Paradoxically watery or running eyes' },
+          { value: 'kg', label: 'kg' },
+          { value: 'lb', label: 'lb' },
         ],
-        required: true,
+        default: 'kg',
       },
-      {
-        id: 'triggers',
-        text: 'When are your symptoms worst?',
-        type: 'radio',
-        options: [
-          { value: 'morning', label: 'In the morning on waking' },
-          { value: 'screens', label: 'During prolonged screen use' },
-          { value: 'dry_air', label: 'In dry or air-conditioned environments' },
-          { value: 'windy', label: 'In wind or outdoors' },
-          { value: 'all_time', label: 'All the time' },
-        ],
-        required: true,
-      },
-      {
-        id: 'screen_time',
-        text: 'How much screen time do you typically have per day?',
-        type: 'radio',
-        options: [
-          { value: 'under_4h', label: 'Less than 4 hours' },
-          { value: '4_8h', label: '4–8 hours' },
-          { value: 'over_8h', label: 'Over 8 hours' },
-        ],
-      },
-      {
-        id: 'previous_treatments',
-        text: 'Have you tried any eye drops or treatments for dry eyes?',
-        subtext: 'Include what you used and how effective it was.',
-        type: 'textarea',
-      },
-    ],
-  },
+      min: 30,
+      max: 250,
+    },
+  ],
+};
 
-  'dry-skin': {
-    eligibilityQuestions: [
-      {
-        id: 'infection',
-        text: 'Does the skin show signs of infection (yellow crusting, weeping, spreading redness, or fever)?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Infected eczema or dermatitis needs antibiotic treatment. Please see your GP or attend an urgent care centre.',
-      },
-      {
-        id: 'severe_widespread',
-        text: 'Is your eczema severe and widespread, covering a large proportion of your body and unresponsive to treatment?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Severe or widespread eczema may need specialist dermatology care. Please see your GP for a referral.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'duration',
-        text: 'How long have you had this skin condition?',
-        type: 'radio',
-        options: [
-          { value: 'under_1mo', label: 'Less than 1 month (new flare)' },
-          { value: '1_6mo', label: '1–6 months' },
-          { value: '6_12mo', label: '6–12 months' },
-          { value: 'over_1yr', label: 'Over 1 year (ongoing condition)' },
-        ],
-        required: true,
-      },
-      {
-        id: 'location',
-        text: 'Where is the affected skin?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'face', label: 'Face' },
-          { value: 'neck', label: 'Neck' },
-          { value: 'arms', label: 'Arms / elbows' },
-          { value: 'hands', label: 'Hands' },
-          { value: 'legs', label: 'Legs / behind the knees' },
-          { value: 'body', label: 'Body / trunk' },
-        ],
-        required: true,
-      },
-      {
-        id: 'description',
-        text: 'Which best describes the affected skin?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'dry_flaky', label: 'Dry and flaky' },
-          { value: 'red', label: 'Red and inflamed' },
-          { value: 'cracked', label: 'Cracked' },
-          { value: 'itchy', label: 'Intensely itchy' },
-          { value: 'thickened', label: 'Thickened (lichenified)' },
-          { value: 'weeping', label: 'Slightly weeping or oozing' },
-        ],
-        required: true,
-      },
-      {
-        id: 'triggers',
-        text: 'What triggers or worsens your condition?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'soaps', label: 'Soaps, detergents or cleaning products' },
-          { value: 'stress', label: 'Stress' },
-          { value: 'heat', label: 'Heat or sweating' },
-          { value: 'fabrics', label: 'Certain fabrics (wool, synthetic)' },
-          { value: 'dust', label: 'Dust or pet dander' },
-          { value: 'unknown', label: 'Unknown / no clear trigger' },
-        ],
-      },
-      {
-        id: 'previous_treatments',
-        text: 'Have you used any emollient creams or steroid creams?',
-        subtext: 'Please include what you used, for how long, and how effective it was.',
-        type: 'textarea',
-      },
-    ],
-  },
+const emergencyContraception: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    {
+      id: 'over_120h',
+      text: 'Has it been more than 120 hours (5 days) since unprotected sex?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('oral emergency contraception is less effective beyond 120 hours — a copper IUD may be required'),
+    },
+    {
+      id: 'already_pregnant',
+      text: 'Could you already be pregnant from before this episode?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('emergency contraception will not work if you are already pregnant'),
+    },
+    {
+      id: 'enzyme_inducer',
+      text: 'Do you take liver enzyme-inducing medicines (e.g. carbamazepine, phenytoin, rifampicin, St John\'s Wort)?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('these reduce the effectiveness of oral emergency contraception'),
+    },
+    {
+      id: 'severe_asthma',
+      text: 'Do you have severe asthma controlled by oral steroids?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('ulipristal acetate is cautioned in severe steroid-dependent asthma'),
+    },
+  ],
+  clinicalQuestions: [
+    {
+      id: 'hours_since',
+      text: 'How long ago was the unprotected sex?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'under_72', label: 'Less than 72 hours' },
+        { value: '72_120', label: '72 – 120 hours' },
+        { value: 'over_120', label: 'More than 120 hours' },
+      ],
+    },
+    {
+      id: 'date_upsi',
+      text: 'On what date did unprotected sex happen?',
+      kind: 'date',
+      required: true,
+    },
+    {
+      id: 'regular_cycle',
+      text: 'Are your periods usually regular?',
+      kind: 'yesno',
+      required: true,
+    },
+    {
+      id: 'last_period',
+      text: 'When did your last period start?',
+      kind: 'date',
+      required: true,
+    },
+    {
+      id: 'current_contraception',
+      text: 'What contraception (if any) are you currently using?',
+      kind: 'select',
+      placeholder: 'Choose one',
+      options: [
+        { value: 'none', label: 'None' },
+        { value: 'condoms', label: 'Condoms' },
+        { value: 'cocp', label: 'Combined pill' },
+        { value: 'pop', label: 'Progestogen-only pill' },
+        { value: 'iud', label: 'Copper IUD' },
+        { value: 'ius', label: 'Hormonal IUS' },
+        { value: 'implant', label: 'Implant' },
+        { value: 'injection', label: 'Injection' },
+        { value: 'other', label: 'Other' },
+      ],
+    },
+    {
+      id: 'weight',
+      text: 'What is your weight?',
+      kind: 'number',
+      unit: 'kg',
+      min: 30,
+      max: 250,
+      required: true,
+    },
+    {
+      id: 'preferred',
+      text: 'Which option would you prefer (if suitable)?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'levonorgestrel', label: 'Levonorgestrel 1.5mg (effective up to 72h)' },
+        { value: 'ulipristal', label: 'Ulipristal acetate 30mg (ellaOne, effective up to 120h)' },
+        { value: 'unsure', label: 'Not sure — recommend based on my answers' },
+      ],
+    },
+    {
+      id: 'allergies',
+      text: 'Do you have any medicine allergies?',
+      kind: 'text',
+    },
+  ],
+};
 
-  'dyspepsia': {
-    eligibilityQuestions: [
-      {
-        id: 'dysphagia',
-        text: 'Do you have difficulty swallowing food or fluids?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Difficulty swallowing requires urgent investigation. Please see your GP immediately — do not delay.',
-      },
-      {
-        id: 'bleeding',
-        text: 'Have you vomited any blood, or noticed black, tarry stools?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'These symptoms suggest gastrointestinal bleeding. Call 999 or go to A&E immediately.',
-      },
-      {
-        id: 'over55_new',
-        text: 'Are you over 55 and experiencing new or worsening indigestion for the first time?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'New indigestion in people over 55 requires prompt investigation. Please see your GP urgently.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'location',
-        text: 'Where is the discomfort mainly felt?',
-        type: 'radio',
-        options: [
-          { value: 'upper_abdomen', label: 'Upper abdomen (just below the ribs)' },
-          { value: 'breastbone', label: 'Behind the breastbone / chest' },
-          { value: 'both', label: 'Both areas' },
-          { value: 'hard_to_say', label: 'Difficult to pinpoint' },
-        ],
-        required: true,
-      },
-      {
-        id: 'duration',
-        text: 'How long have you had these symptoms?',
-        type: 'radio',
-        options: [
-          { value: 'few_days', label: 'A few days' },
-          { value: '1_4wk', label: '1–4 weeks' },
-          { value: '1_3mo', label: '1–3 months' },
-          { value: 'over_3mo', label: 'Over 3 months' },
-        ],
-        required: true,
-      },
-      {
-        id: 'symptoms',
-        text: 'Which symptoms do you experience?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'heartburn', label: 'Burning or heartburn' },
-          { value: 'bloating', label: 'Bloating' },
-          { value: 'belching', label: 'Belching / burping' },
-          { value: 'nausea', label: 'Nausea' },
-          { value: 'full_quickly', label: 'Feeling full very quickly when eating' },
-          { value: 'regurgitation', label: 'Regurgitation (acid coming up into the mouth)' },
-          { value: 'upper_pain', label: 'Upper abdominal pain or discomfort' },
-        ],
-        required: true,
-      },
-      {
-        id: 'timing',
-        text: 'When do symptoms tend to occur?',
-        type: 'radio',
-        options: [
-          { value: 'after_meals', label: 'After meals' },
-          { value: 'lying_down', label: 'When lying down or bending over' },
-          { value: 'morning', label: 'In the morning before eating' },
-          { value: 'throughout', label: 'Throughout the day regardless of meals' },
-        ],
-        required: true,
-      },
-      {
-        id: 'nsaids',
-        text: 'Do you regularly take ibuprofen, aspirin, or other anti-inflammatory painkillers?',
-        type: 'radio',
-        options: [
-          { value: 'yes_daily', label: 'Yes – daily or near daily' },
-          { value: 'yes_occasionally', label: 'Yes – occasionally' },
-          { value: 'no', label: 'No' },
-        ],
-      },
-      {
-        id: 'lifestyle',
-        text: 'Do you smoke or drink alcohol regularly?',
-        type: 'radio',
-        options: [
-          { value: 'both', label: 'Both' },
-          { value: 'smoke_only', label: 'Smoke only' },
-          { value: 'drink_only', label: 'Drink only' },
-          { value: 'neither', label: 'Neither' },
-        ],
-      },
-    ],
-  },
+const chlamydia: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    softPregnancy('doxycycline is contraindicated in pregnancy'),
+    {
+      id: 'severe_pelvic',
+      text: 'Do you have severe pelvic pain or a fever?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('these may indicate pelvic inflammatory disease which needs urgent review'),
+    },
+  ],
+  clinicalQuestions: [
+    {
+      id: 'test_date',
+      text: 'When did you have the positive chlamydia test?',
+      kind: 'date',
+      required: true,
+    },
+    {
+      id: 'test_type',
+      text: 'Where did you get the test?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'home', label: 'Home self-test kit' },
+        { value: 'clinic', label: 'GP / sexual health clinic' },
+      ],
+    },
+    {
+      id: 'symptoms',
+      text: 'Do you have any current symptoms?',
+      kind: 'checkbox-multi',
+      noneValue: 'none',
+      options: [
+        { value: 'discharge', label: 'Unusual discharge' },
+        { value: 'dysuria', label: 'Pain on weeing' },
+        { value: 'pelvic_pain', label: 'Mild pelvic pain' },
+        { value: 'bleeding', label: 'Bleeding between periods or after sex' },
+        { value: 'none', label: 'No symptoms' },
+      ],
+    },
+    {
+      id: 'partners_notified',
+      text: 'Have your recent sexual partners been notified so they can also test/treat?',
+      kind: 'yesno',
+      required: true,
+    },
+    {
+      id: 'allergy',
+      text: 'Are you allergic to penicillin or macrolide antibiotics (e.g. erythromycin, azithromycin)?',
+      kind: 'yesno',
+    },
+    {
+      id: 'preferred_treatment',
+      text: 'Which treatment would you prefer (if suitable)?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'doxycycline', label: 'Doxycycline 100mg twice daily for 7 days (first line)' },
+        { value: 'azithromycin', label: 'Azithromycin 1g single dose then 500mg daily for 2 days' },
+        { value: 'unsure', label: 'Not sure — recommend based on my answers' },
+      ],
+    },
+  ],
+};
 
-  'haemorrhoids': {
-    eligibilityQuestions: [
-      {
-        id: 'rectal_bleeding',
-        text: 'Do you have rectal bleeding that has not been examined by a doctor and is not clearly from known haemorrhoids?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Unexamined rectal bleeding needs medical assessment to rule out other causes. Please see your GP.',
-      },
-      {
-        id: 'bowel_change',
-        text: 'Have you noticed a persistent change in your bowel habit lasting over 6 weeks?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'A persistent change in bowel habit requires investigation. Please see your GP.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'duration',
-        text: 'How long have you had haemorrhoid symptoms?',
-        type: 'radio',
-        options: [
-          { value: 'few_days', label: 'A few days' },
-          { value: 'few_wk', label: 'A few weeks' },
-          { value: 'several_mo', label: 'Several months' },
-          { value: 'over_1yr', label: 'Over 1 year (recurring)' },
-        ],
-        required: true,
-      },
-      {
-        id: 'symptoms',
-        text: 'What symptoms do you have?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'bleeding', label: 'Bright red blood on paper or in toilet bowl' },
-          { value: 'itching', label: 'Itching or irritation around the anus' },
-          { value: 'pain', label: 'Pain or discomfort' },
-          { value: 'lump', label: 'A lump or swelling near the anus' },
-          { value: 'mucus', label: 'Mucus discharge' },
-          { value: 'incomplete', label: 'Feeling of incomplete bowel emptying' },
-        ],
-        required: true,
-      },
-      {
-        id: 'type',
-        text: 'Are your haemorrhoids internal or external?',
-        type: 'radio',
-        options: [
-          { value: 'internal', label: 'Internal (cannot see a lump)' },
-          { value: 'external', label: 'External (visible lump outside)' },
-          { value: 'both', label: 'Both' },
-          { value: 'unsure', label: 'Unsure' },
-        ],
-        required: true,
-      },
-      {
-        id: 'constipation',
-        text: 'Do you suffer from constipation or regularly strain at the toilet?',
-        type: 'radio',
-        options: [
-          { value: 'yes_significant', label: 'Yes – significant problem' },
-          { value: 'occasionally', label: 'Occasionally' },
-          { value: 'no', label: 'No' },
-        ],
-      },
-      {
-        id: 'previous_treatments',
-        text: 'Have you tried any treatments such as creams, suppositories or dietary changes?',
-        subtext: 'Please describe what you used and how effective it was.',
-        type: 'textarea',
-      },
-    ],
-  },
+const genitalHerpes: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    softPregnancy('genital herpes in pregnancy needs specialist input near term'),
+    {
+      id: 'kidney_disease',
+      text: 'Do you have moderate or severe kidney disease?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('antiviral doses may need adjusting in kidney disease'),
+    },
+  ],
+  clinicalQuestions: [
+    {
+      id: 'previously_diagnosed',
+      text: 'Have you been diagnosed with genital herpes before?',
+      kind: 'yesno',
+      required: true,
+    },
+    {
+      id: 'treatment_type',
+      text: 'What kind of treatment do you need today?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'first', label: 'First outbreak' },
+        { value: 'recurrent', label: 'Treatment for a recurrent flare' },
+        { value: 'suppressive', label: 'Daily suppressive treatment' },
+      ],
+    },
+    {
+      id: 'outbreaks_per_year',
+      text: 'How many outbreaks have you had in the past year?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: '0_1', label: '0 – 1' },
+        { value: '2', label: '2' },
+        { value: '3_5', label: '3 – 5' },
+        { value: '6_plus', label: '6 or more' },
+      ],
+    },
+    {
+      id: 'symptoms',
+      text: 'What symptoms do you have right now?',
+      kind: 'checkbox-multi',
+      noneValue: 'none',
+      options: [
+        { value: 'blisters', label: 'Blisters or sores' },
+        { value: 'pain', label: 'Pain or tingling' },
+        { value: 'dysuria', label: 'Pain on weeing' },
+        { value: 'fever', label: 'Fever or flu-like symptoms' },
+        { value: 'none', label: 'No symptoms (suppressive only)' },
+      ],
+    },
+    {
+      id: 'preferred_medicine',
+      text: 'Which medicine would you prefer?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'aciclovir', label: 'Aciclovir' },
+        { value: 'valaciclovir', label: 'Valaciclovir' },
+        { value: 'famciclovir', label: 'Famciclovir' },
+        { value: 'unsure', label: 'Not sure — recommend based on my answers' },
+      ],
+    },
+  ],
+};
 
-  'head-lice': {
-    eligibilityQuestions: [
-      {
-        id: 'secondary_infection',
-        text: 'Are there signs of secondary infection on the scalp (sores, yellow crusting, weeping)?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Signs of secondary skin infection may require antibiotic treatment. Please see your GP.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'who_affected',
-        text: 'Who is affected?',
-        type: 'radio',
-        options: [
-          { value: 'myself', label: 'Myself' },
-          { value: 'child', label: 'My child' },
-          { value: 'multiple', label: 'Multiple family members' },
-        ],
-        required: true,
-      },
-      {
-        id: 'duration',
-        text: 'How long have you noticed lice or eggs (nits)?',
-        type: 'radio',
-        options: [
-          { value: 'just_noticed', label: 'Just noticed' },
-          { value: 'few_days', label: 'A few days' },
-          { value: '1_2wk', label: '1–2 weeks' },
-          { value: 'several_wk', label: 'Several weeks or longer' },
-        ],
-        required: true,
-      },
-      {
-        id: 'symptoms',
-        text: 'What symptoms or signs are present?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'visible_lice', label: 'Visible live lice' },
-          { value: 'nits', label: 'Visible white or yellow eggs (nits) attached to hair' },
-          { value: 'itching', label: 'Itching of the scalp' },
-          { value: 'neck_itch', label: 'Itching at the back of the neck or behind ears' },
-          { value: 'red_marks', label: 'Red marks or scratch marks on the scalp' },
-        ],
-        required: true,
-      },
-      {
-        id: 'previous_treatments',
-        text: 'Have you tried any head lice treatments? What did you use?',
-        type: 'textarea',
-      },
-      {
-        id: 'close_contact',
-        text: 'Has a close contact (school, nursery, household) also been confirmed with head lice?',
-        type: 'radio',
-        options: [
-          { value: 'yes', label: 'Yes' },
-          { value: 'no', label: 'No' },
-          { value: 'unsure', label: 'Unsure' },
-        ],
-      },
-    ],
-  },
+const acidReflux: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    {
+      id: 'red_flags',
+      text: 'Do you have any of: unintentional weight loss, difficulty swallowing, vomiting blood, or black/tarry stools?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('these alarm symptoms need urgent assessment'),
+    },
+    {
+      id: 'duration_long',
+      text: 'Have your symptoms lasted more than 8 weeks despite OTC treatment?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('persistent symptoms need pharmacist or GP review'),
+    },
+  ],
+  clinicalQuestions: [
+    {
+      id: 'frequency',
+      text: 'How often do you get heartburn/reflux symptoms?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'under_2wk', label: 'Less than 2 times a week' },
+        { value: '2_4wk', label: '2 – 4 times a week' },
+        { value: 'daily', label: 'Daily or almost daily' },
+      ],
+    },
+    {
+      id: 'duration',
+      text: 'How long have you had these symptoms?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'under_4wk', label: 'Less than 4 weeks' },
+        { value: '4_8wk', label: '4 – 8 weeks' },
+        { value: 'over_8wk', label: 'More than 8 weeks' },
+      ],
+    },
+    {
+      id: 'triggers_known',
+      text: 'Have you identified any trigger foods or drinks?',
+      kind: 'yesno',
+    },
+    {
+      id: 'triggers_detail',
+      text: 'If yes, which ones?',
+      kind: 'textarea',
+      placeholder: 'e.g. spicy food, alcohol, coffee, fatty meals',
+    },
+    {
+      id: 'lifestyle',
+      text: 'Which lifestyle changes have you tried?',
+      kind: 'checkbox-multi',
+      noneValue: 'none',
+      options: [
+        { value: 'smaller_meals', label: 'Smaller, more frequent meals' },
+        { value: 'avoid_late', label: 'Avoiding eating late at night' },
+        { value: 'raise_bed', label: 'Raising the head of the bed' },
+        { value: 'lose_weight', label: 'Losing weight' },
+        { value: 'reduce_alcohol', label: 'Reducing alcohol/coffee' },
+        { value: 'stop_smoking', label: 'Stopping smoking' },
+        { value: 'none', label: 'None of these' },
+      ],
+    },
+    {
+      id: 'otc_tried',
+      text: 'Have you tried OTC PPI/H2 medicines?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'not_tried', label: 'Not tried' },
+        { value: 'under_2wk', label: 'Tried for less than 2 weeks' },
+        { value: '2_4wk', label: 'Tried for 2 – 4 weeks' },
+      ],
+    },
+    {
+      id: 'preferred_medicine',
+      text: 'Which medicine would you prefer?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'omeprazole_20', label: 'Omeprazole 20mg' },
+        { value: 'esomeprazole_20', label: 'Esomeprazole 20mg' },
+        { value: 'lansoprazole_30', label: 'Lansoprazole 30mg' },
+        { value: 'pantoprazole_40', label: 'Pantoprazole 40mg' },
+        { value: 'unsure', label: 'Not sure — recommend based on my answers' },
+      ],
+    },
+    {
+      id: 'aspirin_nsaid',
+      text: 'Do you take aspirin, an NSAID (e.g. ibuprofen, naproxen), or clopidogrel?',
+      kind: 'yesno',
+    },
+  ],
+};
 
-  'infantile-colic': {
-    eligibilityQuestions: [
-      {
-        id: 'fever',
-        text: 'Does the baby have a temperature above 38°C?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Fever in a young infant requires urgent medical assessment. Please call your GP or NHS 111 (111) immediately.',
-      },
-      {
-        id: 'vomiting',
-        text: 'Is the baby vomiting repeatedly or is there any green or yellow vomit?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Repeated or bile-stained vomiting in a baby requires urgent assessment. Please call NHS 111 immediately.',
-      },
-      {
-        id: 'weight',
-        text: 'Is the baby failing to gain weight or has lost weight recently?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Poor weight gain requires urgent attention from your health visitor or GP. Please contact them today.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'age',
-        text: 'How old is the baby?',
-        type: 'radio',
-        options: [
-          { value: '0_6wk', label: '0–6 weeks' },
-          { value: '7_12wk', label: '7–12 weeks' },
-          { value: '3_6mo', label: '3–6 months' },
-          { value: 'over_6mo', label: 'Over 6 months' },
-        ],
-        required: true,
-      },
-      {
-        id: 'crying_pattern',
-        text: 'When does the crying typically occur?',
-        type: 'radio',
-        options: [
-          { value: 'evening', label: 'Mainly in the evenings' },
-          { value: 'throughout', label: 'Throughout the day' },
-          { value: 'after_feeding', label: 'After or during feeding' },
-          { value: 'unpredictable', label: 'At unpredictable times' },
-        ],
-        required: true,
-      },
-      {
-        id: 'crying_duration',
-        text: 'How long do the crying episodes typically last?',
-        type: 'radio',
-        options: [
-          { value: 'under_1h', label: 'Less than 1 hour' },
-          { value: '1_3h', label: '1–3 hours' },
-          { value: 'over_3h', label: 'Over 3 hours' },
-        ],
-        required: true,
-      },
-      {
-        id: 'feeding',
-        text: 'How is the baby fed?',
-        type: 'radio',
-        options: [
-          { value: 'breastfed', label: 'Breastfed' },
-          { value: 'formula', label: 'Formula fed' },
-          { value: 'mixed', label: 'Mixed feeding' },
-        ],
-        required: true,
-      },
-      {
-        id: 'tried_remedies',
-        text: 'Have you tried anything to help with the colic?',
-        subtext: 'E.g. winding techniques, different formula, dietary changes for breastfeeding mum.',
-        type: 'textarea',
-      },
-    ],
-  },
+const migraine: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    {
+      id: 'gp_diagnosed',
+      text: 'Has your migraine been formally diagnosed by a GP?',
+      blockingAnswer: 'no',
+      severity: 'soft',
+      blockMessage: softReview('a confirmed migraine diagnosis is needed before triptan prescribing'),
+    },
+    softPregnancy('triptans need careful review in pregnancy'),
+    {
+      id: 'severe_liver_kidney',
+      text: 'Do you have severe liver or kidney disease?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('triptan dosing needs adjusting in severe organ disease'),
+    },
+  ],
+  clinicalQuestions: [
+    {
+      id: 'age',
+      text: 'How old are you?',
+      kind: 'number',
+      min: 12,
+      max: 100,
+      unit: 'years',
+      required: true,
+    },
+    {
+      id: 'aura_type',
+      text: 'Do you experience aura before or with your migraine?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'none', label: 'No aura' },
+        { value: 'visual', label: 'Typical visual aura (zigzags, flashing lights)' },
+        { value: 'sensory', label: 'Sensory aura (tingling/numbness)' },
+        { value: 'motor', label: 'Motor weakness (hemiplegic)' },
+        { value: 'brainstem', label: 'Brainstem aura (vertigo, double vision, slurred speech)' },
+      ],
+    },
+    {
+      id: 'monthly_frequency',
+      text: 'How many migraine attacks do you typically have per month?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'under_1', label: 'Less than 1' },
+        { value: '1_3', label: '1 – 3' },
+        { value: '4_8', label: '4 – 8' },
+        { value: 'over_8', label: 'More than 8' },
+      ],
+    },
+    {
+      id: 'preferred_triptan',
+      text: 'Which triptan would you prefer?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'sumatriptan', label: 'Sumatriptan 50mg/100mg' },
+        { value: 'rizatriptan', label: 'Rizatriptan 10mg' },
+        { value: 'zolmitriptan', label: 'Zolmitriptan 2.5mg' },
+        { value: 'almotriptan', label: 'Almotriptan 12.5mg' },
+        { value: 'unsure', label: 'Not sure — recommend based on my answers' },
+      ],
+    },
+    {
+      id: 'cv_conditions',
+      text: 'Do you have any of the following?',
+      kind: 'checkbox-multi',
+      noneValue: 'none',
+      options: [
+        { value: 'ihd', label: 'Ischaemic heart disease / angina' },
+        { value: 'uncontrolled_htn', label: 'Uncontrolled high blood pressure' },
+        { value: 'pvd', label: 'Peripheral vascular disease' },
+        { value: 'recent_mi', label: 'Heart attack in the last 6 months' },
+        { value: 'previous_stroke', label: 'Previous stroke or TIA' },
+        { value: 'none', label: 'None of these' },
+      ],
+    },
+    {
+      id: 'ssri',
+      text: 'Are you taking an SSRI/SNRI antidepressant?',
+      kind: 'yesno',
+    },
+    {
+      id: 'ssri_which',
+      text: 'If yes, which one?',
+      kind: 'text',
+    },
+  ],
+};
 
-  'ingrowing-toenail': {
-    eligibilityQuestions: [
-      {
-        id: 'diabetes',
-        text: 'Do you have diabetes, or a circulatory condition affecting your feet?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Ingrowing toenails in people with diabetes or poor circulation require specialist foot care assessment. Please see your GP or podiatrist.',
-      },
-      {
-        id: 'spreading_infection',
-        text: 'Is there significant spreading infection such as red streaks going up the foot, swollen lymph nodes, or severe pus?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Signs of spreading infection require urgent antibiotic treatment. Please see your GP today or go to an urgent care centre.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'which_toe',
-        text: 'Which toe is affected?',
-        type: 'radio',
-        options: [
-          { value: 'big_left', label: 'Big toe (left foot)' },
-          { value: 'big_right', label: 'Big toe (right foot)' },
-          { value: 'both_big', label: 'Both big toes' },
-          { value: 'other', label: 'A different toe' },
-        ],
-        required: true,
-      },
-      {
-        id: 'duration',
-        text: 'How long have you had this problem?',
-        type: 'radio',
-        options: [
-          { value: 'few_days', label: 'A few days' },
-          { value: '1_4wk', label: '1–4 weeks' },
-          { value: '1_3mo', label: '1–3 months' },
-          { value: 'over_3mo', label: 'Over 3 months (recurring problem)' },
-        ],
-        required: true,
-      },
-      {
-        id: 'symptoms',
-        text: 'What symptoms are you experiencing?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'pain', label: 'Pain when wearing shoes or walking' },
-          { value: 'redness', label: 'Redness around the toenail' },
-          { value: 'swelling', label: 'Swelling of the toe' },
-          { value: 'discharge', label: 'Discharge or pus' },
-          { value: 'granulation', label: 'Overgrowth of skin at the side of the nail' },
-        ],
-        required: true,
-      },
-      {
-        id: 'severity',
-        text: 'How would you rate the pain?',
-        type: 'radio',
-        options: [
-          { value: 'mild', label: 'Mild – noticeable but manageable' },
-          { value: 'moderate', label: 'Moderate – affecting daily activities' },
-          { value: 'severe', label: 'Severe – very painful, limiting movement' },
-        ],
-        required: true,
-      },
-      {
-        id: 'home_treatment',
-        text: 'Have you tried any home treatments or soaking?',
-        type: 'textarea',
-      },
-    ],
-  },
+const smokingCessation: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    softPregnancy('NRT in pregnancy needs review and some treatments (varenicline, bupropion) are contraindicated'),
+    {
+      id: 'recent_cardiac',
+      text: 'Have you had a heart attack, stroke, or unstable angina in the last 4 weeks?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('recent cardiovascular events need pharmacist review before NRT'),
+    },
+  ],
+  clinicalQuestions: [
+    {
+      id: 'cigarettes_per_day',
+      text: 'How many cigarettes do you smoke per day?',
+      kind: 'number',
+      min: 1,
+      max: 80,
+      required: true,
+    },
+    {
+      id: 'years_smoking',
+      text: 'How many years have you been smoking?',
+      kind: 'number',
+      min: 0,
+      max: 80,
+      unit: 'years',
+      required: true,
+    },
+    {
+      id: 'first_cigarette_30min',
+      text: 'Do you smoke your first cigarette within 30 minutes of waking?',
+      kind: 'yesno',
+      required: true,
+    },
+    {
+      id: 'previous_attempts',
+      text: 'How many serious quit attempts have you made before?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'none', label: 'None' },
+        { value: '1_2', label: '1 – 2' },
+        { value: '3_plus', label: '3 or more' },
+      ],
+    },
+    {
+      id: 'preferred_therapy',
+      text: 'Which therapy would you prefer?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'patches', label: 'Nicotine patches' },
+        { value: 'gum', label: 'Nicotine gum' },
+        { value: 'lozenge', label: 'Nicotine lozenges' },
+        { value: 'inhalator', label: 'Inhalator' },
+        { value: 'varenicline', label: 'Varenicline (Champix)' },
+        { value: 'bupropion', label: 'Bupropion (Zyban)' },
+        { value: 'unsure', label: 'Not sure — recommend based on my answers' },
+      ],
+    },
+    {
+      id: 'current_meds',
+      text: 'Please list any medicines you currently take.',
+      kind: 'textarea',
+    },
+  ],
+};
 
-  'mouth-ulcers': {
-    eligibilityQuestions: [
-      {
-        id: 'lasting_over_3wk',
-        text: 'Has this ulcer been present for more than 3 weeks?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Mouth ulcers lasting over 3 weeks require investigation to rule out serious causes. Please see your GP or dentist promptly.',
-      },
-      {
-        id: 'dysphagia',
-        text: 'Do you have difficulty swallowing, or unexplained weight loss?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'These symptoms alongside mouth ulcers require urgent medical assessment. Please see your GP.',
-      },
-      {
-        id: 'white_patches',
-        text: 'Do you have white patches in your mouth that cannot be rubbed off?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Persistent white patches in the mouth require investigation. Please see your dentist or GP.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'duration',
-        text: 'How long have you had the current ulcer(s)?',
-        type: 'radio',
-        options: [
-          { value: 'under_1wk', label: 'Less than 1 week' },
-          { value: '1_2wk', label: '1–2 weeks' },
-          { value: '2_3wk', label: '2–3 weeks' },
-        ],
-        required: true,
-      },
-      {
-        id: 'number',
-        text: 'How many ulcers do you currently have?',
-        type: 'radio',
-        options: [
-          { value: '1', label: '1 ulcer' },
-          { value: '2_4', label: '2–4 ulcers' },
-          { value: 'over_4', label: 'More than 4 ulcers' },
-        ],
-        required: true,
-      },
-      {
-        id: 'location',
-        text: 'Where in the mouth are the ulcers?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'inner_cheek', label: 'Inner cheek' },
-          { value: 'tongue', label: 'Tongue' },
-          { value: 'gum', label: 'Gum' },
-          { value: 'lip', label: 'Inner lip' },
-          { value: 'palate', label: 'Roof of mouth' },
-        ],
-        required: true,
-      },
-      {
-        id: 'pain',
-        text: 'How painful are the ulcers?',
-        type: 'radio',
-        options: [
-          { value: 'mild', label: 'Mild – barely noticeable' },
-          { value: 'moderate', label: 'Moderate – painful but manageable' },
-          { value: 'severe', label: 'Severe – affecting eating and talking' },
-        ],
-        required: true,
-      },
-      {
-        id: 'triggers',
-        text: 'What do you think may have triggered the ulcers?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'injury', label: 'Minor mouth injury or biting the cheek' },
-          { value: 'stress', label: 'Stress or illness' },
-          { value: 'foods', label: 'Certain foods (citrus, spicy, salty)' },
-          { value: 'hormonal', label: 'Hormonal changes' },
-          { value: 'unknown', label: 'Unknown' },
-        ],
-      },
-      {
-        id: 'previous_treatments',
-        text: 'Have you tried any treatments for the ulcers?',
-        type: 'textarea',
-      },
-    ],
-  },
+const athletesFoot: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    {
+      id: 'diabetic',
+      text: 'Do you have diabetes?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('foot infections in diabetes need careful review'),
+    },
+    {
+      id: 'immunosuppressed',
+      text: 'Do you have a weakened immune system (e.g. chemotherapy, transplant, HIV, high-dose steroids)?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('immunosuppression changes infection management'),
+    },
+    {
+      id: 'nails_involved',
+      text: 'Are your toenails also affected (yellow, thick, crumbly)?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('nail involvement needs a different treatment — our pharmacist can route you'),
+    },
+  ],
+  clinicalQuestions: [
+    {
+      id: 'duration',
+      text: 'How long have you had athlete\'s foot?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'under_1wk', label: 'Less than 1 week' },
+        { value: '1_4wk', label: '1 – 4 weeks' },
+        { value: '1_3mo', label: '1 – 3 months' },
+        { value: 'over_3mo', label: 'Over 3 months' },
+      ],
+    },
+    {
+      id: 'symptoms',
+      text: 'Which of these symptoms do you have?',
+      kind: 'checkbox-multi',
+      required: true,
+      options: [
+        { value: 'itching', label: 'Itching' },
+        { value: 'scaling', label: 'Scaling / flaking' },
+        { value: 'cracks', label: 'Cracks in the skin' },
+        { value: 'blisters', label: 'Blisters' },
+        { value: 'smell', label: 'Unpleasant smell' },
+        { value: 'between_toes', label: 'Affects between the toes' },
+        { value: 'sole', label: 'Affects the sole of the foot' },
+      ],
+    },
+    {
+      id: 'tried_otc',
+      text: 'Have you tried an OTC topical antifungal already?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'not_tried', label: 'Not tried' },
+        { value: '1_2wk', label: 'Tried for 1 – 2 weeks' },
+        { value: 'over_2wk', label: 'Tried for more than 2 weeks' },
+      ],
+    },
+    {
+      id: 'preferred_treatment',
+      text: 'Which treatment would you prefer?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'terbinafine', label: 'Terbinafine cream' },
+        { value: 'clotrimazole', label: 'Clotrimazole cream' },
+        { value: 'miconazole', label: 'Miconazole cream' },
+        { value: 'unsure', label: 'Not sure — recommend based on my answers' },
+      ],
+    },
+  ],
+};
 
-  'nappy-rash': {
-    eligibilityQuestions: [
-      {
-        id: 'spreading',
-        text: 'Has the rash spread beyond the nappy area (e.g. up the back, onto the tummy, or down the legs)?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'A rash spreading beyond the nappy area may indicate a different skin condition. Please see your GP.',
-      },
-      {
-        id: 'fever',
-        text: 'Does the baby have a fever (temperature above 38°C)?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Fever alongside a skin rash in a baby requires medical assessment. Please contact your GP or call NHS 111.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'duration',
-        text: 'How long has the nappy rash been present?',
-        type: 'radio',
-        options: [
-          { value: '1_3d', label: '1–3 days' },
-          { value: '4_7d', label: '4–7 days' },
-          { value: 'over_1wk', label: 'Over 1 week' },
-        ],
-        required: true,
-      },
-      {
-        id: 'appearance',
-        text: 'How does the rash look?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'red', label: 'Red and inflamed skin' },
-          { value: 'blisters', label: 'Blisters or spots' },
-          { value: 'white_patches', label: 'White patches or spots (possible thrush)' },
-          { value: 'broken', label: 'Broken or cracked skin' },
-          { value: 'dry', label: 'Dry and peeling skin' },
-        ],
-        required: true,
-      },
-      {
-        id: 'skin_folds',
-        text: 'Is the rash mainly in skin folds and creases?',
-        type: 'radio',
-        options: [
-          { value: 'yes', label: 'Yes – mainly in the folds' },
-          { value: 'no', label: 'No – on the flat surfaces' },
-          { value: 'both', label: 'Both folds and flat surfaces' },
-        ],
-        required: true,
-      },
-      {
-        id: 'nappy_frequency',
-        text: 'How often are nappies changed?',
-        type: 'radio',
-        options: [
-          { value: 'every_1_2h', label: 'Every 1–2 hours' },
-          { value: 'every_2_4h', label: 'Every 2–4 hours' },
-          { value: 'less', label: 'Less frequently than every 4 hours' },
-        ],
-        required: true,
-      },
-      {
-        id: 'products',
-        text: 'What nappy products are you currently using?',
-        subtext: 'Include wipes, creams, barrier creams or any new products recently introduced.',
-        type: 'textarea',
-      },
-    ],
-  },
+const jetLag: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    softPregnancy('melatonin in pregnancy is not recommended'),
+    {
+      id: 'epilepsy',
+      text: 'Do you have epilepsy?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('melatonin can interact with seizure medicines'),
+    },
+  ],
+  clinicalQuestions: [
+    {
+      id: 'age',
+      text: 'How old are you?',
+      kind: 'number',
+      min: 0,
+      max: 120,
+      unit: 'years',
+      required: true,
+    },
+    {
+      id: 'time_diff',
+      text: 'How many hours time difference at your destination?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'under_3', label: 'Less than 3 hours' },
+        { value: '3_6', label: '3 – 6 hours' },
+        { value: '6_12', label: '6 – 12 hours' },
+        { value: 'over_12', label: 'More than 12 hours' },
+      ],
+    },
+    {
+      id: 'travel_date',
+      text: 'When do you travel?',
+      kind: 'date',
+      required: true,
+    },
+    {
+      id: 'trip_duration',
+      text: 'How long is your trip?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'under_3', label: 'Less than 3 days' },
+        { value: '3_7', label: '3 – 7 days' },
+        { value: 'over_7', label: 'More than 7 days' },
+      ],
+    },
+    {
+      id: 'preferred',
+      text: 'Which would you prefer?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'melatonin', label: 'Melatonin (prescription)' },
+        { value: 'advice_only', label: 'Sleep & light advice only' },
+      ],
+    },
+  ],
+};
 
-  'oral-candidiasis': {
-    eligibilityQuestions: [
-      {
-        id: 'dysphagia',
-        text: 'Do you have any difficulty or pain when swallowing?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Difficulty swallowing with oral thrush suggests the infection has spread to the oesophagus. Please see your GP urgently.',
-      },
-      {
-        id: 'recurrent',
-        text: 'Have you had more than 3 episodes of oral thrush without a clearly identified cause?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Recurrent oral thrush without an obvious cause requires investigation. Please see your GP who may want to run some tests.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'duration',
-        text: 'How long have you had these symptoms?',
-        type: 'radio',
-        options: [
-          { value: 'under_1wk', label: 'Less than 1 week' },
-          { value: '1_2wk', label: '1–2 weeks' },
-          { value: '2_4wk', label: '2–4 weeks' },
-        ],
-        required: true,
-      },
-      {
-        id: 'symptoms',
-        text: 'What symptoms do you have?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'white_patches', label: 'White or creamy patches inside the mouth' },
-          { value: 'redness', label: 'Redness or soreness inside the mouth' },
-          { value: 'corner_cracks', label: 'Cracking or soreness at the corners of the mouth' },
-          { value: 'burning', label: 'Burning or sore mouth' },
-          { value: 'taste_loss', label: 'Loss of taste' },
-        ],
-        required: true,
-      },
-      {
-        id: 'inhaler',
-        text: 'Do you use an inhaled steroid (e.g. for asthma or COPD)?',
-        type: 'radio',
-        options: YES_NO,
-        required: true,
-      },
-      {
-        id: 'antibiotics',
-        text: 'Have you recently taken a course of antibiotics?',
-        type: 'radio',
-        options: [
-          { value: 'yes_recent', label: 'Yes – in the last month' },
-          { value: 'yes_3mo', label: 'Yes – 1–3 months ago' },
-          { value: 'no', label: 'No' },
-        ],
-      },
-      {
-        id: 'dentures',
-        text: 'Do you wear dentures?',
-        type: 'radio',
-        options: YES_NO,
-      },
-    ],
-  },
+const bacterialVaginosis: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    {
+      id: 'male_at_birth',
+      text: 'Were you assigned male at birth?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('BV affects people with a vagina — please check with our pharmacist'),
+    },
+    softPregnancy('BV in pregnancy needs special attention'),
+  ],
+  clinicalQuestions: [
+    {
+      id: 'symptoms',
+      text: 'Which symptoms do you have?',
+      kind: 'checkbox-multi',
+      required: true,
+      options: [
+        { value: 'thin_grey_discharge', label: 'Thin, grey or watery discharge' },
+        { value: 'fishy_odour', label: 'Fishy odour (especially after sex)' },
+        { value: 'itch', label: 'Itching' },
+        { value: 'burning', label: 'Burning' },
+      ],
+    },
+    {
+      id: 'previous_episodes',
+      text: 'How many BV episodes have you had in the past year?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: '0', label: 'None — first episode' },
+        { value: '1_2', label: '1 – 2' },
+        { value: '3_plus', label: '3 or more (recurrent)' },
+      ],
+    },
+    {
+      id: 'previous_treatments',
+      text: 'Which BV treatments have you used before?',
+      kind: 'checkbox-multi',
+      noneValue: 'none',
+      options: [
+        { value: 'oral_metronidazole', label: 'Oral metronidazole' },
+        { value: 'gel_metronidazole', label: 'Metronidazole vaginal gel' },
+        { value: 'clindamycin_cream', label: 'Clindamycin cream' },
+        { value: 'lactic_acid', label: 'Lactic acid gel' },
+        { value: 'none', label: 'None of these' },
+      ],
+    },
+    {
+      id: 'preferred_treatment',
+      text: 'Which treatment would you prefer?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'metronidazole_oral', label: 'Metronidazole oral tablets' },
+        { value: 'metronidazole_gel', label: 'Metronidazole vaginal gel' },
+        { value: 'clindamycin_cream', label: 'Clindamycin cream' },
+        { value: 'unsure', label: 'Not sure — recommend based on my answers' },
+      ],
+    },
+    {
+      id: 'alcohol_during',
+      text: 'Will you be able to avoid alcohol during treatment (relevant for metronidazole)?',
+      kind: 'yesno',
+    },
+    {
+      id: 'penicillin_allergy',
+      text: 'Are you allergic to any antibiotics?',
+      kind: 'yesno',
+    },
+  ],
+};
 
-  'ringworm': {
-    eligibilityQuestions: [
-      {
-        id: 'scalp',
-        text: 'Is the affected area on your scalp?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Ringworm of the scalp (tinea capitis) requires prescription oral antifungal tablets that cannot be prescribed online. Please see your GP.',
-      },
-      {
-        id: 'nails',
-        text: 'Are your nails mainly affected (thickened, discoloured, crumbling nails)?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Fungal nail infections typically require long courses of oral antifungals. Please see your GP for appropriate treatment.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'duration',
-        text: 'How long have you had the rash?',
-        type: 'radio',
-        options: [
-          { value: 'under_1wk', label: 'Less than 1 week' },
-          { value: '1_4wk', label: '1–4 weeks' },
-          { value: '1_3mo', label: '1–3 months' },
-          { value: 'over_3mo', label: 'Over 3 months' },
-        ],
-        required: true,
-      },
-      {
-        id: 'location',
-        text: 'Where on the body is the rash?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'arm', label: 'Arm or hand' },
-          { value: 'leg', label: 'Leg or foot' },
-          { value: 'body', label: 'Body or trunk' },
-          { value: 'groin', label: 'Groin (jock itch / tinea cruris)' },
-          { value: 'face', label: 'Face' },
-        ],
-        required: true,
-      },
-      {
-        id: 'appearance',
-        text: 'What does the rash look like?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'ring_shaped', label: 'Ring-shaped or circular' },
-          { value: 'scaly', label: 'Scaly or flaky' },
-          { value: 'itchy', label: 'Itchy' },
-          { value: 'red', label: 'Red and inflamed' },
-          { value: 'clear_centre', label: 'Clear or healing in the centre' },
-        ],
-        required: true,
-      },
-      {
-        id: 'contact',
-        text: 'Have you been in contact with animals or a person with a similar rash recently?',
-        type: 'radio',
-        options: [
-          { value: 'animals', label: 'Yes – animals' },
-          { value: 'person', label: 'Yes – another person' },
-          { value: 'both', label: 'Both' },
-          { value: 'no', label: 'No' },
-        ],
-      },
-      {
-        id: 'previous_treatments',
-        text: 'Have you tried any antifungal creams or treatments?',
-        type: 'textarea',
-      },
-    ],
-  },
+const rosacea: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    softPregnancy('some rosacea treatments (e.g. ivermectin, doxycycline) need review in pregnancy'),
+  ],
+  clinicalQuestions: [
+    {
+      id: 'subtype',
+      text: 'Which subtype best describes your rosacea?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'erythematotelangiectatic', label: 'Persistent redness and visible vessels' },
+        { value: 'papulopustular', label: 'Spots and pustules (acne-like)' },
+        { value: 'ocular', label: 'Eye symptoms (dry, gritty, red eyes)' },
+        { value: 'phymatous', label: 'Skin thickening (e.g. nose)' },
+        { value: 'unsure', label: 'Not sure' },
+      ],
+    },
+    {
+      id: 'triggers',
+      text: 'Which triggers make your rosacea worse?',
+      kind: 'checkbox-multi',
+      noneValue: 'none',
+      options: [
+        { value: 'sun', label: 'Sun' },
+        { value: 'heat', label: 'Heat / hot drinks' },
+        { value: 'spicy', label: 'Spicy food' },
+        { value: 'alcohol', label: 'Alcohol' },
+        { value: 'stress', label: 'Stress' },
+        { value: 'exercise', label: 'Exercise' },
+        { value: 'skincare', label: 'Certain skincare products' },
+        { value: 'none', label: 'No clear triggers' },
+      ],
+    },
+    {
+      id: 'severity',
+      text: 'How severe is your rosacea?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'mild', label: 'Mild' },
+        { value: 'moderate', label: 'Moderate' },
+        { value: 'severe', label: 'Severe' },
+      ],
+    },
+    {
+      id: 'previous_treatments',
+      text: 'Which treatments have you tried?',
+      kind: 'checkbox-multi',
+      noneValue: 'none',
+      options: [
+        { value: 'metronidazole_cream', label: 'Metronidazole cream/gel' },
+        { value: 'ivermectin', label: 'Ivermectin (Soolantra)' },
+        { value: 'azelaic_acid', label: 'Azelaic acid' },
+        { value: 'brimonidine', label: 'Brimonidine gel (Mirvaso)' },
+        { value: 'oral_antibiotic', label: 'Oral antibiotic (e.g. doxycycline)' },
+        { value: 'none', label: 'None of these' },
+      ],
+    },
+    {
+      id: 'photo_prompt',
+      text: 'Please upload clear photos of your face in natural light.',
+      subtext: 'You will be prompted to upload at the end of this consultation.',
+      kind: 'textarea',
+      placeholder: 'Any extra context (optional)',
+    },
+  ],
+};
 
-  'scabies': {
-    eligibilityQuestions: [
-      {
-        id: 'crusted',
-        text: 'Do you have widespread thickened or crusty skin across large areas of your body (crusted/Norwegian scabies)?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Crusted scabies is highly contagious and requires specialist treatment. Please see your GP immediately.',
-      },
-      {
-        id: 'immunocompromised',
-        text: 'Do you have a weakened immune system (e.g. HIV, chemotherapy, organ transplant)?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Scabies in immunocompromised individuals can be more severe and may require specialist management. Please see your GP.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'duration',
-        text: 'How long have you had symptoms?',
-        type: 'radio',
-        options: [
-          { value: 'few_days', label: 'A few days' },
-          { value: '1_2wk', label: '1–2 weeks' },
-          { value: '2_4wk', label: '2–4 weeks' },
-          { value: 'over_1mo', label: 'Over 1 month' },
-        ],
-        required: true,
-      },
-      {
-        id: 'symptoms',
-        text: 'Which symptoms do you have?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'intense_itch', label: 'Intense itching, especially worse at night' },
-          { value: 'spots', label: 'Small raised red spots or a rash' },
-          { value: 'burrow_lines', label: 'Thin, wavy burrow lines on skin' },
-          { value: 'fingers', label: 'Rash between fingers or on wrists' },
-          { value: 'genitals', label: 'Spots on the genitals or buttocks' },
-          { value: 'widespread', label: 'Widespread body rash' },
-        ],
-        required: true,
-      },
-      {
-        id: 'close_contact',
-        text: 'Have any close contacts (household members, partner) had similar symptoms?',
-        type: 'radio',
-        options: [
-          { value: 'yes', label: 'Yes' },
-          { value: 'no', label: 'No' },
-          { value: 'unsure', label: 'Unsure' },
-        ],
-        required: true,
-      },
-      {
-        id: 'previous_treatment',
-        text: 'Have you already started any treatment?',
-        type: 'textarea',
-      },
-      {
-        id: 'communal_living',
-        text: 'Have you or close contacts recently been in a care home, hospital ward, or other communal living environment?',
-        type: 'radio',
-        options: YES_NO,
-      },
-    ],
-  },
+const nailInfection: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    {
+      id: 'gp_confirmed',
+      text: 'Has the infection been confirmed by a GP or nail scraping?',
+      blockingAnswer: 'no',
+      severity: 'soft',
+      blockMessage: softReview('confirming fungal infection avoids treating a different problem'),
+    },
+    {
+      id: 'diabetic',
+      text: 'Do you have diabetes?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('nail infections in diabetes need closer follow-up'),
+    },
+    {
+      id: 'liver_disease',
+      text: 'Do you have liver disease?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('oral terbinafine is metabolised by the liver'),
+    },
+  ],
+  clinicalQuestions: [
+    {
+      id: 'nails_affected',
+      text: 'How many nails are affected?',
+      kind: 'number',
+      min: 1,
+      max: 20,
+      required: true,
+    },
+    {
+      id: 'location',
+      text: 'Where are the affected nails?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'toenails', label: 'Toenails only' },
+        { value: 'fingernails', label: 'Fingernails only' },
+        { value: 'both', label: 'Both' },
+      ],
+    },
+    {
+      id: 'duration',
+      text: 'How long have the nails been affected?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'under_3mo', label: 'Less than 3 months' },
+        { value: '3_12mo', label: '3 – 12 months' },
+        { value: 'over_1yr', label: 'More than a year' },
+      ],
+    },
+    {
+      id: 'preferred_treatment',
+      text: 'Which treatment would you prefer?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'amorolfine', label: 'Amorolfine 5% nail lacquer (topical)' },
+        { value: 'terbinafine_oral', label: 'Terbinafine oral tablets' },
+        { value: 'unsure', label: 'Not sure — recommend based on my answers' },
+      ],
+    },
+  ],
+};
 
-  'sore-throat': {
-    eligibilityQuestions: [
-      {
-        id: 'airway',
-        text: 'Do you have any difficulty breathing, or is swallowing so painful you cannot manage even saliva?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'These are signs of a potentially life-threatening condition. Call 999 immediately.',
-      },
-      {
-        id: 'meningitis',
-        text: 'Do you have a stiff neck, severe headache, sensitivity to light, or a non-blanching rash?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'These symptoms may indicate meningitis or sepsis. Call 999 immediately.',
-      },
-      {
-        id: 'abscess',
-        text: 'Do you have a visible one-sided swelling at the back of your throat, or is your voice sounding muffled?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'This may indicate a peritonsillar abscess requiring urgent drainage. Please go to A&E or call 999.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'duration',
-        text: 'How long have you had your sore throat?',
-        type: 'radio',
-        options: [
-          { value: 'under_24h', label: 'Less than 24 hours' },
-          { value: '1_3d', label: '1–3 days' },
-          { value: '4_7d', label: '4–7 days' },
-        ],
-        required: true,
-      },
-      {
-        id: 'symptoms',
-        text: 'Which symptoms do you have?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'pain_swallowing', label: 'Pain on swallowing' },
-          { value: 'white_patches', label: 'White patches or pus on tonsils' },
-          { value: 'swollen_glands', label: 'Swollen glands in the neck' },
-          { value: 'fever', label: 'Fever or chills' },
-          { value: 'voice_change', label: 'Change in voice or very hoarse' },
-          { value: 'ear_pain', label: 'Ear pain' },
-        ],
-        required: true,
-      },
-      {
-        id: 'temperature',
-        text: 'What is your temperature?',
-        type: 'radio',
-        options: [
-          { value: 'normal', label: 'Normal – below 38°C' },
-          { value: 'mild_fever', label: 'Mildly raised – 38–38.9°C' },
-          { value: 'high_fever', label: 'High – 39°C or above' },
-          { value: 'not_checked', label: 'I haven\'t checked' },
-        ],
-        required: true,
-      },
-      {
-        id: 'cold_symptoms',
-        text: 'Do you also have cold-like symptoms such as a runny nose or cough?',
-        type: 'radio',
-        options: YES_NO,
-      },
-      {
-        id: 'contact',
-        text: 'Do you know if you have been in contact with someone with strep throat or similar illness?',
-        type: 'radio',
-        options: [
-          { value: 'yes', label: 'Yes' },
-          { value: 'no', label: 'No' },
-          { value: 'unsure', label: 'Unsure' },
-        ],
-      },
-    ],
-  },
+const genitalWarts: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    softPregnancy('podophyllotoxin and imiquimod need review in pregnancy'),
+    {
+      id: 'internal',
+      text: 'Are any warts internal (inside the vagina, urethra or rectum)?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('internal warts need clinic-based treatment'),
+    },
+  ],
+  clinicalQuestions: [
+    {
+      id: 'duration',
+      text: 'How long have you had the warts?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'under_1mo', label: 'Less than 1 month' },
+        { value: '1_3mo', label: '1 – 3 months' },
+        { value: 'over_3mo', label: 'More than 3 months' },
+      ],
+    },
+    {
+      id: 'location',
+      text: 'Where are the warts?',
+      kind: 'checkbox-multi',
+      required: true,
+      options: [
+        { value: 'penis', label: 'Penis / scrotum' },
+        { value: 'vulva', label: 'Vulva' },
+        { value: 'perianal', label: 'Around the anus' },
+        { value: 'groin', label: 'Groin / thigh' },
+      ],
+    },
+    {
+      id: 'count',
+      text: 'Roughly how many warts do you have?',
+      kind: 'number',
+      min: 1,
+      max: 100,
+    },
+    {
+      id: 'size_mm',
+      text: 'What is the size of the largest wart?',
+      kind: 'number',
+      unit: 'mm',
+      min: 1,
+      max: 50,
+    },
+    {
+      id: 'previous_treatments',
+      text: 'Which treatments have you tried before?',
+      kind: 'checkbox-multi',
+      noneValue: 'none',
+      options: [
+        { value: 'podophyllotoxin', label: 'Podophyllotoxin (Warticon/Condyline)' },
+        { value: 'imiquimod', label: 'Imiquimod (Aldara)' },
+        { value: 'cryotherapy', label: 'Cryotherapy / freezing' },
+        { value: 'none', label: 'None of these' },
+      ],
+    },
+    {
+      id: 'preferred_treatment',
+      text: 'Which treatment would you prefer?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'podophyllotoxin', label: 'Podophyllotoxin solution/cream' },
+        { value: 'imiquimod', label: 'Imiquimod cream' },
+        { value: 'cryotherapy_referral', label: 'Refer for cryotherapy at a clinic' },
+        { value: 'unsure', label: 'Not sure — recommend based on my answers' },
+      ],
+    },
+  ],
+};
 
-  'teething': {
-    eligibilityQuestions: [
-      {
-        id: 'high_fever',
-        text: 'Does the baby have a high fever (temperature above 38°C)?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Teething does not cause high fevers. A high temperature in a baby requires medical assessment. Please call your GP or NHS 111.',
-      },
-      {
-        id: 'refusing_feeds',
-        text: 'Is the baby refusing all feeds or showing signs of significant distress?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'A baby refusing all feeds requires medical assessment. Please contact your GP or call NHS 111.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'age',
-        text: 'How old is the baby?',
-        type: 'radio',
-        options: [
-          { value: '3_6mo', label: '3–6 months' },
-          { value: '6_12mo', label: '6–12 months' },
-          { value: '12_24mo', label: '12–24 months' },
-          { value: 'over_24mo', label: 'Over 24 months' },
-        ],
-        required: true,
-      },
-      {
-        id: 'symptoms',
-        text: 'What symptoms is the baby showing?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'drooling', label: 'Increased drooling' },
-          { value: 'chewing', label: 'Chewing or gnawing on things' },
-          { value: 'swollen_gums', label: 'Red or swollen gums' },
-          { value: 'irritable', label: 'Irritability and crying more than usual' },
-          { value: 'sleep', label: 'Disturbed sleep' },
-          { value: 'mild_temp', label: 'Mildly raised temperature (below 38°C)' },
-        ],
-        required: true,
-      },
-      {
-        id: 'duration',
-        text: 'How long have symptoms been present?',
-        type: 'radio',
-        options: [
-          { value: 'few_days', label: 'A few days' },
-          { value: '1_2wk', label: '1–2 weeks' },
-          { value: 'over_2wk', label: 'Over 2 weeks' },
-        ],
-        required: true,
-      },
-      {
-        id: 'tooth_visible',
-        text: 'Can you see a tooth coming through the gum?',
-        type: 'radio',
-        options: [
-          { value: 'yes', label: 'Yes – clearly visible' },
-          { value: 'almost', label: 'Not quite through yet, but visible under the gum' },
-          { value: 'no', label: 'No' },
-        ],
-      },
-      {
-        id: 'remedies_tried',
-        text: 'Have you tried any teething remedies?',
-        subtext: 'E.g. teething rings, gel, infant paracetamol.',
-        type: 'textarea',
-      },
-    ],
-  },
+const antiMalaria: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    softPregnancy('antimalarial choice depends on trimester and destination'),
+    {
+      id: 'epilepsy',
+      text: 'Do you have epilepsy?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('mefloquine is contraindicated in epilepsy'),
+    },
+    {
+      id: 'psychiatric',
+      text: 'Do you have a history of depression, anxiety or psychosis?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('mefloquine can worsen mental health conditions'),
+    },
+    {
+      id: 'g6pd',
+      text: 'Do you have G6PD deficiency?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('some antimalarials (primaquine) are unsafe in G6PD deficiency'),
+    },
+  ],
+  clinicalQuestions: [
+    {
+      id: 'destination',
+      text: 'Which country are you travelling to?',
+      kind: 'select',
+      placeholder: 'Choose country',
+      required: true,
+      options: [
+        { value: 'india', label: 'India' },
+        { value: 'thailand', label: 'Thailand' },
+        { value: 'kenya', label: 'Kenya' },
+        { value: 'tanzania', label: 'Tanzania' },
+        { value: 'south_africa', label: 'South Africa' },
+        { value: 'nigeria', label: 'Nigeria' },
+        { value: 'gambia', label: 'The Gambia' },
+        { value: 'ghana', label: 'Ghana' },
+        { value: 'uganda', label: 'Uganda' },
+        { value: 'indonesia', label: 'Indonesia' },
+        { value: 'vietnam', label: 'Vietnam' },
+        { value: 'cambodia', label: 'Cambodia' },
+        { value: 'brazil', label: 'Brazil' },
+        { value: 'peru', label: 'Peru' },
+        { value: 'mexico', label: 'Mexico' },
+        { value: 'other', label: 'Other (please tell us)' },
+      ],
+    },
+    {
+      id: 'travel_start',
+      text: 'When does your trip start?',
+      kind: 'date',
+      required: true,
+    },
+    {
+      id: 'trip_length',
+      text: 'How many days will you be in the malaria zone?',
+      kind: 'number',
+      unit: 'days',
+      min: 1,
+      max: 365,
+      required: true,
+    },
+    {
+      id: 'preferred',
+      text: 'Which antimalarial would you prefer?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'atovaquone_proguanil', label: 'Atovaquone/proguanil (Malarone)' },
+        { value: 'doxycycline', label: 'Doxycycline' },
+        { value: 'mefloquine', label: 'Mefloquine (Lariam)' },
+        { value: 'unsure', label: 'Not sure — recommend based on my destination' },
+      ],
+    },
+  ],
+};
 
-  'threadworms': {
-    eligibilityQuestions: [
-      {
-        id: 'blood_in_stool',
-        text: 'Have you noticed blood in the stools or severe abdominal pain?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'These symptoms are not typical of threadworms and require medical assessment. Please see your GP.',
-      },
-      {
-        id: 'immunocompromised',
-        text: 'Is the patient immunocompromised (e.g. HIV, chemotherapy, on immunosuppressants)?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Threadworm treatment in immunocompromised individuals requires medical supervision. Please see your GP.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'who_affected',
-        text: 'Who is affected?',
-        type: 'radio',
-        options: [
-          { value: 'myself_adult', label: 'Myself (adult)' },
-          { value: 'child_under_2', label: 'My child (under 2 years old)' },
-          { value: 'child_over_2', label: 'My child (over 2 years old)' },
-          { value: 'multiple', label: 'Multiple family members' },
-        ],
-        required: true,
-      },
-      {
-        id: 'symptoms',
-        text: 'What symptoms are present?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'itch_night', label: 'Itching around the bottom, especially at night' },
-          { value: 'worms_visible', label: 'Visible small white worms in stool or around the anus' },
-          { value: 'sleep_disturbed', label: 'Disturbed sleep' },
-          { value: 'irritable', label: 'Irritability (especially in children)' },
-          { value: 'abdominal', label: 'Mild abdominal discomfort' },
-        ],
-        required: true,
-      },
-      {
-        id: 'duration',
-        text: 'How long have symptoms been present?',
-        type: 'radio',
-        options: [
-          { value: 'few_days', label: 'A few days' },
-          { value: '1_2wk', label: '1–2 weeks' },
-          { value: 'several_wk', label: 'Several weeks' },
-        ],
-        required: true,
-      },
-      {
-        id: 'household',
-        text: 'Have any other household members been affected?',
-        type: 'radio',
-        options: [
-          { value: 'yes', label: 'Yes' },
-          { value: 'no', label: 'No' },
-          { value: 'unsure', label: 'Unsure' },
-        ],
-      },
-      {
-        id: 'treatment_started',
-        text: 'Have you started any treatment yet?',
-        type: 'textarea',
-      },
-    ],
-  },
+const arthritis: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    {
+      id: 'hot_swollen',
+      text: 'Is any joint red, hot, very swollen, or did the pain come on suddenly?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('this may indicate septic arthritis or gout flare'),
+    },
+    {
+      id: 'ulcer_history',
+      text: 'Have you ever had a stomach or duodenal ulcer or GI bleed?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('NSAIDs can trigger another bleed'),
+    },
+    {
+      id: 'nsaid_asthma',
+      text: 'Has aspirin or ibuprofen ever made your asthma worse?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('NSAID-sensitive asthma can be triggered by these medicines'),
+    },
+    {
+      id: 'anticoagulant',
+      text: 'Do you take warfarin or a DOAC (e.g. apixaban, rivaroxaban, edoxaban, dabigatran)?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('NSAIDs interact with anticoagulants'),
+    },
+  ],
+  clinicalQuestions: [
+    {
+      id: 'joints',
+      text: 'Which joint(s) are affected?',
+      kind: 'checkbox-multi',
+      required: true,
+      options: [
+        { value: 'knee', label: 'Knee' },
+        { value: 'hip', label: 'Hip' },
+        { value: 'hand', label: 'Hands / fingers' },
+        { value: 'shoulder', label: 'Shoulder' },
+        { value: 'ankle_foot', label: 'Ankle / foot' },
+        { value: 'spine', label: 'Spine / back' },
+      ],
+    },
+    {
+      id: 'duration',
+      text: 'How long has the pain been a problem?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'under_4wk', label: 'Less than 4 weeks' },
+        { value: '1_3mo', label: '1 – 3 months' },
+        { value: 'over_3mo', label: 'Over 3 months' },
+      ],
+    },
+    {
+      id: 'severity',
+      text: 'How bad is the pain on average?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: '1_3', label: '1 – 3 / 10 (mild)' },
+        { value: '4_6', label: '4 – 6 / 10 (moderate)' },
+        { value: '7_10', label: '7 – 10 / 10 (severe)' },
+      ],
+    },
+    {
+      id: 'preferred_treatment',
+      text: 'Which treatment would you prefer?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'ibuprofen_gel', label: 'Ibuprofen gel (topical)' },
+        { value: 'naproxen', label: 'Naproxen tablets' },
+        { value: 'co_codamol', label: 'Paracetamol + codeine (co-codamol)' },
+        { value: 'unsure', label: 'Not sure — recommend based on my answers' },
+      ],
+    },
+  ],
+};
 
-  'uti': {
-    eligibilityQuestions: [
-      {
-        id: 'fever_loin_pain',
-        text: 'Do you have a fever (above 38°C), shivering/rigors, or pain in your back or side (loin pain)?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'These symptoms may indicate a kidney infection (pyelonephritis). Please see your GP today or go to A&E if symptoms are severe. Do not delay.',
-      },
-      {
-        id: 'pregnant',
-        text: 'Are you currently pregnant?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'UTIs during pregnancy require immediate medical treatment. Please contact your GP or midwife today — do not use online pharmacy treatments.',
-      },
-      {
-        id: 'male',
-        text: 'Are you male?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'UTIs are uncommon in men and may indicate another urinary condition requiring investigation. Please see your GP.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'duration',
-        text: 'How long have you had urinary symptoms?',
-        type: 'radio',
-        options: [
-          { value: 'today', label: 'Started today' },
-          { value: '1_2d', label: '1–2 days' },
-          { value: '3_5d', label: '3–5 days' },
-          { value: 'over_5d', label: 'Over 5 days' },
-        ],
-        required: true,
-      },
-      {
-        id: 'symptoms',
-        text: 'Which symptoms do you have?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'burning', label: 'Burning or stinging sensation when urinating' },
-          { value: 'frequency', label: 'Needing to urinate much more frequently than usual' },
-          { value: 'small_amounts', label: 'Passing only small amounts of urine each time' },
-          { value: 'cloudy', label: 'Cloudy, dark or strong-smelling urine' },
-          { value: 'blood', label: 'Blood in the urine (pink, red, or brown)' },
-          { value: 'pressure', label: 'Lower abdominal pain, pressure or discomfort' },
-        ],
-        required: true,
-      },
-      {
-        id: 'previous_uti',
-        text: 'Have you had a UTI before?',
-        type: 'radio',
-        options: [
-          { value: 'yes_frequent', label: 'Yes – frequently (3 or more times in the past year)' },
-          { value: 'yes_occasional', label: 'Yes – occasionally' },
-          { value: 'no', label: 'No – this is my first' },
-        ],
-        required: true,
-      },
-      {
-        id: 'antibiotics_6mo',
-        text: 'Have you taken antibiotics for a UTI in the past 6 months?',
-        type: 'radio',
-        options: YES_NO,
-        required: true,
-      },
-      {
-        id: 'catheter',
-        text: 'Do you have a urinary catheter or known abnormality of the urinary tract?',
-        type: 'radio',
-        options: YES_NO,
-        required: true,
-      },
-      {
-        id: 'sexually_active',
-        text: 'Are you sexually active?',
-        type: 'radio',
-        options: YES_NO,
-      },
-    ],
-  },
+const ibs: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    {
+      id: 'gp_diagnosed',
+      text: 'Has IBS been formally diagnosed by a GP?',
+      blockingAnswer: 'no',
+      severity: 'soft',
+      blockMessage: softReview('a diagnosis is needed to rule out other bowel conditions'),
+    },
+    {
+      id: 'red_flags',
+      text: 'Do you have any of: unintentional weight loss, blood in stool, family history of bowel cancer, anaemia, or new bowel changes after age 50?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('these warrant investigation before symptomatic IBS treatment'),
+    },
+  ],
+  clinicalQuestions: [
+    {
+      id: 'subtype',
+      text: 'Which IBS subtype matches your symptoms most?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'ibs_c', label: 'IBS with constipation (IBS-C)' },
+        { value: 'ibs_d', label: 'IBS with diarrhoea (IBS-D)' },
+        { value: 'mixed', label: 'Mixed (alternating)' },
+      ],
+    },
+    {
+      id: 'preferred_treatment',
+      text: 'Which treatment would you prefer?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'mebeverine', label: 'Mebeverine (antispasmodic)' },
+        { value: 'hyoscine', label: 'Hyoscine butylbromide (Buscopan)' },
+        { value: 'loperamide', label: 'Loperamide (for diarrhoea)' },
+        { value: 'ispaghula', label: 'Ispaghula husk (Fybogel, for constipation)' },
+        { value: 'unsure', label: 'Not sure — recommend based on my answers' },
+      ],
+    },
+  ],
+};
 
-  'vaginal-thrush': {
-    eligibilityQuestions: [
-      {
-        id: 'first_episode',
-        text: 'Is this your first ever episode of vaginal thrush?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'For your first episode, we recommend confirming the diagnosis with your GP before starting treatment, as other conditions can present similarly.',
-      },
-      {
-        id: 'pregnant',
-        text: 'Are you currently pregnant?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Vaginal thrush during pregnancy requires specific treatment. Please see your GP or midwife.',
-      },
-      {
-        id: 'recurrent',
-        text: 'Have you had more than 4 episodes of thrush in the past year?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Recurrent thrush (4+ episodes per year) requires investigation to find an underlying cause. Please see your GP.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'duration',
-        text: 'How long have you had symptoms?',
-        type: 'radio',
-        options: [
-          { value: 'under_24h', label: 'Less than 24 hours' },
-          { value: '1_3d', label: '1–3 days' },
-          { value: '3_7d', label: '3–7 days' },
-          { value: 'over_1wk', label: 'Over 1 week' },
-        ],
-        required: true,
-      },
-      {
-        id: 'symptoms',
-        text: 'Which symptoms do you have?',
-        type: 'checkbox_group',
-        options: [
-          { value: 'discharge', label: 'White, thick, cottage cheese-like discharge' },
-          { value: 'itching', label: 'Itching and irritation' },
-          { value: 'soreness', label: 'Soreness and burning' },
-          { value: 'redness', label: 'Redness or swelling around the vaginal area' },
-          { value: 'pain_sex', label: 'Pain or discomfort during sex' },
-          { value: 'pain_urine', label: 'Burning when urinating' },
-        ],
-        required: true,
-      },
-      {
-        id: 'severity',
-        text: 'How severe are your symptoms?',
-        type: 'radio',
-        options: [
-          { value: 'mild', label: 'Mild – mildly uncomfortable' },
-          { value: 'moderate', label: 'Moderate – noticeably uncomfortable' },
-          { value: 'severe', label: 'Severe – very sore and uncomfortable' },
-        ],
-        required: true,
-      },
-      {
-        id: 'previous_episodes',
-        text: 'How have you managed previous episodes?',
-        subtext: 'Please include any treatments you\'ve used before and whether they worked.',
-        type: 'textarea',
-      },
-      {
-        id: 'contraception',
-        text: 'Are you currently using hormonal contraception?',
-        type: 'radio',
-        options: [
-          { value: 'yes_combined', label: 'Yes – combined pill or patch' },
-          { value: 'yes_other', label: 'Yes – other hormonal method' },
-          { value: 'no', label: 'No' },
-        ],
-      },
-    ],
-  },
+const flu: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    {
+      id: 'over_72h',
+      text: 'Did your symptoms start more than 48 hours ago?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('antivirals are most effective within 48 hours of symptom onset'),
+    },
+    {
+      id: 'pregnant',
+      text: 'Are you pregnant?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('flu in pregnancy needs review — oseltamivir is usually offered to at-risk pregnant patients'),
+    },
+  ],
+  clinicalQuestions: [
+    {
+      id: 'onset',
+      text: 'When did your symptoms start?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'under_48h', label: 'Less than 48 hours ago' },
+        { value: '48_72h', label: '48 – 72 hours ago' },
+        { value: 'over_72h', label: 'More than 72 hours ago' },
+      ],
+    },
+    {
+      id: 'symptoms',
+      text: 'Which symptoms do you have?',
+      kind: 'checkbox-multi',
+      required: true,
+      options: [
+        { value: 'fever', label: 'Fever / chills' },
+        { value: 'cough', label: 'Cough' },
+        { value: 'sore_throat', label: 'Sore throat' },
+        { value: 'body_aches', label: 'Body aches' },
+        { value: 'fatigue', label: 'Severe fatigue' },
+        { value: 'headache', label: 'Headache' },
+      ],
+    },
+    {
+      id: 'high_risk',
+      text: 'Are you in a clinical at-risk group (e.g. asthma, COPD, heart disease, diabetes, immunocompromised, pregnant, age >65)?',
+      kind: 'yesno',
+      required: true,
+    },
+  ],
+};
 
-  'warts-verrucae': {
-    eligibilityQuestions: [
-      {
-        id: 'uncertain_diagnosis',
-        text: 'Are you unsure if this is actually a wart or verruca — does it look unusual, bleed easily, or have irregular edges?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Unusual skin lesions need clinical assessment to rule out other causes. Please see your GP or dermatologist.',
-      },
-      {
-        id: 'face_or_genital',
-        text: 'Are the warts on your face or in the genital area?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Facial and genital warts require specialist assessment and treatment. Please see your GP.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'type',
-        text: 'What type of lesion do you have?',
-        type: 'radio',
-        options: [
-          { value: 'common_wart', label: 'Common wart (on hands, fingers, or knees)' },
-          { value: 'plantar', label: 'Plantar verruca (on the sole of the foot)' },
-          { value: 'flat', label: 'Flat warts (smooth, flat-topped)' },
-          { value: 'multiple', label: 'Multiple warts in different locations' },
-        ],
-        required: true,
-      },
-      {
-        id: 'duration',
-        text: 'How long have you had it?',
-        type: 'radio',
-        options: [
-          { value: 'under_1mo', label: 'Less than 1 month' },
-          { value: '1_6mo', label: '1–6 months' },
-          { value: '6_12mo', label: '6–12 months' },
-          { value: 'over_1yr', label: 'Over 1 year' },
-        ],
-        required: true,
-      },
-      {
-        id: 'number',
-        text: 'How many warts or verrucae do you have?',
-        type: 'radio',
-        options: [
-          { value: '1', label: '1' },
-          { value: '2_4', label: '2–4' },
-          { value: '5_plus', label: '5 or more' },
-        ],
-        required: true,
-      },
-      {
-        id: 'pain',
-        text: 'Does it cause any pain or discomfort?',
-        type: 'radio',
-        options: [
-          { value: 'no', label: 'No – painless' },
-          { value: 'mild', label: 'Yes – mild discomfort when pressed' },
-          { value: 'significant', label: 'Yes – significant pain affecting walking or grip' },
-        ],
-        required: true,
-      },
-      {
-        id: 'previous_treatments',
-        text: 'Have you tried any treatments?',
-        subtext: 'E.g. salicylic acid, cryotherapy, duct tape. How effective were they?',
-        type: 'textarea',
-      },
-    ],
-  },
+const covidTests: ConditionQuestionnaire = {
+  eligibilityQuestions: [],
+  clinicalQuestions: [
+    {
+      id: 'symptom_timeline',
+      text: 'When did your symptoms or exposure occur?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'today', label: 'Today' },
+        { value: '1_3d', label: '1 – 3 days ago' },
+        { value: '4_7d', label: '4 – 7 days ago' },
+        { value: 'no_symptoms', label: 'No symptoms — pre-travel / pre-event' },
+      ],
+    },
+    {
+      id: 'at_risk_household',
+      text: 'Is anyone in your household clinically at risk (e.g. immunocompromised, elderly, pregnant)?',
+      kind: 'yesno',
+    },
+  ],
+};
 
+const sleep: ConditionQuestionnaire = {
+  eligibilityQuestions: [
+    {
+      id: 'suicidal_now',
+      text: 'Are you having thoughts of harming yourself or ending your life right now?',
+      blockingAnswer: 'yes',
+      severity: 'hard',
+      blockMessage: 'Please call 999 or the Samaritans on 116 123 right away. Help is available — do not continue with this consultation.',
+      blockTitle: 'Urgent support needed',
+    },
+    {
+      id: 'severe_depression',
+      text: 'Are you currently experiencing severe depression, or being treated for a serious mental health condition?',
+      blockingAnswer: 'yes',
+      severity: 'soft',
+      blockMessage: softReview('sleep problems with serious mental health conditions need joined-up care'),
+    },
+  ],
+  clinicalQuestions: [
+    {
+      id: 'duration',
+      text: 'How long have you had insomnia?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'under_2wk', label: 'Less than 2 weeks' },
+        { value: '2_4wk', label: '2 – 4 weeks' },
+        { value: 'over_4wk', label: 'More than 4 weeks' },
+      ],
+    },
+    {
+      id: 'pattern',
+      text: 'Which pattern best describes your sleep problem?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'onset', label: 'Trouble falling asleep' },
+        { value: 'maintenance', label: 'Waking through the night' },
+        { value: 'early_waking', label: 'Waking too early and unable to get back to sleep' },
+      ],
+    },
+    {
+      id: 'preferred',
+      text: 'Which short-course OTC treatment would you prefer?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'nytol', label: 'Diphenhydramine (Nytol)' },
+        { value: 'promethazine', label: 'Promethazine (Sominex/Phenergan)' },
+        { value: 'unsure', label: 'Not sure — recommend based on my answers' },
+      ],
+    },
+  ],
+};
+
+const numbingCream: ConditionQuestionnaire = {
+  eligibilityQuestions: [],
+  clinicalQuestions: [
+    {
+      id: 'purpose',
+      text: 'What will you use the numbing cream for?',
+      kind: 'select',
+      placeholder: 'Choose one',
+      required: true,
+      options: [
+        { value: 'tattoo', label: 'Tattoo' },
+        { value: 'cosmetic', label: 'Cosmetic procedure (e.g. laser, micro-needling)' },
+        { value: 'medical', label: 'Medical procedure (e.g. blood test)' },
+      ],
+    },
+    {
+      id: 'area_size',
+      text: 'Approximately how large is the area you want to numb?',
+      kind: 'number',
+      unit: 'cm²',
+      min: 1,
+      max: 2000,
+      required: true,
+    },
+    {
+      id: 'area_location',
+      text: 'Where on the body is the area?',
+      kind: 'text',
+      required: true,
+      placeholder: 'e.g. forearm, lower back',
+    },
+    {
+      id: 'age',
+      text: 'How old are you?',
+      kind: 'number',
+      min: 0,
+      max: 120,
+      unit: 'years',
+      required: true,
+    },
+  ],
+};
+
+const weightLossPlaceholder: ConditionQuestionnaire = {
+  eligibilityQuestions: [],
+  clinicalQuestions: [
+    {
+      id: 'redirect_note',
+      text: 'Weight-loss prescribing uses our dedicated flow.',
+      subtext: 'Please continue via /injectable-weight-loss for the full BMI, contraindication and follow-up assessment.',
+      kind: 'textarea',
+    },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Map + aliases
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const conditionQuestions = {
+  'erectile-dysfunction': erectileDysfunction,
+  'premature-ejaculation': prematureEjaculation,
+  'hair-loss': hairLoss,
+  'acne-vulgaris': acneVulgaris,
+  'cystitis': cystitis,
+  'allergic-rhinitis': allergicRhinitis,
+  'period-delay': periodDelay,
+  'emergency-contraception': emergencyContraception,
+  'chlamydia': chlamydia,
+  'genital-herpes': genitalHerpes,
+  'acid-reflux': acidReflux,
+  'migraine': migraine,
+  'smoking-cessation': smokingCessation,
+  'athletes-foot': athletesFoot,
+  'jet-lag': jetLag,
+  'bacterial-vaginosis': bacterialVaginosis,
+  'rosacea': rosacea,
+  'nail-infection': nailInfection,
+  'genital-warts': genitalWarts,
+  'anti-malaria': antiMalaria,
+  'arthritis': arthritis,
+  'ibs': ibs,
+  'flu': flu,
+  'covid-19-tests': covidTests,
+  'sleep': sleep,
+  'numbing-cream': numbingCream,
+  'weight-loss': weightLossPlaceholder,
+} as const satisfies Record<string, ConditionQuestionnaire>;
+
+export const conditionAliases: Record<string, string> = {
+  // Weight-loss legacy aliases
+  weight_loss: 'weight-loss',
+  'weight-management': 'weight-loss',
+  weightloss: 'weight-loss',
+  // Hay fever
+  hayfever: 'allergic-rhinitis',
+  'hay-fever': 'allergic-rhinitis',
+  // Other common spellings
+  uti: 'cystitis',
+  'urinary-tract-infection': 'cystitis',
+  ed: 'erectile-dysfunction',
+  pe: 'premature-ejaculation',
+  bv: 'bacterial-vaginosis',
+  herpes: 'genital-herpes',
+  warts: 'genital-warts',
+  malaria: 'anti-malaria',
+  'morning-after-pill': 'emergency-contraception',
+  gerd: 'acid-reflux',
+  reflux: 'acid-reflux',
+  heartburn: 'acid-reflux',
+  insomnia: 'sleep',
+  'period-delay-pill': 'period-delay',
+  'fungal-nail': 'nail-infection',
+  onychomycosis: 'nail-infection',
+  'mens-hair-loss': 'hair-loss',
+  acne: 'acne-vulgaris',
+  influenza: 'flu',
+  tamiflu: 'flu',
+};
+
+const defaultQuestionnaire: ConditionQuestionnaire = {
+  eligibilityQuestions: [],
+  clinicalQuestions: [
+    {
+      id: 'duration',
+      text: 'How long have you had these symptoms?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'under_1wk', label: 'Less than 1 week' },
+        { value: '1_4wk', label: '1 – 4 weeks' },
+        { value: '1_3mo', label: '1 – 3 months' },
+        { value: 'over_3mo', label: 'More than 3 months' },
+      ],
+    },
+    {
+      id: 'severity',
+      text: 'How severe are your symptoms?',
+      kind: 'radio',
+      required: true,
+      options: [
+        { value: 'mild', label: 'Mild' },
+        { value: 'moderate', label: 'Moderate' },
+        { value: 'severe', label: 'Severe' },
+      ],
+    },
+    {
+      id: 'previously_diagnosed',
+      text: 'Have you been diagnosed with this condition before?',
+      kind: 'yesno',
+    },
+    {
+      id: 'previous_treatments',
+      text: 'What treatments have you tried so far?',
+      kind: 'textarea',
+    },
+    {
+      id: 'allergies',
+      text: 'Do you have any medicine allergies?',
+      kind: 'text',
+    },
+    {
+      id: 'current_meds',
+      text: 'Please list any prescription or OTC medicines you take.',
+      kind: 'textarea',
+    },
+  ],
 };
 
 export function getConditionQuestions(conditionId: string): ConditionQuestionnaire {
-  const aliasResolved = conditionAliases[conditionId] ?? conditionId;
-  return (
-    conditionQuestions[aliasResolved] ??
-    newConditionQuestions[aliasResolved] ??
-    conditionQuestions[conditionId] ??
-    newConditionQuestions[conditionId] ??
-  {
-    eligibilityQuestions: [
-      {
-        id: 'general_emergency',
-        text: 'Are you experiencing a medical emergency such as severe pain, difficulty breathing, or loss of consciousness?',
-        blockingAnswer: 'yes',
-        blockingMessage: 'Please call 999 immediately for a medical emergency.',
-      },
-    ],
-    clinicalQuestions: [
-      {
-        id: 'duration',
-        text: 'How long have you had these symptoms?',
-        type: 'radio',
-        options: [
-          { value: 'under_1wk', label: 'Less than 1 week' },
-          { value: '1_4wk', label: '1–4 weeks' },
-          { value: 'over_1mo', label: 'Over 1 month' },
-        ],
-        required: true,
-      },
-      {
-        id: 'symptom_description',
-        text: 'Please describe your symptoms in detail.',
-        type: 'textarea',
-        required: true,
-      },
-      {
-        id: 'previous_treatments',
-        text: 'What treatments have you tried so far?',
-        type: 'textarea',
-      },
-    ],
-  });
+  const lower = (conditionId ?? '').trim().toLowerCase();
+  const aliasResolved = conditionAliases[lower] ?? lower;
+  const map = conditionQuestions as Record<string, ConditionQuestionnaire>;
+  return map[aliasResolved] ?? map[lower] ?? defaultQuestionnaire;
 }
