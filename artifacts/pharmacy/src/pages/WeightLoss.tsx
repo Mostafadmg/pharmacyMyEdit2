@@ -191,6 +191,50 @@ export default function WeightLoss() {
         </div>
       </section>
 
+      {/* Let's get started — Injectable vs Oral */}
+      <section className="bg-[#fdf7ec] border-b border-border">
+        <div className="max-w-5xl mx-auto px-6 py-14">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-2">
+              Let's get started
+            </h2>
+            <p className="text-muted-foreground">
+              Choose the type of weight-loss treatment you're looking for.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <Link href="/treatments/weight-loss/injectable" data-testid="get-started-injectable">
+              <Card className="h-full rounded-3xl border-secondary/30 bg-secondary text-white hover:shadow-2xl hover:-translate-y-1 transition-all cursor-pointer">
+                <CardContent className="p-7 flex flex-col gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center">
+                    <Syringe className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-2xl md:text-3xl font-serif font-bold">Injectable Pens</h3>
+                  <p className="text-white/85">I want to take an injectable to lose weight.</p>
+                  <span className="mt-3 inline-flex items-center justify-center gap-1.5 self-start bg-accent text-accent-foreground rounded-full px-5 h-10 font-semibold text-sm">
+                    Start treatment <ChevronRight className="w-4 h-4" />
+                  </span>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link href={`/conditions/${CONDITION_ID}`} data-testid="get-started-oral">
+              <Card className="h-full rounded-3xl border-secondary/30 bg-secondary text-white hover:shadow-2xl hover:-translate-y-1 transition-all cursor-pointer">
+                <CardContent className="p-7 flex flex-col gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center">
+                    <Pill className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-2xl md:text-3xl font-serif font-bold">Oral Tablets</h3>
+                  <p className="text-white/85">I want to take a tablet to lose weight.</p>
+                  <span className="mt-3 inline-flex items-center justify-center gap-1.5 self-start bg-accent text-accent-foreground rounded-full px-5 h-10 font-semibold text-sm">
+                    Start treatment <ChevronRight className="w-4 h-4" />
+                  </span>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* BMI Calculator */}
       <section id="bmi-calculator" className="bg-muted/40 border-b border-border">
         <div className="max-w-5xl mx-auto px-6 py-14">

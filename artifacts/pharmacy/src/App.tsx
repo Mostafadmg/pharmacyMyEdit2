@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import Home from "./pages/Home";
 import Conditions from "./pages/Conditions";
 import WeightLoss from "./pages/WeightLoss";
+import InjectableWeightLossConsultation from "./pages/InjectableWeightLossConsultation";
 import ConditionDetail from "./pages/ConditionDetail";
 import Consultation from "./pages/Consultation";
 import Dashboard from "./pages/Dashboard";
@@ -96,6 +97,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/conditions" component={Conditions} />
       <Route path="/treatments/weight-loss" component={WeightLoss} />
+      <Route path="/treatments/weight-loss/injectable" component={InjectableWeightLossConsultation} />
       <Route path="/treatments/:slug" component={TreatmentLanding} />
       <Route path="/health-hub" component={HealthHub} />
       <Route path="/health-hub/:slug" component={HealthHubArticle} />
