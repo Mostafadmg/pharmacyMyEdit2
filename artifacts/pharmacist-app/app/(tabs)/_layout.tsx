@@ -10,7 +10,8 @@ import { Platform, StyleSheet, View, useColorScheme } from "react-native";
 import { useColors } from "@/hooks/useColors";
 import { getCurrentToken } from "@/context/AuthContext";
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
+const BASE_URL =
+  process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:5000";
 
 interface UnreadBadgeCounts {
   unreadMessages: number;
@@ -83,7 +84,12 @@ function NativeTabLayout() {
         <Label>Pending</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="flags">
-        <Icon sf={{ default: "checkmark.circle", selected: "checkmark.circle.fill" }} />
+        <Icon
+          sf={{
+            default: "checkmark.circle",
+            selected: "checkmark.circle.fill",
+          }}
+        />
         <Label>Reviewed</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="patients">
@@ -91,7 +97,9 @@ function NativeTabLayout() {
         <Label>Patients</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="inbox" {...badgeProps(unreadMessages)}>
-        <Icon sf={{ default: "message.badge", selected: "message.badge.fill" }} />
+        <Icon
+          sf={{ default: "message.badge", selected: "message.badge.fill" }}
+        />
         <Label>Messages</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="orders">
@@ -99,7 +107,9 @@ function NativeTabLayout() {
         <Label>Orders</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile">
-        <Icon sf={{ default: "person.circle", selected: "person.circle.fill" }} />
+        <Icon
+          sf={{ default: "person.circle", selected: "person.circle.fill" }}
+        />
         <Label>Profile</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
@@ -122,8 +132,15 @@ function ClassicTabLayout() {
         headerShown: true,
         headerStyle: { backgroundColor: colors.card },
         headerTintColor: colors.secondary,
-        headerTitleStyle: { fontFamily: "PlusJakartaSans_700Bold", fontSize: 18, color: colors.secondary },
-        tabBarLabelStyle: { fontSize: 10, fontFamily: "PlusJakartaSans_600SemiBold" },
+        headerTitleStyle: {
+          fontFamily: "PlusJakartaSans_700Bold",
+          fontSize: 18,
+          color: colors.secondary,
+        },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontFamily: "PlusJakartaSans_600SemiBold",
+        },
         tabBarStyle: {
           position: "absolute",
           backgroundColor: isIOS ? "transparent" : colors.background,

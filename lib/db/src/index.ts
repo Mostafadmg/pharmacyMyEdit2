@@ -3,14 +3,11 @@ import pg from "pg";
 import * as schema from "./schema";
 
 const { Pool } = pg;
+const DEFAULT_DATABASE_URL =
+  "postgresql://postgres:postgres@localhost:5432/pharmacare";
+const databaseUrl = process.env.DATABASE_URL ?? DEFAULT_DATABASE_URL;
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
-}
-
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const pool = new Pool({ connectionString: databaseUrl });
 export const db = drizzle(pool, { schema });
 
 export * from "./schema";

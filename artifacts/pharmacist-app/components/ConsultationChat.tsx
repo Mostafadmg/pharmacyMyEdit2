@@ -52,9 +52,13 @@ const QUICK_REPLIES = [
 
 function getApiBase(): string {
   const env = (process as { env?: Record<string, string | undefined> }).env;
-  if (env?.EXPO_PUBLIC_API_URL) return env.EXPO_PUBLIC_API_URL.replace(/\/$/, "");
-  if (env?.EXPO_PUBLIC_DEV_DOMAIN) return `https://${env.EXPO_PUBLIC_DEV_DOMAIN}/api-server`;
-  return "";
+  if (env?.EXPO_PUBLIC_API_BASE_URL)
+    return env.EXPO_PUBLIC_API_BASE_URL.replace(/\/$/, "");
+  if (env?.EXPO_PUBLIC_API_URL)
+    return env.EXPO_PUBLIC_API_URL.replace(/\/$/, "");
+  if (env?.EXPO_PUBLIC_DEV_DOMAIN)
+    return `https://${env.EXPO_PUBLIC_DEV_DOMAIN}/api-server`;
+  return "http://localhost:5000";
 }
 
 interface Props {
@@ -83,7 +87,10 @@ export default function ConsultationChat({ consultationId }: Props) {
         setError(`Could not load messages (HTTP ${res.status})`);
         return;
       }
-      const data = (await res.json()) as { messages: Message[]; actions: Action[] };
+      const data = (await res.json()) as {
+        messages: Message[];
+        actions: Action[];
+      };
       setMessages(data.messages);
       setActions(data.actions);
       setError(null);
@@ -140,10 +147,20 @@ export default function ConsultationChat({ consultationId }: Props) {
     | { kind: "msg"; at: string; key: string; message: Message }
     | { kind: "act"; at: string; key: string; action: Action };
   const feed: FeedItem[] = [
-    ...messages.map<FeedItem>(m => ({ kind: "msg", at: m.createdAt, key: `m-${m.id}`, message: m })),
+    ...messages.map<FeedItem>((m) => ({
+      kind: "msg",
+      at: m.createdAt,
+      key: `m-${m.id}`,
+      message: m,
+    })),
     ...actions
-      .filter(a => a.action !== "patient_reply")
-      .map<FeedItem>(a => ({ kind: "act", at: a.createdAt, key: `a-${a.id}`, action: a })),
+      .filter((a) => a.action !== "patient_reply")
+      .map<FeedItem>((a) => ({
+        kind: "act",
+        at: a.createdAt,
+        key: `a-${a.id}`,
+        action: a,
+      })),
   ].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 
   const styles = StyleSheet.create({
@@ -203,7 +220,12 @@ export default function ConsultationChat({ consultationId }: Props) {
       backgroundColor: colors.card,
       padding: 10,
     },
-    quickRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 8 },
+    quickRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 6,
+      marginBottom: 8,
+    },
     quickChip: {
       paddingHorizontal: 10,
       paddingVertical: 6,
@@ -267,21 +289,29 @@ export default function ConsultationChat({ consultationId }: Props) {
         contentContainerStyle={styles.scroller}
         showsVerticalScrollIndicator={false}
       >
-        {loading && <ActivityIndicator style={{ marginTop: 24 }} color={colors.primary} />}
+        {loading && (
+          <ActivityIndicator style={{ marginTop: 24 }} color={colors.primary} />
+        )}
         {!loading && feed.length === 0 && (
           <View style={styles.empty}>
-            <Feather name="message-circle" size={28} color={colors.mutedForeground} />
-            <Text style={styles.emptyText}>No messages yet — start the conversation.</Text>
+            <Feather
+              name="message-circle"
+              size={28}
+              color={colors.mutedForeground}
+            />
+            <Text style={styles.emptyText}>
+              No messages yet — start the conversation.
+            </Text>
           </View>
         )}
-        {feed.map(item => {
+        {feed.map((item) => {
           if (item.kind === "act") {
             const a = item.action;
             return (
               <View key={item.key} style={styles.actionPill}>
                 <Text style={styles.actionText}>
-                  {format(new Date(a.createdAt), "d MMM, HH:mm")} · {a.actorName} ·{" "}
-                  {KIND_LABELS[a.action] ?? a.action}
+                  {format(new Date(a.createdAt), "d MMM, HH:mm")} ·{" "}
+                  {a.actorName} · {KIND_LABELS[a.action] ?? a.action}
                 </Text>
               </View>
             );
@@ -289,15 +319,25 @@ export default function ConsultationChat({ consultationId }: Props) {
           const m = item.message;
           const mine = m.senderRole === "pharmacist";
           return (
-            <View key={item.key} style={[styles.row, mine ? styles.rowMine : styles.rowTheirs]}>
-              <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}>
+            <View
+              key={item.key}
+              style={[styles.row, mine ? styles.rowMine : styles.rowTheirs]}
+            >
+              <View
+                style={[
+                  styles.bubble,
+                  mine ? styles.bubbleMine : styles.bubbleTheirs,
+                ]}
+              >
                 {!mine && (
                   <Text style={styles.senderLabel}>
                     {m.senderName}
                     {KIND_LABELS[m.kind] ? ` · ${KIND_LABELS[m.kind]}` : ""}
                   </Text>
                 )}
-                <Text style={mine ? styles.bodyMine : styles.bodyTheirs}>{m.body}</Text>
+                <Text style={mine ? styles.bodyMine : styles.bodyTheirs}>
+                  {m.body}
+                </Text>
                 <Text style={mine ? styles.timeMine : styles.timeTheirs}>
                   {format(new Date(m.createdAt), "d MMM, HH:mm")}
                 </Text>
@@ -308,8 +348,13 @@ export default function ConsultationChat({ consultationId }: Props) {
       </ScrollView>
       <View style={styles.composer}>
         <View style={styles.quickRow}>
-          {QUICK_REPLIES.map(q => (
-            <Pressable key={q} style={styles.quickChip} onPress={() => send(q)} disabled={sending}>
+          {QUICK_REPLIES.map((q) => (
+            <Pressable
+              key={q}
+              style={styles.quickChip}
+              onPress={() => send(q)}
+              disabled={sending}
+            >
               <Text style={styles.quickText}>{q}</Text>
             </Pressable>
           ))}
@@ -324,7 +369,10 @@ export default function ConsultationChat({ consultationId }: Props) {
             multiline
           />
           <Pressable
-            style={[styles.sendBtn, (!body.trim() || sending) && styles.sendBtnDisabled]}
+            style={[
+              styles.sendBtn,
+              (!body.trim() || sending) && styles.sendBtnDisabled,
+            ]}
             onPress={() => send()}
             disabled={!body.trim() || sending}
           >

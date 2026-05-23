@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
+import { setBaseUrl } from "@workspace/api-client-react";
 import App from "./App";
 import "./index.css";
 
@@ -21,6 +22,8 @@ function ensurePharmacistSession() {
 }
 
 ensurePharmacistSession();
+
+setBaseUrl(import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000");
 
 setAuthTokenGetter(() => {
   try {

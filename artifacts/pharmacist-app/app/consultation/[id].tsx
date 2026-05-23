@@ -19,13 +19,19 @@ import {
   Modal,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useGetConsultation, getGetConsultationQueryKey } from "@workspace/api-client-react";
+import {
+  useGetConsultation,
+  getGetConsultationQueryKey,
+} from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useColors } from "@/hooks/useColors";
 import { format, formatDistanceToNow } from "date-fns";
 import { getCurrentToken, getCurrentTokenAsync } from "@/context/AuthContext";
 import PrescriptionBuilder from "@/components/PrescriptionBuilder";
-import { type PrescriptionItemDraft, formatPrescriptionItems } from "@/data/medications";
+import {
+  type PrescriptionItemDraft,
+  formatPrescriptionItems,
+} from "@/data/medications";
 import { GradientHero, FONT } from "@/components/Brand";
 
 function authHeaders(extra?: Record<string, string>): Record<string, string> {
@@ -57,13 +63,16 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 function getApiBase(): string {
+  if (typeof process !== "undefined" && process.env?.EXPO_PUBLIC_API_BASE_URL) {
+    return process.env.EXPO_PUBLIC_API_BASE_URL.replace(/\/$/, "");
+  }
   if (typeof process !== "undefined" && process.env?.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, "");
   }
   if (typeof process !== "undefined" && process.env?.EXPO_PUBLIC_DEV_DOMAIN) {
     return `https://${process.env.EXPO_PUBLIC_DEV_DOMAIN}/api-server`;
   }
-  return "";
+  return "http://localhost:5000";
 }
 
 interface PatientConsultation {
@@ -77,7 +86,7 @@ interface PatientConsultation {
 }
 
 const TABS = ["Overview", "History"] as const;
-type Tab = typeof TABS[number];
+type Tab = (typeof TABS)[number];
 
 export default function ConsultationDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -88,12 +97,16 @@ export default function ConsultationDetail() {
   const [activeTab, setActiveTab] = useState<Tab>("Overview");
   const [note, setNote] = useState("");
   const [prescription, setPrescription] = useState("");
-  const [prescriptionItems, setPrescriptionItems] = useState<PrescriptionItemDraft[]>([]);
+  const [prescriptionItems, setPrescriptionItems] = useState<
+    PrescriptionItemDraft[]
+  >([]);
   const [referral, setReferral] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // Structured action modals
-  const [actionModal, setActionModal] = useState<null | "approve" | "more_info" | "refer" | "reject">(null);
+  const [actionModal, setActionModal] = useState<
+    null | "approve" | "more_info" | "refer" | "reject"
+  >(null);
   const [successInfo, setSuccessInfo] = useState<null | {
     action: "approve" | "more_info" | "refer" | "reject";
     patientName: string;
@@ -107,9 +120,10 @@ export default function ConsultationDetail() {
   const [rejectReason, setRejectReason] = useState<string>("");
   const [rejectExplanation, setRejectExplanation] = useState("");
 
-  const [patientHistory, setPatientHistory] = useState<PatientConsultation[]>([]);
+  const [patientHistory, setPatientHistory] = useState<PatientConsultation[]>(
+    [],
+  );
   const [historyLoading, setHistoryLoading] = useState(false);
-
 
   // Photo lightbox
   const [lightboxPhotoUrl, setLightboxPhotoUrl] = useState<string | null>(null);
@@ -123,19 +137,31 @@ export default function ConsultationDetail() {
     query: { enabled: !!id, queryKey: getGetConsultationQueryKey(id ?? "") },
   });
 
-  async function callReviewApi(consultationId: string, data: Record<string, unknown>, _action: "approve" | "more_info" | "refer" | "reject") {
+  async function callReviewApi(
+    consultationId: string,
+    data: Record<string, unknown>,
+    _action: "approve" | "more_info" | "refer" | "reject",
+  ) {
     const base = getApiBase();
     const token = await getCurrentTokenAsync();
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
     if (token) headers["Authorization"] = `Bearer ${token}`;
-    const res = await fetch(`${base}/api/consultations/${encodeURIComponent(consultationId)}/review`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(data),
-    });
+    const res = await fetch(
+      `${base}/api/consultations/${encodeURIComponent(consultationId)}/review`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify(data),
+      },
+    );
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
-      throw new Error((errBody as { error?: string }).error || `HTTP ${res.status} : ${res.statusText}`);
+      throw new Error(
+        (errBody as { error?: string }).error ||
+          `HTTP ${res.status} : ${res.statusText}`,
+      );
     }
     return res.json();
   }
@@ -172,25 +198,35 @@ export default function ConsultationDetail() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setMessageText("");
       setMessageModal(false);
-      Alert.alert("Message sent", `${consultation?.patientName ?? "The patient"} will be notified.`);
+      Alert.alert(
+        "Message sent",
+        `${consultation?.patientName ?? "The patient"} will be notified.`,
+      );
     } catch (e) {
-      Alert.alert("Couldn't send", e instanceof Error ? e.message : "Please try again.");
+      Alert.alert(
+        "Couldn't send",
+        e instanceof Error ? e.message : "Please try again.",
+      );
     } finally {
       setMessageSending(false);
     }
   }
 
   const apiBase = getApiBase();
-  const pharmacistName = typeof localStorage !== "undefined"
-    ? (localStorage.getItem("pharmacist_name") ?? "Pharmacist")
-    : "Pharmacist";
+  const pharmacistName =
+    typeof localStorage !== "undefined"
+      ? (localStorage.getItem("pharmacist_name") ?? "Pharmacist")
+      : "Pharmacist";
 
   async function loadHistory(email: string) {
     setHistoryLoading(true);
     try {
-      const res = await fetch(`${apiBase}/api/consultations/patient/${encodeURIComponent(email)}`, {
-        headers: authHeaders(),
-      });
+      const res = await fetch(
+        `${apiBase}/api/consultations/patient/${encodeURIComponent(email)}`,
+        {
+          headers: authHeaders(),
+        },
+      );
       const json = await res.json();
       setPatientHistory(json.consultations ?? []);
     } catch {
@@ -206,15 +242,25 @@ export default function ConsultationDetail() {
     }
   }, [activeTab, consultation?.patientEmail]);
 
-  function openActionModal(action: "approve" | "more_info" | "refer" | "reject") {
+  function openActionModal(
+    action: "approve" | "more_info" | "refer" | "reject",
+  ) {
     if (action === "approve") {
       if (prescriptionItems.length === 0) {
-        Alert.alert("Prescription required", "Add at least one medication before approving.");
+        Alert.alert(
+          "Prescription required",
+          "Add at least one medication before approving.",
+        );
         return;
       }
-      const incomplete = prescriptionItems.find(it => !it.name.trim() || !it.strength.trim() || !it.sig.trim());
+      const incomplete = prescriptionItems.find(
+        (it) => !it.name.trim() || !it.strength.trim() || !it.sig.trim(),
+      );
       if (incomplete) {
-        Alert.alert("Incomplete prescription", "Each medication needs a name, strength and dosage instructions.");
+        Alert.alert(
+          "Incomplete prescription",
+          "Each medication needs a name, strength and dosage instructions.",
+        );
         return;
       }
     }
@@ -222,12 +268,17 @@ export default function ConsultationDetail() {
     setActionModal(action);
   }
 
-  async function submitAction(action: "approve" | "more_info" | "refer" | "reject") {
+  async function submitAction(
+    action: "approve" | "more_info" | "refer" | "reject",
+  ) {
     const data: Record<string, unknown> = { action };
     if (action === "approve") {
       data.pharmacistNote = note.trim() || undefined;
       data.prescriptionItems = prescriptionItems;
-      data.prescription = formatPrescriptionItems(prescriptionItems) || prescription.trim() || undefined;
+      data.prescription =
+        formatPrescriptionItems(prescriptionItems) ||
+        prescription.trim() ||
+        undefined;
     } else if (action === "more_info") {
       if (!moreInfoMessage.trim()) {
         Alert.alert("Required", "Please write a message for the patient.");
@@ -246,7 +297,10 @@ export default function ConsultationDetail() {
       data.referralInfo = referral.trim() || undefined;
     } else if (action === "reject") {
       if (!rejectReason || !rejectExplanation.trim()) {
-        Alert.alert("Required", "Please choose a reason and provide an explanation.");
+        Alert.alert(
+          "Required",
+          "Please choose a reason and provide an explanation.",
+        );
         return;
       }
       data.rejectReason = rejectReason;
@@ -256,15 +310,17 @@ export default function ConsultationDetail() {
     setSubmitting(true);
     try {
       await callReviewApi(id ?? "", data, action);
-      queryClient.invalidateQueries({ queryKey: getGetConsultationQueryKey(id ?? "") });
+      queryClient.invalidateQueries({
+        queryKey: getGetConsultationQueryKey(id ?? ""),
+      });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setActionModal(null);
       setSubmitting(false);
       const isApprove = action === "approve";
-      const domain = process.env.EXPO_PUBLIC_DOMAIN;
-      const pdfUrl = isApprove && id && domain
-        ? `https://${domain}/api/consultations/${id}/prescription.pdf`
-        : null;
+      const pdfUrl =
+        isApprove && id
+          ? `${getApiBase()}/api/consultations/${id}/prescription.pdf`
+          : null;
       setSuccessInfo({
         action,
         patientName: consultation?.patientName ?? "the patient",
@@ -273,7 +329,10 @@ export default function ConsultationDetail() {
     } catch (err: unknown) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       const detail =
-        err && typeof err === "object" && "message" in err && typeof (err as { message: unknown }).message === "string"
+        err &&
+        typeof err === "object" &&
+        "message" in err &&
+        typeof (err as { message: unknown }).message === "string"
           ? (err as { message: string }).message
           : "Failed to submit review. Please try again.";
       Alert.alert("Couldn't submit decision", detail);
@@ -290,17 +349,28 @@ export default function ConsultationDetail() {
 
   if (isLoading || !consultation) {
     return (
-      <View style={[styles.container, styles.center, { paddingTop: Platform.OS === "web" ? 67 : insets.top }]}>
+      <View
+        style={[
+          styles.container,
+          styles.center,
+          { paddingTop: Platform.OS === "web" ? 67 : insets.top },
+        ]}
+      >
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading consultation...</Text>
       </View>
     );
   }
 
-  const isAlreadyReviewed = consultation.status !== "pending" && consultation.status !== "red_flag";
-  const answers = (consultation.answers && typeof consultation.answers === "object" && !Array.isArray(consultation.answers)
-    ? consultation.answers
-    : {}) as Record<string, unknown>;
+  const isAlreadyReviewed =
+    consultation.status !== "pending" && consultation.status !== "red_flag";
+  const answers = (
+    consultation.answers &&
+    typeof consultation.answers === "object" &&
+    !Array.isArray(consultation.answers)
+      ? consultation.answers
+      : {}
+  ) as Record<string, unknown>;
   const createdDate = new Date(consultation.createdAt);
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
@@ -309,20 +379,31 @@ export default function ConsultationDetail() {
       {consultation.hasRedFlag && (
         <View style={styles.redFlagBanner}>
           <Feather name="alert-triangle" size={16} color="#fff" />
-          <Text style={styles.redFlagText}>  URGENT — Red Flag Identified — Review Immediately</Text>
+          <Text style={styles.redFlagText}>
+            {" "}
+            URGENT — Red Flag Identified — Review Immediately
+          </Text>
         </View>
       )}
 
       {/* Back bar */}
       <View style={styles.backBar}>
         <Pressable
-          onPress={() => { Haptics.selectionAsync(); router.back(); }}
-          style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}
+          onPress={() => {
+            Haptics.selectionAsync();
+            router.back();
+          }}
+          style={({ pressed }) => [
+            styles.backButton,
+            pressed && { opacity: 0.6 },
+          ]}
           hitSlop={12}
           testID="btn-back"
         >
           <Feather name="chevron-left" size={22} color={colors.primary} />
-          <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>
+            Back
+          </Text>
         </Pressable>
         <Text style={styles.backBarTitle} numberOfLines={1}>
           Consultation · {consultation.id.slice(0, 8).toUpperCase()}
@@ -339,7 +420,12 @@ export default function ConsultationDetail() {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
             <View style={styles.heroAvatar}>
               <Text style={styles.heroAvatarText}>
-                {consultation.patientName.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}
+                {consultation.patientName
+                  .split(" ")
+                  .map((w: string) => w[0])
+                  .slice(0, 2)
+                  .join("")
+                  .toUpperCase()}
               </Text>
             </View>
             <View style={{ flex: 1 }}>
@@ -354,7 +440,15 @@ export default function ConsultationDetail() {
               </Text>
             </View>
             <View style={styles.heroStatusChip}>
-              <View style={[styles.heroStatusDot, { backgroundColor: STATUS_COLORS[consultation.status] ?? "#fff" }]} />
+              <View
+                style={[
+                  styles.heroStatusDot,
+                  {
+                    backgroundColor:
+                      STATUS_COLORS[consultation.status] ?? "#fff",
+                  },
+                ]}
+              />
               <Text style={styles.heroStatusText}>
                 {STATUS_LABELS[consultation.status] ?? consultation.status}
               </Text>
@@ -382,31 +476,58 @@ export default function ConsultationDetail() {
         style={{ flexGrow: 0 }}
       >
         <Pressable
-          onPress={() => { Haptics.selectionAsync(); setMessageModal(true); }}
-          style={({ pressed }) => [styles.quickActionPill, styles.quickActionPrimary, pressed && { opacity: 0.75 }]}
+          onPress={() => {
+            Haptics.selectionAsync();
+            setMessageModal(true);
+          }}
+          style={({ pressed }) => [
+            styles.quickActionPill,
+            styles.quickActionPrimary,
+            pressed && { opacity: 0.75 },
+          ]}
         >
           <Feather name="message-square" size={14} color="#fff" />
           <Text style={styles.quickActionPrimaryText}>Message Patient</Text>
         </Pressable>
         {consultation.patientEmail ? (
           <Pressable
-            onPress={() => Linking.openURL(`mailto:${consultation.patientEmail}`)}
-            style={({ pressed }) => [styles.quickActionPill, styles.quickActionSecondary, pressed && { opacity: 0.75 }]}
+            onPress={() =>
+              Linking.openURL(`mailto:${consultation.patientEmail}`)
+            }
+            style={({ pressed }) => [
+              styles.quickActionPill,
+              styles.quickActionSecondary,
+              pressed && { opacity: 0.75 },
+            ]}
           >
             <Feather name="mail" size={14} color={colors.foreground} />
             <Text style={styles.quickActionSecondaryText}>Email</Text>
           </Pressable>
         ) : null}
         <Pressable
-          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab("History"); }}
-          style={({ pressed }) => [styles.quickActionPill, styles.quickActionSecondary, pressed && { opacity: 0.75 }]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setActiveTab("History");
+          }}
+          style={({ pressed }) => [
+            styles.quickActionPill,
+            styles.quickActionSecondary,
+            pressed && { opacity: 0.75 },
+          ]}
         >
           <Feather name="clock" size={14} color={colors.foreground} />
           <Text style={styles.quickActionSecondaryText}>History</Text>
         </Pressable>
         <Pressable
-          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push(`/messages/${id}` as never); }}
-          style={({ pressed }) => [styles.quickActionPill, styles.quickActionSecondary, pressed && { opacity: 0.75 }]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push(`/messages/${id}` as never);
+          }}
+          style={({ pressed }) => [
+            styles.quickActionPill,
+            styles.quickActionSecondary,
+            pressed && { opacity: 0.75 },
+          ]}
         >
           <Feather name="message-square" size={14} color={colors.foreground} />
           <Text style={styles.quickActionSecondaryText}>Thread</Text>
@@ -415,7 +536,7 @@ export default function ConsultationDetail() {
 
       {/* Tab bar */}
       <View style={styles.tabBar}>
-        {TABS.map(tab => (
+        {TABS.map((tab) => (
           <Pressable
             key={tab}
             style={[styles.tabItem, activeTab === tab && styles.tabItemActive]}
@@ -424,7 +545,14 @@ export default function ConsultationDetail() {
               setActiveTab(tab);
             }}
           >
-            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === tab && styles.tabTextActive,
+              ]}
+            >
+              {tab}
+            </Text>
           </Pressable>
         ))}
       </View>
@@ -432,35 +560,76 @@ export default function ConsultationDetail() {
       {/* Overview tab */}
       {activeTab === "Overview" && (
         <ScrollView
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 100 }]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 100 },
+          ]}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Consultation</Text>
             <View style={styles.infoCard}>
-              <InfoRow icon="activity" label="Condition" value={consultation.conditionName} colors={colors} />
-              <InfoRow icon="calendar" label="Submitted" value={format(createdDate, "d MMM yyyy, HH:mm")} colors={colors} />
+              <InfoRow
+                icon="activity"
+                label="Condition"
+                value={consultation.conditionName}
+                colors={colors}
+              />
+              <InfoRow
+                icon="calendar"
+                label="Submitted"
+                value={format(createdDate, "d MMM yyyy, HH:mm")}
+                colors={colors}
+              />
               {(() => {
-                const photos: string[] = ((consultation as any).photoUrls ?? []).filter(Boolean);
+                const photos: string[] = (
+                  (consultation as any).photoUrls ?? []
+                ).filter(Boolean);
                 if (!consultation.hasPhoto && photos.length === 0) return null;
                 return (
                   <View style={{ marginTop: 8 }}>
-                    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        marginBottom: 8,
+                      }}
+                    >
                       <Feather name="camera" size={14} color={colors.primary} />
-                      <Text style={{ fontSize: 13, color: colors.primary, fontWeight: "600", marginLeft: 6 }}>
-                        {photos.length} photo{photos.length === 1 ? "" : "s"} submitted
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          color: colors.primary,
+                          fontWeight: "600",
+                          marginLeft: 6,
+                        }}
+                      >
+                        {photos.length} photo{photos.length === 1 ? "" : "s"}{" "}
+                        submitted
                       </Text>
                     </View>
                     {photos.length > 0 && (
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ gap: 8 }}
+                      >
                         {photos.map((url, i) => (
                           <Pressable
                             key={i}
-                            onPress={() => { Haptics.selectionAsync(); setLightboxPhotoUrl(url); }}
+                            onPress={() => {
+                              Haptics.selectionAsync();
+                              setLightboxPhotoUrl(url);
+                            }}
                           >
                             <Image
                               source={{ uri: url }}
-                              style={{ width: 110, height: 110, borderRadius: 12, backgroundColor: colors.muted }}
+                              style={{
+                                width: 110,
+                                height: 110,
+                                borderRadius: 12,
+                                backgroundColor: colors.muted,
+                              }}
                             />
                           </Pressable>
                         ))}
@@ -475,55 +644,158 @@ export default function ConsultationDetail() {
           {/* GPhC Compliance */}
           {(() => {
             const c: any = consultation;
-            const flags: string[] = Array.isArray(c.riskFlags) ? c.riskFlags : [];
+            const flags: string[] = Array.isArray(c.riskFlags)
+              ? c.riskFlags
+              : [];
             const cat = c.riskCategory || "standard";
-            const catColor = cat === "high" ? colors.destructive : cat === "medium" ? "#D97706" : colors.success;
+            const catColor =
+              cat === "high"
+                ? colors.destructive
+                : cat === "medium"
+                  ? "#D97706"
+                  : colors.success;
             return (
               <View style={styles.section}>
-                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: 8,
+                  }}
+                >
                   <Text style={styles.sectionTitle}>GPhC Compliance</Text>
-                  <View style={{ backgroundColor: catColor + "22", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
-                    <Text style={{ color: catColor, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  <View
+                    style={{
+                      backgroundColor: catColor + "22",
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                      borderRadius: 12,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: catColor,
+                        fontSize: 11,
+                        fontWeight: "700",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.5,
+                      }}
+                    >
                       {cat} risk
                     </Text>
                   </View>
                 </View>
 
                 {flags.length > 0 ? (
-                  <View style={[styles.infoCard, { backgroundColor: colors.urgent + "14", borderColor: colors.urgent + "55", borderWidth: 1 }]}>
-                    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
-                      <Feather name="alert-triangle" size={14} color={colors.urgent} />
-                      <Text style={{ fontSize: 12, fontWeight: "700", color: colors.urgent, marginLeft: 6, textTransform: "uppercase" }}>
+                  <View
+                    style={[
+                      styles.infoCard,
+                      {
+                        backgroundColor: colors.urgent + "14",
+                        borderColor: colors.urgent + "55",
+                        borderWidth: 1,
+                      },
+                    ]}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        marginBottom: 6,
+                      }}
+                    >
+                      <Feather
+                        name="alert-triangle"
+                        size={14}
+                        color={colors.urgent}
+                      />
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: "700",
+                          color: colors.urgent,
+                          marginLeft: 6,
+                          textTransform: "uppercase",
+                        }}
+                      >
                         Auto-detected flags ({flags.length})
                       </Text>
                     </View>
                     {flags.map((f) => (
-                      <Text key={f} style={{ fontSize: 13, color: colors.foreground, marginTop: 2 }}>
-                        • {f.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                      <Text
+                        key={f}
+                        style={{
+                          fontSize: 13,
+                          color: colors.foreground,
+                          marginTop: 2,
+                        }}
+                      >
+                        •{" "}
+                        {f
+                          .replace(/_/g, " ")
+                          .replace(/\b\w/g, (l: string) => l.toUpperCase())}
                       </Text>
                     ))}
                   </View>
                 ) : (
-                  <View style={[styles.infoCard, { backgroundColor: colors.success + "14", borderColor: colors.success + "55", borderWidth: 1, flexDirection: "row", alignItems: "center" }]}>
-                    <Feather name="check-circle" size={14} color={colors.success} />
-                    <Text style={{ fontSize: 13, color: colors.foreground, marginLeft: 8 }}>No automated flags detected</Text>
+                  <View
+                    style={[
+                      styles.infoCard,
+                      {
+                        backgroundColor: colors.success + "14",
+                        borderColor: colors.success + "55",
+                        borderWidth: 1,
+                        flexDirection: "row",
+                        alignItems: "center",
+                      },
+                    ]}
+                  >
+                    <Feather
+                      name="check-circle"
+                      size={14}
+                      color={colors.success}
+                    />
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        color: colors.foreground,
+                        marginLeft: 8,
+                      }}
+                    >
+                      No automated flags detected
+                    </Text>
                   </View>
                 )}
 
                 <View style={[styles.infoCard, { marginTop: 8 }]}>
-                  <InfoRow icon="shield" label="Identity" value={c.identityVerificationMethod || "Photo ID on file"} colors={colors} />
+                  <InfoRow
+                    icon="shield"
+                    label="Identity"
+                    value={c.identityVerificationMethod || "Photo ID on file"}
+                    colors={colors}
+                  />
                   {c.identityVerificationRef && (
-                    <InfoRow icon="hash" label="ID Ref" value={c.identityVerificationRef} colors={colors} />
+                    <InfoRow
+                      icon="hash"
+                      label="ID Ref"
+                      value={c.identityVerificationRef}
+                      colors={colors}
+                    />
                   )}
                   <InfoRow
                     icon="check-square"
                     label="Consents"
-                    value={[
-                      c.consentDataProcessing && "Data processing",
-                      c.consentToTreatment && "Treatment",
-                      c.consentToDelivery && "Delivery",
-                      c.consentShareWithGp && "Share with GP",
-                    ].filter(Boolean).join(", ") || "None recorded"}
+                    value={
+                      [
+                        c.consentDataProcessing && "Data processing",
+                        c.consentToTreatment && "Treatment",
+                        c.consentToDelivery && "Delivery",
+                        c.consentShareWithGp && "Share with GP",
+                      ]
+                        .filter(Boolean)
+                        .join(", ") || "None recorded"
+                    }
                     colors={colors}
                   />
                 </View>
@@ -534,42 +806,109 @@ export default function ConsultationDetail() {
           {/* Patient submitted information — show ALL fields */}
           {(() => {
             const c: any = consultation;
-            const has = (v: any) => v !== null && v !== undefined && String(v).trim() !== "";
-            const hasGp = has(c.gpName) || has(c.gpSurgery) || has(c.gpAddress) || has(c.gpPhone) || c.hasRegularGp != null;
-            const hasMed = has(c.allergies) || has(c.currentMedications) || has(c.medicalHistory) || c.isPregnant != null;
-            const hasBody = has(c.bmi) || has(c.weightKg) || has(c.heightCm) || has(c.verifiedHeightCm) || has(c.verifiedWeightKg);
-            const hasDelivery = has(c.deliveryAddress) || has(c.deliveryAddressLine1) || has(c.deliveryCity) || has(c.deliveryPostcode) || has(c.preferredDeliveryMethod);
+            const has = (v: any) =>
+              v !== null && v !== undefined && String(v).trim() !== "";
+            const hasGp =
+              has(c.gpName) ||
+              has(c.gpSurgery) ||
+              has(c.gpAddress) ||
+              has(c.gpPhone) ||
+              c.hasRegularGp != null;
+            const hasMed =
+              has(c.allergies) ||
+              has(c.currentMedications) ||
+              has(c.medicalHistory) ||
+              c.isPregnant != null;
+            const hasBody =
+              has(c.bmi) ||
+              has(c.weightKg) ||
+              has(c.heightCm) ||
+              has(c.verifiedHeightCm) ||
+              has(c.verifiedWeightKg);
+            const hasDelivery =
+              has(c.deliveryAddress) ||
+              has(c.deliveryAddressLine1) ||
+              has(c.deliveryCity) ||
+              has(c.deliveryPostcode) ||
+              has(c.preferredDeliveryMethod);
             return (
               <>
                 {/* GP / Regular Prescriber */}
-                <CollapsibleSection title="GP / Regular Prescriber" icon="user" defaultOpen={false} colors={colors}>
+                <CollapsibleSection
+                  title="GP / Regular Prescriber"
+                  icon="user"
+                  defaultOpen={false}
+                  colors={colors}
+                >
                   <View style={styles.infoCard}>
                     <InfoRow
                       icon="user"
                       label="Has regular GP"
-                      value={c.hasRegularGp == null ? "Not asked" : c.hasRegularGp ? "Yes" : "No"}
+                      value={
+                        c.hasRegularGp == null
+                          ? "Not asked"
+                          : c.hasRegularGp
+                            ? "Yes"
+                            : "No"
+                      }
                       colors={colors}
                     />
-                    <InfoRow icon="user" label="GP name" value={has(c.gpName) ? c.gpName : "—"} colors={colors} />
-                    <InfoRow icon="briefcase" label="Surgery" value={has(c.gpSurgery) ? c.gpSurgery : "—"} colors={colors} />
-                    <InfoRow icon="map-pin" label="Surgery address" value={has(c.gpAddress) ? c.gpAddress : "—"} colors={colors} />
-                    <InfoRow icon="phone" label="Surgery phone" value={has(c.gpPhone) ? c.gpPhone : "—"} colors={colors} />
+                    <InfoRow
+                      icon="user"
+                      label="GP name"
+                      value={has(c.gpName) ? c.gpName : "—"}
+                      colors={colors}
+                    />
+                    <InfoRow
+                      icon="briefcase"
+                      label="Surgery"
+                      value={has(c.gpSurgery) ? c.gpSurgery : "—"}
+                      colors={colors}
+                    />
+                    <InfoRow
+                      icon="map-pin"
+                      label="Surgery address"
+                      value={has(c.gpAddress) ? c.gpAddress : "—"}
+                      colors={colors}
+                    />
+                    <InfoRow
+                      icon="phone"
+                      label="Surgery phone"
+                      value={has(c.gpPhone) ? c.gpPhone : "—"}
+                      colors={colors}
+                    />
                     <InfoRow
                       icon="share-2"
                       label="Consent to share"
-                      value={c.consentShareWithGp ? "Yes — patient agreed to share with GP" : "No"}
+                      value={
+                        c.consentShareWithGp
+                          ? "Yes — patient agreed to share with GP"
+                          : "No"
+                      }
                       colors={colors}
                     />
                   </View>
                   {!hasGp && (
-                    <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 6, fontStyle: "italic" }}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: colors.mutedForeground,
+                        marginTop: 6,
+                        fontStyle: "italic",
+                      }}
+                    >
                       Patient didn't supply GP details for this consultation.
                     </Text>
                   )}
                 </CollapsibleSection>
 
                 {/* Medical Background */}
-                <CollapsibleSection title="Medical Background" icon="heart" defaultOpen={true} colors={colors}>
+                <CollapsibleSection
+                  title="Medical Background"
+                  icon="heart"
+                  defaultOpen={true}
+                  colors={colors}
+                >
                   <View style={styles.infoCard}>
                     <InfoRow
                       icon="alert-circle"
@@ -580,20 +919,34 @@ export default function ConsultationDetail() {
                     <InfoRow
                       icon="package"
                       label="Current medications"
-                      value={has(c.currentMedications) ? c.currentMedications : "None reported"}
+                      value={
+                        has(c.currentMedications)
+                          ? c.currentMedications
+                          : "None reported"
+                      }
                       colors={colors}
                     />
                     <InfoRow
                       icon="file-text"
                       label="Medical history"
-                      value={has(c.medicalHistory) ? c.medicalHistory : "None reported"}
+                      value={
+                        has(c.medicalHistory)
+                          ? c.medicalHistory
+                          : "None reported"
+                      }
                       colors={colors}
                     />
                     {consultation.patientSex === "female" && (
                       <InfoRow
                         icon="heart"
                         label="Pregnancy status"
-                        value={c.isPregnant === true ? "Pregnant" : c.isPregnant === false ? "Not pregnant" : "Not asked"}
+                        value={
+                          c.isPregnant === true
+                            ? "Pregnant"
+                            : c.isPregnant === false
+                              ? "Not pregnant"
+                              : "Not asked"
+                        }
                         colors={colors}
                       />
                     )}
@@ -602,12 +955,45 @@ export default function ConsultationDetail() {
 
                 {/* Body Measurements */}
                 {hasBody && (
-                  <CollapsibleSection title="Body Measurements" icon="activity" defaultOpen={false} colors={colors}>
+                  <CollapsibleSection
+                    title="Body Measurements"
+                    icon="activity"
+                    defaultOpen={false}
+                    colors={colors}
+                  >
                     <View style={styles.infoCard}>
-                      {has(c.heightCm) && <InfoRow icon="trending-up" label="Height (self)" value={`${c.heightCm} cm`} colors={colors} />}
-                      {has(c.weightKg) && <InfoRow icon="bar-chart" label="Weight (self)" value={`${c.weightKg} kg`} colors={colors} />}
-                      {has(c.verifiedHeightCm) && <InfoRow icon="check" label="Height (verified)" value={`${c.verifiedHeightCm} cm`} colors={colors} />}
-                      {has(c.verifiedWeightKg) && <InfoRow icon="check" label="Weight (verified)" value={`${c.verifiedWeightKg} kg`} colors={colors} />}
+                      {has(c.heightCm) && (
+                        <InfoRow
+                          icon="trending-up"
+                          label="Height (self)"
+                          value={`${c.heightCm} cm`}
+                          colors={colors}
+                        />
+                      )}
+                      {has(c.weightKg) && (
+                        <InfoRow
+                          icon="bar-chart"
+                          label="Weight (self)"
+                          value={`${c.weightKg} kg`}
+                          colors={colors}
+                        />
+                      )}
+                      {has(c.verifiedHeightCm) && (
+                        <InfoRow
+                          icon="check"
+                          label="Height (verified)"
+                          value={`${c.verifiedHeightCm} cm`}
+                          colors={colors}
+                        />
+                      )}
+                      {has(c.verifiedWeightKg) && (
+                        <InfoRow
+                          icon="check"
+                          label="Weight (verified)"
+                          value={`${c.verifiedWeightKg} kg`}
+                          colors={colors}
+                        />
+                      )}
                       {has(c.bmi) && (
                         <InfoRow
                           icon="activity"
@@ -622,7 +1008,12 @@ export default function ConsultationDetail() {
 
                 {/* Delivery */}
                 {hasDelivery && (
-                  <CollapsibleSection title="Delivery" icon="truck" defaultOpen={false} colors={colors}>
+                  <CollapsibleSection
+                    title="Delivery"
+                    icon="truck"
+                    defaultOpen={false}
+                    colors={colors}
+                  >
                     <View style={styles.infoCard}>
                       <InfoRow
                         icon="map-pin"
@@ -630,7 +1021,12 @@ export default function ConsultationDetail() {
                         value={
                           has(c.deliveryAddress)
                             ? c.deliveryAddress
-                            : [c.deliveryAddressLine1, c.deliveryAddressLine2, c.deliveryCity, c.deliveryPostcode]
+                            : [
+                                c.deliveryAddressLine1,
+                                c.deliveryAddressLine2,
+                                c.deliveryCity,
+                                c.deliveryPostcode,
+                              ]
                                 .filter(Boolean)
                                 .join(", ") || "—"
                         }
@@ -639,7 +1035,11 @@ export default function ConsultationDetail() {
                       <InfoRow
                         icon="truck"
                         label="Method"
-                        value={has(c.preferredDeliveryMethod) ? c.preferredDeliveryMethod : "Royal Mail Tracked (default)"}
+                        value={
+                          has(c.preferredDeliveryMethod)
+                            ? c.preferredDeliveryMethod
+                            : "Royal Mail Tracked (default)"
+                        }
                         colors={colors}
                       />
                     </View>
@@ -649,13 +1049,26 @@ export default function ConsultationDetail() {
             );
           })()}
 
-          <CollapsibleSection title={`Questionnaire (${Object.keys(answers).length})`} icon="list" defaultOpen={true} colors={colors}>
+          <CollapsibleSection
+            title={`Questionnaire (${Object.keys(answers).length})`}
+            icon="list"
+            defaultOpen={true}
+            colors={colors}
+          >
             {Object.entries(answers).map(([key, val], i) => (
-              <QuestionAnswerRow key={key} index={i + 1} questionKey={key} value={val} colors={colors} />
+              <QuestionAnswerRow
+                key={key}
+                index={i + 1}
+                questionKey={key}
+                value={val}
+                colors={colors}
+              />
             ))}
             {Object.keys(answers).length === 0 && (
               <View style={[styles.qaCard, { alignItems: "center" }]}>
-                <Text style={{ fontSize: 13, color: colors.mutedForeground }}>No questionnaire answers were submitted.</Text>
+                <Text style={{ fontSize: 13, color: colors.mutedForeground }}>
+                  No questionnaire answers were submitted.
+                </Text>
               </View>
             )}
           </CollapsibleSection>
@@ -679,14 +1092,28 @@ export default function ConsultationDetail() {
 
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Prescription</Text>
-                <Text style={{ fontSize: 12, color: colors.mutedForeground, marginBottom: 10, lineHeight: 16 }}>
-                  Search the UK formulary, set strength, quantity and dosage. We'll auto-create the order and start tracked delivery on approval.
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: colors.mutedForeground,
+                    marginBottom: 10,
+                    lineHeight: 16,
+                  }}
+                >
+                  Search the UK formulary, set strength, quantity and dosage.
+                  We'll auto-create the order and start tracked delivery on
+                  approval.
                 </Text>
-                <PrescriptionBuilder items={prescriptionItems} onChange={setPrescriptionItems} />
+                <PrescriptionBuilder
+                  items={prescriptionItems}
+                  onChange={setPrescriptionItems}
+                />
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Referral Info (if referring)</Text>
+                <Text style={styles.sectionTitle}>
+                  Referral Info (if referring)
+                </Text>
                 <TextInput
                   style={styles.textarea}
                   placeholder="Referral details or GP instructions"
@@ -708,43 +1135,64 @@ export default function ConsultationDetail() {
                   onPress={() => handleReview("approve")}
                   disabled={submitting}
                   testID="btn-approve"
-                  style={({ pressed }) => [{
-                    backgroundColor: colors.success,
-                    borderRadius: 18,
-                    padding: 18,
-                    marginBottom: 10,
-                    flexDirection: "row" as const,
-                    alignItems: "center" as const,
-                    opacity: pressed || submitting ? 0.8 : 1,
-                    shadowColor: colors.success,
-                    shadowOffset: { width: 0, height: 6 },
-                    shadowOpacity: 0.35,
-                    shadowRadius: 10,
-                    elevation: 6,
-                  }]}
+                  style={({ pressed }) => [
+                    {
+                      backgroundColor: colors.success,
+                      borderRadius: 18,
+                      padding: 18,
+                      marginBottom: 10,
+                      flexDirection: "row" as const,
+                      alignItems: "center" as const,
+                      opacity: pressed || submitting ? 0.8 : 1,
+                      shadowColor: colors.success,
+                      shadowOffset: { width: 0, height: 6 },
+                      shadowOpacity: 0.35,
+                      shadowRadius: 10,
+                      elevation: 6,
+                    },
+                  ]}
                 >
                   <View style={styles.decisionIconWrap}>
                     <Feather name="check-circle" size={24} color="#fff" />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.decisionLabel}>Approve & Prescribe</Text>
-                    <Text style={styles.decisionSubtitle}>Issue prescription · auto-create tracked delivery</Text>
+                    <Text style={styles.decisionLabel}>
+                      Approve & Prescribe
+                    </Text>
+                    <Text style={styles.decisionSubtitle}>
+                      Issue prescription · auto-create tracked delivery
+                    </Text>
                   </View>
-                  <Feather name="chevron-right" size={20} color="rgba(255,255,255,0.7)" />
+                  <Feather
+                    name="chevron-right"
+                    size={20}
+                    color="rgba(255,255,255,0.7)"
+                  />
                 </Pressable>
 
                 {/* More Info + Refer — side by side */}
-                <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
+                <View
+                  style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}
+                >
                   <Pressable
                     onPress={() => handleReview("more_info")}
                     disabled={submitting}
                     testID="btn-more-info"
-                    style={({ pressed }) => [{
-                      flex: 1, backgroundColor: "#2563EB", borderRadius: 18, padding: 16,
-                      alignItems: "flex-start" as const,
-                      opacity: pressed || submitting ? 0.8 : 1,
-                      shadowColor: "#2563EB", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
-                    }]}
+                    style={({ pressed }) => [
+                      {
+                        flex: 1,
+                        backgroundColor: "#2563EB",
+                        borderRadius: 18,
+                        padding: 16,
+                        alignItems: "flex-start" as const,
+                        opacity: pressed || submitting ? 0.8 : 1,
+                        shadowColor: "#2563EB",
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 8,
+                        elevation: 4,
+                      },
+                    ]}
                   >
                     <View style={styles.decisionIconWrapSm}>
                       <Feather name="message-circle" size={18} color="#fff" />
@@ -757,12 +1205,21 @@ export default function ConsultationDetail() {
                     onPress={() => handleReview("refer")}
                     disabled={submitting}
                     testID="btn-refer"
-                    style={({ pressed }) => [{
-                      flex: 1, backgroundColor: "#7C3AED", borderRadius: 18, padding: 16,
-                      alignItems: "flex-start" as const,
-                      opacity: pressed || submitting ? 0.8 : 1,
-                      shadowColor: "#7C3AED", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
-                    }]}
+                    style={({ pressed }) => [
+                      {
+                        flex: 1,
+                        backgroundColor: "#7C3AED",
+                        borderRadius: 18,
+                        padding: 16,
+                        alignItems: "flex-start" as const,
+                        opacity: pressed || submitting ? 0.8 : 1,
+                        shadowColor: "#7C3AED",
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 8,
+                        elevation: 4,
+                      },
+                    ]}
                   >
                     <View style={styles.decisionIconWrapSm}>
                       <Feather name="external-link" size={18} color="#fff" />
@@ -777,16 +1234,43 @@ export default function ConsultationDetail() {
                   onPress={() => handleReview("reject")}
                   disabled={submitting}
                   testID="btn-reject"
-                  style={({ pressed }) => [{
-                    borderRadius: 18, padding: 16, borderWidth: 1.5, borderColor: colors.destructive,
-                    flexDirection: "row" as const, alignItems: "center" as const,
-                    opacity: pressed || submitting ? 0.8 : 1,
-                  }]}
+                  style={({ pressed }) => [
+                    {
+                      borderRadius: 18,
+                      padding: 16,
+                      borderWidth: 1.5,
+                      borderColor: colors.destructive,
+                      flexDirection: "row" as const,
+                      alignItems: "center" as const,
+                      opacity: pressed || submitting ? 0.8 : 1,
+                    },
+                  ]}
                 >
-                  <Feather name="x-circle" size={20} color={colors.destructive} style={{ marginRight: 12 }} />
+                  <Feather
+                    name="x-circle"
+                    size={20}
+                    color={colors.destructive}
+                    style={{ marginRight: 12 }}
+                  />
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: "700" as const, color: colors.destructive }}>Cannot Approve</Text>
-                    <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 1 }}>Not suitable for this treatment</Text>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontWeight: "700" as const,
+                        color: colors.destructive,
+                      }}
+                    >
+                      Cannot Approve
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: colors.mutedForeground,
+                        marginTop: 1,
+                      }}
+                    >
+                      Not suitable for this treatment
+                    </Text>
                   </View>
                 </Pressable>
               </View>
@@ -797,29 +1281,42 @@ export default function ConsultationDetail() {
             <View style={styles.section}>
               <View style={styles.reviewedBanner}>
                 <Feather name="check-circle" size={18} color={colors.success} />
-                <Text style={styles.reviewedText}>  This consultation has been reviewed</Text>
+                <Text style={styles.reviewedText}>
+                  {" "}
+                  This consultation has been reviewed
+                </Text>
               </View>
               {consultation.pharmacistNote && (
                 <>
                   <Text style={styles.sectionTitle}>Clinical Notes</Text>
                   <View style={styles.infoCard}>
-                    <Text style={styles.noteText}>{consultation.pharmacistNote}</Text>
+                    <Text style={styles.noteText}>
+                      {consultation.pharmacistNote}
+                    </Text>
                   </View>
                 </>
               )}
               {consultation.prescription && (
                 <>
-                  <Text style={[styles.sectionTitle, { marginTop: 12 }]}>Prescription</Text>
+                  <Text style={[styles.sectionTitle, { marginTop: 12 }]}>
+                    Prescription
+                  </Text>
                   <View style={styles.infoCard}>
-                    <Text style={styles.noteText}>{consultation.prescription}</Text>
+                    <Text style={styles.noteText}>
+                      {consultation.prescription}
+                    </Text>
                   </View>
                 </>
               )}
               {consultation.referralInfo && (
                 <>
-                  <Text style={[styles.sectionTitle, { marginTop: 12 }]}>Referral</Text>
+                  <Text style={[styles.sectionTitle, { marginTop: 12 }]}>
+                    Referral
+                  </Text>
                   <View style={styles.infoCard}>
-                    <Text style={styles.noteText}>{consultation.referralInfo}</Text>
+                    <Text style={styles.noteText}>
+                      {consultation.referralInfo}
+                    </Text>
                   </View>
                 </>
               )}
@@ -828,11 +1325,13 @@ export default function ConsultationDetail() {
         </ScrollView>
       )}
 
-
       {/* History tab */}
       {activeTab === "History" && (
         <ScrollView
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 100 }]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 100 },
+          ]}
           showsVerticalScrollIndicator={false}
           onLayout={() => {
             if (!patientHistory.length && !historyLoading) {
@@ -840,77 +1339,223 @@ export default function ConsultationDetail() {
             }
           }}
         >
-          <Text style={styles.sectionTitle}>All consultations for {consultation.patientEmail}</Text>
-          {historyLoading && <ActivityIndicator color={colors.primary} style={{ marginTop: 24 }} />}
+          <Text style={styles.sectionTitle}>
+            All consultations for {consultation.patientEmail}
+          </Text>
+          {historyLoading && (
+            <ActivityIndicator
+              color={colors.primary}
+              style={{ marginTop: 24 }}
+            />
+          )}
           {!historyLoading && patientHistory.length === 0 && (
             <View style={styles.emptyWrap}>
               <Feather name="inbox" size={36} color={colors.mutedForeground} />
               <Text style={styles.emptyTitle}>No history yet</Text>
             </View>
           )}
-          {!historyLoading && patientHistory.map((c, i) => {
-            const isCurrent = c.id === id;
-            const statusColor = STATUS_COLORS[c.status] ?? "#888";
-            return (
-              <View key={c.id} style={[styles.timelineItem, isCurrent && { borderColor: colors.primary, borderWidth: 2 }]}>
-                <View style={styles.timelineDot}>
-                  <View style={[styles.timelineDotInner, { backgroundColor: statusColor }]} />
-                  {i < patientHistory.length - 1 && <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />}
-                </View>
-                <View style={styles.timelineContent}>
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <Text style={[styles.timelineCondition, isCurrent && { color: colors.primary }]}>{c.conditionName}</Text>
-                    {isCurrent && (
-                      <View style={[styles.currentBadge, { backgroundColor: colors.primary + "22" }]}>
-                        <Text style={{ fontSize: 9, color: colors.primary, fontWeight: "700" }}>CURRENT</Text>
-                      </View>
+          {!historyLoading &&
+            patientHistory.map((c, i) => {
+              const isCurrent = c.id === id;
+              const statusColor = STATUS_COLORS[c.status] ?? "#888";
+              return (
+                <View
+                  key={c.id}
+                  style={[
+                    styles.timelineItem,
+                    isCurrent && {
+                      borderColor: colors.primary,
+                      borderWidth: 2,
+                    },
+                  ]}
+                >
+                  <View style={styles.timelineDot}>
+                    <View
+                      style={[
+                        styles.timelineDotInner,
+                        { backgroundColor: statusColor },
+                      ]}
+                    />
+                    {i < patientHistory.length - 1 && (
+                      <View
+                        style={[
+                          styles.timelineLine,
+                          { backgroundColor: colors.border },
+                        ]}
+                      />
                     )}
                   </View>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
-                    <View style={[styles.timelineStatusBadge, { backgroundColor: statusColor + "22" }]}>
-                      <Text style={{ fontSize: 10, color: statusColor, fontWeight: "700" }}>{STATUS_LABELS[c.status] ?? c.status}</Text>
+                  <View style={styles.timelineContent}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.timelineCondition,
+                          isCurrent && { color: colors.primary },
+                        ]}
+                      >
+                        {c.conditionName}
+                      </Text>
+                      {isCurrent && (
+                        <View
+                          style={[
+                            styles.currentBadge,
+                            { backgroundColor: colors.primary + "22" },
+                          ]}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 9,
+                              color: colors.primary,
+                              fontWeight: "700",
+                            }}
+                          >
+                            CURRENT
+                          </Text>
+                        </View>
+                      )}
                     </View>
-                    <Text style={styles.timelineDate}>{format(new Date(c.createdAt), "d MMM yyyy")}</Text>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                        marginTop: 4,
+                      }}
+                    >
+                      <View
+                        style={[
+                          styles.timelineStatusBadge,
+                          { backgroundColor: statusColor + "22" },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 10,
+                            color: statusColor,
+                            fontWeight: "700",
+                          }}
+                        >
+                          {STATUS_LABELS[c.status] ?? c.status}
+                        </Text>
+                      </View>
+                      <Text style={styles.timelineDate}>
+                        {format(new Date(c.createdAt), "d MMM yyyy")}
+                      </Text>
+                    </View>
+                    {c.prescription && (
+                      <Text
+                        style={styles.timelinePrescription}
+                        numberOfLines={1}
+                      >
+                        Rx: {c.prescription}
+                      </Text>
+                    )}
+                    {c.pharmacistNote && (
+                      <Text style={styles.timelineNote} numberOfLines={1}>
+                        Note: {c.pharmacistNote}
+                      </Text>
+                    )}
                   </View>
-                  {c.prescription && (
-                    <Text style={styles.timelinePrescription} numberOfLines={1}>Rx: {c.prescription}</Text>
-                  )}
-                  {c.pharmacistNote && (
-                    <Text style={styles.timelineNote} numberOfLines={1}>Note: {c.pharmacistNote}</Text>
-                  )}
                 </View>
-              </View>
-            );
-          })}
+              );
+            })}
         </ScrollView>
       )}
 
       {/* Structured action modals */}
-      <Modal visible={actionModal === "more_info"} transparent animationType="slide" onRequestClose={() => setActionModal(null)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setActionModal(null)}>
-          <Pressable style={[styles.modalCard, { backgroundColor: colors.card, maxHeight: "85%" }]} onPress={() => {}}>
+      <Modal
+        visible={actionModal === "more_info"}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setActionModal(null)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setActionModal(null)}
+        >
+          <Pressable
+            style={[
+              styles.modalCard,
+              { backgroundColor: colors.card, maxHeight: "85%" },
+            ]}
+            onPress={() => {}}
+          >
             <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginBottom: 8,
+                }}
+              >
                 <Feather name="message-circle" size={20} color="#2563EB" />
-                <Text style={[styles.modalTitle, { marginLeft: 8 }]}>Request More Information</Text>
+                <Text style={[styles.modalTitle, { marginLeft: 8 }]}>
+                  Request More Information
+                </Text>
               </View>
-              <Text style={{ fontSize: 13, color: colors.mutedForeground, marginBottom: 14 }}>
-                Send a message to {consultation.patientName}. They'll be notified and can reply directly.
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: colors.mutedForeground,
+                  marginBottom: 14,
+                }}
+              >
+                Send a message to {consultation.patientName}. They'll be
+                notified and can reply directly.
               </Text>
-              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>QUICK ASKS</Text>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "700",
+                  color: colors.foreground,
+                  marginBottom: 6,
+                }}
+              >
+                QUICK ASKS
+              </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: 6,
+                  marginBottom: 12,
+                }}
+              >
                 {[
                   "Please upload a clearer photo of the affected area.",
                   "Could you confirm your current medications?",
                   "What's your usual blood pressure?",
                   "Have you tried OTC remedies already?",
-                ].map(t => (
+                ].map((t) => (
                   <Pressable
                     key={t}
-                    onPress={() => setMoreInfoMessage(prev => prev ? `${prev}\n${t}` : t)}
-                    style={{ backgroundColor: "#DBEAFE", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: "#BFDBFE" }}
+                    onPress={() =>
+                      setMoreInfoMessage((prev) => (prev ? `${prev}\n${t}` : t))
+                    }
+                    style={{
+                      backgroundColor: "#DBEAFE",
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: "#BFDBFE",
+                    }}
                   >
-                    <Text style={{ fontSize: 11, color: "#1E3A8A", fontWeight: "600" }}>+ {t.length > 35 ? t.slice(0, 35) + "…" : t}</Text>
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        color: "#1E3A8A",
+                        fontWeight: "600",
+                      }}
+                    >
+                      + {t.length > 35 ? t.slice(0, 35) + "…" : t}
+                    </Text>
                   </Pressable>
                 ))}
               </View>
@@ -925,14 +1570,27 @@ export default function ConsultationDetail() {
                 autoFocus
               />
               <View style={{ flexDirection: "row", gap: 10 }}>
-                <Pressable style={[styles.modalBtn, { backgroundColor: colors.muted, flex: 1 }]} onPress={() => setActionModal(null)}>
-                  <Text style={{ color: colors.foreground, fontWeight: "600" }}>Cancel</Text>
+                <Pressable
+                  style={[
+                    styles.modalBtn,
+                    { backgroundColor: colors.muted, flex: 1 },
+                  ]}
+                  onPress={() => setActionModal(null)}
+                >
+                  <Text style={{ color: colors.foreground, fontWeight: "600" }}>
+                    Cancel
+                  </Text>
                 </Pressable>
                 <Pressable
-                  style={[styles.modalBtn, { backgroundColor: "#2563EB", flex: 2 }]}
+                  style={[
+                    styles.modalBtn,
+                    { backgroundColor: "#2563EB", flex: 2 },
+                  ]}
                   onPress={() => submitAction("more_info")}
                 >
-                  <Text style={{ color: "#fff", fontWeight: "700" }}>Send & Pause for Reply</Text>
+                  <Text style={{ color: "#fff", fontWeight: "700" }}>
+                    Send & Pause for Reply
+                  </Text>
                 </Pressable>
               </View>
             </ScrollView>
@@ -940,20 +1598,65 @@ export default function ConsultationDetail() {
         </Pressable>
       </Modal>
 
-      <Modal visible={actionModal === "refer"} transparent animationType="slide" onRequestClose={() => setActionModal(null)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setActionModal(null)}>
-          <Pressable style={[styles.modalCard, { backgroundColor: colors.card, maxHeight: "90%" }]} onPress={() => {}}>
+      <Modal
+        visible={actionModal === "refer"}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setActionModal(null)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setActionModal(null)}
+        >
+          <Pressable
+            style={[
+              styles.modalCard,
+              { backgroundColor: colors.card, maxHeight: "90%" },
+            ]}
+            onPress={() => {}}
+          >
             <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginBottom: 8,
+                }}
+              >
                 <Feather name="external-link" size={20} color="#7C3AED" />
-                <Text style={[styles.modalTitle, { marginLeft: 8 }]}>Refer for Further Care</Text>
+                <Text style={[styles.modalTitle, { marginLeft: 8 }]}>
+                  Refer for Further Care
+                </Text>
               </View>
-              <Text style={{ fontSize: 13, color: colors.mutedForeground, marginBottom: 14 }}>
-                Refer {consultation.patientName} to another healthcare professional.
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: colors.mutedForeground,
+                  marginBottom: 14,
+                }}
+              >
+                Refer {consultation.patientName} to another healthcare
+                professional.
               </Text>
 
-              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>REFER TO</Text>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "700",
+                  color: colors.foreground,
+                  marginBottom: 6,
+                }}
+              >
+                REFER TO
+              </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: 6,
+                  marginBottom: 14,
+                }}
+              >
                 {[
                   { v: "gp", l: "GP" },
                   { v: "hospital_specialist", l: "Specialist" },
@@ -962,23 +1665,47 @@ export default function ConsultationDetail() {
                   { v: "sexual_health_clinic", l: "Sexual health" },
                   { v: "mental_health", l: "Mental health" },
                   { v: "other", l: "Other" },
-                ].map(o => (
+                ].map((o) => (
                   <Pressable
                     key={o.v}
                     onPress={() => setReferRecipientType(o.v)}
                     style={{
-                      paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18,
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 18,
                       borderWidth: 1.5,
-                      borderColor: referRecipientType === o.v ? "#7C3AED" : colors.border,
-                      backgroundColor: referRecipientType === o.v ? "#F3E8FF" : "transparent",
+                      borderColor:
+                        referRecipientType === o.v ? "#7C3AED" : colors.border,
+                      backgroundColor:
+                        referRecipientType === o.v ? "#F3E8FF" : "transparent",
                     }}
                   >
-                    <Text style={{ fontSize: 12, color: referRecipientType === o.v ? "#6D28D9" : colors.foreground, fontWeight: "600" }}>{o.l}</Text>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color:
+                          referRecipientType === o.v
+                            ? "#6D28D9"
+                            : colors.foreground,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {o.l}
+                    </Text>
                   </Pressable>
                 ))}
               </View>
 
-              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>RECIPIENT NAME / CLINIC</Text>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "700",
+                  color: colors.foreground,
+                  marginBottom: 6,
+                }}
+              >
+                RECIPIENT NAME / CLINIC
+              </Text>
               <TextInput
                 style={[styles.textarea, { minHeight: 44, marginBottom: 12 }]}
                 placeholder="e.g. Dr Patel, Hilltop Surgery"
@@ -987,30 +1714,80 @@ export default function ConsultationDetail() {
                 onChangeText={setReferRecipientName}
               />
 
-              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>URGENCY</Text>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "700",
+                  color: colors.foreground,
+                  marginBottom: 6,
+                }}
+              >
+                URGENCY
+              </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: 6,
+                  marginBottom: 14,
+                }}
+              >
                 {[
                   { v: "routine", l: "Routine" },
                   { v: "soon", l: "Within 7 days" },
                   { v: "urgent", l: "Urgent (24h)" },
                   { v: "emergency", l: "Emergency 999" },
-                ].map(o => (
+                ].map((o) => (
                   <Pressable
                     key={o.v}
                     onPress={() => setReferUrgency(o.v)}
                     style={{
-                      paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18,
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 18,
                       borderWidth: 1.5,
-                      borderColor: referUrgency === o.v ? (o.v === "emergency" ? "#DC2626" : "#7C3AED") : colors.border,
-                      backgroundColor: referUrgency === o.v ? (o.v === "emergency" ? "#FEE2E2" : "#F3E8FF") : "transparent",
+                      borderColor:
+                        referUrgency === o.v
+                          ? o.v === "emergency"
+                            ? "#DC2626"
+                            : "#7C3AED"
+                          : colors.border,
+                      backgroundColor:
+                        referUrgency === o.v
+                          ? o.v === "emergency"
+                            ? "#FEE2E2"
+                            : "#F3E8FF"
+                          : "transparent",
                     }}
                   >
-                    <Text style={{ fontSize: 12, color: referUrgency === o.v ? (o.v === "emergency" ? "#991B1B" : "#6D28D9") : colors.foreground, fontWeight: "600" }}>{o.l}</Text>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color:
+                          referUrgency === o.v
+                            ? o.v === "emergency"
+                              ? "#991B1B"
+                              : "#6D28D9"
+                            : colors.foreground,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {o.l}
+                    </Text>
                   </Pressable>
                 ))}
               </View>
 
-              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>NOTE TO PATIENT</Text>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "700",
+                  color: colors.foreground,
+                  marginBottom: 6,
+                }}
+              >
+                NOTE TO PATIENT
+              </Text>
               <TextInput
                 style={[styles.textarea, { marginBottom: 14, minHeight: 90 }]}
                 placeholder="Explain why you're referring and what to do next."
@@ -1021,14 +1798,27 @@ export default function ConsultationDetail() {
                 textAlignVertical="top"
               />
               <View style={{ flexDirection: "row", gap: 10 }}>
-                <Pressable style={[styles.modalBtn, { backgroundColor: colors.muted, flex: 1 }]} onPress={() => setActionModal(null)}>
-                  <Text style={{ color: colors.foreground, fontWeight: "600" }}>Cancel</Text>
+                <Pressable
+                  style={[
+                    styles.modalBtn,
+                    { backgroundColor: colors.muted, flex: 1 },
+                  ]}
+                  onPress={() => setActionModal(null)}
+                >
+                  <Text style={{ color: colors.foreground, fontWeight: "600" }}>
+                    Cancel
+                  </Text>
                 </Pressable>
                 <Pressable
-                  style={[styles.modalBtn, { backgroundColor: "#7C3AED", flex: 2 }]}
+                  style={[
+                    styles.modalBtn,
+                    { backgroundColor: "#7C3AED", flex: 2 },
+                  ]}
                   onPress={() => submitAction("refer")}
                 >
-                  <Text style={{ color: "#fff", fontWeight: "700" }}>Confirm Referral</Text>
+                  <Text style={{ color: "#fff", fontWeight: "700" }}>
+                    Confirm Referral
+                  </Text>
                 </Pressable>
               </View>
             </ScrollView>
@@ -1036,52 +1826,141 @@ export default function ConsultationDetail() {
         </Pressable>
       </Modal>
 
-      <Modal visible={actionModal === "reject"} transparent animationType="slide" onRequestClose={() => setActionModal(null)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setActionModal(null)}>
-          <Pressable style={[styles.modalCard, { backgroundColor: colors.card, maxHeight: "90%" }]} onPress={() => {}}>
+      <Modal
+        visible={actionModal === "reject"}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setActionModal(null)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setActionModal(null)}
+        >
+          <Pressable
+            style={[
+              styles.modalCard,
+              { backgroundColor: colors.card, maxHeight: "90%" },
+            ]}
+            onPress={() => {}}
+          >
             <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginBottom: 8,
+                }}
+              >
                 <Feather name="x-circle" size={20} color={colors.destructive} />
-                <Text style={[styles.modalTitle, { marginLeft: 8 }]}>Reject Consultation</Text>
+                <Text style={[styles.modalTitle, { marginLeft: 8 }]}>
+                  Reject Consultation
+                </Text>
               </View>
-              <Text style={{ fontSize: 13, color: colors.mutedForeground, marginBottom: 14 }}>
-                Choose a reason and explain to the patient. They'll be notified and can reply.
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: colors.mutedForeground,
+                  marginBottom: 14,
+                }}
+              >
+                Choose a reason and explain to the patient. They'll be notified
+                and can reply.
               </Text>
 
-              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>REASON</Text>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "700",
+                  color: colors.foreground,
+                  marginBottom: 6,
+                }}
+              >
+                REASON
+              </Text>
               <View style={{ gap: 6, marginBottom: 14 }}>
                 {[
-                  { v: "medically_unsuitable", l: "Medically unsuitable for this treatment" },
-                  { v: "outside_our_scope", l: "Outside the scope of our online service" },
-                  { v: "insufficient_information", l: "Insufficient information provided" },
-                  { v: "already_prescribed", l: "Already prescribed elsewhere" },
+                  {
+                    v: "medically_unsuitable",
+                    l: "Medically unsuitable for this treatment",
+                  },
+                  {
+                    v: "outside_our_scope",
+                    l: "Outside the scope of our online service",
+                  },
+                  {
+                    v: "insufficient_information",
+                    l: "Insufficient information provided",
+                  },
+                  {
+                    v: "already_prescribed",
+                    l: "Already prescribed elsewhere",
+                  },
                   { v: "other", l: "Other reason" },
-                ].map(o => (
+                ].map((o) => (
                   <Pressable
                     key={o.v}
                     onPress={() => setRejectReason(o.v)}
                     style={{
-                      flexDirection: "row", alignItems: "center", gap: 10,
-                      padding: 12, borderRadius: 12,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: 12,
+                      borderRadius: 12,
                       borderWidth: 1.5,
-                      borderColor: rejectReason === o.v ? "#DC2626" : colors.border,
-                      backgroundColor: rejectReason === o.v ? "#FEE2E2" : "transparent",
+                      borderColor:
+                        rejectReason === o.v ? "#DC2626" : colors.border,
+                      backgroundColor:
+                        rejectReason === o.v ? "#FEE2E2" : "transparent",
                     }}
                   >
-                    <View style={{
-                      width: 16, height: 16, borderRadius: 8,
-                      borderWidth: 2,
-                      borderColor: rejectReason === o.v ? "#DC2626" : colors.border,
-                      alignItems: "center", justifyContent: "center",
-                    }}>
-                      {rejectReason === o.v && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#DC2626" }} />}
+                    <View
+                      style={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: 8,
+                        borderWidth: 2,
+                        borderColor:
+                          rejectReason === o.v ? "#DC2626" : colors.border,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {rejectReason === o.v && (
+                        <View
+                          style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: 4,
+                            backgroundColor: "#DC2626",
+                          }}
+                        />
+                      )}
                     </View>
-                    <Text style={{ fontSize: 13, color: rejectReason === o.v ? "#991B1B" : colors.foreground, fontWeight: "600", flex: 1 }}>{o.l}</Text>
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        color:
+                          rejectReason === o.v ? "#991B1B" : colors.foreground,
+                        fontWeight: "600",
+                        flex: 1,
+                      }}
+                    >
+                      {o.l}
+                    </Text>
                   </Pressable>
                 ))}
               </View>
 
-              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>EXPLANATION TO PATIENT</Text>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "700",
+                  color: colors.foreground,
+                  marginBottom: 6,
+                }}
+              >
+                EXPLANATION TO PATIENT
+              </Text>
               <TextInput
                 style={[styles.textarea, { marginBottom: 14, minHeight: 110 }]}
                 placeholder="Be clear and supportive. Explain why and what to do next."
@@ -1092,14 +1971,27 @@ export default function ConsultationDetail() {
                 textAlignVertical="top"
               />
               <View style={{ flexDirection: "row", gap: 10 }}>
-                <Pressable style={[styles.modalBtn, { backgroundColor: colors.muted, flex: 1 }]} onPress={() => setActionModal(null)}>
-                  <Text style={{ color: colors.foreground, fontWeight: "600" }}>Cancel</Text>
+                <Pressable
+                  style={[
+                    styles.modalBtn,
+                    { backgroundColor: colors.muted, flex: 1 },
+                  ]}
+                  onPress={() => setActionModal(null)}
+                >
+                  <Text style={{ color: colors.foreground, fontWeight: "600" }}>
+                    Cancel
+                  </Text>
                 </Pressable>
                 <Pressable
-                  style={[styles.modalBtn, { backgroundColor: colors.destructive, flex: 2 }]}
+                  style={[
+                    styles.modalBtn,
+                    { backgroundColor: colors.destructive, flex: 2 },
+                  ]}
                   onPress={() => submitAction("reject")}
                 >
-                  <Text style={{ color: "#fff", fontWeight: "700" }}>Confirm Rejection</Text>
+                  <Text style={{ color: "#fff", fontWeight: "700" }}>
+                    Confirm Rejection
+                  </Text>
                 </Pressable>
               </View>
             </ScrollView>
@@ -1107,41 +1999,136 @@ export default function ConsultationDetail() {
         </Pressable>
       </Modal>
 
-      <Modal visible={actionModal === "approve"} transparent animationType="fade" onRequestClose={() => setActionModal(null)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setActionModal(null)}>
-          <Pressable style={[styles.modalCard, { backgroundColor: colors.card }]} onPress={() => {}}>
-            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+      <Modal
+        visible={actionModal === "approve"}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setActionModal(null)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setActionModal(null)}
+        >
+          <Pressable
+            style={[styles.modalCard, { backgroundColor: colors.card }]}
+            onPress={() => {}}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
               <Feather name="check-circle" size={20} color={colors.success} />
-              <Text style={[styles.modalTitle, { marginLeft: 8 }]}>Confirm Approval</Text>
+              <Text style={[styles.modalTitle, { marginLeft: 8 }]}>
+                Confirm Approval
+              </Text>
             </View>
-            <Text style={{ fontSize: 13, color: colors.mutedForeground, marginBottom: 14 }}>
-              Issue the prescription below and notify {consultation.patientName}.
+            <Text
+              style={{
+                fontSize: 13,
+                color: colors.mutedForeground,
+                marginBottom: 14,
+              }}
+            >
+              Issue the prescription below and notify {consultation.patientName}
+              .
             </Text>
-            <View style={{ backgroundColor: colors.muted, padding: 12, borderRadius: 10, marginBottom: 16, maxHeight: 220 }}>
-              <Text style={{ fontSize: 12, color: colors.mutedForeground, fontWeight: "700", marginBottom: 6 }}>PRESCRIPTION ({prescriptionItems.length} item{prescriptionItems.length === 1 ? "" : "s"})</Text>
+            <View
+              style={{
+                backgroundColor: colors.muted,
+                padding: 12,
+                borderRadius: 10,
+                marginBottom: 16,
+                maxHeight: 220,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: colors.mutedForeground,
+                  fontWeight: "700",
+                  marginBottom: 6,
+                }}
+              >
+                PRESCRIPTION ({prescriptionItems.length} item
+                {prescriptionItems.length === 1 ? "" : "s"})
+              </Text>
               <ScrollView>
                 {prescriptionItems.map((it, i) => (
                   <View key={i} style={{ marginBottom: 8 }}>
-                    <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground }}>
-                      {i + 1}. {it.name}{it.strength ? ` ${it.strength}` : ""}{it.form ? ` ${it.form}` : ""}
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        fontWeight: "700",
+                        color: colors.foreground,
+                      }}
+                    >
+                      {i + 1}. {it.name}
+                      {it.strength ? ` ${it.strength}` : ""}
+                      {it.form ? ` ${it.form}` : ""}
                     </Text>
-                    {!!it.sig && <Text style={{ fontSize: 12, color: colors.foreground, marginTop: 1 }}>{it.sig}</Text>}
+                    {!!it.sig && (
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          color: colors.foreground,
+                          marginTop: 1,
+                        }}
+                      >
+                        {it.sig}
+                      </Text>
+                    )}
                     {(it.quantity || it.duration) && (
-                      <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: 1 }}>
-                        {it.quantity && `Qty: ${it.quantity}`}{it.quantity && it.duration ? " · " : ""}{it.duration && `Duration: ${it.duration}`}
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: colors.mutedForeground,
+                          marginTop: 1,
+                        }}
+                      >
+                        {it.quantity && `Qty: ${it.quantity}`}
+                        {it.quantity && it.duration ? " · " : ""}
+                        {it.duration && `Duration: ${it.duration}`}
                       </Text>
                     )}
                   </View>
                 ))}
               </ScrollView>
-              <Text style={{ fontSize: 11, color: colors.success, marginTop: 6, fontWeight: "700" }}>✓ Order + tracked delivery will be created automatically.</Text>
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: colors.success,
+                  marginTop: 6,
+                  fontWeight: "700",
+                }}
+              >
+                ✓ Order + tracked delivery will be created automatically.
+              </Text>
             </View>
             <View style={{ flexDirection: "row", gap: 10 }}>
-              <Pressable style={[styles.modalBtn, { backgroundColor: colors.muted, flex: 1 }]} onPress={() => setActionModal(null)}>
-                <Text style={{ color: colors.foreground, fontWeight: "600" }}>Cancel</Text>
+              <Pressable
+                style={[
+                  styles.modalBtn,
+                  { backgroundColor: colors.muted, flex: 1 },
+                ]}
+                onPress={() => setActionModal(null)}
+              >
+                <Text style={{ color: colors.foreground, fontWeight: "600" }}>
+                  Cancel
+                </Text>
               </Pressable>
-              <Pressable style={[styles.modalBtn, { backgroundColor: colors.success, flex: 2 }]} onPress={() => submitAction("approve")}>
-                <Text style={{ color: "#fff", fontWeight: "700" }}>Approve & Prescribe</Text>
+              <Pressable
+                style={[
+                  styles.modalBtn,
+                  { backgroundColor: colors.success, flex: 2 },
+                ]}
+                onPress={() => submitAction("approve")}
+              >
+                <Text style={{ color: "#fff", fontWeight: "700" }}>
+                  Approve & Prescribe
+                </Text>
               </Pressable>
             </View>
           </Pressable>
@@ -1149,41 +2136,106 @@ export default function ConsultationDetail() {
       </Modal>
 
       {/* Decision success modal */}
-      <Modal visible={!!successInfo} transparent animationType="fade" onRequestClose={() => { setSuccessInfo(null); router.back(); }}>
-        <Pressable style={styles.modalOverlay} onPress={() => { setSuccessInfo(null); router.back(); }}>
-          <Pressable style={[styles.modalCard, { backgroundColor: colors.card, alignItems: "center" }]} onPress={() => {}}>
-            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: "#DCFCE7", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+      <Modal
+        visible={!!successInfo}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setSuccessInfo(null);
+          router.back();
+        }}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => {
+            setSuccessInfo(null);
+            router.back();
+          }}
+        >
+          <Pressable
+            style={[
+              styles.modalCard,
+              { backgroundColor: colors.card, alignItems: "center" },
+            ]}
+            onPress={() => {}}
+          >
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: "#DCFCE7",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 14,
+              }}
+            >
               <Feather name="check" size={32} color="#16A34A" />
             </View>
-            <Text style={[styles.modalTitle, { textAlign: "center", marginBottom: 6 }]}>
-              {successInfo?.action === "approve" ? "Prescription Issued" :
-               successInfo?.action === "reject" ? "Decision Recorded" :
-               successInfo?.action === "refer" ? "Patient Referred" :
-               "Message Sent"}
+            <Text
+              style={[
+                styles.modalTitle,
+                { textAlign: "center", marginBottom: 6 },
+              ]}
+            >
+              {successInfo?.action === "approve"
+                ? "Prescription Issued"
+                : successInfo?.action === "reject"
+                  ? "Decision Recorded"
+                  : successInfo?.action === "refer"
+                    ? "Patient Referred"
+                    : "Message Sent"}
             </Text>
-            <Text style={{ fontSize: 13, color: colors.mutedForeground, textAlign: "center", marginBottom: 18, lineHeight: 19 }}>
-              {successInfo?.action === "approve" ? `${successInfo?.patientName} has been notified and the PDF prescription is ready to view.` :
-               successInfo?.action === "reject" ? `${successInfo?.patientName} has been notified with your reason and explanation.` :
-               successInfo?.action === "refer" ? `${successInfo?.patientName} has been notified and given the referral details.` :
-               `${successInfo?.patientName} will see your message in their consultation thread.`}
+            <Text
+              style={{
+                fontSize: 13,
+                color: colors.mutedForeground,
+                textAlign: "center",
+                marginBottom: 18,
+                lineHeight: 19,
+              }}
+            >
+              {successInfo?.action === "approve"
+                ? `${successInfo?.patientName} has been notified and the PDF prescription is ready to view.`
+                : successInfo?.action === "reject"
+                  ? `${successInfo?.patientName} has been notified with your reason and explanation.`
+                  : successInfo?.action === "refer"
+                    ? `${successInfo?.patientName} has been notified and given the referral details.`
+                    : `${successInfo?.patientName} will see your message in their consultation thread.`}
             </Text>
             <View style={{ flexDirection: "column", gap: 10, width: "100%" }}>
               {successInfo?.pdfUrl && (
                 <Pressable
                   style={[styles.modalBtn, { backgroundColor: colors.success }]}
-                  onPress={() => { if (successInfo.pdfUrl) openPrescriptionPdf(successInfo.pdfUrl); }}
+                  onPress={() => {
+                    if (successInfo.pdfUrl)
+                      openPrescriptionPdf(successInfo.pdfUrl);
+                  }}
                 >
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
                     <Feather name="file-text" size={16} color="#fff" />
-                    <Text style={{ color: "#fff", fontWeight: "700" }}>View Prescription PDF</Text>
+                    <Text style={{ color: "#fff", fontWeight: "700" }}>
+                      View Prescription PDF
+                    </Text>
                   </View>
                 </Pressable>
               )}
               <Pressable
                 style={[styles.modalBtn, { backgroundColor: colors.muted }]}
-                onPress={() => { setSuccessInfo(null); router.back(); }}
+                onPress={() => {
+                  setSuccessInfo(null);
+                  router.back();
+                }}
               >
-                <Text style={{ color: colors.foreground, fontWeight: "600" }}>Done</Text>
+                <Text style={{ color: colors.foreground, fontWeight: "600" }}>
+                  Done
+                </Text>
               </Pressable>
             </View>
           </Pressable>
@@ -1191,36 +2243,95 @@ export default function ConsultationDetail() {
       </Modal>
 
       {/* Quick message compose modal */}
-      <Modal visible={messageModal} transparent animationType="slide" onRequestClose={() => setMessageModal(false)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setMessageModal(false)}>
-          <Pressable style={[styles.modalCard, { backgroundColor: colors.card }]} onPress={() => {}}>
-            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 14 }}>
-              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary + "20", alignItems: "center", justifyContent: "center", marginRight: 12 }}>
-                <Feather name="message-square" size={20} color={colors.primary} />
+      <Modal
+        visible={messageModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setMessageModal(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setMessageModal(false)}
+        >
+          <Pressable
+            style={[styles.modalCard, { backgroundColor: colors.card }]}
+            onPress={() => {}}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: 14,
+              }}
+            >
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: colors.primary + "20",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: 12,
+                }}
+              >
+                <Feather
+                  name="message-square"
+                  size={20}
+                  color={colors.primary}
+                />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 15, fontWeight: "700" as const, color: colors.foreground }}>
+                <Text
+                  style={{
+                    fontSize: 15,
+                    fontWeight: "700" as const,
+                    color: colors.foreground,
+                  }}
+                >
                   Message {consultation?.patientName ?? "Patient"}
                 </Text>
-                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>Patient gets an instant notification</Text>
+                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                  Patient gets an instant notification
+                </Text>
               </View>
               <Pressable onPress={() => setMessageModal(false)} hitSlop={14}>
                 <Feather name="x" size={20} color={colors.mutedForeground} />
               </Pressable>
             </View>
 
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 6,
+                marginBottom: 12,
+              }}
+            >
               {[
                 "We're reviewing your consultation now.",
                 "Could you provide a bit more information?",
                 "Your prescription has been approved.",
-              ].map(q => (
+              ].map((q) => (
                 <Pressable
                   key={q}
-                  onPress={() => setMessageText(prev => prev ? `${prev} ${q}` : q)}
-                  style={{ backgroundColor: colors.primary + "15", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 }}
+                  onPress={() =>
+                    setMessageText((prev) => (prev ? `${prev} ${q}` : q))
+                  }
+                  style={{
+                    backgroundColor: colors.primary + "15",
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    borderRadius: 20,
+                  }}
                 >
-                  <Text style={{ fontSize: 11, color: colors.primary, fontWeight: "600" as const }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: colors.primary,
+                      fontWeight: "600" as const,
+                    }}
+                  >
                     + {q.length > 32 ? q.slice(0, 32) + "…" : q}
                   </Text>
                 </Pressable>
@@ -1240,22 +2351,47 @@ export default function ConsultationDetail() {
 
             <View style={{ flexDirection: "row", gap: 10 }}>
               <Pressable
-                style={[styles.modalBtn, { backgroundColor: colors.muted, flex: 1 }]}
+                style={[
+                  styles.modalBtn,
+                  { backgroundColor: colors.muted, flex: 1 },
+                ]}
                 onPress={() => setMessageModal(false)}
               >
-                <Text style={{ color: colors.foreground, fontWeight: "600" as const }}>Cancel</Text>
+                <Text
+                  style={{
+                    color: colors.foreground,
+                    fontWeight: "600" as const,
+                  }}
+                >
+                  Cancel
+                </Text>
               </Pressable>
               <Pressable
-                style={[styles.modalBtn, { backgroundColor: colors.primary, flex: 2, opacity: (!messageText.trim() || messageSending) ? 0.6 : 1 }]}
+                style={[
+                  styles.modalBtn,
+                  {
+                    backgroundColor: colors.primary,
+                    flex: 2,
+                    opacity: !messageText.trim() || messageSending ? 0.6 : 1,
+                  },
+                ]}
                 onPress={sendQuickMessage}
                 disabled={!messageText.trim() || messageSending}
               >
                 {messageSending ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
                     <Feather name="send" size={14} color="#fff" />
-                    <Text style={{ color: "#fff", fontWeight: "700" as const }}>Send Message</Text>
+                    <Text style={{ color: "#fff", fontWeight: "700" as const }}>
+                      Send Message
+                    </Text>
                   </View>
                 )}
               </Pressable>
@@ -1265,12 +2401,35 @@ export default function ConsultationDetail() {
       </Modal>
 
       {/* Photo lightbox modal */}
-      <Modal visible={!!lightboxPhotoUrl} transparent animationType="fade" onRequestClose={() => setLightboxPhotoUrl(null)}>
-        <Pressable style={[styles.modalOverlay, { backgroundColor: "rgba(0,0,0,0.92)" }]} onPress={() => setLightboxPhotoUrl(null)}>
+      <Modal
+        visible={!!lightboxPhotoUrl}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLightboxPhotoUrl(null)}
+      >
+        <Pressable
+          style={[styles.modalOverlay, { backgroundColor: "rgba(0,0,0,0.92)" }]}
+          onPress={() => setLightboxPhotoUrl(null)}
+        >
           {lightboxPhotoUrl && (
-            <Image source={{ uri: lightboxPhotoUrl }} style={{ width: "100%", height: "85%", resizeMode: "contain" }} />
+            <Image
+              source={{ uri: lightboxPhotoUrl }}
+              style={{ width: "100%", height: "85%", resizeMode: "contain" }}
+            />
           )}
-          <View style={{ position: "absolute", top: insets.top + 12, right: 16, backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 22, width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+          <View
+            style={{
+              position: "absolute",
+              top: insets.top + 12,
+              right: 16,
+              backgroundColor: "rgba(255,255,255,0.15)",
+              borderRadius: 22,
+              width: 44,
+              height: 44,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             <Feather name="x" size={22} color="#fff" />
           </View>
         </Pressable>
@@ -1287,7 +2446,11 @@ export default function ConsultationDetail() {
 }
 
 function CollapsibleSection({
-  title, icon, children, defaultOpen = true, colors,
+  title,
+  icon,
+  children,
+  defaultOpen = true,
+  colors,
 }: {
   title: string;
   icon: string;
@@ -1302,7 +2465,7 @@ function CollapsibleSection({
         onPress={() => {
           LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          setOpen(v => !v);
+          setOpen((v) => !v);
         }}
         style={({ pressed }) => ({
           flexDirection: "row" as const,
@@ -1313,16 +2476,40 @@ function CollapsibleSection({
         })}
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <Feather name={icon as any} size={13} color={colors.mutedForeground} />
-          <Text style={{ fontSize: 12, fontWeight: "700" as const, color: colors.mutedForeground, textTransform: "uppercase" as const, letterSpacing: 0.8 }}>
+          <Feather
+            name={icon as any}
+            size={13}
+            color={colors.mutedForeground}
+          />
+          <Text
+            style={{
+              fontSize: 12,
+              fontWeight: "700" as const,
+              color: colors.mutedForeground,
+              textTransform: "uppercase" as const,
+              letterSpacing: 0.8,
+            }}
+          >
             {title}
           </Text>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
           {!open && (
-            <Text style={{ fontSize: 10, color: colors.primary, fontWeight: "600" as const }}>tap to expand</Text>
+            <Text
+              style={{
+                fontSize: 10,
+                color: colors.primary,
+                fontWeight: "600" as const,
+              }}
+            >
+              tap to expand
+            </Text>
           )}
-          <Feather name={open ? "chevron-up" : "chevron-down"} size={16} color={colors.mutedForeground} />
+          <Feather
+            name={open ? "chevron-up" : "chevron-down"}
+            size={16}
+            color={colors.mutedForeground}
+          />
         </View>
       </Pressable>
       {open && children}
@@ -1330,12 +2517,42 @@ function CollapsibleSection({
   );
 }
 
-function InfoRow({ icon, label, value, colors }: { icon: string; label: string; value: string; colors: ReturnType<typeof useColors> }) {
+function InfoRow({
+  icon,
+  label,
+  value,
+  colors,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  colors: ReturnType<typeof useColors>;
+}) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
+    <View
+      style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}
+    >
       <Feather name={icon as any} size={14} color={colors.mutedForeground} />
-      <Text style={{ fontSize: 13, color: colors.mutedForeground, marginLeft: 8, width: 70 }}>{label}</Text>
-      <Text style={{ fontSize: 14, color: colors.foreground, fontWeight: "600" as const, flex: 1 }}>{value}</Text>
+      <Text
+        style={{
+          fontSize: 13,
+          color: colors.mutedForeground,
+          marginLeft: 8,
+          width: 70,
+        }}
+      >
+        {label}
+      </Text>
+      <Text
+        style={{
+          fontSize: 14,
+          color: colors.foreground,
+          fontWeight: "600" as const,
+          flex: 1,
+        }}
+      >
+        {value}
+      </Text>
     </View>
   );
 }
@@ -1372,7 +2589,10 @@ function humaniseKey(k: string): string {
 }
 
 function QuestionAnswerRow({
-  index, questionKey, value, colors,
+  index,
+  questionKey,
+  value,
+  colors,
 }: {
   index: number;
   questionKey: string;
@@ -1384,9 +2604,18 @@ function QuestionAnswerRow({
   const isNum = typeof value === "number";
   const isObj = !isArr && value !== null && typeof value === "object";
   const isStr = typeof value === "string";
-  const empty = value === null || value === undefined || value === "" || (isArr && (value as unknown[]).length === 0);
+  const empty =
+    value === null ||
+    value === undefined ||
+    value === "" ||
+    (isArr && (value as unknown[]).length === 0);
 
-  const isUrgent = isBool && value === true && /fever|pain|emergency|red|severe|allergy|allergic|breathless|chest|bleeding|pregnant/i.test(questionKey);
+  const isUrgent =
+    isBool &&
+    value === true &&
+    /fever|pain|emergency|red|severe|allergy|allergic|breathless|chest|bleeding|pregnant/i.test(
+      questionKey,
+    );
 
   return (
     <View
@@ -1396,8 +2625,12 @@ function QuestionAnswerRow({
       ]}
     >
       <View style={{ flexDirection: "row", gap: 10 }}>
-        <View style={[qaStyles.qaIndex, { backgroundColor: colors.primary + "1A" }]}>
-          <Text style={[qaStyles.qaIndexText, { color: colors.primary }]}>{index}</Text>
+        <View
+          style={[qaStyles.qaIndex, { backgroundColor: colors.primary + "1A" }]}
+        >
+          <Text style={[qaStyles.qaIndexText, { color: colors.primary }]}>
+            {index}
+          </Text>
         </View>
         <View style={{ flex: 1, gap: 6 }}>
           <Text style={[qaStyles.qaQuestionRich, { color: colors.secondary }]}>
@@ -1405,7 +2638,13 @@ function QuestionAnswerRow({
           </Text>
 
           {empty ? (
-            <Text style={{ fontSize: 13, fontStyle: "italic", color: colors.mutedForeground }}>
+            <Text
+              style={{
+                fontSize: 13,
+                fontStyle: "italic",
+                color: colors.mutedForeground,
+              }}
+            >
               No answer provided
             </Text>
           ) : isBool ? (
@@ -1419,20 +2658,32 @@ function QuestionAnswerRow({
                   paddingVertical: 5,
                   borderRadius: 999,
                   backgroundColor: value
-                    ? (isUrgent ? colors.urgent + "1F" : colors.success + "1F")
+                    ? isUrgent
+                      ? colors.urgent + "1F"
+                      : colors.success + "1F"
                     : colors.mutedForeground + "14",
                 }}
               >
                 <Feather
                   name={value ? (isUrgent ? "alert-triangle" : "check") : "x"}
                   size={12}
-                  color={value ? (isUrgent ? colors.urgent : colors.success) : colors.mutedForeground}
+                  color={
+                    value
+                      ? isUrgent
+                        ? colors.urgent
+                        : colors.success
+                      : colors.mutedForeground
+                  }
                 />
                 <Text
                   style={{
                     fontSize: 12,
                     fontFamily: "PlusJakartaSans_700Bold",
-                    color: value ? (isUrgent ? colors.urgent : colors.success) : colors.mutedForeground,
+                    color: value
+                      ? isUrgent
+                        ? colors.urgent
+                        : colors.success
+                      : colors.mutedForeground,
                   }}
                 >
                   {value ? "YES" : "NO"}
@@ -1453,22 +2704,42 @@ function QuestionAnswerRow({
                     borderColor: colors.primary + "33",
                   }}
                 >
-                  <Text style={{ fontSize: 12, color: colors.primary, fontFamily: "PlusJakartaSans_600SemiBold" }}>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: colors.primary,
+                      fontFamily: "PlusJakartaSans_600SemiBold",
+                    }}
+                  >
                     {String(v)}
                   </Text>
                 </View>
               ))}
             </View>
           ) : isNum ? (
-            <Text style={{ fontSize: 16, fontFamily: "PlusJakartaSans_700Bold", color: colors.foreground }}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontFamily: "PlusJakartaSans_700Bold",
+                color: colors.foreground,
+              }}
+            >
               {String(value)}
             </Text>
           ) : isObj ? (
-            <Text style={{ fontSize: 13, color: colors.foreground, fontFamily: "PlusJakartaSans_500Medium" }}>
+            <Text
+              style={{
+                fontSize: 13,
+                color: colors.foreground,
+                fontFamily: "PlusJakartaSans_500Medium",
+              }}
+            >
               {JSON.stringify(value, null, 2)}
             </Text>
           ) : (
-            <Text style={{ fontSize: 15, color: colors.foreground, lineHeight: 21 }}>
+            <Text
+              style={{ fontSize: 15, color: colors.foreground, lineHeight: 21 }}
+            >
               {isStr ? (value as string) : String(value)}
             </Text>
           )}
@@ -1504,24 +2775,52 @@ const qaStyles = StyleSheet.create({
   },
 });
 
-function ActionButton({ icon, label, color, onPress, disabled, outline }: {
-  icon: string; label: string; color: string; onPress: () => void; disabled?: boolean; outline?: boolean;
+function ActionButton({
+  icon,
+  label,
+  color,
+  onPress,
+  disabled,
+  outline,
+}: {
+  icon: string;
+  label: string;
+  color: string;
+  onPress: () => void;
+  disabled?: boolean;
+  outline?: boolean;
 }) {
   return (
     <Pressable
-      style={({ pressed }) => [{
-        flex: 1, minWidth: "47%", borderRadius: 14, paddingVertical: 14,
-        alignItems: "center", justifyContent: "center",
-        borderWidth: outline ? 2 : 0, borderColor: outline ? color : "transparent",
-        backgroundColor: outline ? "transparent" : color,
-        opacity: pressed || disabled ? 0.7 : 1, gap: 6,
-      }]}
+      style={({ pressed }) => [
+        {
+          flex: 1,
+          minWidth: "47%",
+          borderRadius: 14,
+          paddingVertical: 14,
+          alignItems: "center",
+          justifyContent: "center",
+          borderWidth: outline ? 2 : 0,
+          borderColor: outline ? color : "transparent",
+          backgroundColor: outline ? "transparent" : color,
+          opacity: pressed || disabled ? 0.7 : 1,
+          gap: 6,
+        },
+      ]}
       onPress={onPress}
       disabled={disabled}
       testID={`btn-${label.toLowerCase().replace(" ", "-")}`}
     >
       <Feather name={icon as any} size={20} color={outline ? color : "#fff"} />
-      <Text style={{ color: outline ? color : "#fff", fontWeight: "700" as const, fontSize: 14 }}>{label}</Text>
+      <Text
+        style={{
+          color: outline ? color : "#fff",
+          fontWeight: "700" as const,
+          fontSize: 14,
+        }}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -1531,7 +2830,13 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
     container: { flex: 1, backgroundColor: colors.background },
     center: { alignItems: "center", justifyContent: "center" },
     loadingText: { marginTop: 12, color: colors.mutedForeground, fontSize: 14 },
-    redFlagBanner: { flexDirection: "row", alignItems: "center", backgroundColor: "#EF4444", paddingHorizontal: 16, paddingVertical: 10 },
+    redFlagBanner: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: "#EF4444",
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+    },
     redFlagText: { color: "#fff", fontWeight: "700" as const, fontSize: 13 },
     backBar: {
       flexDirection: "row",
@@ -1558,93 +2863,376 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
       flex: 1,
       textAlign: "center",
     },
-    patientHeader: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 14, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border },
-    avatarLarge: { width: 50, height: 50, borderRadius: 25, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
-    avatarLargeText: { color: "#fff", fontWeight: "800" as const, fontSize: 18 },
-    patientHeaderName: { fontSize: 16, fontWeight: "700" as const, color: colors.foreground },
-    patientHeaderEmail: { fontSize: 12, color: colors.mutedForeground, marginTop: 1 },
-    patientHeaderMeta: { fontSize: 12, color: colors.mutedForeground, marginTop: 1 },
+    patientHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      backgroundColor: colors.card,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    avatarLarge: {
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      backgroundColor: colors.primary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    avatarLargeText: {
+      color: "#fff",
+      fontWeight: "800" as const,
+      fontSize: 18,
+    },
+    patientHeaderName: {
+      fontSize: 16,
+      fontWeight: "700" as const,
+      color: colors.foreground,
+    },
+    patientHeaderEmail: {
+      fontSize: 12,
+      color: colors.mutedForeground,
+      marginTop: 1,
+    },
+    patientHeaderMeta: {
+      fontSize: 12,
+      color: colors.mutedForeground,
+      marginTop: 1,
+    },
     statusChip: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
     statusChipText: { fontSize: 11, fontWeight: "700" as const },
     heroAvatar: {
-      width: 56, height: 56, borderRadius: 28,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
       backgroundColor: "rgba(255,255,255,0.18)",
-      borderWidth: 1.5, borderColor: "rgba(255,255,255,0.4)",
-      alignItems: "center", justifyContent: "center",
+      borderWidth: 1.5,
+      borderColor: "rgba(255,255,255,0.4)",
+      alignItems: "center",
+      justifyContent: "center",
     },
-    heroAvatarText: { color: "#fff", fontFamily: FONT.displayExtra, fontSize: 19, letterSpacing: -0.4 },
-    heroPatientName: { fontFamily: FONT.displayExtra, fontSize: 19, color: "#fff", letterSpacing: -0.4 },
-    heroPatientMeta: { fontFamily: FONT.bodyMedium, fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 2 },
-    heroPatientEmail: { fontFamily: FONT.body, fontSize: 11, color: "rgba(255,255,255,0.65)", marginTop: 1 },
+    heroAvatarText: {
+      color: "#fff",
+      fontFamily: FONT.displayExtra,
+      fontSize: 19,
+      letterSpacing: -0.4,
+    },
+    heroPatientName: {
+      fontFamily: FONT.displayExtra,
+      fontSize: 19,
+      color: "#fff",
+      letterSpacing: -0.4,
+    },
+    heroPatientMeta: {
+      fontFamily: FONT.bodyMedium,
+      fontSize: 12,
+      color: "rgba(255,255,255,0.85)",
+      marginTop: 2,
+    },
+    heroPatientEmail: {
+      fontFamily: FONT.body,
+      fontSize: 11,
+      color: "rgba(255,255,255,0.65)",
+      marginTop: 1,
+    },
     heroStatusChip: {
-      flexDirection: "row", alignItems: "center", gap: 6,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
       backgroundColor: "rgba(255,255,255,0.16)",
-      borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(255,255,255,0.3)",
-      borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: "rgba(255,255,255,0.3)",
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
     },
     heroStatusDot: { width: 7, height: 7, borderRadius: 4 },
-    heroStatusText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 10.5, letterSpacing: 0.3, textTransform: "uppercase" },
+    heroStatusText: {
+      color: "#fff",
+      fontFamily: FONT.bodyBold,
+      fontSize: 10.5,
+      letterSpacing: 0.3,
+      textTransform: "uppercase",
+    },
     heroConditionRow: {
-      flexDirection: "row", alignItems: "center", gap: 6,
-      marginTop: 14, paddingTop: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginTop: 14,
+      paddingTop: 12,
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: "rgba(255,255,255,0.18)",
     },
-    heroConditionText: { color: "#fff", fontFamily: FONT.bodySemibold, fontSize: 13.5, flexShrink: 1 },
-    heroDot: { color: "rgba(255,255,255,0.5)", fontSize: 12, marginHorizontal: 2 },
-    heroSubmitted: { color: "rgba(255,255,255,0.85)", fontFamily: FONT.body, fontSize: 12 },
-    quickActionScroll: { paddingHorizontal: 16, paddingVertical: 12, gap: 8, alignItems: "center" },
-    tabBar: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: colors.card },
-    tabItem: { flex: 1, paddingVertical: 12, alignItems: "center", borderBottomWidth: 2, borderBottomColor: "transparent" },
+    heroConditionText: {
+      color: "#fff",
+      fontFamily: FONT.bodySemibold,
+      fontSize: 13.5,
+      flexShrink: 1,
+    },
+    heroDot: {
+      color: "rgba(255,255,255,0.5)",
+      fontSize: 12,
+      marginHorizontal: 2,
+    },
+    heroSubmitted: {
+      color: "rgba(255,255,255,0.85)",
+      fontFamily: FONT.body,
+      fontSize: 12,
+    },
+    quickActionScroll: {
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      gap: 8,
+      alignItems: "center",
+    },
+    tabBar: {
+      flexDirection: "row",
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      backgroundColor: colors.card,
+    },
+    tabItem: {
+      flex: 1,
+      paddingVertical: 12,
+      alignItems: "center",
+      borderBottomWidth: 2,
+      borderBottomColor: "transparent",
+    },
     tabItemActive: { borderBottomColor: colors.primary },
-    tabText: { fontSize: 13, fontWeight: "600" as const, color: colors.mutedForeground },
+    tabText: {
+      fontSize: 13,
+      fontWeight: "600" as const,
+      color: colors.mutedForeground,
+    },
     tabTextActive: { color: colors.primary },
     scrollContent: { paddingTop: 16, paddingHorizontal: 16, gap: 0 },
     section: { marginBottom: 20 },
-    sectionTitle: { fontSize: 12, fontWeight: "700" as const, color: colors.mutedForeground, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 },
-    infoCard: { backgroundColor: colors.card, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: colors.border },
-    qaCard: { backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: colors.border },
-    qaQuestion: { fontSize: 12, fontWeight: "600" as const, color: colors.mutedForeground, marginBottom: 4, textTransform: "capitalize" },
+    sectionTitle: {
+      fontSize: 12,
+      fontWeight: "700" as const,
+      color: colors.mutedForeground,
+      textTransform: "uppercase",
+      letterSpacing: 0.8,
+      marginBottom: 8,
+    },
+    infoCard: {
+      backgroundColor: colors.card,
+      borderRadius: 14,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    qaCard: {
+      backgroundColor: colors.card,
+      borderRadius: 14,
+      padding: 14,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    qaQuestion: {
+      fontSize: 12,
+      fontWeight: "600" as const,
+      color: colors.mutedForeground,
+      marginBottom: 4,
+      textTransform: "capitalize",
+    },
     qaAnswer: { fontSize: 15, color: colors.foreground },
-    textarea: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border, padding: 14, fontSize: 15, color: colors.foreground, minHeight: 90 },
+    textarea: {
+      backgroundColor: colors.card,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 14,
+      fontSize: 15,
+      color: colors.foreground,
+      minHeight: 90,
+    },
     actionsSection: { marginBottom: 20 },
     actionsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-    reviewedBanner: { flexDirection: "row", alignItems: "center", backgroundColor: "#F0FDF4", borderRadius: 14, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: "#86EFAC" },
-    reviewedText: { fontSize: 14, color: colors.success, fontWeight: "600" as const },
+    reviewedBanner: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: "#F0FDF4",
+      borderRadius: 14,
+      padding: 14,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: "#86EFAC",
+    },
+    reviewedText: {
+      fontSize: 14,
+      color: colors.success,
+      fontWeight: "600" as const,
+    },
     noteText: { fontSize: 14, color: colors.foreground, lineHeight: 20 },
-    submittingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.4)", alignItems: "center", justifyContent: "center" },
+    submittingOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: "rgba(0,0,0,0.4)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
     submittingText: { color: "#fff", marginTop: 12, fontSize: 14 },
-    emptyWrap: { alignItems: "center", justifyContent: "center", paddingTop: 60, gap: 10 },
-    emptyTitle: { fontSize: 16, fontWeight: "700" as const, color: colors.secondary, marginTop: 4 },
-    emptySubtitle: { fontSize: 13, color: colors.mutedForeground, textAlign: "center" },
-    timelineItem: { flexDirection: "row", marginBottom: 4, backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border, overflow: "visible" },
+    emptyWrap: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingTop: 60,
+      gap: 10,
+    },
+    emptyTitle: {
+      fontSize: 16,
+      fontWeight: "700" as const,
+      color: colors.secondary,
+      marginTop: 4,
+    },
+    emptySubtitle: {
+      fontSize: 13,
+      color: colors.mutedForeground,
+      textAlign: "center",
+    },
+    timelineItem: {
+      flexDirection: "row",
+      marginBottom: 4,
+      backgroundColor: colors.card,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      overflow: "visible",
+    },
     timelineDot: { width: 32, alignItems: "center", paddingTop: 18 },
     timelineDotInner: { width: 12, height: 12, borderRadius: 6 },
     timelineLine: { width: 2, flex: 1, marginTop: 4 },
     timelineContent: { flex: 1, padding: 14 },
-    timelineCondition: { fontSize: 15, fontWeight: "700" as const, color: colors.foreground },
-    timelineStatusBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+    timelineCondition: {
+      fontSize: 15,
+      fontWeight: "700" as const,
+      color: colors.foreground,
+    },
+    timelineStatusBadge: {
+      borderRadius: 8,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+    },
     timelineDate: { fontSize: 11, color: colors.mutedForeground },
-    timelinePrescription: { fontSize: 12, color: colors.success, marginTop: 6, fontStyle: "italic" },
-    timelineNote: { fontSize: 12, color: colors.mutedForeground, marginTop: 4, fontStyle: "italic" },
+    timelinePrescription: {
+      fontSize: 12,
+      color: colors.success,
+      marginTop: 6,
+      fontStyle: "italic",
+    },
+    timelineNote: {
+      fontSize: 12,
+      color: colors.mutedForeground,
+      marginTop: 4,
+      fontStyle: "italic",
+    },
     currentBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
-    noteCard: { backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.border },
-    noteCardHeader: { flexDirection: "row", alignItems: "flex-start", marginBottom: 8 },
-    noteCardAuthor: { fontSize: 12, fontWeight: "700" as const, color: colors.primary },
+    noteCard: {
+      backgroundColor: colors.card,
+      borderRadius: 14,
+      padding: 14,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    noteCardHeader: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      marginBottom: 8,
+    },
+    noteCardAuthor: {
+      fontSize: 12,
+      fontWeight: "700" as const,
+      color: colors.primary,
+    },
     noteCardDate: { fontSize: 11, color: colors.mutedForeground, marginTop: 2 },
     noteCardText: { fontSize: 14, color: colors.foreground, lineHeight: 20 },
     noteAction: { padding: 6 },
-    addNoteBar: { position: "absolute", bottom: 0, left: 0, right: 0, flexDirection: "row", gap: 10, padding: 12, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.border, alignItems: "flex-end" },
-    addNoteInput: { flex: 1, backgroundColor: colors.background, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 12, fontSize: 14, color: colors.foreground, minHeight: 48, maxHeight: 90 },
-    addNoteBtn: { width: 48, height: 48, borderRadius: 12, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
-    addNoteInline: { flexDirection: "row", gap: 8, padding: 10, borderRadius: 12, borderWidth: 1, alignItems: "flex-end", marginBottom: 12 },
-    addNoteInputInline: { flex: 1, fontSize: 14, minHeight: 36, maxHeight: 100, padding: 6 },
-    addNoteBtnInline: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-    emptyWrapInline: { padding: 18, borderRadius: 12, borderStyle: "dashed", borderWidth: 1, marginBottom: 8 },
-    modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center", padding: 24 },
+    addNoteBar: {
+      position: "absolute",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      flexDirection: "row",
+      gap: 10,
+      padding: 12,
+      backgroundColor: colors.card,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      alignItems: "flex-end",
+    },
+    addNoteInput: {
+      flex: 1,
+      backgroundColor: colors.background,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 12,
+      fontSize: 14,
+      color: colors.foreground,
+      minHeight: 48,
+      maxHeight: 90,
+    },
+    addNoteBtn: {
+      width: 48,
+      height: 48,
+      borderRadius: 12,
+      backgroundColor: colors.primary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    addNoteInline: {
+      flexDirection: "row",
+      gap: 8,
+      padding: 10,
+      borderRadius: 12,
+      borderWidth: 1,
+      alignItems: "flex-end",
+      marginBottom: 12,
+    },
+    addNoteInputInline: {
+      flex: 1,
+      fontSize: 14,
+      minHeight: 36,
+      maxHeight: 100,
+      padding: 6,
+    },
+    addNoteBtnInline: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    emptyWrapInline: {
+      padding: 18,
+      borderRadius: 12,
+      borderStyle: "dashed",
+      borderWidth: 1,
+      marginBottom: 8,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.5)",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 24,
+    },
     modalCard: { width: "100%", borderRadius: 20, padding: 20, maxWidth: 480 },
-    modalTitle: { fontSize: 17, fontWeight: "700" as const, color: colors.foreground, marginBottom: 14 },
-    modalBtn: { borderRadius: 12, paddingVertical: 14, alignItems: "center", justifyContent: "center" },
+    modalTitle: {
+      fontSize: 17,
+      fontWeight: "700" as const,
+      color: colors.foreground,
+      marginBottom: 14,
+    },
+    modalBtn: {
+      borderRadius: 12,
+      paddingVertical: 14,
+      alignItems: "center",
+      justifyContent: "center",
+    },
     quickActionBar: {
       flexDirection: "row" as const,
       alignItems: "center" as const,

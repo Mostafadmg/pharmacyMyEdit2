@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
-import { ReactNode, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useRef, useState } from "react";
 import {
+  CheckCircle2,
   LayoutDashboard,
   ShoppingBag,
   MessageSquare,
@@ -12,14 +13,25 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  Moon,
   Sun,
   Leaf,
   Ban,
   MessageCircle,
   Settings,
+  ShieldCheck,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGetPharmacistUnreadCounts } from "@workspace/api-client-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 
 type NavItem = {
   path: string;
@@ -41,7 +53,19 @@ const NAV: NavItem[] = [
 
 export function RxLayout({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [location] = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [contraindicationsOpen, setContraindicationsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof window === "undefined") return "light";
+    return window.localStorage.getItem("pharmacare:rx-theme") === "dark"
+      ? "dark"
+      : "light";
+  });
+  const [location, navigate] = useLocation();
+  const searchRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
   const { data: counts } = useGetPharmacistUnreadCounts();
 
   const pharmName =
@@ -50,15 +74,53 @@ export function RxLayout({ children }: { children: ReactNode }) {
 
   const messagesBadge = counts?.unreadMessages ?? 0;
 
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    try {
+      window.localStorage.setItem("pharmacare:rx-theme", theme);
+    } catch {
+      /* localStorage unavailable */
+    }
+  }, [theme]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const q = search.trim();
+    if (!q) {
+      searchRef.current?.focus();
+      toast({ title: "Type a search term first" });
+      return;
+    }
+    navigate(`/queue?search=${encodeURIComponent(q)}`);
+    setMobileOpen(false);
+  };
+
+  const openMessages = () => {
+    navigate("/messages");
+    toast({ title: "Opening encrypted patient threads" });
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground relative">
-      <header className="h-16 bg-white border-b border-stone-200/80 flex items-center px-4 md:px-6 gap-4 sticky top-0 z-30">
+      <header className="h-16 bg-linear-to-r from-white via-emerald-50/70 to-white border-b border-emerald-100/80 flex items-center px-4 md:px-6 gap-4 sticky top-0 z-30 shadow-sm backdrop-blur">
         <Link href="/" className="flex items-center gap-2.5 shrink-0">
-          <div className="h-9 w-9 rounded-full bg-[hsl(var(--accent))] flex items-center justify-center">
-            <Leaf className="h-[18px] w-[18px] text-[hsl(var(--primary))]" />
+          <div className="h-9 w-9 rounded-full bg-accent text-primary flex items-center justify-center ring-1 ring-accent/30">
+            <Leaf className="h-4.5 w-4.5 text-primary" />
           </div>
           <div className="leading-tight">
-            <div className="font-serif font-semibold text-[15px] text-[hsl(var(--primary))] tracking-tight">
+            <div className="font-serif font-semibold text-[15px] text-primary tracking-tight">
               PharmaCare
             </div>
             <div className="text-[9px] uppercase tracking-[0.14em] text-stone-500 -mt-0.5 font-semibold">
@@ -67,35 +129,55 @@ export function RxLayout({ children }: { children: ReactNode }) {
           </div>
         </Link>
 
-        <button className="md:hidden p-2" aria-label="Menu">
+        <button
+          className="md:hidden p-2 rounded-full hover:bg-emerald-50"
+          aria-label="Menu"
+          onClick={() => setMobileOpen(true)}
+        >
           <Menu className="h-5 w-5" />
         </button>
 
         <div className="hidden md:flex flex-1 justify-center px-4">
-          <div className="flex items-center gap-3 w-full max-w-2xl bg-stone-100/80 rounded-full px-5 py-2.5 border border-stone-200/60">
-            <Search className="h-4 w-4 text-stone-500" />
+          <form
+            onSubmit={submitSearch}
+            className="flex items-center gap-3 w-full max-w-2xl bg-white/90 rounded-full px-5 py-2.5 border border-emerald-100 shadow-sm ring-1 ring-emerald-50"
+          >
+            <Search className="h-4 w-4 text-emerald-500" />
             <input
+              ref={searchRef}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
               type="text"
               placeholder="Search orders, patients, prescriptions…"
-              className="bg-transparent outline-none text-sm flex-1 placeholder:text-stone-500"
+              className="bg-transparent outline-none text-sm flex-1 placeholder:text-stone-400"
               data-testid="input-global-search"
             />
-            <kbd className="hidden md:inline-flex items-center gap-1 text-[10px] text-stone-500 bg-white border border-stone-200 rounded px-1.5 py-0.5 font-mono">
+            <kbd className="hidden md:inline-flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded px-1.5 py-0.5 font-mono">
               ⌘K
             </kbd>
-          </div>
+          </form>
         </div>
 
         <div className="ml-auto flex items-center gap-2">
           <button
-            className="p-2 rounded-full hover:bg-stone-100 text-stone-500"
+            onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
+            className="p-2 rounded-full hover:bg-emerald-50 text-stone-500"
             aria-label="Toggle theme"
             data-testid="button-theme-toggle"
           >
-            <Sun className="h-[18px] w-[18px]" />
+            {theme === "dark" ? (
+              <Sun className="h-4.5 w-4.5" />
+            ) : (
+              <Moon className="h-4.5 w-4.5" />
+            )}
           </button>
-          <div className="relative pl-1">
-            <div className="h-9 w-9 rounded-full bg-[hsl(var(--accent))] text-[hsl(var(--primary))] flex items-center justify-center font-semibold text-xs ring-1 ring-stone-200/60">
+          <button
+            type="button"
+            onClick={() => navigate("/profile")}
+            className="relative pl-1 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            aria-label="Open profile"
+          >
+            <div className="h-9 w-9 rounded-full bg-accent text-primary flex items-center justify-center font-semibold text-xs ring-1 ring-accent/30">
               {pharmName
                 .split(" ")
                 .map((p) => p[0])
@@ -103,15 +185,15 @@ export function RxLayout({ children }: { children: ReactNode }) {
                 .join("")}
             </div>
             <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
-          </div>
+          </button>
         </div>
       </header>
 
       <div className="flex-1 min-w-0 flex">
         <aside
           className={cn(
-            "hidden md:flex flex-col bg-white text-stone-700 transition-[width] duration-200 border-r border-stone-200/80",
-            collapsed ? "w-[68px]" : "w-[228px]",
+            "hidden md:flex flex-col bg-linear-to-b from-white to-emerald-50/40 text-stone-700 transition-[width] duration-200 border-r border-emerald-100/80",
+            collapsed ? "w-17" : "w-57",
           )}
         >
           <nav className="flex-1 py-4 px-2">
@@ -127,24 +209,25 @@ export function RxLayout({ children }: { children: ReactNode }) {
                 <Link
                   key={item.path}
                   href={item.path}
+                  onClick={() => setMobileOpen(false)}
                   data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
                   className={cn(
                     "flex items-center gap-3 my-0.5 px-3 py-2.5 rounded-lg text-[13px] transition-all relative",
                     active
-                      ? "bg-[hsl(var(--accent))] text-[hsl(var(--primary))] font-semibold"
-                      : "text-stone-600 hover:bg-stone-50 hover:text-stone-900",
+                      ? "bg-accent text-primary font-semibold shadow-sm shadow-emerald-900/5"
+                      : "text-stone-600 hover:bg-emerald-50 hover:text-stone-900",
                   )}
                   title={collapsed ? item.label : undefined}
                 >
                   {active && (
-                    <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-[hsl(var(--primary))]" />
+                    <span className="absolute left-0 top-1.5 bottom-1.5 w-0.75 rounded-r-full bg-primary" />
                   )}
-                  <Icon className={cn("h-[17px] w-[17px] shrink-0", active && "text-[hsl(var(--primary))]")} />
+                  <Icon className={cn("h-4.25 w-4.25 shrink-0", active && "text-primary")} />
                   {!collapsed && (
                     <span className="flex-1 truncate">{item.label}</span>
                   )}
                   {badge > 0 && !collapsed && (
-                    <span className="inline-flex h-[18px] min-w-[18px] px-1.5 items-center justify-center text-[10px] font-semibold rounded-full bg-rose-500 text-white">
+                    <span className="inline-flex h-4.5 min-w-4.5 px-1.5 items-center justify-center text-[10px] font-semibold rounded-full bg-white text-rose-600">
                       {badge}
                     </span>
                   )}
@@ -160,7 +243,7 @@ export function RxLayout({ children }: { children: ReactNode }) {
           </nav>
           <button
             onClick={() => setCollapsed((c) => !c)}
-            className="m-3 px-3 py-2 text-[11px] rounded-lg hover:bg-stone-50 flex items-center gap-2 text-stone-600 uppercase tracking-wide font-semibold"
+            className="m-3 px-3 py-2 text-[11px] rounded-lg hover:bg-emerald-50 flex items-center gap-2 text-stone-600 uppercase tracking-wide font-semibold"
             data-testid="button-toggle-sidebar"
           >
             <ChevronLeft
@@ -173,13 +256,92 @@ export function RxLayout({ children }: { children: ReactNode }) {
           </button>
         </aside>
 
-        <main className="flex-1 min-w-0 overflow-x-hidden bg-[hsl(var(--background))]">
+        <main className="flex-1 min-w-0 overflow-x-hidden bg-background">
           {children}
         </main>
       </div>
 
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <button
+            className="absolute inset-0 bg-stone-900/30"
+            aria-label="Close menu"
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside className="relative h-full w-[min(20rem,85vw)] bg-white border-r border-emerald-100 shadow-xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-full bg-accent text-primary flex items-center justify-center ring-1 ring-accent/30">
+                  <Leaf className="h-4.5 w-4.5 text-primary" />
+                </div>
+                <div>
+                  <div className="font-serif font-semibold text-[15px] text-primary">
+                    PharmaCare
+                  </div>
+                  <div className="text-[9px] uppercase tracking-[0.14em] text-stone-500 font-semibold">
+                    Rx Portal
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                className="rounded-full p-2 text-stone-500 hover:bg-emerald-50"
+                aria-label="Close menu"
+              >
+                <X className="h-4.5 w-4.5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={submitSearch}
+              className="mt-5 flex items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/60 px-3 py-2"
+            >
+              <Search className="h-4 w-4 text-emerald-600" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search orders or patients"
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-stone-400"
+              />
+            </form>
+
+            <nav className="mt-5 space-y-1">
+              {NAV.map((item) => {
+                const Icon = item.icon;
+                const active =
+                  item.path === "/" ? location === "/" : location.startsWith(item.path);
+                const badge = item.badgeKey === "messages" ? messagesBadge : 0;
+                return (
+                  <Link
+                    key={item.path}
+                    href={item.path}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition-colors",
+                      active
+                        ? "bg-accent text-primary font-semibold"
+                        : "text-stone-600 hover:bg-emerald-50",
+                    )}
+                  >
+                    <Icon className="h-4.5 w-4.5 shrink-0" />
+                    <span className="flex-1">{item.label}</span>
+                    {badge > 0 && (
+                      <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-50 px-1.5 text-[10px] font-semibold text-rose-600">
+                        {badge}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
+          </aside>
+        </div>
+      )}
+
       <button
-        className="fixed right-0 top-1/2 -translate-y-1/2 bg-white border border-stone-200 text-stone-500 hover:text-[hsl(var(--primary))] hover:border-[hsl(var(--primary))]/30 rounded-l-lg p-2 z-40 shadow-sm transition-colors"
+        onClick={() => setSettingsOpen(true)}
+        className="fixed right-0 top-1/2 -translate-y-1/2 bg-white border border-emerald-100 text-stone-500 hover:text-primary hover:border-emerald-200 rounded-l-lg p-2 z-40 shadow-sm transition-colors"
         aria-label="Settings"
         data-testid="button-settings-tab"
       >
@@ -187,6 +349,7 @@ export function RxLayout({ children }: { children: ReactNode }) {
       </button>
 
       <button
+        onClick={() => setContraindicationsOpen(true)}
         className="bg-white border border-rose-200 text-rose-700 hover:bg-rose-50 rounded-full px-3.5 py-2 shadow-sm fixed bottom-4 left-4 z-50 flex items-center gap-1.5 text-xs font-semibold transition-colors"
         data-testid="button-contraindications"
       >
@@ -195,7 +358,8 @@ export function RxLayout({ children }: { children: ReactNode }) {
       </button>
 
       <button
-        className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/90 text-white rounded-full pl-4 pr-5 py-2.5 shadow-lg shadow-[hsl(var(--primary))]/20 fixed bottom-4 right-4 z-50 flex items-center gap-2.5 text-sm font-semibold transition-colors"
+        onClick={openMessages}
+        className="bg-primary hover:bg-primary/90 text-white rounded-full pl-4 pr-5 py-2.5 shadow-lg shadow-emerald-900/10 fixed bottom-4 right-4 z-50 flex items-center gap-2.5 text-sm font-semibold transition-colors"
         data-testid="button-message-patient"
       >
         <MessageCircle className="h-4 w-4" />
@@ -206,6 +370,84 @@ export function RxLayout({ children }: { children: ReactNode }) {
           </span>
         </span>
       </button>
+
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Workspace settings</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <button
+              type="button"
+              onClick={() => setCollapsed((current) => !current)}
+              className="flex w-full items-center justify-between rounded-2xl border border-emerald-100 bg-emerald-50/50 px-4 py-3 text-left hover:bg-emerald-50"
+            >
+              <span>
+                <span className="block font-semibold text-stone-900">Sidebar density</span>
+                <span className="block text-xs text-stone-500">
+                  {collapsed ? "Collapsed navigation" : "Expanded navigation"}
+                </span>
+              </span>
+              <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
+              className="flex w-full items-center justify-between rounded-2xl border border-stone-200 bg-white px-4 py-3 text-left hover:bg-stone-50"
+            >
+              <span>
+                <span className="block font-semibold text-stone-900">Theme</span>
+                <span className="block text-xs text-stone-500">
+                  Currently using {theme === "dark" ? "dark" : "light"} mode
+                </span>
+              </span>
+              {theme === "dark" ? <Moon className="h-4.5 w-4.5" /> : <Sun className="h-4.5 w-4.5" />}
+            </button>
+          </div>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(false)}
+              className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+            >
+              Done
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={contraindicationsOpen} onOpenChange={setContraindicationsOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Contraindication checks</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {[
+              "Pregnancy or active breastfeeding",
+              "Personal or family history of medullary thyroid carcinoma",
+              "MEN2 syndrome or previous pancreatitis",
+              "Severe gastrointestinal disease or red-flag symptoms",
+            ].map((item) => (
+              <div
+                key={item}
+                className="flex items-start gap-3 rounded-2xl border border-rose-100 bg-rose-50/50 p-3 text-sm text-rose-950"
+              >
+                <ShieldCheck className="mt-0.5 h-4.5 w-4.5 shrink-0 text-rose-600" />
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setContraindicationsOpen(false)}
+              className="rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700"
+            >
+              Close
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

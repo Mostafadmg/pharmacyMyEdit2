@@ -114,7 +114,32 @@
   * {
     @apply border-border;
   }
+  html {
+    font-size: clamp(15px, 0.88vw + 11px, 17px);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    line-height: 1.55;
+    letter-spacing: -0.011em;
+    background-image: radial-gradient(circle at 20% -10%, hsl(var(--accent) / 0.3), transparent 45%);
+    background-attachment: fixed;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  p,
+  li,
+  label {
+    text-wrap: pretty;
+  }
+  ::selection {
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
   }
 }

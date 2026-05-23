@@ -5,13 +5,16 @@ import { Platform } from "react-native";
 import { getCurrentTokenAsync } from "@/context/AuthContext";
 
 function getApiBase(): string {
+  if (typeof process !== "undefined" && process.env?.EXPO_PUBLIC_API_BASE_URL) {
+    return process.env.EXPO_PUBLIC_API_BASE_URL.replace(/\/$/, "");
+  }
   if (typeof process !== "undefined" && process.env?.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, "");
   }
   if (typeof process !== "undefined" && process.env?.EXPO_PUBLIC_DOMAIN) {
     return `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
   }
-  return "";
+  return "http://localhost:5000";
 }
 
 /**
@@ -59,7 +62,8 @@ export async function getExpoPushToken(): Promise<string | null> {
 
   const projectId =
     Constants.expoConfig?.extra?.eas?.projectId ??
-    (Constants as unknown as { easConfig?: { projectId?: string } }).easConfig?.projectId;
+    (Constants as unknown as { easConfig?: { projectId?: string } }).easConfig
+      ?.projectId;
 
   try {
     const tokenResult = await Notifications.getExpoPushTokenAsync(
@@ -100,7 +104,10 @@ export async function registerPushToken(): Promise<string | null> {
  * Unregister a token on sign-out so a logged-out device doesn't keep
  * receiving patient alerts.
  */
-export async function unregisterPushToken(token: string, authToken: string): Promise<void> {
+export async function unregisterPushToken(
+  token: string,
+  authToken: string,
+): Promise<void> {
   try {
     await fetch(
       `${getApiBase()}/api/pharmacist/push-tokens/${encodeURIComponent(token)}`,

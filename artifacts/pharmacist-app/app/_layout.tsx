@@ -24,17 +24,24 @@ import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useRef } from "react";
 import { Text as RNText, TextInput as RNTextInput } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { KeyboardProvider, KeyboardToolbar } from "react-native-keyboard-controller";
+import {
+  KeyboardProvider,
+  KeyboardToolbar,
+} from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import brandColors from "@/constants/colors";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { AuthProvider, getCurrentTokenAsync, useAuth } from "@/context/AuthContext";
+import {
+  AuthProvider,
+  getCurrentTokenAsync,
+  useAuth,
+} from "@/context/AuthContext";
 import { ThemeProvider, useResolvedScheme } from "@/context/ThemeContext";
 import { configureNotificationHandler } from "@/lib/push-notifications";
 import { setBaseUrl, setAuthTokenGetter } from "@workspace/api-client-react";
 
-setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
+setBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:5000");
 setAuthTokenGetter(getCurrentTokenAsync);
 configureNotificationHandler();
 
@@ -61,7 +68,10 @@ function RootLayoutNav() {
     function handleData(data: unknown): void {
       if (!data || typeof data !== "object") return;
       const d = data as { type?: string; consultationId?: string };
-      if (d.type === "patient_message" && typeof d.consultationId === "string") {
+      if (
+        d.type === "patient_message" &&
+        typeof d.consultationId === "string"
+      ) {
         router.push(`/consultation/${d.consultationId}`);
       }
     }
@@ -77,9 +87,11 @@ function RootLayoutNav() {
     }
 
     // Warm-start: tapped while app was backgrounded.
-    const sub = Notifications.addNotificationResponseReceivedListener((resp) => {
-      handleData(resp.notification.request.content.data);
-    });
+    const sub = Notifications.addNotificationResponseReceivedListener(
+      (resp) => {
+        handleData(resp.notification.request.content.data);
+      },
+    );
     return () => sub.remove();
   }, [isAuthenticated, router]);
 
@@ -100,13 +112,32 @@ function RootLayoutNav() {
   const palette = scheme === "dark" ? brandColors.dark : brandColors.light;
   const headerStyle = { backgroundColor: palette.card };
   const headerTintColor = palette.secondary;
-  const headerTitleStyle = { fontFamily: "PlusJakartaSans_700Bold", color: palette.secondary };
+  const headerTitleStyle = {
+    fontFamily: "PlusJakartaSans_700Bold",
+    color: palette.secondary,
+  };
   return (
-    <Stack screenOptions={{ headerBackTitle: "Back", headerStyle, headerTintColor, headerTitleStyle }}>
+    <Stack
+      screenOptions={{
+        headerBackTitle: "Back",
+        headerStyle,
+        headerTintColor,
+        headerTitleStyle,
+      }}
+    >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="consultation/[id]" options={{ title: "Consultation" }} />
-      <Stack.Screen name="patient/[email]" options={{ title: "Patient Profile" }} />
-      <Stack.Screen name="messages/[id]" options={{ title: "Messages", headerShown: false }} />
+      <Stack.Screen
+        name="consultation/[id]"
+        options={{ title: "Consultation" }}
+      />
+      <Stack.Screen
+        name="patient/[email]"
+        options={{ title: "Patient Profile" }}
+      />
+      <Stack.Screen
+        name="messages/[id]"
+        options={{ title: "Messages", headerShown: false }}
+      />
     </Stack>
   );
 }

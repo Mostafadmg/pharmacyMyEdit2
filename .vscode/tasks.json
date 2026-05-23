@@ -1,0 +1,47 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Open dashboard in VS Code browser",
+      "type": "shell",
+      "command": "echo ${input:openDashboardBrowser}",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": false,
+        "focus": false,
+        "panel": "shared",
+        "reveal": "never"
+      }
+    },
+    {
+      "label": "Open counselling order in VS Code browser",
+      "type": "shell",
+      "command": "echo ${input:openCounsellingBrowser}",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": false,
+        "focus": false,
+        "panel": "shared",
+        "reveal": "never"
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "openDashboardBrowser",
+      "type": "command",
+      "command": "simpleBrowser.api.open",
+      "args": [
+        "http://localhost:5173/dashboard"
+      ]
+    },
+    {
+      "id": "openCounsellingBrowser",
+      "type": "command",
+      "command": "simpleBrowser.api.open",
+      "args": [
+        "http://localhost:5174/orders/demo-007?tab=counselling"
+      ]
+    }
+  ]
+}

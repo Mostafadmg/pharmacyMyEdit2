@@ -23,13 +23,16 @@ import { getCurrentToken } from "@/context/AuthContext";
 import { format, formatDistanceToNow } from "date-fns";
 
 function getApiBase(): string {
+  if (typeof process !== "undefined" && process.env?.EXPO_PUBLIC_API_BASE_URL) {
+    return process.env.EXPO_PUBLIC_API_BASE_URL.replace(/\/$/, "");
+  }
   if (typeof process !== "undefined" && process.env?.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, "");
   }
   if (typeof process !== "undefined" && process.env?.EXPO_PUBLIC_DOMAIN) {
     return `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
   }
-  return "";
+  return "http://localhost:5000";
 }
 
 function authHeaders(extra?: Record<string, string>): Record<string, string> {
@@ -42,7 +45,12 @@ function gbp(pence: number): string {
 }
 
 interface ProfileResponse {
-  account: { id: string; email: string; name: string; createdAt: string } | null;
+  account: {
+    id: string;
+    email: string;
+    name: string;
+    createdAt: string;
+  } | null;
   profile: {
     email: string;
     name: string | null;
@@ -77,7 +85,11 @@ interface ProfileResponse {
     totalGbp: number;
     createdAt: string;
     items: { id: string; productName: string; quantity: number }[];
-    delivery: { status: string; carrier: string | null; trackingNumber: string | null } | null;
+    delivery: {
+      status: string;
+      carrier: string | null;
+      trackingNumber: string | null;
+    } | null;
   }[];
   recentMessages: {
     id: string;
@@ -99,7 +111,10 @@ const STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
   cancelled: { label: "Cancelled", bg: "#F1F5F9", fg: "#64748B" },
 };
 
-const ORDER_STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
+const ORDER_STATUS_META: Record<
+  string,
+  { label: string; bg: string; fg: string }
+> = {
   paid: { label: "Paid", bg: "#FFF7ED", fg: "#D97706" },
   paid_demo: { label: "Paid", bg: "#FFF7ED", fg: "#D97706" },
   preparing: { label: "Preparing", bg: "#ECFEFF", fg: "#0891B2" },
@@ -127,7 +142,10 @@ export default function PatientDetailScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ email: string }>();
-  const email = useMemo(() => decodeURIComponent(params.email ?? ""), [params.email]);
+  const email = useMemo(
+    () => decodeURIComponent(params.email ?? ""),
+    [params.email],
+  );
 
   const [data, setData] = useState<ProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -218,11 +236,14 @@ export default function PatientDetailScreen() {
     if (!editingNoteId || !editingNoteText.trim()) return;
     setSavingNote(true);
     try {
-      const res = await fetch(`${getApiBase()}/api/patient-notes/${editingNoteId}`, {
-        method: "PUT",
-        headers: authHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ note: editingNoteText.trim() }),
-      });
+      const res = await fetch(
+        `${getApiBase()}/api/patient-notes/${editingNoteId}`,
+        {
+          method: "PUT",
+          headers: authHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ note: editingNoteText.trim() }),
+        },
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setEditingNoteId(null);
       setEditingNoteText("");
@@ -234,27 +255,33 @@ export default function PatientDetailScreen() {
     }
   }, [editingNoteId, editingNoteText, fetchNotes]);
 
-  const deleteNote = useCallback((noteId: string) => {
-    Alert.alert("Delete note", "Remove this clinical note permanently?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            const res = await fetch(`${getApiBase()}/api/patient-notes/${noteId}`, {
-              method: "DELETE",
-              headers: authHeaders(),
-            });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            await fetchNotes();
-          } catch {
-            Alert.alert("Error", "Could not delete note.");
-          }
+  const deleteNote = useCallback(
+    (noteId: string) => {
+      Alert.alert("Delete note", "Remove this clinical note permanently?", [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const res = await fetch(
+                `${getApiBase()}/api/patient-notes/${noteId}`,
+                {
+                  method: "DELETE",
+                  headers: authHeaders(),
+                },
+              );
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              await fetchNotes();
+            } catch {
+              Alert.alert("Error", "Could not delete note.");
+            }
+          },
         },
-      },
-    ]);
-  }, [fetchNotes]);
+      ]);
+    },
+    [fetchNotes],
+  );
 
   const sendCustomEmail = useCallback(async () => {
     if (!emailSubject.trim() || !emailMessage.trim()) {
@@ -268,7 +295,10 @@ export default function PatientDetailScreen() {
         {
           method: "POST",
           headers: authHeaders({ "Content-Type": "application/json" }),
-          body: JSON.stringify({ subject: emailSubject, message: emailMessage }),
+          body: JSON.stringify({
+            subject: emailSubject,
+            message: emailMessage,
+          }),
         },
       );
       if (!res.ok) {
@@ -276,14 +306,20 @@ export default function PatientDetailScreen() {
         throw new Error(body || `HTTP ${res.status}`);
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert("Email sent", `Your message has been sent to ${data?.profile.name ?? email}.`);
+      Alert.alert(
+        "Email sent",
+        `Your message has been sent to ${data?.profile.name ?? email}.`,
+      );
       setEmailModal(false);
       setEmailSubject("");
       setEmailMessage("");
       fetchProfile();
     } catch (e) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert("Send failed", e instanceof Error ? e.message : "Unable to send email.");
+      Alert.alert(
+        "Send failed",
+        e instanceof Error ? e.message : "Unable to send email.",
+      );
     } finally {
       setSending(false);
     }
@@ -318,7 +354,7 @@ export default function PatientDetailScreen() {
 
   const initials = (data.profile.name ?? email)
     .split(" ")
-    .map(w => w[0])
+    .map((w) => w[0])
     .slice(0, 2)
     .join("")
     .toUpperCase();
@@ -329,7 +365,11 @@ export default function PatientDetailScreen() {
         options={{
           title: data.profile.name ?? "Patient",
           headerRight: () => (
-            <Pressable onPress={() => setEmailModal(true)} hitSlop={12} style={{ padding: 6 }}>
+            <Pressable
+              onPress={() => setEmailModal(true)}
+              hitSlop={12}
+              style={{ padding: 6 }}
+            >
               <Feather name="mail" size={20} color={colors.primary} />
             </Pressable>
           ),
@@ -338,11 +378,25 @@ export default function PatientDetailScreen() {
 
       <ScrollView
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
       >
         {/* Hero card */}
         <View style={styles.heroCard}>
-          <View style={[styles.heroAvatar, { backgroundColor: data.profile.redFlagCount > 0 ? "#EF4444" : colors.primary }]}>
+          <View
+            style={[
+              styles.heroAvatar,
+              {
+                backgroundColor:
+                  data.profile.redFlagCount > 0 ? "#EF4444" : colors.primary,
+              },
+            ]}
+          >
             <Text style={styles.heroAvatarText}>{initials}</Text>
           </View>
           <Text style={styles.heroName}>{data.profile.name ?? "Patient"}</Text>
@@ -352,14 +406,18 @@ export default function PatientDetailScreen() {
           </Pressable>
           {data.profile.firstSeenAt && (
             <Text style={styles.heroMeta}>
-              Patient since {format(new Date(data.profile.firstSeenAt), "MMM yyyy")}
+              Patient since{" "}
+              {format(new Date(data.profile.firstSeenAt), "MMM yyyy")}
               {data.profile.registered ? " · Registered account" : " · Guest"}
             </Text>
           )}
           {data.profile.redFlagCount > 0 && (
             <View style={styles.warningChip}>
               <Feather name="alert-triangle" size={11} color="#DC2626" />
-              <Text style={styles.warningChipText}>{data.profile.redFlagCount} red flag{data.profile.redFlagCount > 1 ? "s" : ""} on record</Text>
+              <Text style={styles.warningChipText}>
+                {data.profile.redFlagCount} red flag
+                {data.profile.redFlagCount > 1 ? "s" : ""} on record
+              </Text>
             </View>
           )}
         </View>
@@ -367,7 +425,10 @@ export default function PatientDetailScreen() {
         {/* Action buttons */}
         <View style={styles.actionRow}>
           <Pressable
-            style={({ pressed }) => [styles.actionPrimary, pressed && { opacity: 0.85 }]}
+            style={({ pressed }) => [
+              styles.actionPrimary,
+              pressed && { opacity: 0.85 },
+            ]}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               setEmailModal(true);
@@ -377,8 +438,15 @@ export default function PatientDetailScreen() {
             <Text style={styles.actionPrimaryText}>Email Patient</Text>
           </Pressable>
           <Pressable
-            style={({ pressed }) => [styles.actionSecondary, pressed && { opacity: 0.7 }]}
-            onPress={() => Linking.openURL(`mailto:${email}?subject=Regarding%20your%20PharmaCare%20consultation`)}
+            style={({ pressed }) => [
+              styles.actionSecondary,
+              pressed && { opacity: 0.7 },
+            ]}
+            onPress={() =>
+              Linking.openURL(
+                `mailto:${email}?subject=Regarding%20your%20PharmaCare%20consultation`,
+              )
+            }
           >
             <Feather name="external-link" size={14} color={colors.primary} />
             <Text style={styles.actionSecondaryText}>Mail App</Text>
@@ -387,15 +455,47 @@ export default function PatientDetailScreen() {
 
         {/* Stats grid */}
         <View style={styles.statsGrid}>
-          <StatTile icon="file-text" value={data.profile.totalConsultations} label="Consults" color={colors.primary} bg={colors.muted} />
-          <StatTile icon="check-circle" value={data.profile.approvedCount} label="Approved" color="#16A34A" bg="#F0FDF4" />
-          <StatTile icon="shopping-bag" value={data.profile.totalOrders} label="Orders" color="#7C3AED" bg="#FAF5FF" />
-          <StatTile icon="dollar-sign" value={`£${(data.profile.totalSpendPence / 100).toFixed(0)}`} label="Spent" color="#0E7490" bg="#ECFEFF" />
+          <StatTile
+            icon="file-text"
+            value={data.profile.totalConsultations}
+            label="Consults"
+            color={colors.primary}
+            bg={colors.muted}
+          />
+          <StatTile
+            icon="check-circle"
+            value={data.profile.approvedCount}
+            label="Approved"
+            color="#16A34A"
+            bg="#F0FDF4"
+          />
+          <StatTile
+            icon="shopping-bag"
+            value={data.profile.totalOrders}
+            label="Orders"
+            color="#7C3AED"
+            bg="#FAF5FF"
+          />
+          <StatTile
+            icon="dollar-sign"
+            value={`£${(data.profile.totalSpendPence / 100).toFixed(0)}`}
+            label="Spent"
+            color="#0E7490"
+            bg="#ECFEFF"
+          />
         </View>
 
         {/* Tabs */}
         <View style={styles.tabBar}>
-          {(["overview", "consultations", "orders", "messages", "notes"] as TabKey[]).map(t => {
+          {(
+            [
+              "overview",
+              "consultations",
+              "orders",
+              "messages",
+              "notes",
+            ] as TabKey[]
+          ).map((t) => {
             const active = tab === t;
             const counts: Record<TabKey, number | null> = {
               overview: null,
@@ -414,14 +514,32 @@ export default function PatientDetailScreen() {
             return (
               <Pressable
                 key={t}
-                onPress={() => { Haptics.selectionAsync(); setTab(t); }}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setTab(t);
+                }}
                 style={styles.tabBtn}
               >
-                <Text style={[styles.tabLabel, active && { color: colors.primary, fontWeight: "700" as const }]}>
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    active && {
+                      color: colors.primary,
+                      fontWeight: "700" as const,
+                    },
+                  ]}
+                >
                   {labels[t]}
                   {counts[t] !== null && counts[t]! > 0 && ` (${counts[t]})`}
                 </Text>
-                {active && <View style={[styles.tabIndicator, { backgroundColor: colors.primary }]} />}
+                {active && (
+                  <View
+                    style={[
+                      styles.tabIndicator,
+                      { backgroundColor: colors.primary },
+                    ]}
+                  />
+                )}
               </Pressable>
             );
           })}
@@ -434,11 +552,15 @@ export default function PatientDetailScreen() {
                 <View style={styles.card}>
                   <Text style={styles.cardTitle}>Top conditions</Text>
                   <View style={{ gap: 8, marginTop: 10 }}>
-                    {data.profile.topConditions.map(c => (
+                    {data.profile.topConditions.map((c) => (
                       <View key={c.name} style={styles.conditionRow}>
-                        <Text style={styles.conditionName} numberOfLines={1}>{c.name}</Text>
+                        <Text style={styles.conditionName} numberOfLines={1}>
+                          {c.name}
+                        </Text>
                         <View style={styles.conditionCountPill}>
-                          <Text style={styles.conditionCountText}>{c.count}×</Text>
+                          <Text style={styles.conditionCountText}>
+                            {c.count}×
+                          </Text>
                         </View>
                       </View>
                     ))}
@@ -449,13 +571,41 @@ export default function PatientDetailScreen() {
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>Activity summary</Text>
                 <View style={{ gap: 6, marginTop: 10 }}>
-                  <ActivityRow label="Last seen" value={data.profile.lastSeenAt ? formatDistanceToNow(new Date(data.profile.lastSeenAt), { addSuffix: true }) : "—"} />
-                  <ActivityRow label="Approved consults" value={String(data.profile.approvedCount)} />
-                  <ActivityRow label="Pending review" value={String(data.profile.pendingCount)} />
-                  <ActivityRow label="Awaiting more info" value={String(data.profile.moreInfoCount)} />
-                  <ActivityRow label="Referred" value={String(data.profile.referredCount)} />
-                  <ActivityRow label="Rejected" value={String(data.profile.rejectedCount)} />
-                  <ActivityRow label="Total spend" value={gbp(data.profile.totalSpendPence)} />
+                  <ActivityRow
+                    label="Last seen"
+                    value={
+                      data.profile.lastSeenAt
+                        ? formatDistanceToNow(
+                            new Date(data.profile.lastSeenAt),
+                            { addSuffix: true },
+                          )
+                        : "—"
+                    }
+                  />
+                  <ActivityRow
+                    label="Approved consults"
+                    value={String(data.profile.approvedCount)}
+                  />
+                  <ActivityRow
+                    label="Pending review"
+                    value={String(data.profile.pendingCount)}
+                  />
+                  <ActivityRow
+                    label="Awaiting more info"
+                    value={String(data.profile.moreInfoCount)}
+                  />
+                  <ActivityRow
+                    label="Referred"
+                    value={String(data.profile.referredCount)}
+                  />
+                  <ActivityRow
+                    label="Rejected"
+                    value={String(data.profile.rejectedCount)}
+                  />
+                  <ActivityRow
+                    label="Total spend"
+                    value={gbp(data.profile.totalSpendPence)}
+                  />
                 </View>
               </View>
             </View>
@@ -464,31 +614,60 @@ export default function PatientDetailScreen() {
           {tab === "consultations" && (
             <View style={{ gap: 10 }}>
               {data.consultations.length === 0 ? (
-                <EmptyBlock icon="file-text" text="No consultations on record" />
+                <EmptyBlock
+                  icon="file-text"
+                  text="No consultations on record"
+                />
               ) : (
-                data.consultations.map(c => {
+                data.consultations.map((c) => {
                   const meta = STATUS_META[c.status] ?? STATUS_META.pending;
                   return (
                     <Pressable
                       key={c.id}
-                      style={({ pressed }) => [styles.listCard, pressed && { opacity: 0.78 }]}
+                      style={({ pressed }) => [
+                        styles.listCard,
+                        pressed && { opacity: 0.78 },
+                      ]}
                       onPress={() => router.push(`/consultation/${c.id}`)}
                     >
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.listCardTitle} numberOfLines={1}>{c.conditionName}</Text>
+                        <Text style={styles.listCardTitle} numberOfLines={1}>
+                          {c.conditionName}
+                        </Text>
                         <Text style={styles.listCardSubtitle}>
-                          {format(new Date(c.createdAt), "d MMM yyyy")} · {formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })}
+                          {format(new Date(c.createdAt), "d MMM yyyy")} ·{" "}
+                          {formatDistanceToNow(new Date(c.createdAt), {
+                            addSuffix: true,
+                          })}
                         </Text>
                         {c.prescription && (
                           <Text style={styles.listCardExtra} numberOfLines={1}>
-                            <Feather name="clipboard" size={10} color={colors.mutedForeground} /> {c.prescription}
+                            <Feather
+                              name="clipboard"
+                              size={10}
+                              color={colors.mutedForeground}
+                            />{" "}
+                            {c.prescription}
                           </Text>
                         )}
                       </View>
-                      <View style={[styles.statusPill, { backgroundColor: meta.bg }]}>
-                        <Text style={[styles.statusPillText, { color: meta.fg }]}>{meta.label}</Text>
+                      <View
+                        style={[
+                          styles.statusPill,
+                          { backgroundColor: meta.bg },
+                        ]}
+                      >
+                        <Text
+                          style={[styles.statusPillText, { color: meta.fg }]}
+                        >
+                          {meta.label}
+                        </Text>
                       </View>
-                      <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+                      <Feather
+                        name="chevron-right"
+                        size={16}
+                        color={colors.mutedForeground}
+                      />
                     </Pressable>
                   );
                 })
@@ -501,37 +680,73 @@ export default function PatientDetailScreen() {
               {data.orders.length === 0 ? (
                 <EmptyBlock icon="shopping-bag" text="No orders on record" />
               ) : (
-                data.orders.map(o => {
+                data.orders.map((o) => {
                   const stage = o.delivery?.status ?? o.status;
-                  const meta = ORDER_STATUS_META[stage] ?? ORDER_STATUS_META.pending;
+                  const meta =
+                    ORDER_STATUS_META[stage] ?? ORDER_STATUS_META.pending;
                   return (
                     <View key={o.id} style={styles.orderCard}>
-                      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                        }}
+                      >
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.listCardTitle}>{o.orderNumber}</Text>
+                          <Text style={styles.listCardTitle}>
+                            {o.orderNumber}
+                          </Text>
                           <Text style={styles.listCardSubtitle}>
-                            {format(new Date(o.createdAt), "d MMM yyyy")} · {gbp(o.totalGbp)}
+                            {format(new Date(o.createdAt), "d MMM yyyy")} ·{" "}
+                            {gbp(o.totalGbp)}
                           </Text>
                         </View>
-                        <View style={[styles.statusPill, { backgroundColor: meta.bg }]}>
-                          <Text style={[styles.statusPillText, { color: meta.fg }]}>{meta.label}</Text>
+                        <View
+                          style={[
+                            styles.statusPill,
+                            { backgroundColor: meta.bg },
+                          ]}
+                        >
+                          <Text
+                            style={[styles.statusPillText, { color: meta.fg }]}
+                          >
+                            {meta.label}
+                          </Text>
                         </View>
                       </View>
                       {o.items.length > 0 && (
                         <View style={{ marginTop: 8, gap: 2 }}>
-                          {o.items.slice(0, 3).map(it => (
-                            <Text key={it.id} style={styles.itemLine}>{it.quantity}× {it.productName}</Text>
+                          {o.items.slice(0, 3).map((it) => (
+                            <Text key={it.id} style={styles.itemLine}>
+                              {it.quantity}× {it.productName}
+                            </Text>
                           ))}
                           {o.items.length > 3 && (
-                            <Text style={[styles.itemLine, { color: colors.mutedForeground }]}>+{o.items.length - 3} more</Text>
+                            <Text
+                              style={[
+                                styles.itemLine,
+                                { color: colors.mutedForeground },
+                              ]}
+                            >
+                              +{o.items.length - 3} more
+                            </Text>
                           )}
                         </View>
                       )}
                       {o.delivery?.trackingNumber && (
                         <View style={styles.trackingChip}>
-                          <Feather name="truck" size={11} color={colors.primary} />
-                          <Text style={styles.trackingChipText} numberOfLines={1}>
-                            {o.delivery.carrier ?? "Royal Mail"} · {o.delivery.trackingNumber}
+                          <Feather
+                            name="truck"
+                            size={11}
+                            color={colors.primary}
+                          />
+                          <Text
+                            style={styles.trackingChipText}
+                            numberOfLines={1}
+                          >
+                            {o.delivery.carrier ?? "Royal Mail"} ·{" "}
+                            {o.delivery.trackingNumber}
                           </Text>
                         </View>
                       )}
@@ -545,25 +760,53 @@ export default function PatientDetailScreen() {
           {tab === "messages" && (
             <View style={{ gap: 8 }}>
               {data.recentMessages.length === 0 ? (
-                <EmptyBlock icon="message-square" text="No messages exchanged" />
+                <EmptyBlock
+                  icon="message-square"
+                  text="No messages exchanged"
+                />
               ) : (
-                data.recentMessages.map(m => (
+                data.recentMessages.map((m) => (
                   <Pressable
                     key={m.id}
-                    style={[styles.messageCard, m.senderRole === "pharmacist" ? styles.msgPharm : styles.msgPatient]}
-                    onPress={() => router.push(`/consultation/${m.consultationId}`)}
+                    style={[
+                      styles.messageCard,
+                      m.senderRole === "pharmacist"
+                        ? styles.msgPharm
+                        : styles.msgPatient,
+                    ]}
+                    onPress={() =>
+                      router.push(`/consultation/${m.consultationId}`)
+                    }
                   >
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                        marginBottom: 4,
+                      }}
+                    >
                       <Feather
-                        name={m.senderRole === "pharmacist" ? "user-check" : "user"}
+                        name={
+                          m.senderRole === "pharmacist" ? "user-check" : "user"
+                        }
                         size={11}
-                        color={m.senderRole === "pharmacist" ? colors.primary : colors.mutedForeground}
+                        color={
+                          m.senderRole === "pharmacist"
+                            ? colors.primary
+                            : colors.mutedForeground
+                        }
                       />
                       <Text style={styles.messageMeta}>
-                        {m.senderName} · {formatDistanceToNow(new Date(m.createdAt), { addSuffix: true })}
+                        {m.senderName} ·{" "}
+                        {formatDistanceToNow(new Date(m.createdAt), {
+                          addSuffix: true,
+                        })}
                       </Text>
                     </View>
-                    <Text style={styles.messageBody} numberOfLines={3}>{m.body}</Text>
+                    <Text style={styles.messageBody} numberOfLines={3}>
+                      {m.body}
+                    </Text>
                   </Pressable>
                 ))
               )}
@@ -602,11 +845,18 @@ export default function PatientDetailScreen() {
                       borderRadius: 10,
                       paddingVertical: 10,
                       alignItems: "center" as const,
-                      opacity: savingNote || !noteDraft.trim() ? 0.5 : pressed ? 0.85 : 1,
+                      opacity:
+                        savingNote || !noteDraft.trim()
+                          ? 0.5
+                          : pressed
+                            ? 0.85
+                            : 1,
                     },
                   ]}
                 >
-                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>
+                  <Text
+                    style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}
+                  >
                     {savingNote ? "Saving…" : "Save note"}
                   </Text>
                 </Pressable>
@@ -620,7 +870,7 @@ export default function PatientDetailScreen() {
               ) : notes.length === 0 ? (
                 <EmptyBlock icon="file-text" text="No clinical notes yet" />
               ) : (
-                notes.map(n => (
+                notes.map((n) => (
                   <View key={n.id} style={[styles.card, { gap: 6 }]}>
                     {editingNoteId === n.id ? (
                       <>
@@ -640,25 +890,52 @@ export default function PatientDetailScreen() {
                             },
                           ]}
                         />
-                        <View style={{ flexDirection: "row", gap: 8, justifyContent: "flex-end" }}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            gap: 8,
+                            justifyContent: "flex-end",
+                          }}
+                        >
                           <Pressable
-                            onPress={() => { setEditingNoteId(null); setEditingNoteText(""); }}
-                            style={{ paddingHorizontal: 12, paddingVertical: 6 }}
+                            onPress={() => {
+                              setEditingNoteId(null);
+                              setEditingNoteText("");
+                            }}
+                            style={{
+                              paddingHorizontal: 12,
+                              paddingVertical: 6,
+                            }}
                           >
-                            <Text style={{ fontSize: 13, color: colors.mutedForeground }}>Cancel</Text>
+                            <Text
+                              style={{
+                                fontSize: 13,
+                                color: colors.mutedForeground,
+                              }}
+                            >
+                              Cancel
+                            </Text>
                           </Pressable>
                           <Pressable
                             onPress={saveEditNote}
                             disabled={savingNote}
-                            style={({ pressed }) => [{
-                              backgroundColor: colors.primary,
-                              paddingHorizontal: 16,
-                              paddingVertical: 6,
-                              borderRadius: 8,
-                              opacity: savingNote || pressed ? 0.75 : 1,
-                            }]}
+                            style={({ pressed }) => [
+                              {
+                                backgroundColor: colors.primary,
+                                paddingHorizontal: 16,
+                                paddingVertical: 6,
+                                borderRadius: 8,
+                                opacity: savingNote || pressed ? 0.75 : 1,
+                              },
+                            ]}
                           >
-                            <Text style={{ fontSize: 13, color: "#fff", fontWeight: "700" }}>
+                            <Text
+                              style={{
+                                fontSize: 13,
+                                color: "#fff",
+                                fontWeight: "700",
+                              }}
+                            >
                               {savingNote ? "Saving…" : "Save"}
                             </Text>
                           </Pressable>
@@ -666,21 +943,60 @@ export default function PatientDetailScreen() {
                       </>
                     ) : (
                       <>
-                        <Text style={{ fontSize: 14, color: colors.secondary, lineHeight: 20 }}>{n.note}</Text>
-                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
-                          <Text style={{ fontSize: 10, color: colors.mutedForeground }}>
-                            {n.createdBy} · {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
-                            {n.updatedAt && n.updatedAt !== n.createdAt ? " (edited)" : ""}
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            color: colors.secondary,
+                            lineHeight: 20,
+                          }}
+                        >
+                          {n.note}
+                        </Text>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginTop: 4,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 10,
+                              color: colors.mutedForeground,
+                            }}
+                          >
+                            {n.createdBy} ·{" "}
+                            {formatDistanceToNow(new Date(n.createdAt), {
+                              addSuffix: true,
+                            })}
+                            {n.updatedAt && n.updatedAt !== n.createdAt
+                              ? " (edited)"
+                              : ""}
                           </Text>
                           <View style={{ flexDirection: "row", gap: 12 }}>
                             <Pressable
                               hitSlop={8}
-                              onPress={() => { setEditingNoteId(n.id); setEditingNoteText(n.note); }}
+                              onPress={() => {
+                                setEditingNoteId(n.id);
+                                setEditingNoteText(n.note);
+                              }}
                             >
-                              <Feather name="edit-2" size={14} color={colors.primary} />
+                              <Feather
+                                name="edit-2"
+                                size={14}
+                                color={colors.primary}
+                              />
                             </Pressable>
-                            <Pressable hitSlop={8} onPress={() => deleteNote(n.id)}>
-                              <Feather name="trash-2" size={14} color="#DC2626" />
+                            <Pressable
+                              hitSlop={8}
+                              onPress={() => deleteNote(n.id)}
+                            >
+                              <Feather
+                                name="trash-2"
+                                size={14}
+                                color="#DC2626"
+                              />
                             </Pressable>
                           </View>
                         </View>
@@ -695,22 +1011,45 @@ export default function PatientDetailScreen() {
       </ScrollView>
 
       {/* Compose Email Modal */}
-      <Modal visible={emailModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setEmailModal(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
+      <Modal
+        visible={emailModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setEmailModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={{ flex: 1, backgroundColor: colors.background }}
+        >
           <View style={styles.modalHeader}>
-            <Pressable onPress={() => setEmailModal(false)} style={{ padding: 6 }}>
-              <Text style={[styles.modalCancel, { color: colors.primary }]}>Cancel</Text>
+            <Pressable
+              onPress={() => setEmailModal(false)}
+              style={{ padding: 6 }}
+            >
+              <Text style={[styles.modalCancel, { color: colors.primary }]}>
+                Cancel
+              </Text>
             </Pressable>
             <Text style={styles.modalTitle}>New Email</Text>
-            <Pressable onPress={sendCustomEmail} disabled={sending} style={{ padding: 6, opacity: sending ? 0.5 : 1 }}>
-              <Text style={[styles.modalSend, { color: colors.primary }]}>{sending ? "Sending…" : "Send"}</Text>
+            <Pressable
+              onPress={sendCustomEmail}
+              disabled={sending}
+              style={{ padding: 6, opacity: sending ? 0.5 : 1 }}
+            >
+              <Text style={[styles.modalSend, { color: colors.primary }]}>
+                {sending ? "Sending…" : "Send"}
+              </Text>
             </Pressable>
           </View>
           <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
             <View>
               <Text style={styles.modalLabel}>To</Text>
-              <View style={[styles.modalReadonly, { borderColor: colors.border }]}>
-                <Text style={{ color: colors.secondary, fontSize: 14 }}>{email}</Text>
+              <View
+                style={[styles.modalReadonly, { borderColor: colors.border }]}
+              >
+                <Text style={{ color: colors.secondary, fontSize: 14 }}>
+                  {email}
+                </Text>
               </View>
             </View>
             <View>
@@ -720,7 +1059,10 @@ export default function PatientDetailScreen() {
                 onChangeText={setEmailSubject}
                 placeholder="What's this about?"
                 placeholderTextColor={colors.mutedForeground}
-                style={[styles.modalInput, { borderColor: colors.border, color: colors.secondary }]}
+                style={[
+                  styles.modalInput,
+                  { borderColor: colors.border, color: colors.secondary },
+                ]}
               />
             </View>
             <View>
@@ -730,12 +1072,22 @@ export default function PatientDetailScreen() {
                 onChangeText={setEmailMessage}
                 placeholder="Write a message to your patient…"
                 placeholderTextColor={colors.mutedForeground}
-                style={[styles.modalInput, { borderColor: colors.border, color: colors.secondary, minHeight: 200, textAlignVertical: "top", paddingTop: 12 }]}
+                style={[
+                  styles.modalInput,
+                  {
+                    borderColor: colors.border,
+                    color: colors.secondary,
+                    minHeight: 200,
+                    textAlignVertical: "top",
+                    paddingTop: 12,
+                  },
+                ]}
                 multiline
               />
             </View>
             <Text style={styles.modalHint}>
-              Sent from your PharmaCare account. The patient will be able to reply through their account portal or by emailing back.
+              Sent from your PharmaCare account. The patient will be able to
+              reply through their account portal or by emailing back.
             </Text>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -744,21 +1096,71 @@ export default function PatientDetailScreen() {
   );
 }
 
-function StatTile({ icon, value, label, color, bg }: { icon: string; value: string | number; label: string; color: string; bg: string }) {
+function StatTile({
+  icon,
+  value,
+  label,
+  color,
+  bg,
+}: {
+  icon: string;
+  value: string | number;
+  label: string;
+  color: string;
+  bg: string;
+}) {
   return (
-    <View style={{ flex: 1, backgroundColor: bg, borderRadius: 14, padding: 12, alignItems: "center" }}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: bg,
+        borderRadius: 14,
+        padding: 12,
+        alignItems: "center",
+      }}
+    >
       <Feather name={icon as never} size={14} color={color} />
-      <Text style={{ fontSize: 18, fontWeight: "800" as const, color, marginTop: 4 }}>{value}</Text>
-      <Text style={{ fontSize: 9, color, marginTop: 1, fontWeight: "700" as const, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</Text>
+      <Text
+        style={{
+          fontSize: 18,
+          fontWeight: "800" as const,
+          color,
+          marginTop: 4,
+        }}
+      >
+        {value}
+      </Text>
+      <Text
+        style={{
+          fontSize: 9,
+          color,
+          marginTop: 1,
+          fontWeight: "700" as const,
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+        }}
+      >
+        {label}
+      </Text>
     </View>
   );
 }
 
 function ActivityRow({ label, value }: { label: string; value: string }) {
   return (
-    <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 4 }}>
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        paddingVertical: 4,
+      }}
+    >
       <Text style={{ fontSize: 13, color: "#64748B" }}>{label}</Text>
-      <Text style={{ fontSize: 13, color: "#1E293B", fontWeight: "600" as const }}>{value}</Text>
+      <Text
+        style={{ fontSize: 13, color: "#1E293B", fontWeight: "600" as const }}
+      >
+        {value}
+      </Text>
     </View>
   );
 }
@@ -777,7 +1179,13 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
     container: { flex: 1, backgroundColor: colors.background },
     center: { alignItems: "center", justifyContent: "center", gap: 12 },
     loadingText: { fontSize: 14, color: colors.mutedForeground },
-    backBtn: { marginTop: 12, paddingHorizontal: 18, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 10 },
+    backBtn: {
+      marginTop: 12,
+      paddingHorizontal: 18,
+      paddingVertical: 10,
+      backgroundColor: colors.primary,
+      borderRadius: 10,
+    },
     backBtnText: { color: "#fff", fontWeight: "600" },
 
     heroCard: {
@@ -798,9 +1206,23 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
       marginBottom: 12,
     },
     heroAvatarText: { color: "#fff", fontWeight: "800" as const, fontSize: 28 },
-    heroName: { fontSize: 22, fontWeight: "800" as const, color: colors.secondary, textAlign: "center" },
-    heroEmail: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 },
-    heroEmailText: { fontSize: 13, color: colors.primary, fontWeight: "600" as const },
+    heroName: {
+      fontSize: 22,
+      fontWeight: "800" as const,
+      color: colors.secondary,
+      textAlign: "center",
+    },
+    heroEmail: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      marginTop: 4,
+    },
+    heroEmailText: {
+      fontSize: 13,
+      color: colors.primary,
+      fontWeight: "600" as const,
+    },
     heroMeta: { fontSize: 11, color: colors.mutedForeground, marginTop: 6 },
     warningChip: {
       flexDirection: "row",
@@ -814,9 +1236,19 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
       borderWidth: 1,
       borderColor: "#FECACA",
     },
-    warningChipText: { fontSize: 11, color: "#DC2626", fontWeight: "700" as const },
+    warningChipText: {
+      fontSize: 11,
+      color: "#DC2626",
+      fontWeight: "700" as const,
+    },
 
-    actionRow: { flexDirection: "row", gap: 10, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 },
+    actionRow: {
+      flexDirection: "row",
+      gap: 10,
+      paddingHorizontal: 16,
+      paddingTop: 14,
+      paddingBottom: 8,
+    },
     actionPrimary: {
       flex: 1,
       flexDirection: "row",
@@ -827,7 +1259,11 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
       paddingVertical: 12,
       borderRadius: 12,
     },
-    actionPrimaryText: { color: "#fff", fontSize: 14, fontWeight: "700" as const },
+    actionPrimaryText: {
+      color: "#fff",
+      fontSize: 14,
+      fontWeight: "700" as const,
+    },
     actionSecondary: {
       flex: 1,
       flexDirection: "row",
@@ -838,9 +1274,19 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
       paddingVertical: 12,
       borderRadius: 12,
     },
-    actionSecondaryText: { color: colors.primary, fontSize: 14, fontWeight: "700" as const },
+    actionSecondaryText: {
+      color: colors.primary,
+      fontSize: 14,
+      fontWeight: "700" as const,
+    },
 
-    statsGrid: { flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingTop: 6, paddingBottom: 14 },
+    statsGrid: {
+      flexDirection: "row",
+      gap: 8,
+      paddingHorizontal: 16,
+      paddingTop: 6,
+      paddingBottom: 14,
+    },
 
     tabBar: {
       flexDirection: "row",
@@ -850,8 +1296,19 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
       marginBottom: 14,
     },
     tabBtn: { flex: 1, paddingVertical: 12, alignItems: "center" },
-    tabLabel: { fontSize: 12, fontWeight: "600" as const, color: colors.mutedForeground },
-    tabIndicator: { position: "absolute", bottom: 0, left: 16, right: 16, height: 2.5, borderRadius: 2 },
+    tabLabel: {
+      fontSize: 12,
+      fontWeight: "600" as const,
+      color: colors.mutedForeground,
+    },
+    tabIndicator: {
+      position: "absolute",
+      bottom: 0,
+      left: 16,
+      right: 16,
+      height: 2.5,
+      borderRadius: 2,
+    },
 
     card: {
       backgroundColor: colors.card,
@@ -860,12 +1317,37 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
       borderWidth: 1,
       borderColor: colors.border,
     },
-    cardTitle: { fontSize: 13, fontWeight: "700" as const, color: colors.secondary, textTransform: "uppercase", letterSpacing: 0.4 },
+    cardTitle: {
+      fontSize: 13,
+      fontWeight: "700" as const,
+      color: colors.secondary,
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+    },
 
-    conditionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
-    conditionName: { flex: 1, fontSize: 13, color: colors.secondary, fontWeight: "500" as const },
-    conditionCountPill: { backgroundColor: colors.muted, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
-    conditionCountText: { fontSize: 11, color: colors.primary, fontWeight: "700" as const },
+    conditionRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8,
+    },
+    conditionName: {
+      flex: 1,
+      fontSize: 13,
+      color: colors.secondary,
+      fontWeight: "500" as const,
+    },
+    conditionCountPill: {
+      backgroundColor: colors.muted,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 999,
+    },
+    conditionCountText: {
+      fontSize: 11,
+      color: colors.primary,
+      fontWeight: "700" as const,
+    },
 
     listCard: {
       flexDirection: "row",
@@ -877,11 +1359,28 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
       borderWidth: 1,
       borderColor: colors.border,
     },
-    listCardTitle: { fontSize: 14, fontWeight: "700" as const, color: colors.secondary },
-    listCardSubtitle: { fontSize: 11, color: colors.mutedForeground, marginTop: 2 },
-    listCardExtra: { fontSize: 11, color: colors.mutedForeground, marginTop: 4 },
+    listCardTitle: {
+      fontSize: 14,
+      fontWeight: "700" as const,
+      color: colors.secondary,
+    },
+    listCardSubtitle: {
+      fontSize: 11,
+      color: colors.mutedForeground,
+      marginTop: 2,
+    },
+    listCardExtra: {
+      fontSize: 11,
+      color: colors.mutedForeground,
+      marginTop: 4,
+    },
     statusPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
-    statusPillText: { fontSize: 10, fontWeight: "800" as const, textTransform: "uppercase", letterSpacing: 0.4 },
+    statusPillText: {
+      fontSize: 10,
+      fontWeight: "800" as const,
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+    },
 
     orderCard: {
       backgroundColor: colors.card,
@@ -901,12 +1400,21 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
       borderRadius: 8,
       marginTop: 8,
     },
-    trackingChipText: { fontSize: 11, color: colors.primary, fontWeight: "600" as const, flex: 1 },
+    trackingChipText: {
+      fontSize: 11,
+      color: colors.primary,
+      fontWeight: "600" as const,
+      flex: 1,
+    },
 
     messageCard: { padding: 12, borderRadius: 12, borderWidth: 1 },
     msgPharm: { backgroundColor: "#EBF8FF", borderColor: "#BFDBFE" },
     msgPatient: { backgroundColor: colors.card, borderColor: colors.border },
-    messageMeta: { fontSize: 10, color: colors.mutedForeground, fontWeight: "600" as const },
+    messageMeta: {
+      fontSize: 10,
+      color: colors.mutedForeground,
+      fontWeight: "600" as const,
+    },
     messageBody: { fontSize: 13, color: colors.secondary, lineHeight: 18 },
 
     modalHeader: {
@@ -920,11 +1428,32 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
       backgroundColor: colors.card,
     },
     modalCancel: { fontSize: 14, fontWeight: "600" as const },
-    modalTitle: { fontSize: 16, fontWeight: "700" as const, color: colors.secondary },
+    modalTitle: {
+      fontSize: 16,
+      fontWeight: "700" as const,
+      color: colors.secondary,
+    },
     modalSend: { fontSize: 14, fontWeight: "700" as const },
-    modalLabel: { fontSize: 11, color: colors.mutedForeground, fontWeight: "700" as const, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 },
-    modalReadonly: { borderWidth: 1, borderRadius: 10, padding: 12, backgroundColor: colors.muted },
+    modalLabel: {
+      fontSize: 11,
+      color: colors.mutedForeground,
+      fontWeight: "700" as const,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      marginBottom: 6,
+    },
+    modalReadonly: {
+      borderWidth: 1,
+      borderRadius: 10,
+      padding: 12,
+      backgroundColor: colors.muted,
+    },
     modalInput: { borderWidth: 1, borderRadius: 10, padding: 12, fontSize: 14 },
-    modalHint: { fontSize: 11, color: colors.mutedForeground, lineHeight: 16, marginTop: 4 },
+    modalHint: {
+      fontSize: 11,
+      color: colors.mutedForeground,
+      lineHeight: 16,
+      marginTop: 4,
+    },
   });
 }
