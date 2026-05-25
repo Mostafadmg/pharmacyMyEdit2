@@ -366,6 +366,120 @@ export async function sendDispatchEmail(d: DispatchEmailData): Promise<void> {
   URL:      ${fullTrackingUrl}\n`);
 }
 
+export interface DocumentReuploadEmailData {
+  patientName: string;
+  patientEmail: string;
+  consultationId: string;
+  conditionName: string;
+  docTitle: string;
+  uploadUrl: string;
+  pharmacistNote?: string | null;
+  emailSubject?: string | null;
+}
+
+function buildDocumentReuploadHtml(d: DocumentReuploadEmailData): string {
+  const appUrl = process.env.APP_URL || "https://pharmacare.replit.app";
+  const noteBlock = d.pharmacistNote
+    ? `<p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#4A5568;">${d.pharmacistNote}</p>`
+    : "";
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>Upload a new document</title></head>
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#F0F4F8;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F0F4F8;padding:40px 20px;"><tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+  <tr><td style="background:linear-gradient(135deg,#0F3460,#0A7EA4);border-radius:16px 16px 0 0;padding:32px 40px;text-align:center;color:#fff;">
+    <h1 style="margin:0;font-size:24px;font-weight:800;">New document needed</h1>
+    <p style="margin:8px 0 0;font-size:13px;opacity:0.85;">PharmaCare clinical review</p>
+  </td></tr>
+  <tr><td style="background:#FEF3C7;padding:20px 40px;border-left:1px solid #E2E8F0;border-right:1px solid #E2E8F0;text-align:center;">
+    <p style="margin:0;font-size:15px;font-weight:600;color:#92400E;">We could not accept your <strong>${d.docTitle}</strong></p>
+  </td></tr>
+  <tr><td style="background:#fff;padding:36px 40px;border-left:1px solid #E2E8F0;border-right:1px solid #E2E8F0;">
+    <p style="margin:0 0 16px;font-size:16px;color:#1A202C;">Hi <strong>${d.patientName}</strong>,</p>
+    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#4A5568;">
+      Our pharmacist has reviewed your order for <strong>${d.conditionName}</strong> and needs a new <strong>${d.docTitle}</strong> before we can continue.
+    </p>
+    ${noteBlock}
+    <div style="text-align:center;margin:28px 0;">
+      <a href="${d.uploadUrl}" style="display:inline-block;background:linear-gradient(135deg,#0F3460,#0A7EA4);color:#fff;text-decoration:none;padding:14px 32px;border-radius:999px;font-weight:700;font-size:15px;">Upload new document →</a>
+    </div>
+    <p style="margin:0;font-size:13px;color:#718096;line-height:1.6;">
+      You can also reply in <a href="${appUrl}/my-messages" style="color:#0A7EA4;">Messages</a> and attach a photo or video there.
+    </p>
+  </td></tr>
+  <tr><td style="background:#F7FAFC;border:1px solid #E2E8F0;border-top:0;border-radius:0 0 16px 16px;padding:24px 40px;text-align:center;font-size:12px;color:#718096;">
+    Reference: ${d.consultationId.slice(0, 8).toUpperCase()} · PharmaCare
+  </td></tr>
+</table></td></tr></table></body></html>`;
+}
+
+async function dispatchEmail(data: {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}): Promise<boolean> {
+  const fromAddress =
+    process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@pharmacare.co.uk";
+
+  if (process.env.RESEND_API_KEY) {
+    await sendViaResend({
+      from: `PharmaCare <${fromAddress}>`,
+      to: data.to,
+      subject: data.subject,
+      html: data.html,
+      text: data.text,
+    });
+    return true;
+  }
+
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || "587"),
+      secure: process.env.SMTP_SECURE === "true",
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    });
+    await transporter.sendMail({
+      from: `"PharmaCare" <${fromAddress}>`,
+      to: data.to,
+      subject: data.subject,
+      html: data.html,
+      text: data.text,
+    });
+    return true;
+  }
+
+  console.log(`\n📧 [EMAIL NOT SENT — no provider configured]
+  To:      ${data.to}
+  Subject: ${data.subject}
+  ${data.text.slice(0, 400)}\n`);
+  return false;
+}
+
+export async function sendDocumentReuploadEmail(
+  d: DocumentReuploadEmailData,
+): Promise<boolean> {
+  const html = buildDocumentReuploadHtml(d);
+  const subject =
+    d.emailSubject?.trim() ||
+    `Action required: upload a new ${d.docTitle} — PharmaCare`;
+  const text = `Hi ${d.patientName},\n\nWe need a new ${d.docTitle} for your ${d.conditionName} order.\n\nUpload here: ${d.uploadUrl}\n\nOr message your pharmacist via My consultations.\n\nPharmaCare`;
+
+  const sent = await dispatchEmail({
+    to: d.patientEmail,
+    subject,
+    html,
+    text,
+  });
+  if (sent) {
+    console.log(
+      `📧 Document re-upload email sent to ${d.patientEmail} (${d.docTitle})`,
+    );
+  }
+  return sent;
+}
+
 export async function sendConsultationOutcomeEmail(data: ConsultationEmailData): Promise<void> {
   const { patientEmail, patientName, conditionName, status, consultationId } = data;
   const statusInfo = getStatusInfo(status);

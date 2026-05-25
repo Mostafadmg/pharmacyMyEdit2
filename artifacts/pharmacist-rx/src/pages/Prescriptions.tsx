@@ -3,22 +3,19 @@ import { FileText, Download } from "lucide-react";
 import { useListConsultations } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { RxPageTitle, RxShell } from "@/components/rx";
 
 export function Prescriptions() {
   const { data, isLoading } = useListConsultations({ status: "approved", limit: 100 });
   const rows = data?.consultations ?? [];
 
   return (
-    <div className="p-4 md:p-8 max-w-[1200px] mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-serif font-semibold tracking-tight">
-          Prescriptions Issued
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Branded PDFs for every approved consultation, available to dispense.
-        </p>
-      </div>
-      <Card className="divide-y divide-border">
+    <RxShell className="max-w-[1200px]">
+      <RxPageTitle
+        title="Prescriptions Issued"
+        subtitle="Branded PDFs for every approved consultation, available to dispense."
+      />
+      <Card className="divide-y divide-emerald-100 overflow-hidden">
         {isLoading && (
           <div className="p-10 text-center text-sm text-muted-foreground">Loading…</div>
         )}
@@ -30,15 +27,15 @@ export function Prescriptions() {
         {rows.map((c) => (
           <div
             key={c.id}
-            className="px-5 py-4 flex items-center gap-4"
+            className="px-5 py-4 flex items-center gap-4 hover:bg-rx-approve-surface/30 transition-colors"
             data-testid={`row-prescription-${c.id}`}
           >
             <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
               <FileText className="h-5 w-5" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-medium truncate">{c.patientName}</div>
-              <div className="text-xs text-muted-foreground truncate">
+              <div className="rx-display-sm truncate">{c.patientName}</div>
+              <div className="rx-meta truncate text-xs">
                 {c.conditionName} · Issued {c.reviewedAt
                   ? new Date(c.reviewedAt).toLocaleDateString("en-GB")
                   : "—"}
@@ -62,6 +59,6 @@ export function Prescriptions() {
           </div>
         ))}
       </Card>
-    </div>
+    </RxShell>
   );
 }

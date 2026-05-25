@@ -82,7 +82,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [pending, approved, rejected, more_info_needed, referred, red_flag, patient_responded]
+            enum: [pending, approved, rejected, more_info_needed, referred, red_flag, patient_responded, cancelled]
         - name: limit
           in: query
           required: false
@@ -503,7 +503,7 @@ components:
           type: string
         status:
           type: string
-          enum: [pending, approved, rejected, more_info_needed, referred, red_flag, patient_responded]
+          enum: [pending, approved, rejected, more_info_needed, referred, red_flag, patient_responded, cancelled]
         answers:
           type: object
           additionalProperties: true

@@ -175,7 +175,7 @@ router.post("/consultations/:id/messages", async (req: AuthedRequest, res: Respo
       category: "message",
       title: `New message from ${actor.name}`,
       body: body.trim().slice(0, 200),
-      link: `/my-consultations`,
+      link: `/my-messages`,
       consultationId,
       orderId: null,
       read: false,

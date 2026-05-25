@@ -1,8 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { Send, Sparkles, MessageSquare, X, Check, CheckCheck } from "lucide-react";
+import { Link } from "wouter";
+import {
+  Send,
+  Sparkles,
+  MessageSquare,
+  X,
+  Paperclip,
+} from "lucide-react";
+import { toast } from "sonner";
+import { PRESCRIPTION_EVIDENCE_SLOTS } from "@/lib/prescriptionEvidenceSlots";
 import { apiFetch } from "@/lib/api";
 import ClinicalReplyPicker from "@/components/pharmacist/ClinicalReplyPicker";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
+import { cn } from "@/lib/utils";
 
 type Audience = "patient" | "pharmacist";
 
@@ -14,6 +24,7 @@ type Message = {
   senderName: string;
   body: string;
   kind: string;
+  meta?: string | null;
   readByPatient: boolean;
   readByPharmacist: boolean;
   createdAt: string;
@@ -32,6 +43,9 @@ type Action = {
 
 const KIND_LABELS: Record<string, string> = {
   message: "",
+  document_upload: "Document uploaded",
+  document_rejected: "Document rejected",
+  document_verified: "Document verified",
   approve: "Approved",
   reject: "Decision: not suitable",
   more_info: "Information requested",
@@ -39,11 +53,7 @@ const KIND_LABELS: Record<string, string> = {
 };
 
 const QUICK_REPLIES: Record<Audience, string[]> = {
-  patient: [
-    "Thanks, here's the additional info you requested.",
-    "I'd prefer to speak with a pharmacist by phone.",
-    "Could you clarify what you need?",
-  ],
+  patient: [],
   pharmacist: [
     "Thanks for the additional info — reviewing now.",
     "Could you upload a clearer photo?",
@@ -68,9 +78,13 @@ function getInitials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-function getFirstName(name: string): string {
-  if (!name) return "";
-  return name.trim().replace(/^Dr\.?\s+/i, "").split(/\s+/)[0];
+function formatMessageTime(iso: string): string {
+  return new Date(iso).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 // Stable avatar color per name (so the same person always gets the same color)
@@ -138,7 +152,9 @@ export default function ConsultationChat({ consultationId, audience, className, 
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [attachSlot, setAttachSlot] = useState("weight-scale-video");
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async () => {
@@ -186,6 +202,46 @@ export default function ConsultationChat({ consultationId, audience, className, 
     }
   }
 
+  async function handleAttach(file: File) {
+    if (file.size > 4 * 1024 * 1024) {
+      toast.error("File must be under 4 MB.");
+      return;
+    }
+    setSending(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const dataUrl = reader.result;
+        if (typeof dataUrl !== "string") throw new Error("Read failed");
+        const slotTitle =
+          PRESCRIPTION_EVIDENCE_SLOTS.find((s) => s.id === attachSlot)?.title ??
+          "document";
+        await apiFetch(
+          `/api/consultations/${encodeURIComponent(consultationId)}/patient-documents`,
+          {
+            method: "POST",
+            auth: audience,
+            body: JSON.stringify({
+              docId: attachSlot,
+              dataUrl,
+              messageBody:
+                body.trim() ||
+                `Uploaded ${slotTitle}${audience === "patient" ? "" : " (via pharmacist)"}.`,
+            }),
+          },
+        );
+        setBody("");
+        await load();
+        toast.success("Document uploaded");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Upload failed");
+      } finally {
+        setSending(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
   // Derive header — name of the OTHER party + a subtitle role line
   const otherParty = useMemo(() => {
     const otherRole = audience === "patient" ? "pharmacist" : "patient";
@@ -215,22 +271,13 @@ export default function ConsultationChat({ consultationId, audience, className, 
     return items;
   }, [messages, actions]);
 
-  // WhatsApp-style subtle dotted background
-  const chatBgStyle: React.CSSProperties = {
-    backgroundColor: "#ECE5DD",
-    backgroundImage:
-      "radial-gradient(circle at 1px 1px, rgba(0,0,0,0.045) 1px, transparent 0)",
-    backgroundSize: "22px 22px",
-  };
-
   return (
-    <div className={`flex flex-col rounded-2xl border border-border/60 overflow-hidden bg-white ${className ?? ""}`}>
-      {/* Header — WhatsApp style */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-primary text-white">
+    <div className={cn("flex flex-col rounded-2xl border border-stone-200/90 overflow-hidden bg-white shadow-sm", className)}>
+      <div className="flex items-center gap-3 px-4 py-3.5 bg-emerald-800 text-white">
         <Avatar name={otherParty.name} size="lg" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold truncate">{otherParty.name}</p>
-          <p className="text-[11px] text-white/75 truncate">{otherParty.subtitle}</p>
+          <p className="text-[11px] text-white/80 truncate">{otherParty.subtitle}</p>
         </div>
         {onClose && (
           <button
@@ -244,129 +291,152 @@ export default function ConsultationChat({ consultationId, audience, className, 
         )}
       </div>
 
-      {/* Messages */}
       <div
         ref={scrollerRef}
-        className="flex-1 overflow-y-auto px-3 sm:px-5 py-5 max-h-[460px] min-h-[280px]"
-        style={chatBgStyle}
+        className="flex-1 overflow-y-auto px-4 sm:px-5 py-5 max-h-[460px] min-h-[280px] bg-stone-100/60"
       >
         {loading && (
-          <p className="text-center text-xs text-muted-foreground py-8 bg-white/70 rounded-full inline-block px-4 mx-auto">
-            Loading conversation…
-          </p>
+          <p className="text-center text-xs text-stone-500 py-8">Loading conversation…</p>
         )}
         {!loading && feed.length === 0 && (
-          <div className="text-center text-xs text-muted-foreground py-12 space-y-2">
-            <div className="inline-flex flex-col items-center gap-2 bg-white/85 rounded-2xl px-5 py-4 shadow-sm">
-              <MessageSquare className="w-6 h-6 opacity-50" />
+          <div className="text-center text-xs text-stone-500 py-12">
+            <div className="inline-flex flex-col items-center gap-2 bg-white rounded-2xl px-6 py-5 shadow-sm border border-stone-200/80">
+              <MessageSquare className="w-6 h-6 opacity-40" />
               <p>No messages yet — start the conversation below.</p>
             </div>
           </div>
         )}
 
-        {feed.map((item, i) => {
-          const prev = feed[i - 1];
-          const showDay = !prev || !isSameDay(new Date(prev.at), new Date(item.at));
+        <div className="space-y-4">
+          {feed.map((item, i) => {
+            const prev = feed[i - 1];
+            const showDay = !prev || !isSameDay(new Date(prev.at), new Date(item.at));
 
-          if (item.kind === "action") {
-            const a = item.action;
+            if (item.kind === "action") {
+              const a = item.action;
+              return (
+                <React.Fragment key={item.key}>
+                  {showDay && <DaySeparator date={new Date(item.at)} />}
+                  <div className="flex justify-center">
+                    <div className="text-[11px] text-stone-600 bg-white rounded-lg px-3 py-1.5 border border-stone-200/80 shadow-sm">
+                      <span className="font-semibold">{KIND_LABELS[a.action] ?? a.action}</span>
+                      <span className="mx-1.5 opacity-50">·</span>
+                      {a.actorName}
+                      <span className="mx-1.5 opacity-50">·</span>
+                      {formatMessageTime(a.createdAt)}
+                    </div>
+                  </div>
+                </React.Fragment>
+              );
+            }
+
+            const m = item.msg;
+            const mine = m.senderRole === audience;
+            const fromPharmacist = m.senderRole === "pharmacist";
+            const senderLabel =
+              m.senderRole === "pharmacist"
+                ? "Pharmacist"
+                : m.senderName || "Patient";
+
             return (
               <React.Fragment key={item.key}>
                 {showDay && <DaySeparator date={new Date(item.at)} />}
-                <div className="flex justify-center mb-3">
-                  <div className="text-[11px] text-secondary/80 bg-white/90 rounded-md px-3 py-1.5 shadow-sm">
-                    <span className="font-semibold">{KIND_LABELS[a.action] ?? a.action}</span>
-                    <span className="mx-1.5 opacity-50">·</span>
-                    {a.actorName}
-                    <span className="mx-1.5 opacity-50">·</span>
-                    {format(new Date(a.createdAt), "HH:mm")}
+                <div
+                  className={cn(
+                    "flex flex-col max-w-[88%]",
+                    mine ? "ml-auto items-end" : "mr-auto items-start",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap shadow-sm",
+                      fromPharmacist
+                        ? "bg-emerald-700 text-white"
+                        : "bg-white text-stone-800 border border-stone-200",
+                      mine ? "rounded-br-md" : "rounded-bl-md",
+                    )}
+                  >
+                    {KIND_LABELS[m.kind] ? (
+                      <p className="text-[10px] font-bold uppercase tracking-wide opacity-80 mb-1">
+                        {KIND_LABELS[m.kind]}
+                      </p>
+                    ) : null}
+                    <p>{m.body}</p>
+                    {audience === "patient" &&
+                      (m.kind === "document_rejected" || m.kind === "more_info_request") && (
+                        <div className="mt-2">
+                          {(() => {
+                            let docId: string | undefined;
+                            try {
+                              const meta = m.meta ? JSON.parse(m.meta) : {};
+                              docId =
+                                typeof meta.docId === "string" ? meta.docId : undefined;
+                            } catch {
+                              docId = undefined;
+                            }
+                            if (m.kind === "document_rejected" && docId) {
+                              return (
+                                <Link
+                                  href={`/upload-documents/${consultationId}?slot=${encodeURIComponent(docId)}`}
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-1.5"
+                                >
+                                  <Paperclip className="w-3.5 h-3.5" />
+                                  Upload document again
+                                </Link>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
+                      )}
                   </div>
+                  <p className="mt-1.5 px-1 text-xs font-medium text-stone-500">
+                    {senderLabel} · {formatMessageTime(m.createdAt)}
+                  </p>
                 </div>
               </React.Fragment>
             );
-          }
-
-          const m = item.msg;
-          const mine = m.senderRole === audience;
-          // Group consecutive messages from same sender — only show avatar on the LAST of a run
-          const next = feed[i + 1];
-          const isLastInRun =
-            !next || next.kind !== "msg" || next.msg.senderRole !== m.senderRole ||
-            !isSameDay(new Date(next.at), new Date(item.at));
-          const isFirstInRun =
-            !prev || prev.kind !== "msg" || prev.msg.senderRole !== m.senderRole ||
-            !isSameDay(new Date(prev.at), new Date(item.at));
-          const wasRead = mine && (audience === "patient" ? m.readByPharmacist : m.readByPatient);
-
-          return (
-            <React.Fragment key={item.key}>
-              {showDay && <DaySeparator date={new Date(item.at)} />}
-              <div className={`flex items-end gap-2 ${mine ? "justify-end" : "justify-start"} ${isLastInRun ? "mb-3" : "mb-0.5"}`}>
-                {!mine && (
-                  <div className="w-8 flex-shrink-0">
-                    {isLastInRun ? <Avatar name={m.senderName} /> : null}
-                  </div>
-                )}
-                <div
-                  className={`max-w-[78%] px-3 py-2 text-sm shadow-sm ${
-                    mine
-                      ? `bg-[#DCF8C6] text-secondary rounded-2xl ${isLastInRun ? "rounded-br-sm" : ""}`
-                      : `bg-white text-secondary rounded-2xl ${isLastInRun ? "rounded-bl-sm" : ""}`
-                  }`}
-                >
-                  {!mine && isFirstInRun && (
-                    <p className="text-[11px] font-bold text-primary mb-0.5">
-                      {getFirstName(m.senderName) || m.senderName}
-                      {KIND_LABELS[m.kind] && (
-                        <span className="ml-1.5 text-secondary/60 font-semibold">· {KIND_LABELS[m.kind]}</span>
-                      )}
-                    </p>
-                  )}
-                  <p className="whitespace-pre-wrap leading-relaxed text-secondary">{m.body}</p>
-                  <p className="text-[10px] mt-0.5 text-secondary/50 inline-flex items-center gap-1 float-right ml-3">
-                    {format(new Date(m.createdAt), "HH:mm")}
-                    {mine && (wasRead ? <CheckCheck className="w-3 h-3 text-sky-500" /> : <Check className="w-3 h-3" />)}
-                  </p>
-                  <span className="block clear-both" />
-                </div>
-                {mine && (
-                  <div className="w-8 flex-shrink-0">
-                    {isLastInRun ? <Avatar name={m.senderName} /> : null}
-                  </div>
-                )}
-              </div>
-            </React.Fragment>
-          );
-        })}
+          })}
+        </div>
       </div>
 
-      {/* Composer */}
-      <div className="px-3 py-3 bg-[#F4EFE7] border-t border-border/60">
-        <div className="flex flex-wrap items-center gap-1.5 mb-2">
-          {QUICK_REPLIES[audience].map(q => (
+      <div className="px-3 py-3 bg-[#F4EFE7] border-t border-stone-200/80">
+        {audience === "pharmacist" && (
+          <div className="flex flex-wrap items-center gap-1.5 mb-2">
+            {QUICK_REPLIES.pharmacist.map((q) => (
             <button
               key={q}
               type="button"
               onClick={() => handleSend(q)}
               disabled={sending}
-              className="text-[11px] px-2.5 py-1 rounded-full bg-white hover:bg-primary/10 hover:text-primary text-secondary/80 border border-border/40 inline-flex items-center gap-1 transition-colors shadow-sm"
+              className="text-[11px] px-3 py-1.5 rounded-full bg-white hover:bg-emerald-50 hover:text-emerald-800 text-stone-700 border border-stone-200 inline-flex items-center gap-1 transition-colors shadow-sm"
             >
-              <Sparkles className="w-3 h-3" /> {q}
+              <Sparkles className="w-3 h-3 shrink-0" /> {q}
             </button>
-          ))}
-          {audience === "pharmacist" && (
+            ))}
             <ClinicalReplyPicker
               conditionId={conditionId ?? null}
               statusContext={consultationStatus ?? null}
-              onPick={(body) => setBody((prev) => (prev.trim() ? `${prev}\n\n${body}` : body))}
+              onPick={(picked) => setBody((prev) => (prev.trim() ? `${prev}\n\n${picked}` : picked))}
             />
-          )}
-        </div>
+          </div>
+        )}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*,video/*,application/pdf"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = "";
+            if (f) void handleAttach(f);
+          }}
+        />
         <div className="flex items-end gap-2">
           <textarea
             value={body}
-            onChange={e => setBody(e.target.value)}
-            onKeyDown={e => {
+            onChange={(e) => setBody(e.target.value)}
+            onKeyDown={(e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
                 handleSend();
@@ -374,14 +444,14 @@ export default function ConsultationChat({ consultationId, audience, className, 
             }}
             placeholder="Type a message…"
             rows={1}
-            className="flex-1 resize-none rounded-2xl border border-border/40 bg-white px-4 py-2.5 text-sm text-secondary focus:outline-none focus:ring-2 focus:ring-primary/40 max-h-32"
+            className="flex-1 resize-none rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 max-h-32"
           />
           <button
             type="button"
             disabled={sending || !body.trim()}
             onClick={() => handleSend()}
             aria-label="Send message"
-            className="w-11 h-11 rounded-full bg-primary text-white inline-flex items-center justify-center disabled:opacity-50 hover:bg-primary/90 transition-colors flex-shrink-0 shadow-sm"
+            className="w-11 h-11 rounded-full bg-emerald-600 text-white inline-flex items-center justify-center disabled:opacity-50 disabled:bg-stone-200 disabled:text-stone-400 hover:bg-emerald-700 transition-colors flex-shrink-0 shadow-sm"
           >
             <Send className="w-4 h-4" />
           </button>
@@ -391,11 +461,10 @@ export default function ConsultationChat({ consultationId, audience, className, 
   );
 }
 
-// ── Day separator ────────────────────────────────────────────────────────────
 function DaySeparator({ date }: { date: Date }) {
   return (
-    <div className="flex justify-center my-3">
-      <div className="text-[10px] font-bold tracking-wider text-secondary/70 bg-white/90 rounded-md px-3 py-1 shadow-sm">
+    <div className="flex justify-center my-2">
+      <div className="text-[10px] font-bold tracking-wider text-stone-500 bg-white rounded-md px-3 py-1 border border-stone-200/80">
         {dayLabel(date)}
       </div>
     </div>

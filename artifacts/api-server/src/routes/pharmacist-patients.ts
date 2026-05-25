@@ -12,8 +12,46 @@ import { eq, desc, sql, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { requirePharmacist, type AuthedRequest } from "../middlewares/auth";
 import { sendConsultationOutcomeEmail } from "../utils/email";
+import {
+  buildPatientDuplicateSummaries,
+  findDuplicatePatientMatches,
+} from "../utils/patientIdentity";
 
 const router: IRouter = Router();
+
+router.get(
+  "/pharmacist/patients",
+  requirePharmacist,
+  async (_req: AuthedRequest, res: Response): Promise<void> => {
+    const patients = await buildPatientDuplicateSummaries();
+    res.json({ patients, total: patients.length });
+  },
+);
+
+router.get(
+  "/pharmacist/patients/duplicates/check",
+  requirePharmacist,
+  async (req: AuthedRequest, res: Response): Promise<void> => {
+    const name = String(req.query.name ?? "").trim();
+    const dateOfBirth = String(req.query.dateOfBirth ?? req.query.dob ?? "").trim();
+    const email = String(req.query.email ?? "").trim();
+    if (!name || !dateOfBirth || !email) {
+      res.status(400).json({ error: "name, dateOfBirth, and email are required" });
+      return;
+    }
+    const matches = await findDuplicatePatientMatches({
+      patientName: name,
+      dateOfBirth,
+      patientEmail: email,
+    });
+    res.json({
+      duplicateWarning: matches.length > 0,
+      matches,
+      recommendedPrimaryPatient:
+        matches.find((m) => m.isRecommendedPrimary) ?? matches[0] ?? null,
+    });
+  },
+);
 
 router.get(
   "/pharmacist/patients/:email/profile",
@@ -96,6 +134,7 @@ router.get(
       account,
       profile: {
         email,
+        pmrNumber: account?.pmrNumber ?? null,
         name: lastConsultation?.patientName ?? account?.name ?? null,
         firstSeenAt: firstConsultation?.createdAt ?? account?.createdAt ?? null,
         lastSeenAt: lastConsultation?.createdAt ?? null,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, Plus, User, LogOut, ShoppingBag, ChevronDown, ChevronRight, Heart } from "lucide-react";
+import { Menu, X, Plus, User, LogOut, ShoppingBag, ChevronDown, ChevronRight, Heart, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
@@ -75,31 +75,33 @@ export default function Header() {
 
   return (
     <header ref={megaWrapperRef} className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-border/50 shadow-sm transition-all duration-300 relative">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="flex items-center justify-between h-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="flex flex-nowrap items-center gap-3 lg:gap-4 h-20 min-w-0">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
+          <Link href="/" className="flex shrink-0 items-center gap-2.5 group">
             <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform duration-300">
               <Plus className="w-6 h-6 text-white" strokeWidth={3} />
             </div>
-            <span className="text-2xl tracking-tight">
+            <span className="text-xl sm:text-2xl tracking-tight whitespace-nowrap">
               <span className="font-extrabold text-secondary">Pharma</span>
               <span className="font-semibold text-primary">Care</span>
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-8 ml-10 lg:ml-14">
-            {/* Treatments mega-menu trigger */}
+          {/* Desktop primary navigation (centre) */}
+          <nav
+            className="hidden lg:flex flex-1 min-w-0 items-center justify-center gap-4 xl:gap-6 flex-nowrap"
+            aria-label="Main"
+          >
             <div
-              className="relative"
+              className="relative shrink-0"
               onMouseEnter={openMega}
               onMouseLeave={scheduleCloseMega}
             >
               <button
                 type="button"
                 onClick={() => setIsMegaOpen(o => !o)}
-                className={`flex items-center gap-1 text-sm font-medium relative group py-2 ${
+                className={`flex shrink-0 items-center gap-1 whitespace-nowrap text-sm font-medium relative group py-2 ${
                   isMegaOpen || location.startsWith("/conditions") || location.startsWith("/treatments")
                     ? "text-primary"
                     : "text-foreground hover:text-primary"
@@ -110,7 +112,7 @@ export default function Header() {
                 aria-controls="treatments-mega-panel"
               >
                 Treatments
-                <ChevronDown className={`w-4 h-4 transition-transform ${isMegaOpen ? "rotate-180" : ""}`} />
+                <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${isMegaOpen ? "rotate-180" : ""}`} />
                 <span className={`absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300 ${
                   isMegaOpen ? "w-full" : "w-0 group-hover:w-full"
                 }`}></span>
@@ -121,7 +123,7 @@ export default function Header() {
               <Link
                 key={link.name}
                 href={link.href}
-                className={`text-sm font-medium relative group py-2 ${
+                className={`shrink-0 whitespace-nowrap text-sm font-medium relative group py-2 ${
                   location === link.href ? "text-primary" : "text-foreground hover:text-primary"
                 } transition-colors`}
               >
@@ -131,8 +133,16 @@ export default function Header() {
                 }`}></span>
               </Link>
             ))}
+          </nav>
 
-            <Link href="/wishlist" className="relative p-2 text-foreground hover:text-rose-500 transition-colors" data-testid="link-wishlist" aria-label="Wishlist">
+          {/* Desktop utilities + account (right) */}
+          <div className="hidden lg:flex shrink-0 items-center gap-1.5 xl:gap-2 ml-auto">
+            <Link
+              href="/wishlist"
+              className="relative shrink-0 p-2 text-foreground hover:text-rose-500 transition-colors"
+              data-testid="link-wishlist"
+              aria-label="Wishlist"
+            >
               <Heart className={`w-5 h-5 ${wishlistCount > 0 ? "fill-rose-500 text-rose-500" : ""}`} />
               {wishlistCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
@@ -141,49 +151,68 @@ export default function Header() {
               )}
             </Link>
 
-            <Link href="/cart" className="relative p-2 text-foreground hover:text-primary transition-colors" data-testid="link-cart">
+            <Link
+              href="/cart"
+              className="relative shrink-0 p-2 text-foreground hover:text-primary transition-colors"
+              data-testid="link-cart"
+            >
               <ShoppingBag className="w-5 h-5" />
               {itemCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-accent text-accent-foreground text-xs font-bold rounded-full flex items-center justify-center" data-testid="cart-badge">
+                <span
+                  className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-accent text-accent-foreground text-xs font-bold rounded-full flex items-center justify-center"
+                  data-testid="cart-badge"
+                >
                   {itemCount > 9 ? "9+" : itemCount}
                 </span>
               )}
             </Link>
 
-            <div className="pl-2 border-l border-border h-8 flex items-center gap-1">
+            <div className="pl-1.5 xl:pl-2 border-l border-border h-8 flex shrink-0 items-center gap-1">
               {patientName && <NotificationBell audience="patient" />}
               {patientName ? (
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-1 xl:gap-2">
+                  <Link
+                    href="/my-messages"
+                    className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-sm font-medium text-foreground hover:text-primary transition-colors px-2 xl:px-3 py-1.5 rounded-full hover:bg-primary/5"
+                    data-testid="link-messages"
+                    title="Messages"
+                  >
+                    <MessageSquare className="w-4 h-4 shrink-0" />
+                    <span className="hidden xl:inline">Messages</span>
+                  </Link>
                   <Link
                     href="/account"
-                    className="flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary transition-colors px-3 py-1.5 rounded-full hover:bg-primary/5"
+                    className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-sm font-medium text-foreground hover:text-primary transition-colors px-2 xl:px-3 py-1.5 rounded-full hover:bg-primary/5"
                     data-testid="link-account"
                   >
-                    <User className="w-4 h-4" />
+                    <User className="w-4 h-4 shrink-0" />
                     {patientName.split(" ")[0]}
                   </Link>
                   <button
                     onClick={handlePatientLogout}
-                    className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted"
+                    className="shrink-0 p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted"
                     title="Sign out"
                   >
                     <LogOut className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
-                <Link href="/my-account/login" className="text-sm font-medium text-foreground hover:text-primary transition-colors px-3 py-1.5 rounded-full hover:bg-primary/5 flex items-center gap-1.5">
-                  <User className="w-4 h-4" />
+                <Link
+                  href="/my-account/login"
+                  className="shrink-0 whitespace-nowrap text-sm font-medium text-foreground hover:text-primary transition-colors px-2 xl:px-3 py-1.5 rounded-full hover:bg-primary/5 flex items-center gap-1.5"
+                >
+                  <User className="w-4 h-4 shrink-0" />
                   My Account
                 </Link>
               )}
               <Button
                 asChild
-                className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold rounded-full px-6 shadow-sm hover:shadow transition-all duration-300"
+                className="shrink-0 whitespace-nowrap bg-accent hover:bg-accent/90 text-accent-foreground font-semibold rounded-full px-4 xl:px-6 text-sm shadow-sm hover:shadow transition-all duration-300"
               >
                 <Link href="/conditions">Start consultation</Link>
               </Button>
             </div>
-          </nav>
+          </div>
 
           {/* Mobile cart + menu toggle */}
           <div className="md:hidden flex items-center gap-1">
@@ -212,7 +241,7 @@ export default function Header() {
         <div
           id="treatments-mega-panel"
           role="menu"
-          className="hidden md:block absolute left-0 right-0 top-20 bg-white border-t border-border/50 shadow-2xl z-40"
+          className="hidden lg:block absolute left-0 right-0 top-20 bg-white border-t border-border/50 shadow-2xl z-40"
           onMouseEnter={openMega}
           onMouseLeave={scheduleCloseMega}
           data-testid="mega-menu-panel"
@@ -346,6 +375,14 @@ export default function Header() {
             <div className="border-t border-border mt-2 pt-3 px-0">
               {patientName ? (
                 <>
+                  <Link
+                    href="/my-messages"
+                    className="flex items-center gap-2 px-4 py-3 rounded-xl text-base font-medium text-foreground hover:bg-muted"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    Messages
+                  </Link>
                   <Link
                     href="/my-consultations"
                     className="flex items-center gap-2 px-4 py-3 rounded-xl text-base font-medium text-foreground hover:bg-muted"

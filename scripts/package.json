@@ -6,10 +6,19 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "seed-pharmacist-tools": "tsx ./src/seed-pharmacist-tools.ts",
+    "seed-demo-consultations": "tsx ./src/seed-demo-consultations.ts",
+    "seed-mounjaro-patients": "tsx ./src/seed-mounjaro-patients.ts",
+    "seed-conditions": "tsx ./src/seed-conditions.ts",
+    "seed-all-conditions": "tsx ./src/seed-all-conditions.ts",
+    "seed-patient-mostafa": "tsx ./src/seed-patient-mostafa-consultations.ts",
+    "sync-db-schema": "tsx ./src/sync-db-schema.ts",
+    "seed-test-patients": "tsx ./src/sync-db-schema.ts && tsx ./src/seed-conditions.ts && tsx ./src/seed-demo-consultations.ts",
+    "seed-mostafa-scenarios": "tsx ./src/sync-db-schema.ts && tsx ./src/seed-mostafa-scenarios.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@workspace/db": "workspace:*",
+    "bcryptjs": "^3.0.3",
     "drizzle-orm": "catalog:"
   },
   "devDependencies": {

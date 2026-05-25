@@ -3,6 +3,11 @@ import bcrypt from "bcryptjs";
 import { db, patientAccountsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { resolveAuthActor } from "../middlewares/auth";
+import {
+  findDuplicatePatientMatches,
+  nextPmrNumber,
+} from "../utils/patientIdentity";
 
 const router = Router();
 
@@ -28,10 +33,11 @@ function generateToken(id: string): string {
   return Buffer.from(payload).toString("base64");
 }
 
-function buildPatientResponse(patient: { id: string; name: string; email: string; dateOfBirth?: string | null; sex?: string | null; phone?: string | null; addressLine1?: string | null; addressLine2?: string | null; city?: string | null; postcode?: string | null }, token: string) {
+function buildPatientResponse(patient: { id: string; name: string; email: string; pmrNumber?: string | null; dateOfBirth?: string | null; sex?: string | null; phone?: string | null; addressLine1?: string | null; addressLine2?: string | null; city?: string | null; postcode?: string | null }, token: string) {
   return {
     token,
     patientId: patient.id,
+    pmrNumber: patient.pmrNumber ?? null,
     name: patient.name,
     email: patient.email,
     dateOfBirth: patient.dateOfBirth ?? null,
@@ -116,9 +122,17 @@ router.post("/auth/patient-register", async (req, res): Promise<void> => {
 
   const passwordHash = await bcrypt.hash(password, 12);
   const id = randomUUID();
+  const pmrNumber = await nextPmrNumber();
+
+  const duplicateMatches = await findDuplicatePatientMatches({
+    patientName: name,
+    dateOfBirth: dateOfBirth ?? null,
+    patientEmail: email,
+  });
 
   const [patient] = await db.insert(patientAccountsTable).values({
     id,
+    pmrNumber,
     name,
     email: email.toLowerCase(),
     passwordHash,
@@ -132,7 +146,12 @@ router.post("/auth/patient-register", async (req, res): Promise<void> => {
   }).returning();
 
   const token = generateToken(id);
-  res.status(201).json(buildPatientResponse(patient, token));
+  res.status(201).json({
+    ...buildPatientResponse(patient, token),
+    duplicateWarning: duplicateMatches.length > 0,
+    duplicatePatientMatches: duplicateMatches,
+    recommendedPrimaryPatient: duplicateMatches.find((m) => m.isRecommendedPrimary) ?? duplicateMatches[0] ?? null,
+  });
 });
 
 router.post("/auth/patient-login", async (req, res): Promise<void> => {
@@ -160,6 +179,30 @@ router.post("/auth/patient-login", async (req, res): Promise<void> => {
   }
 
   const token = generateToken(patient.id);
+  res.json(buildPatientResponse(patient, token));
+});
+
+router.get("/auth/patient-me", async (req, res): Promise<void> => {
+  const actor = await resolveAuthActor(req.headers.authorization);
+  if (!actor || actor.role !== "patient") {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const [patient] = await db
+    .select()
+    .from(patientAccountsTable)
+    .where(eq(patientAccountsTable.id, actor.id));
+
+  if (!patient) {
+    res.status(401).json({ error: "Patient account not found" });
+    return;
+  }
+
+  const token = req.headers.authorization?.startsWith("Bearer ")
+    ? req.headers.authorization.slice(7)
+    : generateToken(patient.id);
+
   res.json(buildPatientResponse(patient, token));
 });
 

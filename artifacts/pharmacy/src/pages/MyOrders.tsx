@@ -211,7 +211,14 @@ function OrderTimelineCard({
 
         {order.consultationId && (
           <Button asChild variant="ghost" className="rounded-full text-secondary hover:bg-secondary/5 font-semibold">
-            <Link href={`/my-consultations`} data-testid={`button-message-${order.orderNumber}`}>
+            <Link
+              href={
+                order.consultationId
+                  ? `/my-messages?consultation=${encodeURIComponent(order.consultationId)}`
+                  : "/my-messages"
+              }
+              data-testid={`button-message-${order.orderNumber}`}
+            >
               <MessageSquare className="w-4 h-4 mr-2" /> Message your prescriber
             </Link>
           </Button>
@@ -245,7 +252,13 @@ export default function MyOrders() {
         toast.error("We couldn't find the original consultation to repeat.");
         return;
       }
-      navigate(`/consultation/${consult.conditionId}?repeatOf=${encodeURIComponent(consult.id)}`);
+      const consultPath =
+        consult.conditionId === "weight-loss"
+          ? "/consultation/weight-loss-injectable"
+          : `/consultation/${consult.conditionId}`;
+      navigate(
+        `${consultPath}?repeatOf=${encodeURIComponent(consult.id)}`,
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not start a repeat consultation.");
     } finally {
@@ -274,7 +287,7 @@ export default function MyOrders() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F4F1EC]">
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
       <main className="flex-1 max-w-5xl mx-auto px-5 md:px-6 py-8 md:py-12 w-full">
         {/* Breadcrumb */}

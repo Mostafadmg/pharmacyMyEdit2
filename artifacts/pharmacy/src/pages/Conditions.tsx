@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useListConditions } from "@workspace/api-client-react";
 import Header from "@/components/layout/Header";
@@ -8,8 +8,32 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Pill, Stethoscope, HeartPulse, User, Activity, Baby, Eye, Droplets, ArrowRight } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Search,
+  Pill,
+  Stethoscope,
+  HeartPulse,
+  Activity,
+  Baby,
+  Eye,
+  Droplets,
+  ArrowRight,
+} from "lucide-react";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const categoryStyles: Record<string, { bg: string; text: string; border: string; icon: React.ElementType }> = {
   skin: { bg: "bg-[#FF6B6B]/10", text: "text-[#FF6B6B]", border: "border-[#FF6B6B]", icon: Droplets },
@@ -29,10 +53,13 @@ const formatCategory = (category: string) => {
   return category.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 };
 
+const PREVIEW_CONDITION_COUNT = 4;
+
 export default function Conditions() {
   const { data: conditions, isLoading } = useListConditions();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [openSections, setOpenSections] = useState<string[]>([]);
   
   const categories = React.useMemo(() => {
     if (!conditions) return [];
@@ -68,6 +95,19 @@ export default function Conditions() {
     return groups;
   }, [filteredConditions]);
 
+  useEffect(() => {
+    const keys = Object.keys(groupedConditions);
+    if (activeCategory) {
+      setOpenSections(keys.filter((key) => key === activeCategory));
+      return;
+    }
+    if (searchTerm.trim()) {
+      setOpenSections(keys);
+      return;
+    }
+    setOpenSections([]);
+  }, [activeCategory, searchTerm, groupedConditions]);
+
   return (
     <div className="min-h-screen flex flex-col bg-background font-sans">
       <Header />
@@ -75,7 +115,7 @@ export default function Conditions() {
       <main className="flex-1 w-full">
         {/* Hero Section */}
         <section className="bg-gradient-to-br from-primary via-primary/90 to-secondary text-white py-20 relative overflow-hidden">
-          <div className="absolute inset-0 bg-[url('/images/medical-bg.png')] opacity-5 mix-blend-overlay"></div>
+          <div className="absolute inset-0 bg-[url('/images/medical-bg.png')] opacity-5 mix-blend-overlay" />
           <div className="absolute top-0 right-0 w-1/2 h-full bg-white/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none"></div>
           
           <div className="max-w-7xl mx-auto px-6 relative z-10 text-center">
@@ -117,91 +157,184 @@ export default function Conditions() {
         </section>
 
         <div className="max-w-7xl mx-auto px-6 py-12">
-          {/* Filter Pills */}
+          {/* Category filter dropdown */}
           {!isLoading && categories.length > 0 && (
-            <div className="flex overflow-x-auto pb-6 mb-8 gap-3 snap-x hide-scrollbar scroll-smooth">
-              <Button 
-                variant={activeCategory === null ? "default" : "outline"} 
-                className={`rounded-full whitespace-nowrap snap-start ${activeCategory === null ? "bg-secondary text-white hover:bg-secondary/90 shadow-md" : "bg-white text-secondary hover:bg-muted"}`}
-                onClick={() => setActiveCategory(null)}
+            <div className="mb-8 max-w-xs sm:max-w-sm">
+              <Select
+                value={activeCategory ?? "all"}
+                onValueChange={(value) =>
+                  setActiveCategory(value === "all" ? null : value)
+                }
               >
-                All Conditions
-              </Button>
-              {categories.map(category => {
-                const style = categoryStyles[category] || categoryStyles.default;
-                const isActive = activeCategory === category;
-                const Icon = style.icon;
-                
-                return (
-                  <Button 
-                    key={category}
-                    variant="outline"
-                    className={`rounded-full whitespace-nowrap snap-start transition-all duration-300 border-border/50 ${isActive ? `bg-secondary text-white shadow-md border-secondary` : `bg-white hover:${style.bg} hover:${style.text}`}`}
-                    onClick={() => setActiveCategory(isActive ? null : category)}
-                  >
-                    <Icon className={`w-4 h-4 mr-2 ${isActive ? "text-white" : style.text}`} />
-                    {formatCategory(category)}
-                  </Button>
-                );
-              })}
+                <SelectTrigger
+                  className={cn(
+                    "h-11 rounded-full border-border/50 px-4 shadow-sm",
+                    activeCategory === null
+                      ? "bg-secondary text-white hover:bg-secondary/90 [&_svg]:text-white/80"
+                      : "bg-white text-secondary",
+                  )}
+                  data-testid="select-condition-category"
+                >
+                  <SelectValue placeholder="All Conditions" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Conditions</SelectItem>
+                  {categories.map((category) => {
+                    const style =
+                      categoryStyles[category] || categoryStyles.default;
+                    const Icon = style.icon;
+
+                    return (
+                      <SelectItem key={category} value={category}>
+                        <span className="flex items-center gap-2">
+                          <Icon className={cn("h-4 w-4", style.text)} />
+                          {formatCategory(category)}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
           {isLoading ? (
-            <div className="space-y-16">
-              {[1, 2].map(i => (
-                <div key={i}>
-                  <Skeleton className="h-10 w-64 mb-8 rounded-lg" />
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {[1, 2, 3].map(j => <Skeleton key={j} className="h-56 rounded-2xl" />)}
-                  </div>
-                </div>
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-28 w-full rounded-2xl" />
               ))}
             </div>
+          ) : Object.keys(groupedConditions).length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-24 bg-white rounded-3xl border border-dashed border-border"
+            >
+              <div className="w-20 h-20 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-6 text-muted-foreground">
+                <Search className="w-10 h-10" />
+              </div>
+              <h3 className="text-2xl font-bold text-secondary mb-3">
+                No conditions found
+              </h3>
+              <p className="text-lg text-muted-foreground max-w-md mx-auto mb-8">
+                We couldn&apos;t find any conditions matching your search. Try
+                different keywords or browse all categories.
+              </p>
+              <Button
+                size="lg"
+                onClick={() => {
+                  setSearchTerm("");
+                  setActiveCategory(null);
+                }}
+                className="bg-secondary hover:bg-secondary/90 rounded-full px-8"
+              >
+                Clear all filters
+              </Button>
+            </motion.div>
           ) : (
-            <div className="space-y-20">
-              <AnimatePresence>
-                {Object.entries(groupedConditions).map(([category, items], i) => {
-                  const style = categoryStyles[category] || categoryStyles.default;
-                  const Icon = style.icon;
-                  
-                  return (
-                    <motion.section 
-                      key={category}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ delay: i * 0.1, duration: 0.4 }}
-                    >
-                      <div className="flex items-center gap-4 mb-8">
-                        <div className={`w-12 h-12 rounded-2xl ${style.bg} flex items-center justify-center ${style.text} shadow-sm`}>
-                          <Icon className="w-6 h-6" />
+            <Accordion
+              type="multiple"
+              value={openSections}
+              onValueChange={setOpenSections}
+              className="w-full space-y-3"
+            >
+              {Object.entries(groupedConditions).map(([category, items]) => {
+                const style =
+                  categoryStyles[category] || categoryStyles.default;
+                const Icon = style.icon;
+                const list = items ?? [];
+                const isOpen = openSections.includes(category);
+                const previewNames = list
+                  .slice(0, PREVIEW_CONDITION_COUNT)
+                  .map((c) => c.name);
+                const remaining = Math.max(
+                  0,
+                  list.length - PREVIEW_CONDITION_COUNT,
+                );
+
+                return (
+                  <AccordionItem
+                    key={category}
+                    value={category}
+                    className="overflow-hidden rounded-2xl border border-border/60 bg-white shadow-sm border-b-0"
+                  >
+                    <AccordionTrigger className="px-4 py-5 hover:no-underline md:px-6 md:py-6 data-[state=open]:border-b data-[state=open]:border-border/50 data-[state=open]:pb-5 md:data-[state=open]:pb-6">
+                      <div className="flex min-w-0 flex-1 flex-col gap-3 pr-2 text-left">
+                        <div className="flex items-start gap-3 sm:items-center sm:gap-4">
+                          <div
+                            className={cn(
+                              "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl shadow-sm sm:h-12 sm:w-12",
+                              style.bg,
+                              style.text,
+                            )}
+                          >
+                            <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h2 className="font-serif text-xl font-bold text-secondary sm:text-2xl">
+                              {formatCategory(category)}
+                            </h2>
+                            <p className="mt-0.5 text-sm text-muted-foreground">
+                              {list.length}{" "}
+                              {list.length === 1 ? "condition" : "conditions"}{" "}
+                              available
+                            </p>
+                          </div>
                         </div>
-                        <h2 className="text-3xl font-serif font-bold text-secondary">{formatCategory(category)}</h2>
+
+                        {!isOpen && list.length > 0 && (
+                          <div className="space-y-2 pl-0 sm:pl-[3.75rem]">
+                            <p className="text-sm leading-relaxed text-muted-foreground">
+                              <span className="font-medium text-secondary/80">
+                                Includes:{" "}
+                              </span>
+                              {previewNames.join(" · ")}
+                              {remaining > 0
+                                ? ` · +${remaining} more`
+                                : null}
+                            </p>
+                            <p className="text-sm font-semibold text-primary">
+                              See all {list.length} conditions
+                            </p>
+                          </div>
+                        )}
+
+                        {isOpen && (
+                          <p className="text-sm font-semibold text-muted-foreground sm:pl-[3.75rem]">
+                            Hide conditions
+                          </p>
+                        )}
                       </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {(items ?? []).map(condition => (
-                          <Link key={condition.id} href={`/conditions/${condition.id}`}>
-                            <Card className="h-full hover:-translate-y-1 transition-all duration-300 cursor-pointer border-border hover:shadow-lg group bg-white relative overflow-hidden rounded-2xl">
-                              {/* Left Accent Bar */}
-                              <div className={`absolute left-0 top-0 w-[3px] group-hover:w-[6px] h-full ${style.bg.replace('/10', '')} transition-all duration-300`}></div>
-                              
-                              <CardContent className="p-8 pl-10 flex flex-col h-full relative z-10">
-                                <div className="flex justify-between items-start mb-4">
-                                  <h3 className="text-2xl font-bold text-secondary group-hover:text-primary transition-colors leading-tight">
-                                    {condition.name}
-                                  </h3>
-                                </div>
-                                <p className="text-muted-foreground text-sm flex-1 mb-8 line-clamp-2 leading-relaxed">
+                    </AccordionTrigger>
+
+                    <AccordionContent className="px-4 pt-4 md:px-6 md:pt-5">
+                      <div className="grid grid-cols-1 gap-5 pb-2 md:grid-cols-2 lg:grid-cols-3 md:gap-6 md:pb-4">
+                        {list.map((condition) => (
+                          <Link
+                            key={condition.id}
+                            href={`/conditions/${condition.id}`}
+                          >
+                            <Card className="group relative h-full cursor-pointer overflow-hidden rounded-2xl border-border bg-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
+                              <div
+                                className={cn(
+                                  "absolute left-0 top-0 h-full w-[3px] transition-all duration-300 group-hover:w-[5px]",
+                                  style.bg.replace("/10", ""),
+                                )}
+                              />
+                              <CardContent className="relative z-10 flex h-full flex-col p-6 pl-8">
+                                <h3 className="mb-3 text-lg font-bold leading-tight text-secondary transition-colors group-hover:text-primary">
+                                  {condition.name}
+                                </h3>
+                                <p className="mb-5 line-clamp-2 flex-1 text-sm leading-relaxed text-muted-foreground">
                                   {condition.description}
                                 </p>
-                                <div className="flex items-center justify-between mt-auto pt-5 border-t border-border/50">
-                                  <Badge className={`bg-muted text-muted-foreground hover:bg-muted font-medium border-none`}>
+                                <div className="mt-auto flex items-center justify-between border-t border-border/50 pt-4">
+                                  <Badge className="border-none bg-muted font-medium text-muted-foreground hover:bg-muted">
                                     {formatCategory(category)}
                                   </Badge>
-                                  <span className="text-sm font-semibold text-primary flex items-center gap-1 group-hover:gap-2 transition-all">
-                                    Start consultation <ArrowRight className="w-4 h-4" />
+                                  <span className="flex items-center gap-1 text-sm font-semibold text-primary transition-all group-hover:gap-2">
+                                    Start consultation{" "}
+                                    <ArrowRight className="h-4 w-4" />
                                   </span>
                                 </div>
                               </CardContent>
@@ -209,34 +342,11 @@ export default function Conditions() {
                           </Link>
                         ))}
                       </div>
-                    </motion.section>
-                  );
-                })}
-              </AnimatePresence>
-              
-              {Object.keys(groupedConditions).length === 0 && (
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-center py-32 bg-white rounded-3xl border border-dashed border-border"
-                >
-                  <div className="w-20 h-20 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-6 text-muted-foreground">
-                    <Search className="w-10 h-10" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-secondary mb-3">No conditions found</h3>
-                  <p className="text-lg text-muted-foreground max-w-md mx-auto mb-8">
-                    We couldn't find any conditions matching your search. Try different keywords or browse all categories.
-                  </p>
-                  <Button 
-                    size="lg" 
-                    onClick={() => { setSearchTerm(""); setActiveCategory(null); }} 
-                    className="bg-secondary hover:bg-secondary/90 rounded-full px-8"
-                  >
-                    Clear all filters
-                  </Button>
-                </motion.div>
-              )}
-            </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
           )}
         </div>
       </main>

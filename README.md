@@ -256,6 +256,22 @@ Common variables:
 
 Do not commit local secrets. Keep `.env` local.
 
+## Deploy Rx Portal (Docker)
+
+To run **PostgreSQL + API + Rx portal** on one machine (e.g. a VPS or local Docker Desktop):
+
+```bash
+pnpm run deploy:rx:up
+pnpm run deploy:rx:init   # first time: schema + demo data
+```
+
+- Rx portal: `http://localhost:5174`
+- API: `http://localhost:5000`
+
+See [deploy/rx/README.md](deploy/rx/README.md) for ports, env vars, and production notes.
+
+Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker Engine + Compose).
+
 ## Development Notes
 
 - Start the API before using the web apps.

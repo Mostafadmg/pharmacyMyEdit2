@@ -110,8 +110,12 @@ export default function AdminOrders() {
                         <Link href={`/dashboard/orders/${o.id}`}>{o.orderNumber}</Link>
                       </td>
                       <td className="px-4 py-3">
-                        <div>{o.customerName}</div>
-                        <div className="text-xs text-muted-foreground">{o.customerEmail}</div>
+                        <Link href={`/dashboard/patients/${encodeURIComponent(o.customerEmail)}`}>
+                          <a className="block hover:text-primary transition-colors" data-testid={`order-patient-${o.orderNumber}`}>
+                            <div className="font-medium">{o.customerName}</div>
+                            <div className="text-xs text-muted-foreground">{o.customerEmail}</div>
+                          </a>
+                        </Link>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
                         {new Date(o.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}

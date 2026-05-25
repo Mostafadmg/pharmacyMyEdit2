@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { Bell, CheckCheck, MessageSquare, FileText, Package, Sparkles, X } from "lucide-react";
+import { Bell, CheckCheck, MessageSquare, FileText, Package, Sparkles, X, Upload } from "lucide-react";
 import { Link } from "wouter";
 import { apiFetch } from "@/lib/api";
 import { formatDistanceToNow } from "date-fns";
@@ -21,6 +21,7 @@ type Notification = {
 const CAT_ICON: Record<string, React.ReactNode> = {
   message: <MessageSquare className="w-4 h-4 text-blue-600" />,
   consultation: <FileText className="w-4 h-4 text-emerald-600" />,
+  document: <Upload className="w-4 h-4 text-amber-700" />,
   order: <Package className="w-4 h-4 text-amber-600" />,
   system: <Sparkles className="w-4 h-4 text-purple-600" />,
 };

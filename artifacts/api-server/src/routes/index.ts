@@ -22,6 +22,10 @@ import pharmacistPushTokensRouter from "./pharmacist-push-tokens";
 import seoRouter from "./seo";
 import patientAccountRouter from "./patient-account";
 import pharmacistToolsRouter from "./pharmacist-tools";
+import auditLogRouter from "./audit-log";
+import pharmacistSettingsRouter from "./pharmacist-settings";
+import gpPracticesRouter from "./gp-practices";
+import postcodesRouter from "./postcodes";
 
 const router: IRouter = Router();
 
@@ -48,5 +52,9 @@ router.use(pharmacistPushTokensRouter);
 router.use(seoRouter);
 router.use(patientAccountRouter);
 router.use(pharmacistToolsRouter);
+router.use(auditLogRouter);
+router.use(pharmacistSettingsRouter);
+router.use(gpPracticesRouter);
+router.use(postcodesRouter);
 
 export default router;

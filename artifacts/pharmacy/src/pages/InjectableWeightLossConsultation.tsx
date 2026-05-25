@@ -1,12 +1,12 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, ArrowRight, ShieldCheck, Lock, Mail, Phone,
+  ArrowLeft, ArrowRight, ShieldCheck, Lock, Mail, Phone, Eye, EyeOff,
   UserPlus, Upload, ExternalLink, FileText, User, Heart,
   Pill as PillIcon, CheckCircle2, ClipboardCheck, Stethoscope,
-  Syringe, Plus, Minus, Sparkles, Clock, Star, TrendingDown,
-  Check, Leaf,
+  Syringe, Plus, Minus, Sparkles, Clock,
+  Check,
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -16,6 +16,34 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import {
+  checkoutVisibleSlots,
+  EVIDENCE_SLOT_META,
+  getDocumentRequirements,
+  isPreviousPrescriptionRequired,
+  requirementLabel,
+  type EvidenceSlotId,
+} from "@workspace/evidence-slots";
+import { EvidenceCriteriaList } from "@/components/EvidenceCriteriaList";
+import { DateField } from "@/components/consultation/DateField";
+import {
+  type DiagnosedConditionEntry,
+  type CurrentMedicationEntry,
+  type OtherHealthEntry,
+  type LastInjectionTiming,
+  emptyDiagnosedEntry,
+  emptyMedicationEntry,
+  emptyHealthEntry,
+  DiagnosedConditionsFollowUp,
+  CurrentMedicationsFollowUp,
+  OtherHealthHistoryFollowUp,
+  InjectablesFollowUp,
+  isDiagnosedEntryComplete,
+  isMedicationEntryComplete,
+  isHealthEntryComplete,
+  isLastInjectionComplete,
+} from "@/components/consultation/WeightLossClinicalForms";
 
 type JourneyStage = "new" | "existing" | "transferring";
 type UnitHeight = "cm" | "ftin";
@@ -30,6 +58,81 @@ type Ethnicity =
   | "prefer-not-to-say";
 type AssignedSex = "male" | "female" | "prefer-not-to-say";
 type YesNo = "yes" | "no";
+type ChangesSinceLastOrder =
+  | "new_diagnosis"
+  | "new_medication_allergy"
+  | "no_changes";
+
+/** Pregnancy / contraception questions only apply when not recorded as male at birth. */
+function asksFemaleHealthQuestions(sex: AssignedSex | null): boolean {
+  return sex === "female" || sex === "prefer-not-to-say";
+}
+
+const CONTACT_STEP = 2;
+const FLOW_TOTAL_STEPS = 13;
+
+function getPatientSession() {
+  if (typeof window === "undefined") {
+    return { loggedIn: false, name: "", email: "", phone: "" };
+  }
+  return {
+    loggedIn: Boolean(localStorage.getItem("patient_token")),
+    name: localStorage.getItem("patient_name") ?? "",
+    email: localStorage.getItem("patient_email") ?? "",
+    phone: localStorage.getItem("patient_phone") ?? "",
+  };
+}
+
+function savePatientSession(data: {
+  token: string;
+  patientId: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  dateOfBirth?: string | null;
+  sex?: string | null;
+}) {
+  localStorage.setItem("patient_token", data.token);
+  localStorage.setItem("patient_id", data.patientId);
+  localStorage.setItem("patient_name", data.name);
+  localStorage.setItem("patient_email", data.email);
+  if (data.phone) localStorage.setItem("patient_phone", data.phone);
+  if (data.dateOfBirth) localStorage.setItem("patient_dob", data.dateOfBirth);
+  if (data.sex) localStorage.setItem("patient_sex", data.sex);
+}
+
+function flowStepNumber(step: number, loggedIn: boolean): number {
+  if (loggedIn && step > CONTACT_STEP) return step - 1;
+  return step;
+}
+
+function flowTotalSteps(loggedIn: boolean): number {
+  return loggedIn ? FLOW_TOTAL_STEPS - 1 : FLOW_TOTAL_STEPS;
+}
+
+function stepAfter(current: number, loggedIn: boolean): number {
+  let n = current + 1;
+  if (loggedIn && n === CONTACT_STEP) n++;
+  return n;
+}
+
+function stepBefore(current: number, loggedIn: boolean): number {
+  let n = current - 1;
+  if (loggedIn && n === CONTACT_STEP) n--;
+  return n;
+}
+
+type PatientDocSlot = EvidenceSlotId;
+
+function emptyPatientDocs(): Record<PatientDocSlot, string | null> {
+  return {
+    "government-id": null,
+    "full-body-video": null,
+    "weight-scale-video": null,
+    "previous-prescription": null,
+    "supporting-evidence": null,
+  };
+}
 
 type AddOnId =
   | "weight-tracker"
@@ -83,8 +186,13 @@ interface FormState {
   fullName: string;
   email: string;
   phone: string;
-  // Step 3 — Journey
+  // Step 3 — Journey + repeat safety
   journey: JourneyStage | null;
+  changesSinceLast: ChangesSinceLastOrder | null;
+  repeatSideEffectsAny: YesNo | null;
+  repeatSideEffectsHospital: YesNo | null;
+  repeatSideEffectsVomiting: YesNo | null;
+  repeatSideEffectsInjection: YesNo | null;
   // Step 4 — Ethnicity
   ethnicity: Ethnicity | null;
   // Step 5 — BMI
@@ -106,12 +214,18 @@ interface FormState {
   eatingDisorder: YesNo | null;
   // Step 7 — Conditions
   excludingConditions: YesNo | null;
+  diagnosedConditions: DiagnosedConditionEntry[];
   diabetesMedsOther: YesNo | null;
   // Step 8 — Medication
   takingMeds: YesNo | null;
+  currentMedications: CurrentMedicationEntry[];
   otherConditions: YesNo | null;
+  otherHealthHistory: OtherHealthEntry[];
   oralContraceptive: YesNo | null;
   newToInjectables: YesNo | null;
+  changingProvider: YesNo | null;
+  lastInjectionTiming: LastInjectionTiming | null;
+  lastInjectionDate: string;
   // Step 9 — Agreement
   agreement: YesNo | null;
   // Step 10 — GP
@@ -122,6 +236,36 @@ interface FormState {
   selectedPlan: { type: PlanType; medicine: MedicineId; penIds: string[] } | null;
   // Add-ons
   addOns: Record<AddOnId, number>;
+  // Guest portal signup (final step)
+  accountPassword: string;
+  accountPasswordConfirm: string;
+}
+
+function prescriptionItemsFromPlan(
+  plan: FormState["selectedPlan"],
+): Array<{
+  name: string;
+  strength: string;
+  form: string;
+  quantity: string;
+  sig: string;
+  duration: string;
+}> {
+  if (!plan) return [];
+  return plan.penIds.flatMap((penId) => {
+    const pen = PEN_OPTIONS.find((p) => p.id === penId);
+    if (!pen) return [];
+    return [
+      {
+        name: pen.label,
+        strength: pen.dose,
+        form: "Injectable pen",
+        quantity: "1 pen",
+        sig: "Inject once weekly as directed by your prescriber",
+        duration: pen.weeks,
+      },
+    ];
+  });
 }
 
 const initialState: FormState = {
@@ -129,6 +273,11 @@ const initialState: FormState = {
   email: "",
   phone: "",
   journey: null,
+  changesSinceLast: null,
+  repeatSideEffectsAny: null,
+  repeatSideEffectsHospital: null,
+  repeatSideEffectsVomiting: null,
+  repeatSideEffectsInjection: null,
   ethnicity: null,
   dob: "",
   heightUnit: "cm",
@@ -146,11 +295,17 @@ const initialState: FormState = {
   thyroidHistory: null,
   eatingDisorder: null,
   excludingConditions: null,
+  diagnosedConditions: [emptyDiagnosedEntry()],
   diabetesMedsOther: null,
   takingMeds: null,
+  currentMedications: [emptyMedicationEntry()],
   otherConditions: null,
+  otherHealthHistory: [emptyHealthEntry()],
   oralContraceptive: null,
   newToInjectables: null,
+  changingProvider: null,
+  lastInjectionTiming: null,
+  lastInjectionDate: "",
   agreement: null,
   gpConsent: null,
   gpName: "",
@@ -164,6 +319,8 @@ const initialState: FormState = {
     "multivit": 0,
     "vitamin-d": 0,
   },
+  accountPassword: "",
+  accountPasswordConfirm: "",
 };
 
 const STEP_TITLES = [
@@ -265,23 +422,9 @@ const YesNoChoice: React.FC<{
 );
 
 const SectionCard: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Card className="rounded-3xl border border-stone-200 shadow-sm bg-white">
-    <CardContent className="p-6 md:p-7">{children}</CardContent>
+  <Card className="rounded-2xl border border-stone-200/90 bg-card shadow-sm">
+    <CardContent className="p-5 md:p-6">{children}</CardContent>
   </Card>
-);
-
-const BrandHeader: React.FC = () => (
-  <div className="pt-8 pb-4 flex flex-col items-center">
-    <div className="flex items-center gap-2">
-      <span className="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
-        <Leaf className="w-4 h-4 text-white" />
-      </span>
-      <span className="text-2xl font-serif font-bold text-[#0E3D2D]">PharmaCare</span>
-    </div>
-    <p className="text-[10px] tracking-widest uppercase text-muted-foreground mt-1">
-      Everyday Care. Expertly Delivered.
-    </p>
-  </div>
 );
 
 const StepShell: React.FC<{
@@ -309,62 +452,67 @@ const StepShell: React.FC<{
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -24 }}
       transition={{ duration: 0.25 }}
-      className="max-w-2xl mx-auto px-5 pb-16"
+      className="max-w-xl mx-auto px-5 pt-6 pb-20"
     >
-      <BrandHeader />
-
-      {/* Progress header */}
-      <div className="grid grid-cols-3 items-center text-xs text-muted-foreground mb-3">
-        <button
-          type="button"
-          onClick={onBack}
-          className={`flex items-center gap-1 text-muted-foreground hover:text-[#0E3D2D] transition-colors justify-self-start ${hideBack ? "invisible" : ""}`}
-          data-testid="button-step-back"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back
-        </button>
-        <div className="text-center col-start-2">
-          <p className="uppercase tracking-widest text-muted-foreground">Step {step} of {totalSteps}</p>
-          <p className="text-[#0E3D2D] font-bold text-base mt-0.5">{label}</p>
+      <div className="mb-8">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className={cn(
+              "inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors",
+              hideBack && "invisible pointer-events-none",
+            )}
+            data-testid="button-step-back"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+          <p className="text-xs font-medium text-muted-foreground tabular-nums">
+            Step {step} of {totalSteps}
+          </p>
         </div>
-      </div>
-      <div className="h-1 rounded-full bg-stone-200 overflow-hidden mb-10">
-        <motion.div
-          className="h-full bg-[#0E3D2D] rounded-full"
-          initial={{ width: 0 }}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.4 }}
-        />
+        <div className="h-1 rounded-full bg-stone-200/90 overflow-hidden">
+          <motion.div
+            className="h-full bg-primary rounded-full"
+            initial={{ width: 0 }}
+            animate={{ width: `${pct}%` }}
+            transition={{ duration: 0.35 }}
+          />
+        </div>
+        <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-primary/90">
+          {label}
+        </p>
       </div>
 
-      {/* Title block */}
-      <div className="text-center mb-7">
-        <div className="w-14 h-14 rounded-2xl bg-[#D4EFE2] text-[#0E3D2D] inline-flex items-center justify-center mb-4">
+      <div className="mb-8">
+        <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-primary">
           {icon}
         </div>
-        <h1 className="text-[2rem] leading-tight font-serif font-bold text-[#0E3D2D]">{title}</h1>
-        {subtitle && <p className="text-muted-foreground mt-2 text-sm md:text-base max-w-md mx-auto">{subtitle}</p>}
+        <h1 className="font-serif text-2xl md:text-[1.75rem] font-bold leading-tight text-secondary">
+          {title}
+        </h1>
+        {subtitle ? (
+          <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">
+            {subtitle}
+          </p>
+        ) : null}
       </div>
 
       {/* Body */}
       <div className="space-y-5">{children}</div>
 
-      {/* Continue */}
-      <div className="mt-8 space-y-3">
-        <div className="rounded-xl bg-white border border-stone-200 px-4 py-2.5 flex items-center justify-center gap-2 text-xs text-stone-500">
-          <Clock className="w-3.5 h-3.5" /> Takes about 3 minutes. Progress saved automatically.
-        </div>
+      <div className="mt-10 border-t border-stone-200/80 pt-8">
         <Button
           onClick={onContinue}
           disabled={!canContinue}
           size="lg"
-          className="w-full h-14 rounded-2xl bg-[#0E3D2D] hover:bg-[#0a2e22] text-white text-base font-semibold disabled:bg-[#9CB8A6] disabled:hover:bg-[#9CB8A6] disabled:cursor-not-allowed"
+          className="h-12 w-full rounded-xl bg-primary text-base font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           data-testid="button-step-continue"
         >
-          {continueLabel ?? "Continue"} <ArrowRight className="w-4 h-4 ml-1.5" />
+          {continueLabel ?? "Continue"} <ArrowRight className="ml-1.5 h-4 w-4" />
         </Button>
-        <p className="text-center text-xs text-stone-400">
-          Your information is secure and confidential.
+        <p className="mt-3 text-center text-xs text-muted-foreground">
+          Your answers are confidential and saved as you go.
         </p>
       </div>
     </motion.div>
@@ -372,27 +520,137 @@ const StepShell: React.FC<{
 };
 
 const TrustRow: React.FC = () => (
-  <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs text-muted-foreground">
-    <span className="flex flex-col items-center text-[9px] leading-tight text-stone-600">
-      <span className="font-semibold text-[10px]">General</span>
-      <span className="font-semibold text-[10px]">Pharmaceutical</span>
-      <span className="font-semibold text-[10px]">Council</span>
+  <p className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-center text-xs text-muted-foreground">
+    <span className="inline-flex items-center gap-1.5">
+      <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+      GPhC 9011677
     </span>
-    <span className="font-extrabold text-[#005EB8] text-lg tracking-tight">NHS</span>
-    <span className="w-8 h-8 rounded-full bg-[#D52B1E] text-white flex items-center justify-center font-serif italic font-bold text-lg">L</span>
-    <span className="text-[10px] font-semibold text-stone-700">novo nordisk</span>
-    <span className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-primary" /> GPhC Registered</span>
-    <span className="flex items-center gap-1.5"><Lock className="w-3.5 h-3.5 text-primary" /> Encrypted</span>
-    <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-primary" /> MHRA</span>
-  </div>
+    <span className="hidden sm:inline text-stone-300" aria-hidden>
+      ·
+    </span>
+    <span className="inline-flex items-center gap-1.5">
+      <Lock className="h-3.5 w-3.5 text-primary" />
+      Encrypted
+    </span>
+    <span className="hidden sm:inline text-stone-300" aria-hidden>
+      ·
+    </span>
+    <span>UK registered pharmacy</span>
+  </p>
 );
 
 export default function InjectableWeightLossConsultation() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const [repeatOfId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    const v = new URLSearchParams(window.location.search).get("repeatOf");
+    return v?.trim() ? v.trim() : null;
+  });
+  const [isLoggedIn, setIsLoggedIn] = useState(() => getPatientSession().loggedIn);
+  const [showAccountPassword, setShowAccountPassword] = useState(false);
   const [step, setStep] = useState(1);
   const [state, setState] = useState<FormState>(initialState);
   const [submitting, setSubmitting] = useState(false);
+  const [patientDocs, setPatientDocs] = useState(emptyPatientDocs);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
+  const isRepeatFlow =
+    state.journey === "existing" || Boolean(repeatOfId);
+
+  useEffect(() => {
+    const session = getPatientSession();
+    if (!session.loggedIn) return;
+
+    void apiFetch<{
+      token: string;
+      patientId: string;
+      name: string;
+      email: string;
+      phone?: string | null;
+      dateOfBirth?: string | null;
+      sex?: string | null;
+    }>("/api/auth/patient-me", { auth: "patient" })
+      .then((profile) => {
+        setIsLoggedIn(true);
+        savePatientSession({
+          token: profile.token,
+          patientId: profile.patientId,
+          name: profile.name,
+          email: profile.email,
+          phone: profile.phone,
+          dateOfBirth: profile.dateOfBirth,
+          sex: profile.sex,
+        });
+        setState((s) => ({
+          ...s,
+          fullName: profile.name || s.fullName,
+          email: profile.email || s.email,
+          phone: profile.phone || s.phone,
+          dob: profile.dateOfBirth || s.dob || localStorage.getItem("patient_dob") || "",
+          assignedSex:
+            profile.sex === "male" || profile.sex === "female"
+              ? profile.sex
+              : profile.sex === "other"
+                ? "other"
+                : s.assignedSex,
+        }));
+      })
+      .catch(() => {
+        localStorage.removeItem("patient_token");
+        setIsLoggedIn(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (isLoggedIn && step === CONTACT_STEP) go(3);
+  }, [isLoggedIn, step]);
+
+  useEffect(() => {
+    if (!repeatOfId) return;
+    setState((s) => ({ ...s, journey: "existing" }));
+    let cancelled = false;
+    void apiFetch<{
+      patientName: string;
+      patientEmail: string;
+      answers?: Record<string, unknown>;
+      verifiedHeightCm?: number | null;
+      verifiedWeightKg?: number | null;
+    }>(`/api/consultations/${encodeURIComponent(repeatOfId)}`, {
+      auth: "patient",
+    })
+      .then((prior) => {
+        if (cancelled) return;
+        const answers = (prior.answers ?? {}) as Record<string, unknown>;
+        setState((s) => ({
+          ...s,
+          journey: "existing",
+          fullName: prior.patientName || s.fullName,
+          email: prior.patientEmail || s.email,
+          ethnicity:
+            (answers.ethnicity as FormState["ethnicity"]) ?? s.ethnicity,
+          dob: typeof answers.dob === "string" ? answers.dob : s.dob,
+          heightCm:
+            prior.verifiedHeightCm != null
+              ? String(prior.verifiedHeightCm)
+              : typeof answers.height_cm === "number"
+                ? String(answers.height_cm)
+                : s.heightCm,
+          weightKg:
+            prior.verifiedWeightKg != null
+              ? String(prior.verifiedWeightKg)
+              : typeof answers.weight_kg === "number"
+                ? String(answers.weight_kg)
+                : s.weightKg,
+        }));
+      })
+      .catch(() => {
+        /* prefill optional */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [repeatOfId]);
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setState((s) => ({ ...s, [key]: value }));
@@ -414,11 +672,17 @@ export default function InjectableWeightLossConsultation() {
   const contraindicated = useMemo(() => {
     const reasons: string[] = [];
     if (state.ageBracket === "no" || (ageYears !== null && (ageYears < 18 || ageYears > 75))) reasons.push("Outside the 18–75 age range for online prescribing.");
-    if (state.pregnant === "yes") reasons.push("Pregnant, breastfeeding or planning pregnancy — GLP-1 medicines are contraindicated.");
+    if (
+      asksFemaleHealthQuestions(state.assignedSex) &&
+      state.pregnant === "yes"
+    ) {
+      reasons.push(
+        "Pregnant, breastfeeding or planning pregnancy — GLP-1 medicines are contraindicated.",
+      );
+    }
     if (state.glp1Allergy === "yes") reasons.push("Previous allergic reaction to GLP-1 medicines.");
     if (state.thyroidHistory === "yes") reasons.push("Personal or family history of medullary thyroid cancer or MEN2.");
     if (state.eatingDisorder === "yes") reasons.push("History of an eating disorder — requires in-person specialist review.");
-    if (state.excludingConditions === "yes") reasons.push("One or more listed medical conditions require GP-led review before treatment.");
     if (bmi !== null && bmi < 27) reasons.push(`Your BMI (${bmi.toFixed(1)}) is below the 27 threshold for treatment.`);
     return reasons;
   }, [state, ageYears, bmi]);
@@ -433,9 +697,102 @@ export default function InjectableWeightLossConsultation() {
       go(99); // ineligible screen
       return;
     }
-    go(step + 1);
+    go(stepAfter(step, isLoggedIn));
   };
-  const back = () => (step === 99 ? go(7) : step > 1 ? go(step - 1) : navigate("/treatments/weight-loss"));
+  const back = () =>
+    step === 99
+      ? go(7)
+      : step > 1
+        ? go(stepBefore(step, isLoggedIn))
+        : navigate("/treatments/weight-loss");
+
+  const metrics = useMemo(() => {
+    let heightCm = NaN;
+    if (state.heightUnit === "cm") {
+      heightCm = parseFloat(state.heightCm);
+    } else {
+      const ft = parseFloat(state.heightFt || "0");
+      const inch = parseFloat(state.heightIn || "0");
+      if (ft || inch) heightCm = ft * 30.48 + inch * 2.54;
+    }
+    let weightKg = NaN;
+    if (state.weightUnit === "kg") {
+      weightKg = parseFloat(state.weightKg);
+    } else {
+      const st = parseFloat(state.weightSt || "0");
+      const lbs = parseFloat(state.weightLbs || "0");
+      if (st || lbs) weightKg = st * 6.35029 + lbs * 0.453592;
+    }
+    return { heightCm, weightKg };
+  }, [state]);
+
+  const handleSlotFile = (slot: PatientDocSlot, files: FileList | null) => {
+    const f = files?.[0];
+    if (!f) return;
+    const meta = EVIDENCE_SLOT_META[slot];
+    const max = meta.maxMb * 1024 * 1024;
+    setPhotoError(null);
+    const isVideo = f.type.startsWith("video/");
+    const isImage =
+      f.type.startsWith("image/") || /\.(jpe?g|png|heic|webp)$/i.test(f.name);
+    const isPdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name);
+    if (meta.isVideo && !isVideo && !isImage) {
+      setPhotoError(
+        `${meta.title} must be a live video (or clear photo if you cannot record video yet).`,
+      );
+      return;
+    }
+    if (!meta.isVideo && !isImage && !isPdf) {
+      setPhotoError("Please choose a supported image, video, or PDF file.");
+      return;
+    }
+    if (f.size > max) {
+      setPhotoError(
+        `"${f.name}" is over ${meta.maxMb}MB. Please choose a smaller file.`,
+      );
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPatientDocs((prev) => ({
+        ...prev,
+        [slot]: String(reader.result),
+      }));
+    };
+    reader.onerror = () =>
+      setPhotoError("Could not read your file. Please try again.");
+    reader.readAsDataURL(f);
+  };
+
+  const uploadAnswersPreview = useMemo((): Record<string, unknown> => {
+    const effectiveJourney: JourneyStage =
+      state.newToInjectables === "no" && state.changingProvider === "yes"
+        ? "transferring"
+        : state.journey ?? "new";
+    return {
+      journey_stage: effectiveJourney,
+      excluding_conditions: state.excludingConditions,
+      new_to_injectables: state.newToInjectables,
+      changing_from_provider: state.changingProvider,
+      consultation_type:
+        effectiveJourney === "transferring" ? "transfer" : undefined,
+    };
+  }, [
+    state.journey,
+    state.excludingConditions,
+    state.newToInjectables,
+    state.changingProvider,
+  ]);
+
+  const visibleUploadSlots = useMemo(
+    () => checkoutVisibleSlots(uploadAnswersPreview),
+    [uploadAnswersPreview],
+  );
+
+  const uploadRequirements = useMemo(
+    () => getDocumentRequirements(uploadAnswersPreview),
+    [uploadAnswersPreview],
+  );
 
   // ── Validation per step ─────────────────────────────────────────────────
   const canContinue = useMemo(() => {
@@ -445,7 +802,20 @@ export default function InjectableWeightLossConsultation() {
         return state.fullName.trim().length >= 2
           && /\S+@\S+\.\S+/.test(state.email)
           && state.phone.trim().length >= 7;
-      case 3: return state.journey !== null;
+      case 3: {
+        if (state.journey === null) return false;
+        if (!isRepeatFlow) return true;
+        if (!state.changesSinceLast) return false;
+        if (!state.repeatSideEffectsAny) return false;
+        if (state.repeatSideEffectsAny === "yes") {
+          return (
+            state.repeatSideEffectsHospital !== null &&
+            state.repeatSideEffectsVomiting !== null &&
+            state.repeatSideEffectsInjection !== null
+          );
+        }
+        return true;
+      }
       case 4: return state.ethnicity !== null;
       case 5: {
         const heightOk = state.heightUnit === "cm"
@@ -456,36 +826,155 @@ export default function InjectableWeightLossConsultation() {
           : parseFloat(state.weightSt || "0") + parseFloat(state.weightLbs || "0") > 0;
         return Boolean(state.dob) && heightOk && weightOk;
       }
-      case 6:
-        return state.assignedSex !== null && state.ageBracket !== null
-          && state.pregnant !== null && state.glp1Allergy !== null
-          && state.thyroidHistory !== null && state.eatingDisorder !== null;
-      case 7: return state.excludingConditions !== null && state.diabetesMedsOther !== null;
-      case 8:
-        return state.takingMeds !== null && state.otherConditions !== null
-          && state.oralContraceptive !== null && state.newToInjectables !== null;
+      case 6: {
+        const pregnancyOk =
+          !asksFemaleHealthQuestions(state.assignedSex) ||
+          state.pregnant !== null;
+        return (
+          state.assignedSex !== null &&
+          state.ageBracket !== null &&
+          pregnancyOk &&
+          state.glp1Allergy !== null &&
+          state.thyroidHistory !== null &&
+          state.eatingDisorder !== null
+        );
+      }
+      case 7: {
+        const excludingOk = state.excludingConditions !== null;
+        const detailsOk =
+          state.excludingConditions !== "yes" ||
+          (state.diagnosedConditions.length > 0 &&
+            state.diagnosedConditions.every(isDiagnosedEntryComplete));
+        return (
+          excludingOk &&
+          detailsOk &&
+          state.diabetesMedsOther !== null
+        );
+      }
+      case 8: {
+        const contraceptionOk =
+          !asksFemaleHealthQuestions(state.assignedSex) ||
+          state.oralContraceptive !== null;
+        const medsOk =
+          state.takingMeds !== "yes" ||
+          (state.currentMedications.length > 0 &&
+            state.currentMedications.every(isMedicationEntryComplete));
+        const healthOk =
+          state.otherConditions !== "yes" ||
+          (state.otherHealthHistory.length > 0 &&
+            state.otherHealthHistory.every(isHealthEntryComplete));
+        const injectablesOk =
+          state.newToInjectables === "yes" ||
+          (state.changingProvider !== null &&
+            isLastInjectionComplete(
+              state.lastInjectionTiming,
+              state.lastInjectionDate,
+            ));
+        return (
+          state.takingMeds !== null &&
+          medsOk &&
+          state.otherConditions !== null &&
+          healthOk &&
+          contraceptionOk &&
+          state.newToInjectables !== null &&
+          injectablesOk
+        );
+      }
       case 9: return state.agreement === "yes";
       case 10:
         return state.gpConsent !== null
           && (state.gpConsent === "no" || (state.gpName.trim().length > 0 && state.gpAddress.trim().length > 0));
-      case 11: {
+      case 11:
+        return true;
+      case 12: {
         if (!state.selectedPlan) return false;
         const need = state.selectedPlan.type === "single" ? 1 : state.selectedPlan.type === "two-pen" ? 2 : 3;
         return state.selectedPlan.penIds.length === need;
       }
-      case 12: return true;
+      case 13: {
+        if (!state.selectedPlan) return false;
+        const need =
+          state.selectedPlan.type === "single"
+            ? 1
+            : state.selectedPlan.type === "two-pen"
+              ? 2
+              : 3;
+        const planOk = state.selectedPlan.penIds.length === need;
+        if (!planOk) return false;
+        if (isLoggedIn) return true;
+        return (
+          state.accountPassword.length >= 8 &&
+          state.accountPassword === state.accountPasswordConfirm
+        );
+      }
       default: return false;
     }
-  }, [step, state]);
+  }, [step, state, patientDocs, isLoggedIn, isRepeatFlow]);
 
   // ── Submit ─────────────────────────────────────────────────────────────
   const submit = async () => {
     setSubmitting(true);
     try {
+      const effectiveJourney: JourneyStage =
+        state.newToInjectables === "no" && state.changingProvider === "yes"
+          ? "transferring"
+          : state.journey ?? "new";
+
+      const consultationType =
+        effectiveJourney === "transferring"
+          ? "transfer"
+          : effectiveJourney === "existing"
+            ? "simple_repeat"
+            : "new_start";
+
+      const formatDiagnosed = state.diagnosedConditions
+        .filter((e) => e.condition.trim())
+        .map((e) => {
+          const medNames =
+            e.onMedication === "yes"
+              ? e.medications.map((m) => m.name.trim()).filter(Boolean)
+              : [];
+          return {
+            condition: e.condition.trim(),
+            diagnosed_when: e.howLongHad.trim(),
+            how_long_had: e.howLongHad.trim(),
+            on_medication: e.onMedication,
+            medication_names: medNames,
+            medication_name:
+              medNames.length > 0 ? medNames.join(", ") : null,
+          };
+        });
+
+      const formatMeds = state.currentMedications
+        .filter((e) => e.medication.trim())
+        .map((e) => ({
+          medication: e.medication.trim(),
+          for_condition: e.forCondition.trim(),
+          notes: e.reason.trim() || null,
+        }));
+
+      const formatHealth = state.otherHealthHistory
+        .filter((e) => e.condition.trim())
+        .map((e) => ({
+          condition: e.condition.trim(),
+          when: e.howLongAgo.trim(),
+          how_long_ago: e.howLongAgo.trim(),
+          outcome: e.outcome.trim(),
+        }));
+
       const clinicalAnswers: Record<string, unknown> = {
-        journey_stage: state.journey,
+        journey_stage: effectiveJourney,
+        consultation_type: consultationType,
         ethnicity: state.ethnicity,
         dob: state.dob,
+        height_cm:
+          Number.isFinite(metrics.heightCm) && metrics.heightCm > 0
+            ? Math.round(metrics.heightCm)
+            : null,
+        weight_kg:
+          Number.isFinite(metrics.weightKg) && metrics.weightKg > 0
+            ? Math.round(metrics.weightKg * 10) / 10
+            : null,
         bmi: bmi ? Number(bmi.toFixed(1)) : null,
         assigned_sex: state.assignedSex,
         age_18_75: state.ageBracket,
@@ -494,51 +983,223 @@ export default function InjectableWeightLossConsultation() {
         mtc_or_men2_history: state.thyroidHistory,
         eating_disorder_history: state.eatingDisorder,
         excluding_conditions: state.excludingConditions,
+        diagnosed_conditions_details: formatDiagnosed,
         diabetes_meds_beyond_metformin: state.diabetesMedsOther,
         currently_taking_meds: state.takingMeds,
+        current_medications_details: formatMeds,
         other_health_conditions: state.otherConditions,
+        other_health_conditions_details: formatHealth,
         oral_contraceptive: state.oralContraceptive,
         new_to_injectables: state.newToInjectables,
+        changing_from_provider: state.changingProvider,
+        last_injection_timing: state.lastInjectionTiming,
+        last_injection_date:
+          state.lastInjectionTiming === "exact_date"
+            ? state.lastInjectionDate
+            : null,
+        document_requirements: {
+          "previous-prescription":
+            effectiveJourney === "transferring" ? "required" : "not_required",
+        },
+        documents_pending: {
+          weight_scale: !patientDocs["weight-scale-video"],
+          previous_prescription:
+            isPreviousPrescriptionRequired({
+              ...uploadAnswersPreview,
+              document_requirements: {
+                "previous-prescription":
+                  effectiveJourney === "transferring"
+                    ? "required"
+                    : "not_required",
+              },
+            }) && !patientDocs["previous-prescription"],
+          supporting_evidence:
+            state.excludingConditions === "yes" &&
+            !patientDocs["supporting-evidence"],
+        },
         consent_agreement: state.agreement,
         gp_consent: state.gpConsent,
         gp_name: state.gpName,
         gp_address: state.gpAddress,
+        ...(isRepeatFlow
+          ? {
+              changes_since_last_order: state.changesSinceLast,
+              side_effects_since_last: state.repeatSideEffectsAny,
+              side_effects_hospitalisation: state.repeatSideEffectsHospital,
+              side_effects_vomiting_diarrhoea: state.repeatSideEffectsVomiting,
+              side_effects_injection_site: state.repeatSideEffectsInjection,
+            }
+          : {}),
         selected_plan: state.selectedPlan,
         addons: Object.entries(state.addOns).filter(([, q]) => q > 0).map(([id, q]) => ({ id, qty: q })),
+        patient_documents: Object.fromEntries(
+          Object.entries(patientDocs).filter(([, url]) => Boolean(url)),
+        ) as Record<PatientDocSlot, string>,
+        patient_documents_uploaded_at: Object.fromEntries(
+          Object.entries(patientDocs)
+            .filter(([, url]) => Boolean(url))
+            .map(([slot]) => [slot, new Date().toISOString()]),
+        ),
       };
 
-      if (state.assignedSex !== "male" && state.assignedSex !== "female") {
+      const contactOk =
+        state.fullName.trim().length >= 2 &&
+        /\S+@\S+\.\S+/.test(state.email) &&
+        (isLoggedIn || state.phone.trim().length >= 7);
+      if (!contactOk) {
         toast({
-          title: "We need your assigned sex at birth",
-          description:
-            "Weight-loss medicines are dosed and contraindicated based on sex at birth. Please go back to Step 6 and select Male or Female so our pharmacists can review safely.",
+          title: "Contact details required",
+          description: isLoggedIn
+            ? "We couldn't load your account details. Sign in again from My Account, then retry."
+            : "Please go back and enter your name, email and phone.",
           variant: "destructive",
         });
         setSubmitting(false);
+        go(isLoggedIn ? 3 : CONTACT_STEP);
         return;
       }
-      const sexForApi: "male" | "female" = state.assignedSex;
+
+      if (!state.selectedPlan) {
+        toast({
+          title: "Select a treatment plan",
+          description:
+            "Please go back and choose your Mounjaro or Wegovy pens before submitting.",
+          variant: "destructive",
+        });
+        setSubmitting(false);
+        go(12);
+        return;
+      }
+
+      const sexForApi: "male" | "female" | "other" =
+        state.assignedSex === "male"
+          ? "male"
+          : state.assignedSex === "female"
+            ? "female"
+            : "other";
+
+      const prescriptionItems = prescriptionItemsFromPlan(state.selectedPlan);
 
       await apiFetch("/api/consultations", {
         method: "POST",
+        auth: "patient",
         body: JSON.stringify({
           conditionId: "weight-loss",
+          previousConsultationId: repeatOfId ?? undefined,
           patientName: state.fullName.trim(),
           patientEmail: state.email.trim(),
-          patientPhone: state.phone.trim(),
           patientAge: ageYears ?? 0,
           patientSex: sexForApi,
           allergies: state.glp1Allergy === "yes" ? "GLP-1 allergy history reported" : "None",
-          currentMedications: state.takingMeds === "yes" ? "Patient reports current medication; details to follow" : "None",
-          medicalHistory: state.otherConditions === "yes" ? "Has other health conditions; details to follow" : "None",
+          currentMedications:
+            formatMeds.length > 0
+              ? formatMeds
+                  .map((m) => `${m.medication} (${m.for_condition})`)
+                  .join("; ")
+              : state.takingMeds === "yes"
+                ? "Medications reported — see consultation answers"
+                : "None",
+          medicalHistory:
+            [...formatDiagnosed, ...formatHealth].length > 0
+              ? [
+                  ...formatDiagnosed.map((d) => d.condition),
+                  ...formatHealth.map((h) => h.condition),
+                ].join("; ")
+              : "None reported",
           answers: clinicalAnswers,
-          hasPhoto: false,
+          hasPhoto: Object.values(patientDocs).some(Boolean),
+          photoUrls: Object.values(patientDocs).filter(
+            (url): url is string => Boolean(url),
+          ),
+          verifiedHeightCm:
+            Number.isFinite(metrics.heightCm) && metrics.heightCm > 0
+              ? Math.round(metrics.heightCm)
+              : undefined,
+          verifiedWeightKg:
+            Number.isFinite(metrics.weightKg) && metrics.weightKg > 0
+              ? Math.round(metrics.weightKg * 10) / 10
+              : undefined,
+          bmi: bmi != null ? Math.round(bmi) : undefined,
+          gpName: state.gpName.trim() || undefined,
+          gpAddress: state.gpAddress.trim() || undefined,
+          hasRegularGp: state.gpConsent !== "no",
+          consentShareWithGp: state.gpConsent === "yes",
+          consentToTreatment: state.agreement === "yes",
+          consentToDelivery: true,
+          consentDataProcessing: true,
+          prescriptionItems,
         }),
       });
 
+      if (!isLoggedIn) {
+        try {
+          const reg = await apiFetch<{
+            token: string;
+            patientId: string;
+            name: string;
+            email: string;
+            phone?: string | null;
+            dateOfBirth?: string | null;
+            sex?: string | null;
+          }>("/api/auth/patient-register", {
+            method: "POST",
+            body: JSON.stringify({
+              name: state.fullName.trim(),
+              email: state.email.trim(),
+              password: state.accountPassword,
+              phone: state.phone.trim() || undefined,
+              dateOfBirth: state.dob || undefined,
+              sex: sexForApi,
+            }),
+          });
+          savePatientSession({
+            ...reg,
+            phone: state.phone.trim() || reg.phone,
+            dateOfBirth: state.dob || reg.dateOfBirth,
+            sex: sexForApi,
+          });
+          setIsLoggedIn(true);
+        } catch (regErr) {
+          const msg =
+            regErr instanceof Error ? regErr.message : "Registration failed";
+          if (msg.toLowerCase().includes("already exists")) {
+            toast({
+              title: "Consultation submitted",
+              description:
+                "An account with this email already exists — sign in to view your consultation and upload documents.",
+            });
+            navigate("/my-account/login");
+            return;
+          }
+          toast({
+            title: "Consultation submitted",
+            description:
+              "We could not create your portal account. Register from My Account to track your order.",
+            variant: "destructive",
+          });
+          navigate("/my-account/register");
+          return;
+        }
+      }
+
+      const pendingDocs = [
+        !patientDocs["weight-scale-video"] && "weight on scales",
+        effectiveJourney === "transferring" &&
+          !patientDocs["previous-prescription"] &&
+          "previous prescription",
+        state.excludingConditions === "yes" &&
+          !patientDocs["supporting-evidence"] &&
+          "supporting evidence",
+      ].filter(Boolean) as string[];
+
       toast({
         title: "Consultation submitted",
-        description: "Our pharmacist prescriber will review and email you within a few hours.",
+        description:
+          pendingDocs.length > 0
+            ? `Submitted successfully. You can upload ${pendingDocs.join(", ")} anytime from My consultations.`
+            : isLoggedIn
+              ? "Our pharmacist prescriber will review and email you within a few hours."
+              : "Your patient portal account is ready. Our pharmacist will review your consultation shortly.",
       });
       navigate("/my-consultations");
     } catch (err) {
@@ -552,195 +1213,104 @@ export default function InjectableWeightLossConsultation() {
     }
   };
 
+  const shellTotal = flowTotalSteps(isLoggedIn);
+
   // ── Render ─────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#FAF6F0]">
+    <div className="min-h-screen bg-background">
       <Header />
 
-      <div className="bg-[#FAF6F0]">
+      <div className="bg-background">
         <AnimatePresence mode="wait">
           {/* ───── Step 1 — Eligibility / Intro */}
           {step === 1 && (
             <motion.div
               key="step-1"
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="max-w-2xl mx-auto px-5 pb-16"
+              transition={{ duration: 0.25 }}
+              className="max-w-xl mx-auto px-5 pt-8 pb-20"
             >
-              <BrandHeader />
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  209 viewing now
-                </span>
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-amber-100 text-amber-700">
-                  Limited stock
-                </span>
-              </div>
-              <h1 className="text-3xl md:text-4xl font-serif font-bold text-secondary text-center mb-1">
-                Weight-Loss Consultation
+              <Link
+                href="/treatments/weight-loss"
+                className="mb-8 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Weight-loss treatments
+              </Link>
+
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+                Clinical consultation
+              </p>
+              <h1 className="mt-2 font-serif text-3xl font-bold leading-tight text-secondary md:text-4xl">
+                Weight-loss assessment
               </h1>
-              <p className="text-center text-muted-foreground mb-6">
-                Free · No obligation · Prescribed by UK pharmacists
+              <p className="mt-3 max-w-lg text-base leading-relaxed text-muted-foreground">
+                A pharmacist-led consultation to check your eligibility for
+                injectable weight-loss treatment. Free to start — you are not
+                committed until you choose a plan.
               </p>
 
-              <div className="grid grid-cols-2 gap-3 mb-5">
-                <Card className="rounded-2xl border-border"><CardContent className="p-4 text-center">
-                  <Clock className="w-5 h-5 mx-auto text-secondary mb-1.5" />
-                  <p className="font-bold text-secondary">3 mins</p>
-                  <p className="text-xs text-muted-foreground">to complete</p>
-                </CardContent></Card>
-                <Card className="rounded-2xl border-primary/40 bg-primary/5"><CardContent className="p-4 text-center">
-                  <Stethoscope className="w-5 h-5 mx-auto text-primary mb-1.5" />
-                  <p className="font-bold text-primary">Fast</p>
-                  <p className="text-xs text-muted-foreground">prescriber review</p>
-                </CardContent></Card>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                <Card className="rounded-2xl border-rose-200 bg-rose-50"><CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">New here?</p>
-                  <p className="text-2xl font-extrabold text-rose-700">£30 OFF</p>
-                  <p className="text-xs text-muted-foreground mb-2">Your consultation</p>
-                  <div className="bg-white border border-rose-200 rounded-lg px-2.5 py-1.5 text-center font-mono text-sm text-rose-700">
-                    Use code <strong>NEW30</strong>
-                  </div>
-                </CardContent></Card>
-                <Card className="rounded-2xl border-emerald-200 bg-emerald-50"><CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">Already a patient?</p>
-                  <p className="text-2xl font-extrabold text-emerald-700">£25 OFF</p>
-                  <p className="text-xs text-muted-foreground mb-2">Your consultation</p>
-                  <div className="bg-white border border-emerald-200 rounded-lg px-2.5 py-1.5 text-center font-mono text-sm text-emerald-700">
-                    Use code <strong>RETURN25</strong>
-                  </div>
-                </CardContent></Card>
-              </div>
-
-              {/* ── PharmaCare Tracker partner banner ───────────────────── */}
-              <div className="rounded-2xl overflow-hidden mb-5 border border-violet-200 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white">
-                <div className="p-5 flex items-center gap-4">
-                  <div className="w-12 h-12 shrink-0 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center">
-                    <TrendingDown className="w-6 h-6" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] uppercase tracking-wider font-semibold text-white/70">PharmaCare Tracker</p>
-                    <p className="font-bold text-base md:text-lg leading-tight">Track your weight-loss journey with AI</p>
-                    <p className="text-xs text-white/80 mt-0.5">50% off for founding members of our companion app.</p>
-                  </div>
-                  <button type="button" className="hidden sm:inline-flex shrink-0 text-xs font-bold px-3 py-2 rounded-xl bg-white text-violet-700 hover:bg-violet-50">
-                    Join waitlist
-                  </button>
-                </div>
-              </div>
-
-              {/* ── Real Transformations ────────────────────────────────── */}
-              <div className="mb-5">
-                <h2 className="text-center font-serif text-2xl font-bold text-secondary">Real transformations</h2>
-                <p className="text-center text-xs text-muted-foreground mb-4">Verified patient results — anonymised</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {[
-                    { name: "James, 34", text: "Lost 2 stone on Mounjaro in 5 months", from: "from-sky-100", to: "to-sky-50", accent: "text-sky-700" },
-                    { name: "Sarah, 41", text: "Lost 2.5 stone on Wegovy in 6 months", from: "from-rose-100", to: "to-rose-50", accent: "text-rose-700" },
-                  ].map((t) => (
-                    <Card key={t.name} className="rounded-2xl border-border overflow-hidden">
-                      <div className={`grid grid-cols-2 h-36 bg-gradient-to-br ${t.from} ${t.to}`}>
-                        <div className="relative flex items-end justify-center">
-                          <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary text-white">BEFORE</span>
-                          <User className="w-16 h-16 text-secondary/30 mb-2" />
-                        </div>
-                        <div className="relative flex items-end justify-center border-l border-white/40">
-                          <span className="absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-600 text-white">AFTER</span>
-                          <User className="w-14 h-14 text-secondary/30 mb-2" />
-                        </div>
-                      </div>
-                      <CardContent className="p-3 text-center">
-                        <p className="font-semibold text-secondary text-sm">{t.name}</p>
-                        <p className={`text-xs ${t.accent}`}>{t.text}</p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-
-              {/* ── Trusted & Certified (enhanced) ─────────────────────── */}
-              <SectionCard>
-                <p className="text-center font-serif font-bold text-secondary text-lg mb-4">Trusted & Certified</p>
-                <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-muted/30">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                    <ShieldCheck className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-secondary text-sm">GPhC Registered Pharmacy</p>
-                    <p className="text-xs text-muted-foreground">Reg 9011677 · Superintendent M Zuvaid Patel</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center font-extrabold text-xs">EL</div>
-                    <div className="min-w-0">
-                      <p className="font-bold text-rose-800 text-sm leading-tight">Eli Lilly</p>
-                      <p className="text-[10px] text-rose-700">Authorised supplier</p>
+              <ul className="mt-10 space-y-3">
+                {[
+                  {
+                    icon: Clock,
+                    title: "About 3 minutes",
+                    desc: "Progress is saved automatically if you need a break.",
+                  },
+                  {
+                    icon: Stethoscope,
+                    title: "Reviewed by a UK prescriber",
+                    desc: "Every consultation is checked by a GPhC-registered pharmacist.",
+                  },
+                  {
+                    icon: ShieldCheck,
+                    title: "Regulated UK pharmacy",
+                    desc: "GPhC 9011677 · encrypted · discreet delivery.",
+                  },
+                ].map((item) => (
+                  <li
+                    key={item.title}
+                    className="flex gap-4 rounded-2xl border border-stone-200/90 bg-card px-4 py-4 shadow-sm"
+                  >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-primary">
+                      <item.icon className="h-5 w-5" />
+                    </span>
+                    <div>
+                      <p className="font-semibold text-secondary">{item.title}</p>
+                      <p className="mt-0.5 text-sm text-muted-foreground">
+                        {item.desc}
+                      </p>
                     </div>
-                  </div>
-                  <div className="rounded-xl border border-sky-200 bg-sky-50 p-3 flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center font-extrabold text-xs">NN</div>
-                    <div className="min-w-0">
-                      <p className="font-bold text-sky-800 text-sm leading-tight">Novo Nordisk</p>
-                      <p className="text-[10px] text-sky-700">Authorised supplier</p>
-                    </div>
-                  </div>
-                </div>
-              </SectionCard>
+                  </li>
+                ))}
+              </ul>
 
-              {/* ── Why Patients Choose Us ────────────────────────────── */}
-              <div className="mt-5">
-                <h2 className="text-center font-serif text-2xl font-bold text-secondary mb-4">Why patients choose us</h2>
-                <div className="grid grid-cols-1 gap-3">
-                  {[
-                    { name: "Dave", text: "Customer service was excellent. Emailed to say there was a problem with my order due to the delivery — it was in no way PharmaCare's fault, but still organised a full re-order to be sent again soon. Excellent company that I'll be using in the future." },
-                    { name: "Marison", text: "Very happy with this company and my order — best thing was actually being able to speak to someone in person about the process!" },
-                  ].map((r) => (
-                    <Card key={r.name} className="rounded-2xl border-border">
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-0.5 mb-2 text-amber-400">
-                          {[0,1,2,3,4].map(i => <Star key={i} className="w-4 h-4 fill-current" />)}
-                        </div>
-                        <p className="text-sm text-foreground/80 mb-3 leading-relaxed">"{r.text}"</p>
-                        <div className="flex items-center gap-2 pt-2 border-t border-border/60">
-                          <div className="w-7 h-7 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-bold">
-                            {r.name.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-secondary text-sm leading-tight">{r.name}</p>
-                            <p className="text-[10px] text-muted-foreground">Verified purchase</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-8">
+              <div className="mt-10">
                 <Button
-                  onClick={() => go(2)}
+                  onClick={() => go(isLoggedIn ? 3 : 2)}
                   size="lg"
-                  className="w-full h-14 rounded-2xl bg-secondary hover:bg-secondary/90 text-white text-base font-semibold"
+                  className="h-12 w-full rounded-xl bg-primary text-base font-semibold text-primary-foreground hover:bg-primary/90"
                   data-testid="button-start-consultation"
                 >
-                  Start free consultation <ArrowRight className="w-4 h-4 ml-1.5" />
+                  Start consultation
+                  <ArrowRight className="ml-1.5 h-4 w-4" />
                 </Button>
-                <div className="mt-4"><TrustRow /></div>
+                <div className="mt-5">
+                  <TrustRow />
+                </div>
               </div>
             </motion.div>
           )}
 
-          {/* ───── Step 2 — Contact */}
-          {step === 2 && (
+          {/* ───── Step 2 — Contact (guests only) */}
+          {!isLoggedIn && step === 2 && (
             <StepShell
-              step={2} label="Contact" icon={<User className="w-6 h-6" />}
+              step={flowStepNumber(2, isLoggedIn)}
+              totalSteps={shellTotal}
+              label="Contact"
+              icon={<User className="w-6 h-6" />}
               title="Your contact details"
               subtitle="We'll use these to keep you updated about your consultation."
               onBack={back} onContinue={next} canContinue={canContinue}
@@ -806,14 +1376,16 @@ export default function InjectableWeightLossConsultation() {
                   <li className="flex items-start gap-2"><span className="w-1 h-1 rounded-full bg-stone-400 mt-2 shrink-0" /> We never share your details with third parties</li>
                 </ul>
               </div>
-              <TrustRow />
             </StepShell>
           )}
 
           {/* ───── Step 3 — Journey */}
           {step === 3 && (
             <StepShell
-              step={3} label="BMI Check" icon={<ClipboardCheck className="w-6 h-6" />}
+              step={flowStepNumber(3, isLoggedIn)}
+              totalSteps={shellTotal}
+              label="BMI Check"
+              icon={<ClipboardCheck className="w-6 h-6" />}
               title="BMI Assessment"
               subtitle="Let's calculate your BMI to confirm your eligibility"
               onBack={back} onContinue={next} canContinue={canContinue}
@@ -831,13 +1403,127 @@ export default function InjectableWeightLossConsultation() {
                 selected={state.journey === "transferring"} onSelect={() => update("journey", "transferring")}
                 testId="journey-transferring"
               />
+
+              {isRepeatFlow && (
+                <div className="mt-6 space-y-5 rounded-2xl border border-violet-200 bg-violet-50/40 p-4">
+                  <div>
+                    <p className="text-sm font-bold text-[#0E3D2D]">
+                      Repeat treatment safety questions
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Required for reorders — helps your pharmacist review this
+                      order safely.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-secondary">
+                      Since your last order, have there been any changes in your
+                      medical history? *
+                    </p>
+                    {(
+                      [
+                        [
+                          "new_diagnosis",
+                          "Yes — new diagnosis or change in health condition",
+                        ],
+                        [
+                          "new_medication_allergy",
+                          "Yes — started new medication / changed medication / developed allergy",
+                        ],
+                        ["no_changes", "No changes"],
+                      ] as [ChangesSinceLastOrder, string][]
+                    ).map(([val, label]) => (
+                      <RadioRow
+                        key={val}
+                        selected={state.changesSinceLast === val}
+                        onSelect={() => update("changesSinceLast", val)}
+                        title={label}
+                        testId={`changes-since-${val}`}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="space-y-2 border-t border-violet-100 pt-4">
+                    <p className="text-sm font-semibold text-secondary">
+                      Side effects since your last order *
+                    </p>
+                    <RadioRow
+                      selected={state.repeatSideEffectsAny === "yes"}
+                      onSelect={() => update("repeatSideEffectsAny", "yes")}
+                      title="Yes — I have had side effects"
+                      testId="repeat-side-effects-yes"
+                    />
+                    <RadioRow
+                      selected={state.repeatSideEffectsAny === "no"}
+                      onSelect={() => {
+                        update("repeatSideEffectsAny", "no");
+                        update("repeatSideEffectsHospital", "no");
+                        update("repeatSideEffectsVomiting", "no");
+                        update("repeatSideEffectsInjection", "no");
+                      }}
+                      title="No side effects"
+                      testId="repeat-side-effects-no"
+                    />
+                  </div>
+
+                  {state.repeatSideEffectsAny === "yes" && (
+                    <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/50 p-3">
+                      <p className="text-xs font-semibold text-amber-900">
+                        Please answer all of the following:
+                      </p>
+                      {(
+                        [
+                          [
+                            "repeatSideEffectsHospital",
+                            "Hospitalisation since your last order?",
+                          ],
+                          [
+                            "repeatSideEffectsVomiting",
+                            "Vomiting or diarrhoea?",
+                          ],
+                          [
+                            "repeatSideEffectsInjection",
+                            "Injection site reactions?",
+                          ],
+                        ] as const
+                      ).map(([key, label]) => (
+                        <div key={key} className="flex flex-wrap gap-2">
+                          <span className="w-full text-sm font-medium text-stone-800">
+                            {label}
+                          </span>
+                          {(["yes", "no"] as YesNo[]).map((v) => (
+                            <button
+                              key={v}
+                              type="button"
+                              onClick={() => update(key, v)}
+                              className={cn(
+                                "h-10 min-w-[5rem] rounded-xl px-4 text-sm font-semibold transition-colors",
+                                state[key] === v
+                                  ? "bg-[#0E3D2D] text-white"
+                                  : "bg-white border border-stone-200 text-stone-700",
+                              )}
+                              data-testid={`${key}-${v}`}
+                            >
+                              {v === "yes" ? "Yes" : "No"}
+                            </button>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </StepShell>
           )}
 
           {/* ───── Step 4 — Ethnicity */}
           {step === 4 && (
             <StepShell
-              step={4} label="Ethnicity" icon={<User className="w-6 h-6" />}
+              step={flowStepNumber(4, isLoggedIn)}
+              totalSteps={shellTotal}
+              label="Ethnicity"
+              icon={<User className="w-6 h-6" />}
               title="Ethnicity"
               subtitle="We ask for this to help us accurately assess your eligibility — South Asian, Black African and Caribbean patients have lower BMI thresholds for cardiometabolic risk."
               onBack={back} onContinue={next} canContinue={canContinue}
@@ -862,21 +1548,25 @@ export default function InjectableWeightLossConsultation() {
           {/* ───── Step 5 — BMI Measurements */}
           {step === 5 && (
             <StepShell
-              step={5} label="BMI Check" icon={<ClipboardCheck className="w-6 h-6" />}
+              step={flowStepNumber(5, isLoggedIn)}
+              totalSteps={shellTotal}
+              label="BMI Check"
+              icon={<ClipboardCheck className="w-6 h-6" />}
               title="BMI Assessment"
               subtitle="We'll calculate your BMI to determine your eligibility."
               onBack={back} onContinue={next} canContinue={canContinue}
             >
               <SectionCard>
                 <div className="space-y-5">
-                  <div>
-                    <Label htmlFor="dob" className="font-semibold text-secondary">Date of birth *</Label>
-                    <Input
-                      id="dob" type="date" value={state.dob}
-                      onChange={(e) => update("dob", e.target.value)}
-                      className="h-12 mt-1.5 rounded-xl" data-testid="input-dob"
-                    />
-                  </div>
+                  <DateField
+                    label="Date of birth *"
+                    value={state.dob}
+                    onChange={(v) => update("dob", v)}
+                    max={new Date().toISOString().slice(0, 10)}
+                    min="1920-01-01"
+                    hint="Used to confirm you are aged 18–75 for online prescribing."
+                    placeholder="DD/MM/YYYY"
+                  />
 
                   <div>
                     <Label className="font-semibold text-secondary">Your height *</Label>
@@ -962,7 +1652,10 @@ export default function InjectableWeightLossConsultation() {
           {/* ───── Step 6 — Your Health */}
           {step === 6 && (
             <StepShell
-              step={6} label="Your Health" icon={<Heart className="w-6 h-6" />}
+              step={flowStepNumber(6, isLoggedIn)}
+              totalSteps={shellTotal}
+              label="Your Health"
+              icon={<Heart className="w-6 h-6" />}
               title="Your Health"
               subtitle="Please answer these questions honestly to ensure your safety."
               onBack={back} onContinue={next} canContinue={canContinue}
@@ -974,7 +1667,16 @@ export default function InjectableWeightLossConsultation() {
                     ["male", "Male"], ["female", "Female"], ["prefer-not-to-say", "Prefer not to say"],
                   ] as [AssignedSex, string][]).map(([val, label]) => (
                     <RadioRow key={val}
-                      selected={state.assignedSex === val} onSelect={() => update("assignedSex", val)}
+                      selected={state.assignedSex === val}
+                      onSelect={() => {
+                        setState((s) => ({
+                          ...s,
+                          assignedSex: val,
+                          ...(val === "male"
+                            ? { pregnant: null, oralContraceptive: null }
+                            : {}),
+                        }));
+                      }}
                       title={label} testId={`assignedSex-${val}`}
                     />
                   ))}
@@ -982,11 +1684,27 @@ export default function InjectableWeightLossConsultation() {
               </SectionCard>
 
               {[
-                { key: "ageBracket",     q: "Are you aged between 18 and 75? *" },
-                { key: "pregnant",       q: "Are you currently pregnant, breastfeeding, or planning to become pregnant or breastfeed while using this medication? *" },
-                { key: "glp1Allergy",    q: "Have you ever had an allergic reaction to Wegovy, Mounjaro, Ozempic, Saxenda, or other GLP-1 medications? *" },
-                { key: "thyroidHistory", q: "Do you or a family member have a history of medullary thyroid cancer or MEN2? *" },
-                { key: "eatingDisorder", q: "Have you ever had an eating disorder (e.g. anorexia, bulimia)? *" },
+                { key: "ageBracket", q: "Are you aged between 18 and 75? *" },
+                ...(asksFemaleHealthQuestions(state.assignedSex)
+                  ? [
+                      {
+                        key: "pregnant",
+                        q: "Are you currently pregnant, breastfeeding, or planning to become pregnant or breastfeed while using this medication? *",
+                      },
+                    ]
+                  : []),
+                {
+                  key: "glp1Allergy",
+                  q: "Have you ever had an allergic reaction to Wegovy, Mounjaro, Ozempic, Saxenda, or other GLP-1 medications? *",
+                },
+                {
+                  key: "thyroidHistory",
+                  q: "Do you or a family member have a history of medullary thyroid cancer or MEN2? *",
+                },
+                {
+                  key: "eatingDisorder",
+                  q: "Have you ever had an eating disorder (e.g. anorexia, bulimia)? *",
+                },
               ].map(({ key, q }) => (
                 <SectionCard key={key}>
                   <p className="font-semibold text-secondary mb-3">{q}</p>
@@ -1003,7 +1721,10 @@ export default function InjectableWeightLossConsultation() {
           {/* ───── Step 7 — Medical Conditions */}
           {step === 7 && (
             <StepShell
-              step={7} label="Medical Conditions" icon={<ShieldCheck className="w-6 h-6" />}
+              step={flowStepNumber(7, isLoggedIn)}
+              totalSteps={shellTotal}
+              label="Medical Conditions"
+              icon={<ShieldCheck className="w-6 h-6" />}
               title="Medical Conditions"
               subtitle="Help us understand your medical history."
               onBack={back} onContinue={next} canContinue={canContinue}
@@ -1037,9 +1758,26 @@ export default function InjectableWeightLossConsultation() {
                 </ul>
                 <YesNoChoice
                   value={state.excludingConditions}
-                  onChange={(v) => update("excludingConditions", v)}
+                  onChange={(v) => {
+                    setState((s) => ({
+                      ...s,
+                      excludingConditions: v,
+                      diagnosedConditions:
+                        v === "yes" && s.diagnosedConditions.length === 0
+                          ? [emptyDiagnosedEntry()]
+                          : s.diagnosedConditions,
+                    }));
+                  }}
                   testIdPrefix="excludingConditions"
                 />
+                {state.excludingConditions === "yes" && (
+                  <DiagnosedConditionsFollowUp
+                    entries={state.diagnosedConditions}
+                    onChange={(diagnosedConditions) =>
+                      setState((s) => ({ ...s, diagnosedConditions }))
+                    }
+                  />
+                )}
               </SectionCard>
 
               <SectionCard>
@@ -1058,33 +1796,137 @@ export default function InjectableWeightLossConsultation() {
           {/* ───── Step 8 — Medication */}
           {step === 8 && (
             <StepShell
-              step={8} label="Medication" icon={<PillIcon className="w-6 h-6" />}
+              step={flowStepNumber(8, isLoggedIn)}
+              totalSteps={shellTotal}
+              label="Medication"
+              icon={<PillIcon className="w-6 h-6" />}
               title="Medication"
               subtitle="Tell us about your current and past medications."
               onBack={back} onContinue={next} canContinue={canContinue}
             >
-              {[
-                { key: "takingMeds",        q: "Are you currently taking any prescribed, over-the-counter, or recreational drugs? *" },
-                { key: "otherConditions",   q: "Do you have any previous or current health conditions? *" },
-                { key: "oralContraceptive", q: "Are you taking an oral contraceptive? *" },
-                { key: "newToInjectables",  q: "Are you new to using injectable weight-loss medications? *" },
-              ].map(({ key, q }) => (
-                <SectionCard key={key}>
-                  <p className="font-semibold text-secondary mb-3">{q}</p>
+              <SectionCard>
+                <p className="font-semibold text-secondary mb-3">
+                  Are you currently taking any prescribed, over-the-counter, or recreational drugs? *
+                </p>
+                <YesNoChoice
+                  value={state.takingMeds}
+                  onChange={(v) => {
+                    setState((s) => ({
+                      ...s,
+                      takingMeds: v,
+                      currentMedications:
+                        v === "yes" && s.currentMedications.length === 0
+                          ? [emptyMedicationEntry()]
+                          : s.currentMedications,
+                    }));
+                  }}
+                  testIdPrefix="takingMeds"
+                />
+                {state.takingMeds === "yes" && (
+                  <CurrentMedicationsFollowUp
+                    entries={state.currentMedications}
+                    onChange={(currentMedications) =>
+                      setState((s) => ({ ...s, currentMedications }))
+                    }
+                  />
+                )}
+              </SectionCard>
+
+              <SectionCard>
+                <p className="font-semibold text-secondary mb-3">
+                  Do you have any previous or current health conditions? *
+                </p>
+                <YesNoChoice
+                  value={state.otherConditions}
+                  onChange={(v) => {
+                    setState((s) => ({
+                      ...s,
+                      otherConditions: v,
+                      otherHealthHistory:
+                        v === "yes" && s.otherHealthHistory.length === 0
+                          ? [emptyHealthEntry()]
+                          : s.otherHealthHistory,
+                    }));
+                  }}
+                  testIdPrefix="otherConditions"
+                />
+                {state.otherConditions === "yes" && (
+                  <OtherHealthHistoryFollowUp
+                    entries={state.otherHealthHistory}
+                    onChange={(otherHealthHistory) =>
+                      setState((s) => ({ ...s, otherHealthHistory }))
+                    }
+                  />
+                )}
+              </SectionCard>
+
+              {asksFemaleHealthQuestions(state.assignedSex) && (
+                <SectionCard>
+                  <p className="font-semibold text-secondary mb-3">
+                    Are you taking an oral contraceptive? *
+                  </p>
                   <YesNoChoice
-                    value={state[key as keyof FormState] as YesNo | null}
-                    onChange={(v) => update(key as keyof FormState, v as never)}
-                    testIdPrefix={key}
+                    value={state.oralContraceptive}
+                    onChange={(v) => update("oralContraceptive", v)}
+                    testIdPrefix="oralContraceptive"
                   />
                 </SectionCard>
-              ))}
+              )}
+
+              <SectionCard>
+                <p className="font-semibold text-secondary mb-3">
+                  Are you new to using injectable weight-loss medications? *
+                </p>
+                <YesNoChoice
+                  value={state.newToInjectables}
+                  onChange={(v) => {
+                    setState((s) => ({
+                      ...s,
+                      newToInjectables: v,
+                      ...(v === "yes"
+                        ? {
+                            changingProvider: null,
+                            lastInjectionTiming: null,
+                            lastInjectionDate: "",
+                          }
+                        : {}),
+                    }));
+                  }}
+                  testIdPrefix="newToInjectables"
+                />
+                {state.newToInjectables === "no" && (
+                  <InjectablesFollowUp
+                    changingProvider={state.changingProvider}
+                    onChangingProvider={(changingProvider) =>
+                      update("changingProvider", changingProvider)
+                    }
+                    lastInjectionTiming={state.lastInjectionTiming}
+                    onLastInjectionTiming={(lastInjectionTiming) =>
+                      setState((s) => ({
+                        ...s,
+                        lastInjectionTiming,
+                        ...(lastInjectionTiming !== "exact_date"
+                          ? { lastInjectionDate: "" }
+                          : {}),
+                      }))
+                    }
+                    lastInjectionDate={state.lastInjectionDate}
+                    onLastInjectionDate={(lastInjectionDate) =>
+                      update("lastInjectionDate", lastInjectionDate)
+                    }
+                  />
+                )}
+              </SectionCard>
             </StepShell>
           )}
 
           {/* ───── Step 9 — Agreement */}
           {step === 9 && (
             <StepShell
-              step={9} label="Agreement" icon={<CheckCircle2 className="w-6 h-6" />}
+              step={flowStepNumber(9, isLoggedIn)}
+              totalSteps={shellTotal}
+              label="Agreement"
+              icon={<CheckCircle2 className="w-6 h-6" />}
               title="Agreement"
               subtitle="Please read and confirm you agree to proceed."
               onBack={back} onContinue={next} canContinue={canContinue}
@@ -1118,14 +1960,16 @@ export default function InjectableWeightLossConsultation() {
                   </p>
                 )}
               </SectionCard>
-              <TrustRow />
             </StepShell>
           )}
 
           {/* ───── Step 10 — GP Details */}
           {step === 10 && (
             <StepShell
-              step={10} label="GP Details" icon={<Stethoscope className="w-6 h-6" />}
+              step={flowStepNumber(10, isLoggedIn)}
+              totalSteps={shellTotal}
+              label="GP Details"
+              icon={<Stethoscope className="w-6 h-6" />}
               title="GP Information"
               subtitle="We need to contact your GP for your safety."
               onBack={back} onContinue={next} canContinue={canContinue}
@@ -1158,18 +2002,166 @@ export default function InjectableWeightLossConsultation() {
                   </div>
                 )}
               </SectionCard>
-              <div className="rounded-xl bg-[#D4EFE2] p-4 text-sm text-[#0E3D2D]">
-                <p className="font-bold mb-1.5">Why do we need this?</p>
-                <p className="text-stone-700">For your safety, we need to share information about your prescription with your GP to ensure continuity of care.</p>
+              <div className="rounded-xl border border-emerald-100 bg-accent/40 p-4 text-sm text-secondary">
+                <p className="font-semibold mb-1">Why do we need this?</p>
+                <p className="text-muted-foreground leading-relaxed">
+                  For your safety, we share information about your prescription with
+                  your GP to ensure continuity of care.
+                </p>
               </div>
-              <TrustRow />
             </StepShell>
           )}
 
-          {/* ───── Step 11 — Treatment Plan */}
+          {/* ───── Step 11 — Weight verification photo */}
           {step === 11 && (
             <StepShell
-              step={11} label="Treatment" icon={<Syringe className="w-6 h-6" />}
+              step={flowStepNumber(11, isLoggedIn)}
+              totalSteps={shellTotal}
+              label="Verification"
+              icon={<Upload className="w-6 h-6" />}
+              title="Upload verification documents"
+              subtitle="You can submit your order now and upload documents later from My consultations. Your pharmacist will be notified of anything still missing."
+              onBack={back}
+              onContinue={next}
+              canContinue={canContinue}
+              continueLabel="Continue to treatment plan"
+            >
+              <SectionCard>
+                <div className="space-y-4">
+                {visibleUploadSlots.map((slotId) => {
+                  const meta = EVIDENCE_SLOT_META[slotId];
+                  const req = uploadRequirements[slotId];
+                  const url = patientDocs[slotId];
+                  const inputId = `wl-doc-${slotId}`;
+                  const isVideoUrl =
+                    typeof url === "string" &&
+                    (url.startsWith("data:video/") ||
+                      /\.(mp4|webm|mov)(\?|#|$)/i.test(url));
+                  return (
+                    <div
+                      key={slotId}
+                      className="rounded-2xl border border-stone-200 bg-white p-4"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-secondary">
+                            {meta.title}
+                            {req === "required" ? (
+                              <span className="ml-1 text-rose-600">*</span>
+                            ) : null}
+                          </p>
+                          <p className="mt-0.5 text-sm text-muted-foreground">
+                            {meta.summary}
+                          </p>
+                          <EvidenceCriteriaList slotId={slotId} />
+                        </div>
+                        <span
+                          className={cn(
+                            "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                            url
+                              ? "bg-emerald-100 text-emerald-800"
+                              : req === "not_required"
+                                ? "bg-stone-100 text-stone-500"
+                                : "bg-stone-100 text-stone-600",
+                          )}
+                        >
+                          {url
+                            ? "Uploaded"
+                            : req === "not_required"
+                              ? requirementLabel(req)
+                              : "Not uploaded"}
+                        </span>
+                      </div>
+                      {url ? (
+                        <div className="relative mt-3 overflow-hidden rounded-xl border border-stone-200">
+                          {isVideoUrl ? (
+                            <video
+                              src={url}
+                              controls
+                              playsInline
+                              className="h-36 w-full bg-stone-900 object-contain"
+                            />
+                          ) : (
+                            <img
+                              src={url}
+                              alt={meta.title}
+                              className="h-36 w-full object-cover"
+                            />
+                          )}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPatientDocs((prev) => ({
+                                ...prev,
+                                [slotId]: null,
+                              }))
+                            }
+                            className="absolute right-1.5 top-1.5 rounded-full bg-white/95 px-2 py-0.5 text-xs font-semibold text-rose-700 shadow"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ) : (
+                        <label
+                          htmlFor={inputId}
+                          className="mt-3 flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed border-[#0E3D2D]/25 bg-[#D4EFE2]/30 px-4 py-6 text-center transition-colors hover:border-[#0E3D2D]/45"
+                        >
+                          <Upload className="mb-2 h-8 w-8 text-[#0E3D2D]" />
+                          <span className="text-sm font-semibold text-secondary">
+                            {meta.isVideo ? "Tap to record or upload video" : "Tap to upload"}
+                          </span>
+                          <span className="mt-0.5 text-xs text-muted-foreground">
+                            {meta.isVideo
+                              ? `Live video preferred — up to ${meta.maxMb}MB`
+                              : `Images or PDF — up to ${meta.maxMb}MB`}
+                          </span>
+                          <input
+                            id={inputId}
+                            type="file"
+                            accept={meta.acceptMime}
+                            capture={meta.isVideo ? "environment" : undefined}
+                            className="sr-only"
+                            onChange={(e) => {
+                              handleSlotFile(slotId, e.target.files);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  );
+                })}
+                {photoError && (
+                  <p className="text-sm text-destructive">{photoError}</p>
+                )}
+                </div>
+              </SectionCard>
+              {state.excludingConditions === "yes" && (
+                <p className="text-sm text-stone-600 -mt-2">
+                  Please provide supporting evidence for your current condition,
+                  medications and related care where you have them. You may upload
+                  now or complete this from your patient portal after submitting.
+                </p>
+              )}
+              <div className="rounded-xl border border-emerald-100 bg-accent/40 p-4 text-sm text-secondary">
+                <p className="font-semibold mb-1">Why we ask for this</p>
+                <p className="leading-relaxed text-muted-foreground">
+                  UK pharmacy regulations require us to verify weight before
+                  prescribing GLP-1 medicines. Your uploads are reviewed only by our
+                  clinical team. Missing items won&apos;t block submission — you can
+                  complete them later in My consultations.
+                </p>
+              </div>
+            </StepShell>
+          )}
+
+          {/* ───── Step 12 — Treatment Plan */}
+          {step === 12 && (
+            <StepShell
+              step={flowStepNumber(12, isLoggedIn)}
+              totalSteps={shellTotal}
+              label="Treatment"
+              icon={<Syringe className="w-6 h-6" />}
               title="Your injectable weight-loss prescription plan"
               subtitle="Select your Mounjaro or Wegovy treatment. Select a single pen or bundle that fits your goals."
               onBack={back} onContinue={next} canContinue={canContinue}
@@ -1182,15 +2174,22 @@ export default function InjectableWeightLossConsultation() {
             </StepShell>
           )}
 
-          {/* ───── Step 12 — Add-ons (post-clinical upsell) */}
-          {step === 12 && (
+          {/* ───── Step 13 — Add-ons (post-clinical upsell) */}
+          {step === 13 && (
             <StepShell
-              step={12} totalSteps={12} label="Add-ons" icon={<Plus className="w-6 h-6" />}
+              step={flowStepNumber(13, isLoggedIn)}
+              totalSteps={shellTotal}
+              label="Add-ons"
+              icon={<Plus className="w-6 h-6" />}
               title="Popular add-ons"
-              subtitle="Power your treatment with additional services and supplements."
+              subtitle={
+                isLoggedIn
+                  ? "Power your treatment with additional services and supplements."
+                  : "Optional extras, then create your patient portal to track this consultation."
+              }
               onBack={back}
               onContinue={submit}
-              canContinue={!submitting}
+              canContinue={canContinue && !submitting}
               continueLabel={submitting ? "Submitting…" : "Submit for review"}
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1206,6 +2205,93 @@ export default function InjectableWeightLossConsultation() {
               <p className="text-center text-xs text-muted-foreground mt-2">
                 You can also add these later from your account.
               </p>
+
+              {!isLoggedIn && (
+                <SectionCard>
+                  <p className="font-semibold text-secondary mb-1 flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-[#0E3D2D]" />
+                    Create your patient portal
+                  </p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Use the contact details you entered earlier ({state.email || "your email"})
+                    to track this consultation, upload documents, and message your pharmacist.
+                  </p>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="accountPassword" className="font-semibold text-secondary">
+                        Password *
+                      </Label>
+                      <div className="relative mt-1.5">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="accountPassword"
+                          type={showAccountPassword ? "text" : "password"}
+                          autoComplete="new-password"
+                          placeholder="At least 8 characters"
+                          value={state.accountPassword}
+                          onChange={(e) => update("accountPassword", e.target.value)}
+                          className="h-12 pl-10 pr-10 rounded-xl"
+                          data-testid="input-account-password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowAccountPassword((v) => !v)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                          aria-label={showAccountPassword ? "Hide password" : "Show password"}
+                        >
+                          {showAccountPassword ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="accountPasswordConfirm" className="font-semibold text-secondary">
+                        Confirm password *
+                      </Label>
+                      <div className="relative mt-1.5">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="accountPasswordConfirm"
+                          type={showAccountPassword ? "text" : "password"}
+                          autoComplete="new-password"
+                          placeholder="Re-enter password"
+                          value={state.accountPasswordConfirm}
+                          onChange={(e) =>
+                            update("accountPasswordConfirm", e.target.value)
+                          }
+                          className="h-12 pl-10 rounded-xl"
+                          data-testid="input-account-password-confirm"
+                        />
+                      </div>
+                      {state.accountPasswordConfirm &&
+                        state.accountPassword !== state.accountPasswordConfirm && (
+                          <p className="text-xs text-rose-600 mt-1.5">
+                            Passwords do not match
+                          </p>
+                        )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-4">
+                    Already have an account?{" "}
+                    <Link
+                      href="/my-account/login"
+                      className="font-semibold text-[#0E3D2D] underline"
+                    >
+                      Sign in
+                    </Link>
+                  </p>
+                </SectionCard>
+              )}
+
+              {isLoggedIn && (
+                <div className="rounded-xl bg-[#D4EFE2]/60 border border-[#0E3D2D]/15 px-4 py-3 text-sm text-[#0E3D2D]">
+                  Signed in as <strong>{state.fullName || state.email}</strong> — your
+                  consultation will appear in My consultations after submit.
+                </div>
+              )}
             </StepShell>
           )}
           {/* ───── Ineligible screen */}
@@ -1216,18 +2302,18 @@ export default function InjectableWeightLossConsultation() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="max-w-2xl mx-auto px-5 pb-16"
+              className="max-w-xl mx-auto px-5 pt-8 pb-20"
             >
-              <BrandHeader />
-              <div className="text-center mb-6">
-                <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 inline-flex items-center justify-center mb-4">
-                  <ShieldCheck className="w-6 h-6" />
+              <div className="mb-8">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-amber-800">
+                  <ShieldCheck className="h-5 w-5" />
                 </div>
-                <h1 className="text-2xl md:text-3xl font-serif font-bold text-secondary">
-                  Online treatment isn't appropriate for you right now
+                <h1 className="font-serif text-2xl font-bold leading-tight text-secondary md:text-3xl">
+                  Online treatment isn&apos;t appropriate right now
                 </h1>
-                <p className="text-muted-foreground mt-2 text-sm md:text-base max-w-md mx-auto">
-                  Based on your answers, our prescribing safeguards mean we can't issue this medicine through an online consultation.
+                <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground md:text-base">
+                  Based on your answers, our prescribing safeguards mean we
+                  can&apos;t issue this medicine through an online consultation.
                 </p>
               </div>
               <SectionCard>

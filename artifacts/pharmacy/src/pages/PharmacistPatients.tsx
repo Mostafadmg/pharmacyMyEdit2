@@ -12,7 +12,9 @@ import {
   AlertTriangle,
   ArrowRight,
   Reply,
+  ShoppingBag,
 } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +40,7 @@ type PatientRow = {
   age: number;
   sex: string;
   consultationCount: number;
+  shopOrderCount: number;
   pending: number;
   approved: number;
   redFlags: number;
@@ -46,6 +49,8 @@ type PatientRow = {
   lastConsultationId: string;
   lastSubmittedAt: string;
 };
+
+type ShopOrderSummary = { customerEmail: string };
 
 type UnreadThread = {
   id: string;
@@ -62,7 +67,10 @@ const threadsAuthHeaders = (): Record<string, string> => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-function aggregatePatients(consultations: Consultation[]): PatientRow[] {
+function aggregatePatients(
+  consultations: Consultation[],
+  shopOrdersByEmail: Map<string, number>,
+): PatientRow[] {
   const map = new Map<string, PatientRow>();
 
   for (const c of consultations) {
@@ -77,6 +85,7 @@ function aggregatePatients(consultations: Consultation[]): PatientRow[] {
         age: c.patientAge,
         sex: c.patientSex,
         consultationCount: 1,
+        shopOrderCount: shopOrdersByEmail.get(key) ?? 0,
         pending: c.status === "pending" ? 1 : 0,
         approved: c.status === "approved" ? 1 : 0,
         redFlags: c.hasRedFlag ? 1 : 0,
@@ -123,7 +132,27 @@ export default function PharmacistPatients() {
   const { data, isLoading } = useListConsultations({ limit: 200 });
   const consultations = (data as { consultations?: Consultation[] } | undefined)?.consultations ?? [];
 
-  const patients = useMemo(() => aggregatePatients(consultations as Consultation[]), [consultations]);
+  const [shopOrdersByEmail, setShopOrdersByEmail] = useState<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    apiFetch<{ orders: ShopOrderSummary[] }>("/api/orders", { auth: "pharmacist" })
+      .then((json) => {
+        const map = new Map<string, number>();
+        for (const o of json.orders ?? []) {
+          const key = o.customerEmail.toLowerCase();
+          map.set(key, (map.get(key) ?? 0) + 1);
+        }
+        setShopOrdersByEmail(map);
+      })
+      .catch(() => {
+        /* orders optional for list */
+      });
+  }, []);
+
+  const patients = useMemo(
+    () => aggregatePatients(consultations as Consultation[], shopOrdersByEmail),
+    [consultations, shopOrdersByEmail],
+  );
 
   const [unreadByEmail, setUnreadByEmail] = useState<Map<string, UnreadInfo>>(new Map());
 
@@ -185,7 +214,7 @@ export default function PharmacistPatients() {
             Patients
           </h1>
           <p className="text-muted-foreground mt-2 text-lg">
-            Every patient who has used PharmaCare, with their consultation history.
+            Every patient who has used PharmaCare — consultations and shop orders linked by email.
           </p>
         </div>
         <div className="relative w-full md:w-80">
@@ -257,7 +286,7 @@ export default function PharmacistPatients() {
                       Latest condition
                     </th>
                     <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">
-                      Consultations
+                      Activity
                     </th>
                     <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">
                       Last activity
@@ -328,6 +357,17 @@ export default function PharmacistPatients() {
                             <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200 border-none">
                               <Clock className="w-3 h-3 mr-1" /> {p.pending}
                             </Badge>
+                          )}
+                          {p.shopOrderCount > 0 && (
+                            <Link href={`/dashboard/patients/${encodeURIComponent(p.email)}`}>
+                              <a
+                                className="inline-flex items-center text-xs font-semibold rounded-md px-2 py-0.5 bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
+                                title="View shop orders on patient profile"
+                                data-testid={`badge-orders-${p.email}`}
+                              >
+                                <ShoppingBag className="w-3 h-3 mr-1" /> {p.shopOrderCount}
+                              </a>
+                            </Link>
                           )}
                           {p.approved > 0 && (
                             <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-none">

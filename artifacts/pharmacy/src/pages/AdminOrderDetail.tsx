@@ -495,6 +495,11 @@ export default function AdminOrderDetail() {
                     <>
                       <div className="text-sm space-y-1">
                         <p className="flex items-center gap-2"><User className="w-3.5 h-3.5 text-muted-foreground" /> {data.order.customerName}</p>
+                        <Button asChild variant="link" className="h-auto p-0 text-sm font-semibold justify-start" data-testid="link-order-patient-profile">
+                          <Link href={`/dashboard/patients/${encodeURIComponent(data.order.customerEmail)}`}>
+                            View patient profile
+                          </Link>
+                        </Button>
                         <a href={`mailto:${data.order.customerEmail}`} className="flex items-center gap-2 text-primary hover:underline break-all">
                           <Mail className="w-3.5 h-3.5 flex-shrink-0" /> <span className="truncate">{data.order.customerEmail}</span>
                         </a>

@@ -25,6 +25,8 @@ import PharmacistLogin from "./pages/PharmacistLogin";
 import PatientLogin from "./pages/PatientLogin";
 import PatientRegister from "./pages/PatientRegister";
 import MyConsultations from "./pages/MyConsultations";
+import PatientMessages from "./pages/PatientMessages";
+import UploadDocuments from "./pages/UploadDocuments";
 import Shop from "./pages/Shop";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
@@ -127,6 +129,8 @@ function Router() {
       <Route path="/my-account/login" component={PatientLogin} />
       <Route path="/my-account/register" component={PatientRegister} />
       <Route path="/my-consultations" component={MyConsultations} />
+      <Route path="/my-messages" component={PatientMessages} />
+      <Route path="/upload-documents/:id" component={UploadDocuments} />
       <Route path="/shop" component={Shop} />
       <Route path="/product/:id" component={ProductDetail} />
       <Route path="/cart" component={Cart} />

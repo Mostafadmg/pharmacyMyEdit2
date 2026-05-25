@@ -47,10 +47,10 @@ export default function CustomerService() {
     >
       <div className="grid md:grid-cols-2 gap-3 max-w-3xl">
         <ServiceTile
-          href="/my-consultations"
+          href="/my-messages"
           icon={MessageSquare}
-          title="Message your prescriber"
-          description="Reply to questions about a consultation or ask a clinical follow-up."
+          title="Messages"
+          description="One secure inbox with your prescriber — replies, documents and follow-ups"
           data-testid="card-message-prescriber"
         />
         <ServiceTile

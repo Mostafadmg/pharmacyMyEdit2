@@ -20,7 +20,7 @@ export function AccountSubPage({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex flex-col bg-[#F4F1EC]">
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
       <main className="flex-1 max-w-4xl mx-auto w-full px-5 md:px-6 py-8 md:py-12">
         <nav className="flex items-center text-sm text-muted-foreground mb-6 flex-wrap">

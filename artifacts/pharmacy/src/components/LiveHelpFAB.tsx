@@ -37,7 +37,7 @@ export default function LiveHelpFAB() {
           {/* Options */}
           <div className="p-3 space-y-1.5">
             <Link
-              href="/my-consultations"
+              href="/my-messages"
               onClick={() => setOpen(false)}
               className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 transition-colors group"
               data-testid="help-option-message"
@@ -47,7 +47,7 @@ export default function LiveHelpFAB() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-secondary text-sm">Message my pharmacist</div>
-                <div className="text-xs text-muted-foreground">Securely chat about an existing consultation</div>
+                <div className="text-xs text-muted-foreground">One secure inbox with your pharmacy team</div>
               </div>
             </Link>
             <Link

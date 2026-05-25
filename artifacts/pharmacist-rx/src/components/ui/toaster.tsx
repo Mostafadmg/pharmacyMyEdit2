@@ -1,4 +1,5 @@
 import { useToast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 import {
   Toast,
   ToastClose,
@@ -14,10 +15,17 @@ export function Toaster() {
   return (
     <ToastProvider>
       {toasts.map(function ({ id, title, description, action, ...props }) {
+        const titleIsCustom =
+          title != null && typeof title !== "string" && typeof title !== "number";
         return (
           <Toast key={id} {...props}>
-            <div className="grid gap-1">
-              {title && <ToastTitle>{title}</ToastTitle>}
+            <div className={cn("flex-1 min-w-0", titleIsCustom ? "w-full" : "grid gap-1")}>
+              {title &&
+                (titleIsCustom ? (
+                  <div className="w-full">{title}</div>
+                ) : (
+                  <ToastTitle>{title}</ToastTitle>
+                ))}
               {description && (
                 <ToastDescription>{description}</ToastDescription>
               )}

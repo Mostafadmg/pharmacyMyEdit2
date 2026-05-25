@@ -3,23 +3,43 @@ import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import {
   Package, CreditCard, Repeat, Gift, LifeBuoy, LogOut, ChevronRight,
-  Stethoscope, Bell, ChevronLeft, Pill, Settings, ShieldCheck,
+  Stethoscope, Bell, ChevronLeft, Pill, Settings, ShieldCheck, MessageSquare,
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 type Counts = { ordersTotal: number; ordersOpen: number; consultsOpen: number; unreadMessages: number; unreadNotifications: number; rxCount: number; creditsPence: number };
 
+type AccountBadgeTone = "primary" | "alert" | "muted";
+
+const BADGE_STYLES: Record<AccountBadgeTone, string> = {
+  primary:
+    "border-primary/30 bg-primary/10 text-primary",
+  alert:
+    "border-amber-300/80 bg-amber-50 text-amber-950",
+  muted:
+    "border-border bg-muted text-secondary",
+};
+
 function AccountCard({
-  href, icon: Icon, title, description, badge, image, "data-testid": testId,
+  href,
+  icon: Icon,
+  title,
+  description,
+  badge,
+  badgeTone = "primary",
+  image,
+  "data-testid": testId,
 }: {
   href: string;
   icon: React.ElementType;
   title: string;
   description: string;
   badge?: string;
+  badgeTone?: AccountBadgeTone;
   image?: string;
   "data-testid"?: string;
 }) {
@@ -40,7 +60,12 @@ function AccountCard({
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-lg md:text-xl font-bold text-secondary">{title}</h3>
             {badge && (
-              <span className="inline-flex items-center text-xs font-semibold bg-accent/15 text-accent rounded-full px-2 py-0.5">
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold tracking-tight",
+                  BADGE_STYLES[badgeTone],
+                )}
+              >
                 {badge}
               </span>
             )}
@@ -101,7 +126,7 @@ export default function AccountHub() {
   const firstName = name?.split(" ")[0] ?? "there";
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F4F1EC]">
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
 
       <main className="flex-1 max-w-4xl mx-auto w-full px-5 md:px-6 py-8 md:py-12">
@@ -134,7 +159,7 @@ export default function AccountHub() {
           </div>
           <div className="bg-white rounded-2xl border border-border/40 px-4 py-3">
             <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Consults in review</p>
-            <p className="text-2xl font-bold text-amber-600 mt-1">{counts.consultsOpen}</p>
+            <p className="text-2xl font-bold text-primary mt-1">{counts.consultsOpen}</p>
           </div>
         </div>
 
@@ -147,6 +172,13 @@ export default function AccountHub() {
             description="View all orders, track deliveries and quickly reorder treatments"
             badge={counts.ordersOpen > 0 ? `${counts.ordersOpen} open` : undefined}
             data-testid="card-order-history"
+          />
+          <AccountCard
+            href="/my-messages"
+            icon={MessageSquare}
+            title="Messages"
+            description="One secure inbox with your pharmacy team"
+            data-testid="card-messages"
           />
           <AccountCard
             href="/my-consultations"
@@ -176,6 +208,7 @@ export default function AccountHub() {
             title="Notifications"
             description="Replies from your prescriber, dispatch updates and account alerts"
             badge={counts.unreadNotifications > 0 ? `${counts.unreadNotifications} unread` : undefined}
+            badgeTone="alert"
             data-testid="card-notifications"
           />
           <AccountCard
@@ -184,6 +217,7 @@ export default function AccountHub() {
             title="My prescriptions"
             description="Download signed PDFs and request repeats from your prescriber"
             badge={counts.rxCount > 0 ? `${counts.rxCount}` : undefined}
+            badgeTone="muted"
             data-testid="card-prescriptions"
           />
           <AccountCard
@@ -192,6 +226,7 @@ export default function AccountHub() {
             title="£25 off for you and your friends"
             description="Refer a friend and you'll both get £25 credit"
             badge={counts.creditsPence > 0 ? `£${(counts.creditsPence / 100).toFixed(2)} balance` : undefined}
+            badgeTone="muted"
             data-testid="card-refer"
           />
           <AccountCard

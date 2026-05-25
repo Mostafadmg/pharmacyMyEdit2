@@ -17,9 +17,13 @@ import {
   StickyNote,
   BarChart3,
   Search,
+  Globe,
+  ExternalLink,
+  Pill,
 } from "lucide-react";
 import CommandPalette from "@/components/pharmacist/CommandPalette";
 import { Button } from "@/components/ui/button";
+import { patientAppUrl, rxPortalUrl } from "@/lib/portalLinks";
 import {
   useGetPharmacistUnreadCounts,
   getGetPharmacistUnreadCountsQueryKey,
@@ -165,6 +169,26 @@ export default function PharmacistLayout({ current, children }: PharmacistLayout
       </div>
 
       <div className="p-6 border-t border-white/10 bg-black/20">
+        <div className="mb-4 space-y-1">
+          <a
+            href={rxPortalUrl()}
+            className="flex w-full items-center gap-3 rounded-xl p-3 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"
+            data-testid="link-rx-portal"
+          >
+            <Pill className="h-4 w-4 shrink-0" />
+            <span className="flex-1">Rx Portal</span>
+            <ExternalLink className="h-3.5 w-3.5 opacity-50" />
+          </a>
+          <a
+            href={patientAppUrl()}
+            className="flex w-full items-center gap-3 rounded-xl p-3 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"
+            data-testid="link-back-to-website"
+          >
+            <Globe className="h-4 w-4 shrink-0" />
+            <span className="flex-1">Back to website</span>
+            <ExternalLink className="h-3.5 w-3.5 opacity-50" />
+          </a>
+        </div>
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-primary font-bold">
             {pharmacistName.charAt(0)}

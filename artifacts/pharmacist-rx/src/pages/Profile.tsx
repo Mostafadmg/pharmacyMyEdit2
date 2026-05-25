@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { RxPageTitle, RxShell } from "@/components/rx";
 import { ShieldCheck, Award, Mail, Phone, MapPin } from "lucide-react";
 
 export function Profile() {
@@ -11,15 +12,11 @@ export function Profile() {
     "Pharmacist Prescriber";
 
   return (
-    <div className="p-4 md:p-8 max-w-[900px] mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-serif font-semibold tracking-tight">
-          My Profile
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Your prescriber identity, registrations, and contact details.
-        </p>
-      </div>
+    <RxShell className="max-w-[900px]">
+      <RxPageTitle
+        title="My Profile"
+        subtitle="Your prescriber identity, registrations, and contact details."
+      />
       <Card className="p-6">
         <div className="flex items-center gap-5">
           <div className="h-20 w-20 rounded-full bg-primary/15 text-primary flex items-center justify-center text-2xl font-semibold font-serif">
@@ -30,8 +27,8 @@ export function Profile() {
               .join("")}
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-xl font-serif font-semibold">{name}</h2>
-            <p className="text-sm text-muted-foreground">{role}</p>
+            <h2 className="rx-display">{name}</h2>
+            <p className="rx-meta">{role}</p>
             <div className="flex flex-wrap gap-2 mt-2">
               <Badge className="gap-1 bg-primary/15 text-primary hover:bg-primary/15">
                 <ShieldCheck className="h-3 w-3" /> GPhC registered
@@ -49,7 +46,7 @@ export function Profile() {
           <Field icon={Award} label="Specialisms" value="Women's health, weight management" />
         </div>
       </Card>
-    </div>
+    </RxShell>
   );
 }
 
@@ -63,13 +60,11 @@ function Field({
   value: string;
 }) {
   return (
-    <div className="flex items-start gap-3 p-3 rounded-md border border-border">
-      <Icon className="h-4 w-4 text-primary mt-0.5" />
+    <div className="flex items-start gap-3 p-3 rounded-xl border border-border bg-muted/40/50">
+      <Icon className="h-4 w-4 text-emerald-800 mt-0.5" />
       <div className="min-w-0">
-        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
-          {label}
-        </div>
-        <div className="text-sm font-medium truncate">{value}</div>
+        <div className="rx-label-caps">{label}</div>
+        <div className="rx-meta-strong truncate">{value}</div>
       </div>
     </div>
   );

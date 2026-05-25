@@ -1,19 +1,614 @@
 import {
   db,
+  pool,
   consultationsTable,
   consultationMessagesTable,
   consultationActionsTable,
   notificationsTable,
   ordersTable,
+  orderItemsTable,
+  deliveriesTable,
+  patientAccountsTable,
 } from "@workspace/db";
-import { sql, inArray, or, ilike } from "drizzle-orm";
+import { sql, inArray, or, ilike, and, not, eq } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 1. Wipe test/demo data (Mostafa, Mustafa, and obvious automated test rows)
+// Types & constants
 // ─────────────────────────────────────────────────────────────────────────────
-async function wipe() {
+type DemoMessage = {
+  from: "patient" | "pharmacist";
+  body: string;
+  daysAgo?: number;
+};
+type DemoAction = {
+  action: string;
+  actor?: string;
+  note?: string;
+  details?: Record<string, unknown>;
+};
+type CustomerType = "new_start" | "transfer" | "simple_repeat";
+type GlpMedication = "Mounjaro" | "Wegovy";
+
+const DEMO_PATIENT_PASSWORD = "Pharmacy1!";
+
+const MOUNJARO_DOSES = ["2.5mg", "5mg", "7.5mg", "10mg", "12.5mg", "15mg"] as const;
+const WEGOVY_DOSES = ["0.25mg", "0.5mg", "1mg", "1.7mg", "2.4mg"] as const;
+
+/** Placeholder weight-verification image for demo Rx document review */
+const DEMO_WEIGHT_PHOTO = `data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360"><rect fill="#ecfdf5" width="480" height="360"/><text x="240" y="165" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" fill="#047857">Weight verification photo</text><text x="240" y="195" text-anchor="middle" font-size="13" fill="#64748b">Demo patient upload</text></svg>',
+)}`;
+
+type Demo = {
+  id: string;
+  name: string;
+  email: string;
+  age: number;
+  sex: "male" | "female";
+  conditionId: string;
+  conditionName: string;
+  status:
+    | "pending"
+    | "more_info_needed"
+    | "patient_responded"
+    | "approved"
+    | "rejected";
+  daysAgo: number;
+  hoursAgo?: number;
+  customerType: CustomerType;
+  medication: GlpMedication;
+  dose: string;
+  previousConsultationId?: string;
+  priorDose?: string;
+  repeatOrderCount?: number;
+  answers?: Record<string, unknown>;
+  hasRedFlag?: boolean;
+  allergies?: string;
+  currentMedications?: string;
+  medicalHistory?: string;
+  riskCategory?: "low" | "medium" | "high";
+  pharmacistNote?: string;
+  prescription?: string;
+  prescriptionItems?: Array<{
+    name: string;
+    strength: string;
+    form: string;
+    quantity: string;
+    sig: string;
+    duration: string;
+    notes?: string;
+  }>;
+  reviewedBy?: string;
+  clinicalDecisionRationale?: string;
+  bmi?: number;
+  verifiedHeightCm?: number;
+  verifiedWeightKg?: number;
+  messages: DemoMessage[];
+  actions?: DemoAction[];
+};
+
+const FIRST_NAMES_F = [
+  "Sarah",
+  "Fatima",
+  "Amelia",
+  "Zara",
+  "Nadia",
+  "Leila",
+  "Isabelle",
+  "Grace",
+  "Chloe",
+  "Elena",
+  "Priya",
+  "Hannah",
+  "Yasmin",
+  "Olivia",
+  "Megan",
+];
+const FIRST_NAMES_M = [
+  "James",
+  "Thomas",
+  "Benjamin",
+  "Christopher",
+  "Ryan",
+  "David",
+  "Aaron",
+  "Michael",
+  "Kwame",
+  "Daniel",
+  "Oliver",
+  "Marcus",
+  "Samuel",
+  "Ethan",
+  "Noah",
+];
+const LAST_NAMES = [
+  "Mitchell",
+  "Okafor",
+  "Keenan",
+  "Foster",
+  "Ahmed",
+  "Bell",
+  "Hassan",
+  "Fitzgerald",
+  "Mansouri",
+  "Okonkwo",
+  "Garnier",
+  "Mensah",
+  "Thornton",
+  "Driscoll",
+  "Nakamura",
+  "Asante",
+  "Walsh",
+  "Clarke",
+  "Patel",
+  "Brooks",
+  "Singh",
+  "Cooper",
+  "Reed",
+  "Hayes",
+  "Morgan",
+];
+
+const GP_SURGERIES = [
+  ["North London Medical Centre", "42 Holloway Road, London N7 8JG"],
+  ["Islington Central Practice", "15 Upper Street, London N1 0PQ"],
+  ["Hackney Road Surgery", "220 Hackney Road, London E2 7SJ"],
+  ["Camden Town Medical Centre", "110 Camden High Street, London NW1 0LU"],
+  ["Finsbury Park Practice", "8 Stroud Green Road, London N4 2DQ"],
+  ["Bethnal Green Health Centre", "50 Nelson Gardens, London E2 6QA"],
+  ["Brixton Health Centre", "36 Acre Lane, London SW2 5SE"],
+  ["Peckham Road Group Practice", "144 Peckham Road, London SE5 8QA"],
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+function glp1Answers(opts: {
+  medication: GlpMedication;
+  consultationType: CustomerType;
+  currentDose?: string;
+  previousProvider?: string;
+  heightCm: number;
+  weightKg: number;
+  bmi: number;
+  sex: "Male" | "Female";
+  pregnant?: boolean;
+  oralContraceptive?: boolean;
+  t2dm?: boolean;
+  gpName: string;
+  gpAddress: string;
+  sideEffects?: string;
+  weightLossSinceStart?: string;
+  goal?: string;
+  repeatOrderCount?: number;
+}) {
+  return {
+    sex_at_birth: opts.sex,
+    aged_18_to_75: "Yes",
+    pregnant_breastfeeding: opts.pregnant ? "Yes" : "No",
+    glp1_allergy: "No",
+    thyroid_cancer_men2_history: "No",
+    eating_disorder_history: "No",
+    contraindicated_conditions: "No",
+    type2_diabetes_other_meds: opts.t2dm ? "Yes — Metformin only" : "No",
+    current_medications_other: "No",
+    previous_health_conditions: "No",
+    oral_contraceptive: opts.oralContraceptive ? "Yes" : "No",
+    new_to_injectable: opts.consultationType === "new_start" ? "Yes" : "No",
+    consent_confirm: "Yes",
+    consent_gp_share: "Yes",
+    gp_name: opts.gpName,
+    gp_address: opts.gpAddress,
+    requested_medication: opts.medication,
+    consultation_type: opts.consultationType,
+    current_dose: opts.currentDose ?? null,
+    previous_provider: opts.previousProvider ?? null,
+    height_cm: opts.heightCm,
+    weight_kg: opts.weightKg,
+    bmi: opts.bmi,
+    weight_loss_goal: opts.goal ?? null,
+    side_effects: opts.sideEffects ?? null,
+    weight_loss_since_start: opts.weightLossSinceStart ?? null,
+    prior_mounjaro_supply_count: opts.repeatOrderCount ?? null,
+  };
+}
+
+function ts(daysAgo: number, hoursAgo = 0): Date {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  d.setHours(d.getHours() - hoursAgo);
+  return d;
+}
+
+function conditionName(med: GlpMedication): string {
+  return med === "Mounjaro"
+    ? "Mounjaro (Tirzepatide) — Weight Management"
+    : "Wegovy (Semaglutide) — Weight Management";
+}
+
+function doseLabel(med: GlpMedication, dose: string): string {
+  return `${med} ${dose}`;
+}
+
+function defaultMessages(
+  firstName: string,
+  customerType: CustomerType,
+  med: GlpMedication,
+  dose: string,
+): DemoMessage[] {
+  const openers: Record<CustomerType, string> = {
+    new_start: `Hi ${firstName} — thank you for your first ${med} consultation with PharmaCare. You're starting at ${dose}. I've reviewed your questionnaire; please confirm you've read the starter leaflet and are happy with weekly injections.`,
+    transfer: `Hi ${firstName} — welcome to PharmaCare. This is your first order with us for ${med} ${dose} (transfer from another provider). Please upload your last dispensed pen label or GP summary so I can verify dose continuity before we dispatch.`,
+    simple_repeat: `Hi ${firstName} — thanks for your repeat request for ${med} ${dose}. You've been on treatment with us for a while — any new symptoms, pregnancy, or medicines to declare since your last supply?`,
+  };
+  const replies: Record<CustomerType, string> = {
+    new_start: `Hi — yes, I've read the leaflet and I'm ready to start ${dose} this week. No new health issues.`,
+    transfer: `Hi — I've attached photos of my last two pen labels from my previous pharmacy and a GP letter. Happy to proceed at ${dose}.`,
+    simple_repeat: `No new issues — please send my usual ${dose}. Weight still trending down and side effects are manageable.`,
+  };
+  return [
+    { from: "pharmacist", body: openers[customerType], daysAgo: 2 },
+    { from: "patient", body: replies[customerType], daysAgo: 1 },
+  ];
+}
+
+function prescriptionFor(med: GlpMedication, dose: string) {
+  const drug =
+    med === "Mounjaro" ? "Tirzepatide (Mounjaro)" : "Semaglutide (Wegovy)";
+  return {
+    prescription: `${med} ${dose} — inject once weekly for 4 weeks`,
+    prescriptionItems: [
+      {
+        name: drug,
+        strength: `${dose}`,
+        form: "Solution for injection in pre-filled pen",
+        quantity: "4 pens",
+        sig: "Inject ONE pen subcutaneously once weekly on the same day each week.",
+        duration: "4 weeks",
+      },
+    ],
+  };
+}
+
+function statusForType(
+  customerType: CustomerType,
+  variant: number,
+): Demo["status"] {
+  if (customerType === "new_start") {
+    return (["pending", "pending", "approved", "more_info_needed", "patient_responded"] as const)[
+      variant % 5
+    ];
+  }
+  if (customerType === "transfer") {
+    return (["more_info_needed", "patient_responded", "pending", "approved"] as const)[
+      variant % 4
+    ];
+  }
+  return (["pending", "approved", "approved", "patient_responded", "more_info_needed"] as const)[
+    variant % 5
+  ];
+}
+
+function buildDemoFromSlot(
+  slot: {
+    id: string;
+    customerType: CustomerType;
+    medication: GlpMedication;
+    dose: string;
+    status?: Demo["status"];
+    daysAgo?: number;
+    hoursAgo?: number;
+    repeatOrderCount?: number;
+    hasRedFlag?: boolean;
+    extraMessages?: DemoMessage[];
+  },
+  index: number,
+): Demo {
+  const female = index % 2 === 0;
+  const firstName = female
+    ? FIRST_NAMES_F[index % FIRST_NAMES_F.length]!
+    : FIRST_NAMES_M[index % FIRST_NAMES_M.length]!;
+  const lastName = LAST_NAMES[index % LAST_NAMES.length]!;
+  const name = `${firstName} ${lastName}`;
+  const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}.demo${String(index + 1).padStart(3, "0")}@example.com`;
+  const [gpName, gpAddress] = GP_SURGERIES[index % GP_SURGERIES.length]!;
+  const heightCm = female ? 162 + (index % 12) : 175 + (index % 10);
+  const weightKg = 82 + (index % 28);
+  const bmi = Math.round((weightKg / ((heightCm / 100) ** 2)) * 10) / 10;
+  const med = slot.medication;
+  const dose = slot.dose;
+  const customerType = slot.customerType;
+  const status = slot.status ?? statusForType(customerType, index);
+  const currentDose = doseLabel(med, dose);
+  const previousConsultationId =
+    customerType === "new_start" ? undefined : `${slot.id}-prior`;
+
+  const repeatCount = slot.repeatOrderCount ?? (customerType === "simple_repeat" ? 6 + (index % 8) : 0);
+
+  const answers = glp1Answers({
+    medication: med,
+    consultationType: customerType,
+    currentDose,
+    previousProvider:
+      customerType === "transfer"
+        ? ["Superdrug Online Doctor", "Manual Pharmacy", "Livi Online GP", "Pharmacy2U"][
+            index % 4
+          ]
+        : undefined,
+    heightCm,
+    weightKg,
+    bmi,
+    sex: female ? "Female" : "Male",
+    gpName,
+    gpAddress,
+    goal: "Sustainable weight loss with pharmacist support",
+    weightLossSinceStart:
+      customerType === "new_start"
+        ? undefined
+        : `${(3 + (index % 12)).toFixed(1)}kg since starting GLP-1`,
+    sideEffects:
+      index % 7 === 0 ? "Mild nausea day after injection — settling" : "None currently",
+    repeatOrderCount: repeatCount > 0 ? repeatCount : undefined,
+    t2dm: index % 9 === 0,
+  });
+
+  const messages = [
+    ...defaultMessages(firstName, customerType, med, dose),
+    ...(slot.extraMessages ?? []),
+  ];
+
+  const approved = status === "approved";
+  const rx = approved ? prescriptionFor(med, dose) : {};
+
+  return {
+    id: slot.id,
+    name,
+    email,
+    age: 28 + (index % 35),
+    sex: female ? "female" : "male",
+    conditionId: "weight-loss",
+    conditionName: conditionName(med),
+    status,
+    daysAgo: slot.daysAgo ?? index % 8,
+    hoursAgo: slot.hoursAgo,
+    customerType,
+    medication: med,
+    dose,
+    previousConsultationId,
+    priorDose:
+      customerType !== "new_start"
+        ? med === "Mounjaro"
+          ? MOUNJARO_DOSES[Math.max(0, MOUNJARO_DOSES.indexOf(dose as (typeof MOUNJARO_DOSES)[number]) - 1)] ??
+            "2.5mg"
+          : WEGOVY_DOSES[0]
+        : undefined,
+    repeatOrderCount: repeatCount,
+    answers,
+    verifiedHeightCm: heightCm,
+    verifiedWeightKg: weightKg,
+    bmi: Math.round(bmi),
+    allergies: index % 11 === 0 ? "Penicillin (rash)" : "None known",
+    currentMedications: `${currentDose} weekly`,
+    medicalHistory:
+      customerType === "simple_repeat"
+        ? `${repeatCount} prior Mounjaro/Wegovy orders with PharmaCare; good adherence and weight response`
+        : customerType === "transfer"
+          ? `Transferring ${currentDose} from another UK provider — first purchase with PharmaCare`
+          : "First GLP-1 treatment — no prior injectable weight-loss medicines",
+    riskCategory: slot.hasRedFlag ? "high" : index % 13 === 0 ? "medium" : "low",
+    hasRedFlag: slot.hasRedFlag ?? false,
+    messages,
+    pharmacistNote: approved
+      ? `${customerType.replace("_", " ")} — ${currentDose} approved after message review.`
+      : undefined,
+    reviewedBy: approved ? "Pharmacist Sarah Wells" : undefined,
+    clinicalDecisionRationale: approved
+      ? `Clinical review complete for ${customerType} patient at ${currentDose}.`
+      : undefined,
+    ...rx,
+    actions: approved
+      ? [
+          {
+            action: "approve",
+            actor: "Pharmacist Sarah Wells",
+            note: `${med} ${dose} — ${customerType}`,
+          },
+        ]
+      : status === "more_info_needed"
+        ? [
+            {
+              action: "more_info",
+              actor: "Pharmacist Ahmed Khan",
+              note: `Awaiting patient reply — ${customerType} ${dose}`,
+            },
+          ]
+        : undefined,
+  };
+}
+
+/** 50 GLP-1 demo patients: doses, customer types, all with messages. */
+function generateDemos(): Demo[] {
+  const slots: Array<Parameters<typeof buildDemoFromSlot>[0]> = [];
+
+  // ── Featured: 2 new starters · Mounjaro 2.5mg (first time) ──
+  slots.push(
+    {
+      id: "demo-001",
+      customerType: "new_start",
+      medication: "Mounjaro",
+      dose: "2.5mg",
+      status: "pending",
+      daysAgo: 0,
+      hoursAgo: 1,
+    },
+    {
+      id: "demo-002",
+      customerType: "new_start",
+      medication: "Mounjaro",
+      dose: "2.5mg",
+      status: "patient_responded",
+      daysAgo: 1,
+    },
+  );
+
+  // ── Featured: 2 transfer · Mounjaro 10mg (first order with us) ──
+  slots.push(
+    {
+      id: "demo-003",
+      customerType: "transfer",
+      medication: "Mounjaro",
+      dose: "10mg",
+      status: "more_info_needed",
+      daysAgo: 1,
+    },
+    {
+      id: "demo-004",
+      customerType: "transfer",
+      medication: "Mounjaro",
+      dose: "10mg",
+      status: "patient_responded",
+      daysAgo: 2,
+    },
+  );
+
+  // ── Featured: 2 simple repeat · long Mounjaro history ──
+  slots.push(
+    {
+      id: "demo-005",
+      customerType: "simple_repeat",
+      medication: "Mounjaro",
+      dose: "12.5mg",
+      status: "pending",
+      repeatOrderCount: 14,
+      daysAgo: 0,
+      hoursAgo: 3,
+    },
+    {
+      id: "demo-006",
+      customerType: "simple_repeat",
+      medication: "Mounjaro",
+      dose: "15mg",
+      status: "approved",
+      repeatOrderCount: 18,
+      daysAgo: 4,
+    },
+  );
+
+  // ── Dose ladder: 10 patients (3×2.5mg new start + one per other dose / type) ──
+  slots.push(
+    {
+      id: "demo-007",
+      customerType: "new_start",
+      medication: "Mounjaro",
+      dose: "2.5mg",
+      status: "approved",
+    },
+    {
+      id: "demo-008",
+      customerType: "new_start",
+      medication: "Mounjaro",
+      dose: "5mg",
+      status: "pending",
+    },
+    {
+      id: "demo-009",
+      customerType: "transfer",
+      medication: "Mounjaro",
+      dose: "7.5mg",
+      status: "patient_responded",
+    },
+    {
+      id: "demo-010",
+      customerType: "transfer",
+      medication: "Mounjaro",
+      dose: "5mg",
+      status: "more_info_needed",
+    },
+    {
+      id: "demo-011",
+      customerType: "simple_repeat",
+      medication: "Mounjaro",
+      dose: "2.5mg",
+      repeatOrderCount: 2,
+    },
+    {
+      id: "demo-012",
+      customerType: "simple_repeat",
+      medication: "Mounjaro",
+      dose: "5mg",
+      repeatOrderCount: 4,
+    },
+    {
+      id: "demo-013",
+      customerType: "simple_repeat",
+      medication: "Mounjaro",
+      dose: "7.5mg",
+      repeatOrderCount: 6,
+    },
+    {
+      id: "demo-014",
+      customerType: "transfer",
+      medication: "Mounjaro",
+      dose: "12.5mg",
+      status: "pending",
+    },
+    {
+      id: "demo-015",
+      customerType: "new_start",
+      medication: "Mounjaro",
+      dose: "7.5mg",
+      status: "more_info_needed",
+    },
+    {
+      id: "demo-016",
+      customerType: "simple_repeat",
+      medication: "Mounjaro",
+      dose: "15mg",
+      repeatOrderCount: 10,
+      status: "approved",
+    },
+  );
+
+  // ── Fill demo-017 … demo-050 with mixed types & doses ──
+  let n = 17;
+  const typeCycle: CustomerType[] = [
+    "new_start",
+    "transfer",
+    "simple_repeat",
+    "new_start",
+    "transfer",
+    "simple_repeat",
+  ];
+  let doseIdx = 0;
+  while (n <= 50) {
+    const customerType = typeCycle[(n - 17) % typeCycle.length]!;
+    const medication: GlpMedication = n % 5 === 0 ? "Wegovy" : "Mounjaro";
+    const dose =
+      medication === "Mounjaro"
+        ? MOUNJARO_DOSES[doseIdx % MOUNJARO_DOSES.length]!
+        : WEGOVY_DOSES[doseIdx % WEGOVY_DOSES.length]!;
+    doseIdx++;
+    slots.push({
+      id: `demo-${String(n).padStart(3, "0")}`,
+      customerType,
+      medication,
+      dose,
+      repeatOrderCount:
+        customerType === "simple_repeat" ? 3 + (n % 12) : undefined,
+    });
+    n++;
+  }
+
+  return slots.map((slot, i) => buildDemoFromSlot(slot, i));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Wipe
+// ─────────────────────────────────────────────────────────────────────────────
+async function wipeDemoConsultations() {
   const targetConsults = await db
-    .select({ id: consultationsTable.id, email: consultationsTable.patientEmail })
+    .select({ id: consultationsTable.id })
     .from(consultationsTable)
     .where(
       or(
@@ -26,599 +621,228 @@ async function wipe() {
         ilike(consultationsTable.patientEmail, "e2e-test%"),
         ilike(consultationsTable.patientEmail, "alice+%"),
         ilike(consultationsTable.patientEmail, "jane.test%"),
-        // Always sweep prior demo-* seeds so re-runs pick up new shapes
         ilike(consultationsTable.id, "demo-%"),
       ),
     );
 
   if (targetConsults.length === 0) {
-    console.log("Nothing to wipe.");
+    console.log("No demo consultations to wipe.");
     return;
   }
   const ids = targetConsults.map((c) => c.id);
-  console.log(`Deleting ${ids.length} test consultations + related rows...`);
+  console.log(`Deleting ${ids.length} demo consultations + related rows...`);
 
-  await db.delete(consultationMessagesTable).where(inArray(consultationMessagesTable.consultationId, ids));
-  await db.delete(consultationActionsTable).where(inArray(consultationActionsTable.consultationId, ids));
-  await db.delete(notificationsTable).where(inArray(notificationsTable.consultationId, ids));
-  // unlink orders rather than deleting them — preserve order history
+  await db
+    .delete(consultationMessagesTable)
+    .where(inArray(consultationMessagesTable.consultationId, ids));
+  await db
+    .delete(consultationActionsTable)
+    .where(inArray(consultationActionsTable.consultationId, ids));
+  await db
+    .delete(notificationsTable)
+    .where(inArray(notificationsTable.consultationId, ids));
+  await db
+    .update(ordersTable)
+    .set({ consultationId: null })
+    .where(inArray(ordersTable.consultationId, ids));
+  await db
+    .delete(consultationsTable)
+    .where(inArray(consultationsTable.id, ids));
+}
+
+async function wipeNonGlpConsultations() {
+  const nonGlp = await db
+    .select({ id: consultationsTable.id })
+    .from(consultationsTable)
+    .where(
+      and(
+        not(ilike(consultationsTable.id, "demo-%")),
+        not(
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          or(
+            ilike(consultationsTable.conditionName, "%mounjaro%"),
+            ilike(consultationsTable.conditionName, "%wegovy%"),
+            ilike(consultationsTable.conditionName, "%tirzepatide%"),
+            ilike(consultationsTable.conditionName, "%semaglutide%"),
+            eq(consultationsTable.conditionId, "weight-loss"),
+          )!,
+        ),
+      ),
+    );
+
+  if (nonGlp.length === 0) return;
+  const ids = nonGlp.map((r) => r.id);
+  console.log(`Removing ${ids.length} non–Mounjaro/Wegovy consultations...`);
+  await db
+    .delete(consultationMessagesTable)
+    .where(inArray(consultationMessagesTable.consultationId, ids));
+  await db
+    .delete(consultationActionsTable)
+    .where(inArray(consultationActionsTable.consultationId, ids));
+  await db
+    .delete(notificationsTable)
+    .where(inArray(notificationsTable.consultationId, ids));
   await db
     .update(ordersTable)
     .set({ consultationId: null })
     .where(inArray(ordersTable.consultationId, ids));
   await db.delete(consultationsTable).where(inArray(consultationsTable.id, ids));
-  console.log("Wipe complete.");
+}
+
+async function wipeNonGlpShopOrders() {
+  const allOrders = await db
+    .select({ id: ordersTable.id })
+    .from(ordersTable);
+
+  const toDelete: string[] = [];
+  for (const order of allOrders) {
+    const items = await db
+      .select({
+        productName: orderItemsTable.productName,
+        productSlug: orderItemsTable.productSlug,
+      })
+      .from(orderItemsTable)
+      .where(eq(orderItemsTable.orderId, order.id));
+
+    if (items.length === 0) {
+      toDelete.push(order.id);
+      continue;
+    }
+    const allGlp = items.every((item) => {
+      const hay = `${item.productName} ${item.productSlug}`.toLowerCase();
+      return /mounjaro|wegovy|tirzepatide|semaglutide|weight.?loss|glp-?1/.test(
+        hay,
+      );
+    });
+    if (!allGlp) toDelete.push(order.id);
+  }
+
+  if (toDelete.length === 0) {
+    console.log("No non–GLP-1 shop orders to remove.");
+    return;
+  }
+
+  console.log(`Removing ${toDelete.length} shop orders (not Mounjaro/Wegovy)...`);
+  await db
+    .delete(deliveriesTable)
+    .where(inArray(deliveriesTable.orderId, toDelete));
+  await db
+    .delete(orderItemsTable)
+    .where(inArray(orderItemsTable.orderId, toDelete));
+  await db.delete(ordersTable).where(inArray(ordersTable.id, toDelete));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2. Seed 15 demo consultations covering every workflow scenario
+// Seed
 // ─────────────────────────────────────────────────────────────────────────────
-type DemoMessage = { from: "patient" | "pharmacist"; body: string; daysAgo?: number };
-type DemoAction = { action: string; actor?: string; note?: string; details?: Record<string, unknown> };
-type Demo = {
-  id: string;
-  name: string;
-  email: string;
-  age: number;
-  sex: "male" | "female";
-  conditionId: string;
-  conditionName: string;
-  status: "pending" | "more_info_needed" | "patient_responded" | "approved" | "rejected";
-  daysAgo: number; // when created
-  hoursAgo?: number;
-  answers?: Record<string, unknown>;
-  hasRedFlag?: boolean;
-  hasPhoto?: boolean;
-  allergies?: string;
-  currentMedications?: string;
-  medicalHistory?: string;
-  isPregnant?: boolean;
-  riskCategory?: "low" | "medium" | "high";
-  pharmacistNote?: string;
-  prescription?: string;
-  prescriptionItems?: Array<{ name: string; strength: string; form: string; quantity: string; sig: string; duration: string; notes?: string }>;
-  reviewedBy?: string;
-  clinicalDecisionRationale?: string;
-  referralInfo?: string;
-  bmi?: number;
-  verifiedHeightCm?: number;
-  verifiedWeightKg?: number;
-  messages?: DemoMessage[];
-  actions?: DemoAction[];
-};
+async function seedPriorConsultation(c: Demo) {
+  if (!c.previousConsultationId) return;
+  const priorId = c.previousConsultationId;
+  const priorDose = c.priorDose ?? "2.5mg";
+  const createdAt = ts((c.daysAgo ?? 0) + 120);
 
-const DEMOS: Demo[] = [
-  // ── 1. NEW PENDING — waiting clinical check (recent, simple) ──
-  {
-    id: "demo-001",
-    name: "Charlotte Ainsworth",
-    email: "charlotte.ainsworth@example.com",
-    age: 34,
-    sex: "female",
-    conditionId: "cystitis",
-    conditionName: "Cystitis / UTI (Trimethoprim · Nitrofurantoin · MacroBID)",
-    status: "pending",
-    daysAgo: 0,
-    hoursAgo: 1,
-    answers: {
-      symptoms: ["Burning when passing urine", "Needing to go more often", "Lower tummy pain"],
-      duration: "2 days",
-      first_episode: "No, I've had this once before about a year ago",
-      blood_in_urine: "No",
-      fever: "No",
-    },
-    allergies: "None known",
-    currentMedications: "None",
-    medicalHistory: "Otherwise well",
-    riskCategory: "low",
-  },
-
-  // ── 2. PENDING — red-flag flagged for urgent review ──
-  {
-    id: "demo-002",
-    name: "Daniel Whitfield",
-    email: "daniel.whitfield@example.com",
-    age: 58,
-    sex: "male",
-    conditionId: "back-pain",
-    conditionName: "Back Pain",
-    status: "pending",
-    daysAgo: 0,
-    hoursAgo: 3,
-    hasRedFlag: true,
-    answers: {
-      pain_location: "Lower back, radiating down right leg",
-      duration: "3 weeks",
-      numbness: "Slight tingling in right foot",
-      bladder_or_bowel_changes: "No",
-      recent_injury: "No specific injury",
-      pain_score: 7,
-    },
-    allergies: "Penicillin — rash",
-    currentMedications: "Atorvastatin 20mg nightly",
-    medicalHistory: "High cholesterol, well-controlled",
-    riskCategory: "medium",
-  },
-
-  // ── 3. PENDING — weight loss with BMI calc, photo evidence ──
-  {
-    id: "demo-003",
-    name: "Olivia Marsh",
-    email: "olivia.marsh@example.com",
-    age: 41,
-    sex: "female",
-    conditionId: "weight-loss",
-    conditionName: "Weight Loss (Mounjaro · Wegovy · Saxenda · Orlistat · Mysimba)",
-    status: "pending",
-    daysAgo: 0,
-    hoursAgo: 6,
-    hasPhoto: true,
-    verifiedHeightCm: 168,
-    verifiedWeightKg: 96,
-    bmi: 34,
-    answers: {
-      goal: "Lose around 15kg over 12 months",
-      tried_before: "Slimming World for 6 months, lost 4kg then plateaued",
-      diabetes: "No, but my dad is type 2",
-      thyroid: "No",
-      eating_disorder_history: "No",
-    },
-    allergies: "None",
-    currentMedications: "Vitamin D 1000 IU daily",
-    medicalHistory: "Well otherwise",
-    riskCategory: "low",
-  },
-
-  // ── 4. PENDING — repeat consultation (linked to previous) ──
-  {
-    id: "demo-004",
-    name: "Hannah Reid",
-    email: "hannah.reid@example.com",
-    age: 29,
-    sex: "female",
-    conditionId: "acne-vulgaris",
-    conditionName: "Acne Vulgaris",
-    status: "pending",
-    daysAgo: 0,
-    hoursAgo: 12,
-    hasPhoto: true,
-    answers: {
-      areas_affected: ["Face", "Upper back"],
-      severity: "Moderate — about 15 spots, some inflamed",
-      tried_otc: "Salicylic acid wash for 8 weeks, mild improvement only",
-      previous_treatment: "Used Differin gel previously, helped but symptoms returned",
-      pregnancy_planning: "No",
-    },
-    allergies: "None known",
-    currentMedications: "Microgynon 30",
-    medicalHistory: "Mild PCOS",
-    riskCategory: "low",
-  },
-
-  // ── 5. MORE INFO NEEDED — pharmacist asked for clearer photo ──
-  {
-    id: "demo-005",
-    name: "Sophie Bennett",
-    email: "sophie.bennett@example.com",
-    age: 27,
-    sex: "female",
-    conditionId: "ringworm",
-    conditionName: "Ringworm / Tinea / Intertrigo",
-    status: "more_info_needed",
-    daysAgo: 1,
-    hasPhoto: true,
-    answers: {
-      area: "Inner thigh, both sides",
-      duration: "About 10 days",
-      itchy: "Yes, especially at night",
-      tried_anything: "Hydrocortisone cream — made it worse",
-    },
-    allergies: "None",
-    currentMedications: "None",
-    medicalHistory: "Eczema as a child",
-    riskCategory: "low",
-    messages: [
-      {
-        from: "pharmacist",
-        body: "Hi Sophie — thanks for your consultation. The photo is a little blurred. Could you please upload a clearer image in good daylight, ideally including a coin or ruler for scale? That will help me confirm whether this is tinea or something else.",
-        daysAgo: 1,
-      },
-    ],
-    actions: [
-      { action: "more_info", actor: "Pharmacist Ahmed Khan", note: "Photo too blurred to assess scale; requested daylight image with reference object." },
-    ],
-  },
-
-  // ── 6. MORE INFO NEEDED — needs BP reading before prescribing ──
-  {
-    id: "demo-006",
-    name: "James Holloway",
-    email: "james.holloway@example.com",
-    age: 52,
-    sex: "male",
-    conditionId: "erectile-dysfunction",
-    conditionName: "Erectile Dysfunction (Sildenafil · Tadalafil · Viagra · Cialis)",
-    status: "more_info_needed",
-    daysAgo: 2,
-    answers: {
-      duration: "About 8 months, gradually worse",
-      morning_erections: "Occasional",
-      stress: "Moderate — recently changed jobs",
-      heart_problems: "No",
-      chest_pain_on_exertion: "No",
-      nitrates: "No",
-    },
-    allergies: "None",
-    currentMedications: "Lisinopril 10mg, Atorvastatin 20mg",
-    medicalHistory: "High blood pressure (well controlled), high cholesterol",
-    riskCategory: "medium",
-    messages: [
-      {
-        from: "pharmacist",
-        body: "Hi James — before I prescribe sildenafil safely with your blood pressure medication I need a recent BP reading (within the last 6 months). You can take this at any pharmacy or with a home monitor. Please reply with the systolic / diastolic values.",
-        daysAgo: 2,
-      },
-    ],
-    actions: [{ action: "more_info", actor: "Pharmacist Sarah Wells", note: "Awaiting recent BP reading (on antihypertensive)." }],
-  },
-
-  // ── 7. PATIENT RESPONDED — info supplied, back in queue ──
-  {
-    id: "demo-007",
-    name: "Rachel Goodwin",
-    email: "rachel.goodwin@example.com",
-    age: 36,
-    sex: "female",
-    conditionId: "migraine",
-    conditionName: "Migraine (Sumatriptan · Rizatriptan)",
-    status: "patient_responded",
-    daysAgo: 3,
-    answers: {
-      frequency: "About 2 attacks per month",
-      aura: "Yes, visual zig-zags before headache",
-      duration_per_attack: "Around 8 hours without treatment",
-      tried_otc: "Paracetamol and ibuprofen — limited relief",
-      pregnancy: "No",
-      heart_problems: "No",
-    },
-    allergies: "None",
-    currentMedications: "None",
-    medicalHistory: "Migraine since age 22",
-    riskCategory: "low",
-    messages: [
-      {
-        from: "pharmacist",
-        body: "Hi Rachel — could you confirm whether you have ever had a stroke, mini-stroke (TIA), or any heart rhythm issues? Triptans are not safe in those cases, so I need to rule it out.",
-        daysAgo: 3,
-      },
-      {
-        from: "patient",
-        body: "Hi — no, nothing like that. I've never had any heart or stroke issues, and my GP checked my heart last year and everything was fine.",
-        daysAgo: 1,
-      },
-    ],
-    actions: [{ action: "more_info", actor: "Pharmacist Sarah Wells", note: "Cardiovascular safety check before triptan." }],
-  },
-
-  // ── 8. PATIENT RESPONDED — supplied photo as requested ──
-  {
-    id: "demo-008",
-    name: "Marcus Doyle",
-    email: "marcus.doyle@example.com",
-    age: 44,
-    sex: "male",
-    conditionId: "athletes-foot",
-    conditionName: "Athlete's Foot",
-    status: "patient_responded",
-    daysAgo: 4,
-    hasPhoto: true,
-    answers: {
-      area: "Between toes, both feet",
-      duration: "About 3 weeks",
-      itchy_or_painful: "Itchy and a bit smelly",
-      tried_anything: "Daktarin spray for 1 week, slight improvement",
-    },
-    allergies: "None",
-    currentMedications: "None",
-    medicalHistory: "Type 2 diabetes — diet controlled",
-    riskCategory: "medium",
-    messages: [
-      { from: "pharmacist", body: "Thanks Marcus — could you upload a clearer photo of the affected area between the toes? Given your diabetes I want to be careful to rule out any cracking or infection.", daysAgo: 4 },
-      { from: "patient", body: "No problem, I've added two new photos just now.", daysAgo: 1 },
-    ],
-    actions: [{ action: "more_info", actor: "Pharmacist Ahmed Khan", note: "Diabetic — need clearer photo to rule out cellulitis." }],
-  },
-
-  // ── 9. APPROVED — clean approval, dispatched ──
-  {
-    id: "demo-009",
-    name: "Emily Carrington",
-    email: "emily.carrington@example.com",
-    age: 31,
-    sex: "female",
-    conditionId: "cystitis",
-    conditionName: "Cystitis / UTI (Trimethoprim · Nitrofurantoin · MacroBID)",
-    status: "approved",
-    daysAgo: 5,
-    answers: {
-      symptoms: ["Burning when passing urine", "Frequency", "Cloudy urine"],
-      duration: "1 day",
-      first_episode: "No — third episode this year",
-      blood_in_urine: "No",
-      fever: "No",
-      pregnancy: "No",
-    },
-    allergies: "None",
-    currentMedications: "None",
-    medicalHistory: "Recurrent UTI — about 3 per year",
-    riskCategory: "low",
-    pharmacistNote: "Classic uncomplicated lower UTI. No red flags. Safe to prescribe nitrofurantoin 100mg MR BD x 3 days per NICE NG109.",
-    prescription: "Nitrofurantoin 100mg MR — one capsule twice daily for 3 days",
-    prescriptionItems: [
-      { name: "Nitrofurantoin", strength: "100mg MR", form: "Capsules", quantity: "6 capsules", sig: "Take ONE capsule TWICE a day, with food", duration: "3 days" },
-    ],
-    reviewedBy: "Pharmacist Sarah Wells",
-    clinicalDecisionRationale: "Uncomplicated lower UTI in a non-pregnant adult female; no red flags; eGFR assumed normal at age 31 with no history of renal impairment.",
-    actions: [{ action: "approve", actor: "Pharmacist Sarah Wells", note: "Approved per NICE NG109." }],
-  },
-
-  // ── 10. APPROVED + active messaging thread (post-dispense follow-up) ──
-  {
-    id: "demo-010",
-    name: "Naveen Kapoor",
-    email: "naveen.kapoor@example.com",
-    age: 47,
-    sex: "male",
-    conditionId: "erectile-dysfunction",
-    conditionName: "Erectile Dysfunction (Sildenafil · Tadalafil · Viagra · Cialis)",
-    status: "approved",
-    daysAgo: 7,
-    answers: {
-      duration: "Around a year",
-      heart_problems: "No",
-      chest_pain_on_exertion: "No",
-      nitrates: "No",
-      blood_pressure_recent: "128/82 — measured at Boots last week",
-    },
-    allergies: "None",
-    currentMedications: "None",
-    medicalHistory: "Generally well",
-    riskCategory: "low",
-    pharmacistNote: "Healthy 47y male, BP normal, no contraindications. Starting low dose sildenafil.",
-    prescription: "Sildenafil 50mg — take one tablet 30–60 min before activity",
-    prescriptionItems: [
-      { name: "Sildenafil", strength: "50mg", form: "Tablets", quantity: "8 tablets", sig: "Take ONE tablet 30 to 60 minutes before sexual activity. Maximum one dose per 24 hours.", duration: "As required" },
-    ],
-    reviewedBy: "Pharmacist Ahmed Khan",
-    clinicalDecisionRationale: "No cardiovascular risk factors, BP within normal range, no nitrate use.",
-    messages: [
-      { from: "pharmacist", body: "Hi Naveen — your prescription has been approved and dispatched today via Royal Mail Tracked. You should receive it within 2 working days. Any questions, just reply here.", daysAgo: 7 },
-      { from: "patient", body: "Thanks. Just received it. Quick question — is it OK to take with a glass of wine?", daysAgo: 4 },
-      { from: "pharmacist", body: "A small amount of alcohol is fine, but heavier drinking can reduce the effect and increase side effects (flushing, headache). Best to keep it to one or two units when using sildenafil.", daysAgo: 4 },
-      { from: "patient", body: "Perfect, thank you — that's really helpful.", daysAgo: 3 },
-    ],
-    actions: [{ action: "approve", actor: "Pharmacist Ahmed Khan", note: "Approved. Standard counselling included." }],
-  },
-
-  // ── 11. APPROVED — chronic condition repeat ──
-  {
-    id: "demo-011",
-    name: "Catherine Lawson",
-    email: "catherine.lawson@example.com",
-    age: 39,
-    sex: "female",
-    conditionId: "allergic-rhinitis",
-    conditionName: "Allergic Rhinitis",
-    status: "approved",
-    daysAgo: 9,
-    answers: {
-      symptoms: ["Sneezing", "Runny nose", "Itchy eyes"],
-      duration: "Every spring/summer for 10+ years",
-      tried_otc: "Loratadine works well, just want a 3-month supply",
-      pregnancy: "No",
-    },
-    allergies: "Grass pollen",
-    currentMedications: "Loratadine 10mg as needed",
-    medicalHistory: "Mild asthma — well controlled with salbutamol",
-    riskCategory: "low",
-    pharmacistNote: "Long-standing seasonal allergic rhinitis, well controlled with loratadine.",
-    prescription: "Loratadine 10mg — one tablet daily as needed during pollen season",
-    prescriptionItems: [
-      { name: "Loratadine", strength: "10mg", form: "Tablets", quantity: "84 tablets", sig: "Take ONE tablet daily when symptoms are present", duration: "Up to 12 weeks" },
-    ],
-    reviewedBy: "Pharmacist Sarah Wells",
-    actions: [{ action: "approve", actor: "Pharmacist Sarah Wells" }],
-  },
-
-  // ── 12. APPROVED — antimalarial travel prescription ──
-  {
-    id: "demo-012",
-    name: "Thomas Pritchard",
-    email: "thomas.pritchard@example.com",
-    age: 33,
-    sex: "male",
-    conditionId: "anti-malaria",
-    conditionName: "Anti-Malaria (Malarone · Doxycycline · Lariam)",
-    status: "approved",
-    daysAgo: 10,
-    answers: {
-      destination: "Tanzania — Serengeti and Zanzibar",
-      travel_dates: "Departing 14 June, returning 4 July (3 weeks)",
-      previous_antimalarial: "Took Malarone for Kenya 4 years ago — no problems",
-      mental_health_history: "No",
-      epilepsy: "No",
-      pregnancy: "No",
-    },
-    allergies: "None",
-    currentMedications: "None",
-    medicalHistory: "Fit and well",
-    riskCategory: "low",
-    pharmacistNote: "Suitable for Malarone — high-risk falciparum area, prior tolerance, no contraindications.",
-    prescription: "Atovaquone/Proguanil 250/100mg (Malarone) — one tablet daily with food",
-    prescriptionItems: [
-      { name: "Atovaquone / Proguanil (Malarone)", strength: "250mg / 100mg", form: "Tablets", quantity: "31 tablets", sig: "Take ONE tablet daily with food, starting 1–2 days before travel and continuing for 7 days after leaving the malaria area.", duration: "Travel + 7 days" },
-    ],
-    reviewedBy: "Pharmacist Ahmed Khan",
-    actions: [{ action: "approve", actor: "Pharmacist Ahmed Khan" }],
-  },
-
-  // ── 13. REJECTED — unsuitable, referred to GP politely ──
-  {
-    id: "demo-013",
-    name: "Robert Eastwood",
-    email: "robert.eastwood@example.com",
-    age: 67,
-    sex: "male",
-    conditionId: "dyspepsia",
-    conditionName: "Dyspepsia (Indigestion)",
-    status: "rejected",
-    daysAgo: 6,
-    hasRedFlag: true,
-    answers: {
-      symptoms: ["Indigestion", "Unintentional weight loss", "Difficulty swallowing"],
-      duration: "About 6 weeks",
-      weight_loss_kg: "Around 4kg without trying",
-      pain_at_night: "Yes, wakes me up",
-      tried_otc: "Gaviscon — limited help",
-    },
-    allergies: "None",
-    currentMedications: "Aspirin 75mg daily",
-    medicalHistory: "Atrial fibrillation",
-    riskCategory: "high",
-    pharmacistNote: "RED FLAGS: weight loss + dysphagia + age >55 + new dyspepsia. Requires urgent 2-week-wait referral per NICE NG12. Not appropriate for online treatment.",
-    referralInfo: "Urgent same-week GP appointment recommended for 2-week-wait suspected upper GI cancer pathway.",
-    reviewedBy: "Pharmacist Sarah Wells",
-    clinicalDecisionRationale: "ALARMS criteria positive: Anaemia not assessed, Loss of weight, Anorexia, Recent onset progressive symptoms, Melaena/haematemesis to rule out, Swallowing difficulty. NICE NG12 mandates urgent 2WW referral.",
-    messages: [
-      {
-        from: "pharmacist",
-        body: "Hi Robert — thank you for your consultation. After careful review I do not feel it would be safe to manage these symptoms online. The combination of unintentional weight loss, difficulty swallowing, and your age means you need an in-person assessment with your GP within the next few days. Please contact your GP today and let them know what you have told me here. If your GP cannot see you quickly, please call NHS 111. I'm sorry I can't help further on this occasion.",
-        daysAgo: 6,
-      },
-    ],
-    actions: [
-      { action: "refer", actor: "Pharmacist Sarah Wells", note: "2WW upper GI pathway", details: { recipient: "GP", urgency: "urgent" } },
-      { action: "reject", actor: "Pharmacist Sarah Wells", note: "Not safe for online management — urgent GP referral required." },
-    ],
-  },
-
-  // ── 14. REJECTED — politely declined, self-care advised ──
-  {
-    id: "demo-014",
-    name: "Megan Whitaker",
-    email: "megan.whitaker@example.com",
-    age: 24,
-    sex: "female",
-    conditionId: "dry-skin",
-    conditionName: "Dry Skin / Eczema / Dermatitis",
-    status: "rejected",
-    daysAgo: 8,
-    hasPhoto: true,
-    answers: {
-      area: "Hands, mostly knuckles",
-      duration: "Started 4 days ago after switching washing-up liquid",
-      tried_anything: "Nothing yet",
-      severity: "Mild — slight redness and tightness",
-    },
-    allergies: "None",
-    currentMedications: "None",
-    medicalHistory: "Otherwise well",
-    riskCategory: "low",
-    pharmacistNote: "Likely irritant contact dermatitis — very mild, recent onset, no infection signs. Self-care first-line per NICE CKS.",
-    reviewedBy: "Pharmacist Ahmed Khan",
-    messages: [
-      {
-        from: "pharmacist",
-        body: "Hi Megan — thanks for the photo. This looks like very mild irritant dermatitis from the new washing-up liquid. Most cases settle within a week with self-care, so a prescription isn't needed yet. Please switch back to your old detergent (or use gloves), apply a fragrance-free moisturiser like E45 or Cetraben several times a day, and avoid harsh soaps. If it hasn't improved in 7 days, or if it spreads or becomes painful, please restart your consultation and we'll reassess.",
-        daysAgo: 8,
-      },
-    ],
-    actions: [{ action: "reject", actor: "Pharmacist Ahmed Khan", note: "Self-care first-line; restart consultation if no improvement in 7 days." }],
-  },
-
-  // ── 15. APPROVED — paediatric (head lice) ──
-  {
-    id: "demo-015",
-    name: "Laura Kennedy",
-    email: "laura.kennedy@example.com",
-    age: 38,
-    sex: "female",
-    conditionId: "head-lice",
-    conditionName: "Head Lice",
-    status: "approved",
-    daysAgo: 12,
-    answers: {
-      who: "My daughter, age 7",
-      duration: "Spotted live lice this morning",
-      tried_anything: "Wet combing only",
-      siblings: "One sibling, age 4 — being checked",
-      pregnant_or_breastfeeding: "No (treating child)",
-    },
-    allergies: "None",
-    currentMedications: "None",
-    medicalHistory: "Healthy",
-    riskCategory: "low",
-    pharmacistNote: "Confirmed live lice in child age 7. Dimeticone 4% lotion appropriate first-line.",
-    prescription: "Dimeticone 4% lotion — apply to dry hair, leave 8 hours, repeat after 7 days",
-    prescriptionItems: [
-      { name: "Dimeticone (Hedrin)", strength: "4%", form: "Lotion", quantity: "150ml bottle", sig: "Apply enough to coat dry hair and scalp. Leave on for at least 8 hours (overnight is fine). Wash out and comb. Repeat after 7 days to catch newly hatched lice.", duration: "Two applications, 7 days apart" },
-    ],
-    reviewedBy: "Pharmacist Sarah Wells",
-    actions: [{ action: "approve", actor: "Pharmacist Sarah Wells" }],
-  },
-];
-
-function ts(daysAgo: number, hoursAgo = 0): Date {
-  const d = new Date();
-  d.setDate(d.getDate() - daysAgo);
-  d.setHours(d.getHours() - hoursAgo);
-  return d;
-}
-
-async function seed() {
-  for (const c of DEMOS) {
-    const createdAt = ts(c.daysAgo, c.hoursAgo ?? 0);
-    const reviewedAt = c.status === "approved" || c.status === "rejected" ? ts(Math.max(0, c.daysAgo - 1)) : null;
-
-    await db.insert(consultationsTable).values({
-      id: c.id,
+  await db
+    .insert(consultationsTable)
+    .values({
+      id: priorId,
       patientName: c.name,
       patientEmail: c.email,
       patientAge: c.age,
       patientSex: c.sex,
-      conditionId: c.conditionId,
-      conditionName: c.conditionName,
-      status: c.status,
-      answers: c.answers ?? {},
-      hasRedFlag: c.hasRedFlag ?? false,
-      hasPhoto: c.hasPhoto ?? false,
-      pharmacistNote: c.pharmacistNote ?? null,
-      prescription: c.prescription ?? null,
-      prescriptionItems: c.prescriptionItems ?? [],
-      referralInfo: c.referralInfo ?? null,
-      allergies: c.allergies ?? null,
-      currentMedications: c.currentMedications ?? null,
-      medicalHistory: c.medicalHistory ?? null,
-      isPregnant: c.isPregnant ?? null,
-      riskCategory: c.riskCategory ?? "low",
-      verifiedHeightCm: c.verifiedHeightCm ?? null,
-      verifiedWeightKg: c.verifiedWeightKg ?? null,
-      bmi: c.bmi ?? null,
-      reviewedBy: c.reviewedBy ?? null,
-      clinicalDecisionRationale: c.clinicalDecisionRationale ?? null,
+      conditionId: "weight-loss",
+      conditionName: conditionName(c.medication),
+      status: "approved",
+      answers: glp1Answers({
+        medication: c.medication,
+        consultationType: "simple_repeat",
+        currentDose: doseLabel(c.medication, priorDose),
+        heightCm: c.verifiedHeightCm ?? 170,
+        weightKg: (c.verifiedWeightKg ?? 90) + 8,
+        bmi: (c.bmi ?? 32) + 2,
+        sex: c.sex === "female" ? "Female" : "Male",
+        gpName: "Prior GP record",
+        gpAddress: "On file",
+        repeatOrderCount: Math.max(1, (c.repeatOrderCount ?? 4) - 1),
+      }),
+      prescription: `${c.medication} ${priorDose} — prior supply`,
+      prescriptionItems: prescriptionFor(c.medication, priorDose).prescriptionItems,
+      riskCategory: "low",
+      verifiedHeightCm: c.verifiedHeightCm,
+      verifiedWeightKg: (c.verifiedWeightKg ?? 90) + 8,
+      bmi: c.bmi,
       consentToTreatment: true,
       consentToDelivery: true,
       consentDataProcessing: true,
       hasRegularGp: true,
+      reviewedBy: "Pharmacist Sarah Wells",
       createdAt,
-      reviewedAt,
-    } as never).onConflictDoNothing();
+      reviewedAt: createdAt,
+    } as never)
+    .onConflictDoNothing();
+}
 
-    // Messages
-    if (c.messages) {
-      for (let i = 0; i < c.messages.length; i++) {
-        const m = c.messages[i]!;
-        await db.insert(consultationMessagesTable).values({
+async function seed() {
+  const DEMOS = generateDemos();
+  console.log(`Seeding ${DEMOS.length} GLP-1 demo consultations...`);
+
+  for (const c of DEMOS) {
+    await seedPriorConsultation(c);
+
+    const createdAt = ts(c.daysAgo, c.hoursAgo ?? 0);
+    const reviewedAt =
+      c.status === "approved" || c.status === "rejected"
+        ? ts(Math.max(0, c.daysAgo - 1))
+        : null;
+
+    await db
+      .insert(consultationsTable)
+      .values({
+        id: c.id,
+        patientName: c.name,
+        patientEmail: c.email,
+        patientAge: c.age,
+        patientSex: c.sex,
+        conditionId: c.conditionId,
+        conditionName: c.conditionName,
+        status: c.status,
+        answers: {
+          ...(c.answers ?? {}),
+          patient_documents: {
+            "weight-scale-video": DEMO_WEIGHT_PHOTO,
+            ...((c.answers as { patient_documents?: Record<string, string> } | undefined)
+              ?.patient_documents ?? {}),
+          },
+        },
+        hasRedFlag: c.hasRedFlag ?? false,
+        hasPhoto: true,
+        photoUrls: [DEMO_WEIGHT_PHOTO],
+        pharmacistNote: c.pharmacistNote ?? null,
+        prescription: c.prescription ?? null,
+        prescriptionItems: c.prescriptionItems ?? [],
+        allergies: c.allergies ?? null,
+        currentMedications: c.currentMedications ?? null,
+        medicalHistory: c.medicalHistory ?? null,
+        riskCategory: c.riskCategory ?? "low",
+        verifiedHeightCm: c.verifiedHeightCm ?? null,
+        verifiedWeightKg: c.verifiedWeightKg ?? null,
+        bmi: c.bmi ?? null,
+        reviewedBy: c.reviewedBy ?? null,
+        clinicalDecisionRationale: c.clinicalDecisionRationale ?? null,
+        previousConsultationId: c.previousConsultationId ?? null,
+        consentToTreatment: true,
+        consentToDelivery: true,
+        consentDataProcessing: true,
+        hasRegularGp: true,
+        createdAt,
+        reviewedAt,
+      } as never)
+      .onConflictDoNothing();
+
+    for (let i = 0; i < c.messages.length; i++) {
+      const m = c.messages[i]!;
+      await db
+        .insert(consultationMessagesTable)
+        .values({
           id: `${c.id}-msg-${i + 1}`,
           consultationId: c.id,
           patientEmail: c.email,
@@ -629,36 +853,174 @@ async function seed() {
           readByPatient: m.from === "patient",
           readByPharmacist: m.from === "pharmacist",
           createdAt: ts(m.daysAgo ?? 0),
-        } as never).onConflictDoNothing();
-      }
+        } as never)
+        .onConflictDoNothing();
     }
 
-    // Actions
     if (c.actions) {
       for (let i = 0; i < c.actions.length; i++) {
         const a = c.actions[i]!;
-        await db.insert(consultationActionsTable).values({
-          id: `${c.id}-act-${i + 1}`,
-          consultationId: c.id,
-          action: a.action,
-          actorRole: "pharmacist",
-          actorName: a.actor ?? "Pharmacist",
-          details: a.details ?? {},
-          note: a.note ?? null,
-          createdAt: reviewedAt ?? createdAt,
-        } as never).onConflictDoNothing();
+        await db
+          .insert(consultationActionsTable)
+          .values({
+            id: `${c.id}-act-${i + 1}`,
+            consultationId: c.id,
+            action: a.action,
+            actorRole: "pharmacist",
+            actorName: a.actor ?? "Pharmacist",
+            details: a.details ?? {},
+            note: a.note ?? null,
+            createdAt: reviewedAt ?? createdAt,
+          } as never)
+          .onConflictDoNothing();
       }
     }
   }
 
-  const r = await db.execute<{ c: string }>(sql`select count(*)::text as c from consultations where id like 'demo-%'`);
-  console.log(`Seeded ${r.rows[0]?.c} demo consultations.`);
+  const r = await db.execute<{ c: string }>(
+    sql`select count(*)::text as c from consultations where id like 'demo-%'`,
+  );
+  const m = await db.execute<{ c: string }>(
+    sql`select count(*)::text as c from consultation_messages where consultation_id like 'demo-%'`,
+  );
+  console.log(
+    `Done: ${r.rows[0]?.c} demo consultations, ${m.rows[0]?.c} messages.`,
+  );
+}
+
+/** Shop orders linked to demo patients (customerEmail) for prescriber portal Patients ↔ Orders. */
+async function seedDemoShopOrders(demos: Demo[]) {
+  const seen = new Set<string>();
+  const patients: Demo[] = [];
+  for (const d of demos) {
+    const key = d.email.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    patients.push(d);
+    if (patients.length >= 12) break;
+  }
+
+  const statuses = ["paid", "preparing", "shipped", "delivered"] as const;
+  let orderNum = 100_100;
+  let created = 0;
+
+  for (let i = 0; i < patients.length; i++) {
+    const d = patients[i]!;
+    const id = `ord_demo_shop_${String(i + 1).padStart(3, "0")}`;
+    const orderNumber = `PC-${orderNum++}`;
+    const status = statuses[i % statuses.length]!;
+    const unitPence = 12_900;
+    const qty = 1;
+
+    await db
+      .insert(ordersTable)
+      .values({
+        id,
+        orderNumber,
+        customerEmail: d.email.toLowerCase(),
+        customerName: d.name,
+        customerPhone: `07700${String(900_200 + i).slice(-6)}`,
+        shippingAddress: {
+          line1: `${12 + i} Demo Street`,
+          city: "London",
+          postcode: "SW1A 1AA",
+        },
+        itemsTotalGbp: unitPence * qty,
+        shippingGbp: 0,
+        totalGbp: unitPence * qty,
+        status,
+        paymentStatus: "paid_demo",
+        paymentProvider: "demo",
+        notes: "Seeded shop order for prescriber portal demo",
+        internalNotes: [],
+        prescriptionItems: [],
+        createdAt: ts(Math.max(1, 14 - i)),
+      } as never)
+      .onConflictDoNothing();
+
+    await db
+      .insert(orderItemsTable)
+      .values({
+        id: `${id}-item-1`,
+        orderId: id,
+        productId: "prod_demo_mounjaro",
+        productName: `${d.medication} ${d.dose} — Weight loss`,
+        productSlug: "mounjaro-weight-loss",
+        imageUrl: null,
+        unitPriceGbp: unitPence,
+        quantity: qty,
+        lineTotalGbp: unitPence * qty,
+      } as never)
+      .onConflictDoNothing();
+
+    if (status === "shipped" || status === "delivered") {
+      await db
+        .insert(deliveriesTable)
+        .values({
+          id: `del_${id}`,
+          orderId: id,
+          carrier: "royal_mail",
+          trackingNumber: `RM${String(900_000_000 + i)}GB`,
+          trackingUrl: `https://www.royalmail.com/track-your-item#/tracking-results/RM${String(900_000_000 + i)}GB`,
+          status: status === "delivered" ? "delivered" : "shipped",
+          events: [],
+        } as never)
+        .onConflictDoNothing();
+    }
+    created += 1;
+  }
+
+  console.log(`Seeded ${created} demo shop orders linked to patient emails.`);
+}
+
+/** Login accounts so demo patients can use the patient portal (My Consultations). */
+async function ensureDemoPatientAccounts(demos: Demo[]) {
+  const passwordHash = await bcrypt.hash(DEMO_PATIENT_PASSWORD, 12);
+  const seen = new Set<string>();
+  let linked = 0;
+
+  for (const d of demos) {
+    const email = d.email.toLowerCase();
+    if (seen.has(email)) continue;
+    seen.add(email);
+
+    await db
+      .insert(patientAccountsTable)
+      .values({
+        id: `patient-${d.id}`,
+        name: d.name,
+        email,
+        passwordHash,
+        sex: d.sex,
+        dateOfBirth: `${2026 - d.age}-06-15`,
+        phone: `07700${String(900100 + linked).slice(-6)}`,
+        addressLine1: `${10 + (linked % 90)} Demo Street`,
+        city: "London",
+        postcode: "SW1A 1AA",
+      } as never)
+      .onConflictDoNothing();
+    linked += 1;
+  }
+
+  console.log(
+    `Linked ${linked} patient portal accounts (password: ${DEMO_PATIENT_PASSWORD}).`,
+  );
 }
 
 async function main() {
-  await wipe();
+  await wipeDemoConsultations();
+  await wipeNonGlpConsultations();
+  await wipeNonGlpShopOrders();
+  const DEMOS = generateDemos();
   await seed();
+  await ensureDemoPatientAccounts(DEMOS);
+  await seedDemoShopOrders(DEMOS);
+  await pool.end();
   process.exit(0);
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch(async (e) => {
+  console.error(e);
+  await pool.end().catch(() => {});
+  process.exit(1);
+});

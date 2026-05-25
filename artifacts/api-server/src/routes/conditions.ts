@@ -1,18 +1,17 @@
 import { Router, type IRouter } from "express";
 import { db, conditionsTable } from "@workspace/db";
 import {
-  ListConditionsResponse,
   GetConditionParams,
-  GetConditionResponse,
 } from "@workspace/api-zod";
 import { eq } from "drizzle-orm";
 import { requirePharmacist } from "../middlewares/auth";
+import { jsonCondition } from "../utils/apiResponse";
 
 const router: IRouter = Router();
 
 router.get("/conditions", async (_req, res): Promise<void> => {
   const conditions = await db.select().from(conditionsTable).orderBy(conditionsTable.name);
-  res.json(ListConditionsResponse.parse(conditions));
+  res.json(conditions.map(jsonCondition));
 });
 
 router.get("/conditions/:id", async (req, res): Promise<void> => {
@@ -33,7 +32,7 @@ router.get("/conditions/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  res.json(GetConditionResponse.parse(condition));
+  res.json(jsonCondition(condition));
 });
 
 // Admin: rich list including questions builder fields (raw, no zod parsing)

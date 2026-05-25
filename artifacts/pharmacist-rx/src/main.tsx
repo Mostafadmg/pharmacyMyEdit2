@@ -23,7 +23,11 @@ function ensurePharmacistSession() {
 
 ensurePharmacistSession();
 
-setBaseUrl(import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000");
+// Empty VITE_API_BASE_URL → same-origin /api (Vite proxy in dev, nginx in production).
+const apiBase = import.meta.env.VITE_API_BASE_URL;
+setBaseUrl(
+  apiBase === "" || apiBase === undefined ? null : apiBase.replace(/\/$/, ""),
+);
 
 setAuthTokenGetter(() => {
   try {

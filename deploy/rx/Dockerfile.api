@@ -1,0 +1,15 @@
+# PharmaCare API — production image
+FROM node:24-alpine AS build
+RUN corepack enable && corepack prepare pnpm@latest --activate
+WORKDIR /app
+COPY . .
+RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @workspace/api-server run build
+
+FROM node:24-alpine
+RUN corepack enable && corepack prepare pnpm@latest --activate
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=build /app ./
+EXPOSE 5000
+CMD ["node", "--enable-source-maps", "artifacts/api-server/dist/index.mjs"]

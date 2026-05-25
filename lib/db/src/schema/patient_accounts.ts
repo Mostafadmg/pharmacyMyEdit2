@@ -27,6 +27,8 @@ export const patientAccountsTable = pgTable("patient_accounts", {
   marketingOptIn: boolean("marketing_opt_in").notNull().default(false),
   // Per-user referral code (auto-generated on first request)
   referralCode: text("referral_code").unique(),
+  /** Patient Medication Record number — stable pharmacy identifier */
+  pmrNumber: text("pmr_number").unique(),
   // GDPR self-serve account deletion request (30-day soft-delete window)
   deletionRequestedAt: timestamp("deletion_requested_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

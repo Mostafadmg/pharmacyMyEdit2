@@ -14,6 +14,7 @@ import {
 } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { RxPageTitle, RxShell } from "@/components/rx";
 
 export function Dashboard() {
   const { data: stats } = useGetDashboardStats();
@@ -55,15 +56,11 @@ export function Dashboard() {
   ];
 
   return (
-    <div className="p-4 md:p-8 max-w-[1400px] mx-auto">
-      <div className="mb-7">
-        <h1 className="text-2xl md:text-3xl font-serif font-semibold tracking-tight">
-          Good day, Dr. Mitchell
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Here's what's waiting on your prescriber attention today.
-        </p>
-      </div>
+    <RxShell>
+      <RxPageTitle
+        title="Good day, Dr. Mitchell"
+        subtitle="Here's what's waiting on your prescriber attention today."
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-8">
         {tiles.map((t) => {
@@ -76,9 +73,7 @@ export function Dashboard() {
                     <div className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
                       {t.label}
                     </div>
-                    <div className="text-3xl font-semibold mt-2 font-serif">
-                      {t.value}
-                    </div>
+                    <div className="rx-ref-sm text-3xl mt-2">{t.value}</div>
                   </div>
                   <div
                     className={`h-10 w-10 rounded-lg flex items-center justify-center ${t.tone}`}
@@ -99,7 +94,7 @@ export function Dashboard() {
         <Card className="lg:col-span-2 p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="font-serif text-lg font-semibold">Awaiting your review</h2>
+              <h2 className="rx-display-sm text-lg">Awaiting your review</h2>
               <p className="text-xs text-muted-foreground">
                 Oldest submissions first · auto-refreshes every 30s
               </p>
@@ -131,7 +126,7 @@ export function Dashboard() {
                       .join("")}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{c.patientName}</div>
+                    <div className="rx-display-sm truncate">{c.patientName}</div>
                     <div className="text-xs text-muted-foreground truncate">
                       {c.conditionName} · {c.patientAge} {c.patientSex[0].toUpperCase()}
                     </div>
@@ -157,7 +152,7 @@ export function Dashboard() {
         <Card className="p-5">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="h-4 w-4 text-primary" />
-            <h2 className="font-serif text-lg font-semibold">Patient replies</h2>
+            <h2 className="rx-display-sm text-lg">Patient replies</h2>
           </div>
           {(responded?.consultations ?? []).length === 0 && (
             <p className="text-sm text-muted-foreground">
@@ -167,8 +162,8 @@ export function Dashboard() {
           <div className="space-y-3">
             {(responded?.consultations ?? []).map((c) => (
               <Link key={c.id} href={`/orders/${c.id}`}>
-                <div className="p-3 rounded-md border border-border hover:border-primary cursor-pointer transition-colors">
-                  <div className="text-sm font-medium truncate">{c.patientName}</div>
+                <div className="p-3 rounded-xl border border-border hover:border-emerald-400 cursor-pointer transition-colors bg-card/80">
+                  <div className="rx-display-sm truncate text-sm">{c.patientName}</div>
                   <div className="text-xs text-muted-foreground truncate">
                     {c.conditionName}
                   </div>
@@ -181,6 +176,6 @@ export function Dashboard() {
           </div>
         </Card>
       </div>
-    </div>
+    </RxShell>
   );
 }

@@ -2,6 +2,54 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Start API server",
+      "type": "shell",
+      "command": "Set-Location 'c:\\Users\\Owner\\OneDrive\\Desktop\\pharmacyMyEdit\\artifacts\\api-server'; $env:DATABASE_URL='postgresql://postgres:postgres@localhost:5432/pharmacare'; node ./build.mjs; node --enable-source-maps ./dist/index.mjs",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": false,
+        "focus": false,
+        "panel": "shared",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Start patient website",
+      "type": "shell",
+      "command": "Set-Location 'c:\\Users\\Owner\\OneDrive\\Desktop\\pharmacyMyEdit\\artifacts\\pharmacy'; corepack pnpm exec vite --config vite.config.ts --host 0.0.0.0 --port 5173",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": false,
+        "focus": false,
+        "panel": "shared",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Start Rx portal",
+      "type": "shell",
+      "command": "Set-Location 'c:\\Users\\Owner\\OneDrive\\Desktop\\pharmacyMyEdit\\artifacts\\pharmacist-rx'; corepack pnpm exec vite --config vite.config.ts --host 0.0.0.0 --port 5174",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": false,
+        "focus": false,
+        "panel": "shared",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Open patient website in VS Code browser",
+      "type": "shell",
+      "command": "echo ${input:openPatientWebsiteBrowser}",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": false,
+        "focus": false,
+        "panel": "shared",
+        "reveal": "never"
+      }
+    },
+    {
       "label": "Open dashboard in VS Code browser",
       "type": "shell",
       "command": "echo ${input:openDashboardBrowser}",
@@ -31,17 +79,19 @@
       "id": "openDashboardBrowser",
       "type": "command",
       "command": "simpleBrowser.api.open",
-      "args": [
-        "http://localhost:5173/dashboard"
-      ]
+      "args": ["http://localhost:5173/dashboard"]
+    },
+    {
+      "id": "openPatientWebsiteBrowser",
+      "type": "command",
+      "command": "simpleBrowser.api.open",
+      "args": ["http://localhost:5173"]
     },
     {
       "id": "openCounsellingBrowser",
       "type": "command",
       "command": "simpleBrowser.api.open",
-      "args": [
-        "http://localhost:5174/orders/demo-007?tab=counselling"
-      ]
+      "args": ["http://localhost:5174/orders/demo-007?tab=counselling"]
     }
   ]
 }

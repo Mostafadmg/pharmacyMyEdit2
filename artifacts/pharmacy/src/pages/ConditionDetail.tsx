@@ -182,7 +182,15 @@ export default function ConditionDetail() {
                   
                   {condition.onlineEligible ? (
                     <Button className="w-full text-lg h-14 bg-accent hover:bg-accent/90 text-accent-foreground font-bold rounded-xl shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5" size="lg" asChild data-testid="button-start-consultation">
-                      <Link href={`/consult/${condition.id}`}>Start consultation now</Link>
+                      <Link
+                        href={
+                          condition.id === "weight-loss"
+                            ? "/consultation/weight-loss-injectable"
+                            : `/consult/${condition.id}`
+                        }
+                      >
+                        Start consultation now
+                      </Link>
                     </Button>
                   ) : (
                     <div className="bg-destructive/10 text-destructive p-4 rounded-xl text-sm font-semibold border border-destructive/20 flex gap-3">

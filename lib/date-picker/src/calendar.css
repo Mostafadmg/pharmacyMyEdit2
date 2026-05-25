@@ -1,0 +1,151 @@
+/* Calendar dropdown — plain CSS so layout works outside Tailwind scan paths */
+
+.calendar-dropdown {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.calendar-dropdown .calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.calendar-dropdown .month-year-display {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a202c;
+}
+
+.calendar-dropdown .month-year-selects {
+  flex: 1;
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+.calendar-dropdown .month-year-select {
+  flex: 1;
+  min-width: 0;
+  appearance: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #2d3748;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 28px 8px 10px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23718096' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+.calendar-dropdown .month-year-select:focus {
+  outline: none;
+  border-color: #059669;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+}
+
+.calendar-dropdown .nav-btn {
+  flex-shrink: 0;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #4a5568;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.calendar-dropdown .nav-btn:hover {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+.calendar-dropdown .weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  padding: 12px 12px 8px;
+}
+
+.calendar-dropdown .weekday {
+  font-size: 11px;
+  font-weight: 600;
+  color: #a0aec0;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.calendar-dropdown .days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  padding: 0 12px 12px;
+}
+
+.calendar-dropdown .day {
+  list-style: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: #2d3748;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  aspect-ratio: 1;
+  min-height: 36px;
+  padding: 0;
+}
+
+.calendar-dropdown .day:hover:not(:disabled):not(.empty) {
+  background: #edf2f7;
+}
+
+.calendar-dropdown .day.empty {
+  cursor: default;
+  pointer-events: none;
+}
+
+.calendar-dropdown .day:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.calendar-dropdown .day.selected {
+  background: #065f46 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+.calendar-dropdown .day.today:not(.selected) {
+  border: 2px solid #d1fae5;
+  font-weight: 700;
+  color: #065f46;
+}
+
+.calendar-dropdown .day:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.35);
+}

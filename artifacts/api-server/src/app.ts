@@ -25,10 +25,32 @@ app.use(
     },
   }),
 );
-app.use(cors());
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  }),
+);
 app.use(express.json({ limit: "75mb" }));
 app.use(express.urlencoded({ extended: true, limit: "75mb" }));
 
 app.use("/api", router);
+
+app.use(
+  (
+    err: unknown,
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction,
+  ) => {
+    logger.error({ err }, "Unhandled API error");
+    if (!res.headersSent) {
+      res.status(500).json({
+        error:
+          err instanceof Error ? err.message : "Internal server error",
+      });
+    }
+  },
+);
 
 export default app;

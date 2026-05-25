@@ -4,8 +4,12 @@ import { z } from "zod/v4";
 
 export const consultationsTable = pgTable("consultations", {
   id: text("id").primaryKey(),
+  /** Human-readable consultation reference shown to patients and pharmacists */
+  consultationNumber: text("consultation_number").unique(),
   patientName: text("patient_name").notNull(),
   patientEmail: text("patient_email").notNull(),
+  /** Date of birth captured at intake (ISO YYYY-MM-DD) for duplicate detection */
+  patientDateOfBirth: text("patient_date_of_birth"),
   patientAge: integer("patient_age").notNull(),
   patientSex: text("patient_sex").notNull(),
   conditionId: text("condition_id").notNull(),
@@ -47,6 +51,8 @@ export const consultationsTable = pgTable("consultations", {
   // ─── GPhC compliance: safeguard / risk flags (4.2h, 4.2j) ───
   riskFlags: jsonb("risk_flags").notNull().default([]), // string[] e.g. ["multiple_orders", "antimicrobial_repeat"]
   riskCategory: text("risk_category"), // "low" | "medium" | "high"
+  /** Possible duplicate patient matches (same name + DOB, different email) */
+  duplicatePatientMatches: jsonb("duplicate_patient_matches").notNull().default([]),
 
   // ─── GPhC compliance: weight management verification (4.2l) ───
   verifiedHeightCm: integer("verified_height_cm"),

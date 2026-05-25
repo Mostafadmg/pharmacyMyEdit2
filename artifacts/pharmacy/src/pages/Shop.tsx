@@ -1,7 +1,18 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Search, ShoppingBag, Truck, ShieldCheck, Star, Plus, Minus, Filter, Zap, Check } from "lucide-react";
+import {
+  Search,
+  ShoppingBag,
+  Truck,
+  ShieldCheck,
+  Star,
+  Plus,
+  Minus,
+  Filter,
+  Zap,
+  Check,
+} from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Input } from "@/components/ui/input";
@@ -49,12 +60,15 @@ const CATEGORY_LABELS: Record<string, string> = {
 export default function Shop() {
   useSeo({
     title: "Pharmacy Shop · UK pharmacy products with free delivery",
-    description: "Shop UK pharmacy medicines, vitamins and skincare from PharmaCare. Free tracked next-day delivery on orders over £25, dispatched same-day from a GPhC-registered pharmacy.",
+    description:
+      "Shop UK pharmacy medicines, vitamins and skincare from PharmaCare. Free tracked next-day delivery on orders over £25, dispatched same-day from a GPhC-registered pharmacy.",
     canonicalPath: "/shop",
   });
   const [, navigate] = useLocation();
   const [products, setProducts] = useState<Product[] | null>(null);
-  const [categories, setCategories] = useState<Array<{ category: string; count: number }>>([]);
+  const [categories, setCategories] = useState<
+    Array<{ category: string; count: number }>
+  >([]);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [loading, setLoading] = useState(true);
@@ -70,14 +84,75 @@ export default function Shop() {
     const params = new URLSearchParams();
     if (activeCategory !== "all") params.set("category", activeCategory);
     if (search.trim()) params.set("search", search.trim());
-    apiFetch<{ products: Product[]; categories: Array<{ category: string; count: number }> }>(
-      `/api/products?${params.toString()}`
-    )
-      .then(d => {
+    apiFetch<{
+      products: Product[];
+      categories: Array<{ category: string; count: number }>;
+    }>(`/api/products?${params.toString()}`)
+      .then((d) => {
         setProducts(d.products);
         setCategories(d.categories);
       })
-      .catch(e => toast.error(e.message))
+      .catch((e) => {
+        // If the API is unavailable (dev server / database not running), fall back to a small local catalog
+        toast.error(
+          e.message || "Failed to load products — showing local demo catalog",
+        );
+        const fallback: Product[] = [
+          {
+            id: "paracetamol-500mg-16",
+            slug: "paracetamol-500mg-16",
+            name: "Panadol Advance 500mg Tablets",
+            brand: "Panadol",
+            category: "pain-relief",
+            classification: "GSL",
+            shortDescription:
+              "Effective relief from headache, toothache, period pain and fever.",
+            imageUrl: "/products/paracetamol-500mg-16.jpg",
+            packSize: "16 tablets",
+            priceGbp: 99,
+            rrpGbp: 150,
+            stock: 250,
+            requiresConsultation: false,
+          },
+          {
+            id: "ibuprofen-200mg-16",
+            slug: "ibuprofen-200mg-16",
+            name: "Nurofen 200mg Tablets",
+            brand: "Nurofen",
+            category: "pain-relief",
+            classification: "GSL",
+            shortDescription:
+              "Anti-inflammatory pain relief for muscle aches, joint pain and headaches.",
+            imageUrl: "/products/ibuprofen-200mg-16.webp",
+            packSize: "16 tablets",
+            priceGbp: 129,
+            rrpGbp: 199,
+            stock: 240,
+            requiresConsultation: false,
+          },
+          {
+            id: "loratadine-10mg-30",
+            slug: "loratadine-10mg-30",
+            name: "Clarityn Allergy Loratadine 10mg Tablets",
+            brand: "Clarityn",
+            category: "allergy",
+            classification: "GSL",
+            shortDescription:
+              "Once-a-day non-drowsy hayfever and allergy relief.",
+            imageUrl: "/products/loratadine-10mg-30.webp",
+            packSize: "30 tablets",
+            priceGbp: 449,
+            rrpGbp: 699,
+            stock: 300,
+            requiresConsultation: false,
+          },
+        ];
+        setProducts(fallback);
+        setCategories([
+          { category: "pain-relief", count: 2 },
+          { category: "allergy", count: 1 },
+        ]);
+      })
       .finally(() => setLoading(false));
   }, [activeCategory, search]);
 
@@ -130,18 +205,27 @@ export default function Shop() {
       {/* Hero */}
       <section className="bg-gradient-to-br from-[#0E3D2D] to-[#0E5A52] text-white py-16">
         <div className="max-w-7xl mx-auto px-6">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl">
-            <Badge className="bg-white/20 text-white border-0 mb-4">UK Registered Pharmacy · GPhC 9011677</Badge>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Pharmacy Shop</h1>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-3xl"
+          >
+            <Badge className="bg-white/20 text-white border-0 mb-4">
+              UK Registered Pharmacy · GPhC 9011677
+            </Badge>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              Pharmacy Shop
+            </h1>
             <p className="text-lg text-white/90 mb-6">
-              Trusted UK pharmacy products, dispatched same-day from our Manchester pharmacy. Free standard delivery on orders over £25.
+              Trusted UK pharmacy products, dispatched same-day from our
+              Manchester pharmacy. Free standard delivery on orders over £25.
             </p>
             <div className="relative max-w-xl">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#0E3D2D]" />
               <Input
                 placeholder="Search paracetamol, hayfever, vitamins..."
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
                 className="pl-12 h-14 rounded-full bg-white text-foreground border-0 shadow-lg focus-visible:ring-2 focus-visible:ring-white/50 placeholder:text-muted-foreground"
                 data-testid="input-shop-search"
               />
@@ -153,10 +237,19 @@ export default function Shop() {
       {/* Trust strip */}
       <section className="bg-white border-b border-border/40">
         <div className="max-w-7xl mx-auto px-6 py-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div className="flex items-center gap-2"><Truck className="w-4 h-4 text-[#0E3D2D]" /> Free UK delivery £25+</div>
-          <div className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-[#0E3D2D]" /> GPhC registered</div>
-          <div className="flex items-center gap-2"><Star className="w-4 h-4 text-[#0E3D2D]" /> 4.8 rating from 12k reviews</div>
-          <div className="flex items-center gap-2"><ShoppingBag className="w-4 h-4 text-[#0E3D2D]" /> Same-day dispatch</div>
+          <div className="flex items-center gap-2">
+            <Truck className="w-4 h-4 text-[#0E3D2D]" /> Free UK delivery £25+
+          </div>
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-[#0E3D2D]" /> GPhC registered
+          </div>
+          <div className="flex items-center gap-2">
+            <Star className="w-4 h-4 text-[#0E3D2D]" /> 4.8 rating from 12k
+            reviews
+          </div>
+          <div className="flex items-center gap-2">
+            <ShoppingBag className="w-4 h-4 text-[#0E3D2D]" /> Same-day dispatch
+          </div>
         </div>
       </section>
 
@@ -175,7 +268,7 @@ export default function Shop() {
             >
               All products
             </button>
-            {categories.map(c => (
+            {categories.map((c) => (
               <button
                 key={c.category}
                 onClick={() => setActiveCategory(c.category)}
@@ -187,7 +280,11 @@ export default function Shop() {
                 data-testid={`btn-category-${c.category}`}
               >
                 {CATEGORY_LABELS[c.category] ?? c.category}
-                <span className={`text-xs rounded-full px-1.5 py-0.5 ${activeCategory === c.category ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"}`}>{c.count}</span>
+                <span
+                  className={`text-xs rounded-full px-1.5 py-0.5 ${activeCategory === c.category ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"}`}
+                >
+                  {c.count}
+                </span>
               </button>
             ))}
           </div>
@@ -195,154 +292,200 @@ export default function Shop() {
 
         {/* Product grid — full width */}
         <div>
-            <div className="flex items-baseline justify-between mb-5">
-              <h2 className="text-xl font-bold">
-                {activeCategory === "all" ? "All products" : CATEGORY_LABELS[activeCategory] ?? activeCategory}
-              </h2>
-              <p className="text-sm text-muted-foreground">{products?.length ?? 0} products</p>
-            </div>
+          <div className="flex items-baseline justify-between mb-5">
+            <h2 className="text-xl font-bold">
+              {activeCategory === "all"
+                ? "All products"
+                : (CATEGORY_LABELS[activeCategory] ?? activeCategory)}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {products?.length ?? 0} products
+            </p>
+          </div>
 
-            {loading ? (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {[...Array(9)].map((_, i) => <Skeleton key={i} className="h-80 rounded-2xl" />)}
-              </div>
-            ) : products && products.length > 0 ? (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {products.map(p => (
-                  <motion.div
-                    key={p.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
+          {loading ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[...Array(9)].map((_, i) => (
+                <Skeleton key={i} className="h-80 rounded-2xl" />
+              ))}
+            </div>
+          ) : products && products.length > 0 ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {products.map((p) => (
+                <motion.div
+                  key={p.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Card
+                    className="group overflow-hidden border-0 bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 h-full flex flex-col relative"
+                    data-testid={`product-card-${p.slug}`}
                   >
-                    <Card className="group overflow-hidden border-0 bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 h-full flex flex-col relative" data-testid={`product-card-${p.slug}`}>
-                      <Link href={`/product/${p.slug}`}>
-                        <div className="aspect-square bg-gradient-to-br from-muted/30 to-muted overflow-hidden relative">
-                          <img
-                            src={p.imageUrl}
-                            alt={p.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            loading="lazy"
-                          />
-                          {p.classification === "P" && (
-                            <Badge className="absolute top-3 left-3 bg-amber-500 hover:bg-amber-500 text-white border-0">Pharmacy</Badge>
-                          )}
-                          {p.rrpGbp && p.rrpGbp > p.priceGbp && (
-                            <Badge className="absolute top-3 right-3 bg-rose-500 hover:bg-rose-500 text-white border-0">
-                              Save {formatGbp(p.rrpGbp - p.priceGbp)}
-                            </Badge>
-                          )}
-                        </div>
-                      </Link>
-                      <div className="absolute top-3 right-3 z-10">
-                        <WishlistButton
-                          productId={p.id}
-                          slug={p.slug}
-                          name={p.name}
-                          brand={p.brand}
-                          imageUrl={p.imageUrl}
-                          unitPriceGbp={p.priceGbp}
+                    <Link href={`/product/${p.slug}`}>
+                      <div className="aspect-square bg-gradient-to-br from-muted/30 to-muted overflow-hidden relative">
+                        <img
+                          src={p.imageUrl}
+                          alt={p.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          loading="lazy"
                         />
+                        {p.classification === "P" && (
+                          <Badge className="absolute top-3 left-3 bg-amber-500 hover:bg-amber-500 text-white border-0">
+                            Pharmacy
+                          </Badge>
+                        )}
+                        {p.rrpGbp && p.rrpGbp > p.priceGbp && (
+                          <Badge className="absolute top-3 right-3 bg-rose-500 hover:bg-rose-500 text-white border-0">
+                            Save {formatGbp(p.rrpGbp - p.priceGbp)}
+                          </Badge>
+                        )}
                       </div>
-                      <CardContent className="p-5 flex-1 flex flex-col">
-                        <Link href={`/product/${p.slug}`}>
-                          {p.brand && <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">{p.brand}</p>}
-                          <h3 className="font-semibold leading-snug text-base line-clamp-2 mb-1.5 hover:text-[#0E3D2D] transition-colors">{p.name}</h3>
-                          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{p.shortDescription}</p>
-                          {p.packSize && <p className="text-xs text-muted-foreground mb-3">{p.packSize}</p>}
-                        </Link>
-                        <div className="mt-auto space-y-2">
-                          <div className="flex items-end justify-between">
-                            <div>
-                              <p className="text-2xl font-bold text-[#0E3D2D]" data-testid={`product-price-${p.slug}`}>{formatGbp(p.priceGbp)}</p>
-                              {p.rrpGbp && p.rrpGbp > p.priceGbp && (
-                                <p className="text-xs text-muted-foreground line-through">{formatGbp(p.rrpGbp)}</p>
-                              )}
-                            </div>
-                            {p.requiresConsultation ? (
-                              <Badge className="bg-amber-100 hover:bg-amber-100 text-amber-800 border-0">Consult required</Badge>
-                            ) : p.stock <= 0 ? (
-                              <Badge className="bg-rose-100 hover:bg-rose-100 text-rose-700 border-0">Out of stock</Badge>
-                            ) : null}
+                    </Link>
+                    <div className="absolute top-3 right-3 z-10">
+                      <WishlistButton
+                        productId={p.id}
+                        slug={p.slug}
+                        name={p.name}
+                        brand={p.brand}
+                        imageUrl={p.imageUrl}
+                        unitPriceGbp={p.priceGbp}
+                      />
+                    </div>
+                    <CardContent className="p-5 flex-1 flex flex-col">
+                      <Link href={`/product/${p.slug}`}>
+                        {p.brand && (
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
+                            {p.brand}
+                          </p>
+                        )}
+                        <h3 className="font-semibold leading-snug text-base line-clamp-2 mb-1.5 hover:text-[#0E3D2D] transition-colors">
+                          {p.name}
+                        </h3>
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                          {p.shortDescription}
+                        </p>
+                        {p.packSize && (
+                          <p className="text-xs text-muted-foreground mb-3">
+                            {p.packSize}
+                          </p>
+                        )}
+                      </Link>
+                      <div className="mt-auto space-y-2">
+                        <div className="flex items-end justify-between">
+                          <div>
+                            <p
+                              className="text-2xl font-bold text-[#0E3D2D]"
+                              data-testid={`product-price-${p.slug}`}
+                            >
+                              {formatGbp(p.priceGbp)}
+                            </p>
+                            {p.rrpGbp && p.rrpGbp > p.priceGbp && (
+                              <p className="text-xs text-muted-foreground line-through">
+                                {formatGbp(p.rrpGbp)}
+                              </p>
+                            )}
                           </div>
-                          {!p.requiresConsultation && p.stock > 0 && (
-                            <div className="grid grid-cols-2 gap-2">
-                              {(cartQtyById[p.id] ?? 0) === 0 ? (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleQuickAdd(p)}
-                                  className="rounded-full border-[#0E3D2D] text-[#0E3D2D] hover:bg-[#0E3D2D]/5"
-                                  data-testid={`btn-add-${p.slug}`}
-                                >
-                                  <Plus className="w-4 h-4 mr-1" /> Add
-                                </Button>
-                              ) : (
-                                <div
-                                  className="flex items-center justify-between rounded-full border border-[#0E3D2D] bg-[#0E3D2D]/5 overflow-hidden h-9"
-                                  data-testid={`stepper-${p.slug}`}
-                                >
-                                  <button
-                                    type="button"
-                                    aria-label="Decrease quantity"
-                                    onClick={() => {
-                                      const next = (cartQtyById[p.id] ?? 1) - 1;
-                                      if (next <= 0) removeItem(p.id);
-                                      else updateQty(p.id, next);
-                                    }}
-                                    className="px-3 h-full text-[#0E3D2D] hover:bg-[#0E3D2D]/10 flex items-center"
-                                    data-testid={`btn-stepper-minus-${p.slug}`}
-                                  >
-                                    <Minus className="w-4 h-4" />
-                                  </button>
-                                  <span className="font-semibold text-sm text-[#0E5A52] flex items-center gap-1" data-testid={`text-stepper-qty-${p.slug}`}>
-                                    <Check className="w-3.5 h-3.5" /> {cartQtyById[p.id]}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    aria-label="Increase quantity"
-                                    onClick={() => {
-                                      const cur = cartQtyById[p.id] ?? 0;
-                                      if (cur >= Math.min(20, p.stock)) {
-                                        toast.error(`Only ${p.stock} available`);
-                                        return;
-                                      }
-                                      updateQty(p.id, cur + 1);
-                                    }}
-                                    className="px-3 h-full text-[#0E3D2D] hover:bg-[#0E3D2D]/10 flex items-center"
-                                    data-testid={`btn-stepper-plus-${p.slug}`}
-                                  >
-                                    <Plus className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              )}
+                          {p.requiresConsultation ? (
+                            <Badge className="bg-amber-100 hover:bg-amber-100 text-amber-800 border-0">
+                              Consult required
+                            </Badge>
+                          ) : p.stock <= 0 ? (
+                            <Badge className="bg-rose-100 hover:bg-rose-100 text-rose-700 border-0">
+                              Out of stock
+                            </Badge>
+                          ) : null}
+                        </div>
+                        {!p.requiresConsultation && p.stock > 0 && (
+                          <div className="grid grid-cols-2 gap-2">
+                            {(cartQtyById[p.id] ?? 0) === 0 ? (
                               <Button
                                 size="sm"
-                                onClick={() => handleBuyNow(p)}
-                                className="bg-amber-500 hover:bg-amber-600 text-white rounded-full"
-                                data-testid={`btn-buy-now-${p.slug}`}
+                                variant="outline"
+                                onClick={() => handleQuickAdd(p)}
+                                className="rounded-full border-[#0E3D2D] text-[#0E3D2D] hover:bg-[#0E3D2D]/5"
+                                data-testid={`btn-add-${p.slug}`}
                               >
-                                <Zap className="w-4 h-4 mr-1" /> Buy now
+                                <Plus className="w-4 h-4 mr-1" /> Add
                               </Button>
-                            </div>
-                          )}
-                          {p.requiresConsultation && (
-                            <Button asChild size="sm" variant="outline" className="w-full rounded-full" data-testid={`btn-consult-${p.slug}`}>
-                              <Link href="/conditions">Start consultation</Link>
+                            ) : (
+                              <div
+                                className="flex items-center justify-between rounded-full border border-[#0E3D2D] bg-[#0E3D2D]/5 overflow-hidden h-9"
+                                data-testid={`stepper-${p.slug}`}
+                              >
+                                <button
+                                  type="button"
+                                  aria-label="Decrease quantity"
+                                  onClick={() => {
+                                    const next = (cartQtyById[p.id] ?? 1) - 1;
+                                    if (next <= 0) removeItem(p.id);
+                                    else updateQty(p.id, next);
+                                  }}
+                                  className="px-3 h-full text-[#0E3D2D] hover:bg-[#0E3D2D]/10 flex items-center"
+                                  data-testid={`btn-stepper-minus-${p.slug}`}
+                                >
+                                  <Minus className="w-4 h-4" />
+                                </button>
+                                <span
+                                  className="font-semibold text-sm text-[#0E5A52] flex items-center gap-1"
+                                  data-testid={`text-stepper-qty-${p.slug}`}
+                                >
+                                  <Check className="w-3.5 h-3.5" />{" "}
+                                  {cartQtyById[p.id]}
+                                </span>
+                                <button
+                                  type="button"
+                                  aria-label="Increase quantity"
+                                  onClick={() => {
+                                    const cur = cartQtyById[p.id] ?? 0;
+                                    if (cur >= Math.min(20, p.stock)) {
+                                      toast.error(`Only ${p.stock} available`);
+                                      return;
+                                    }
+                                    updateQty(p.id, cur + 1);
+                                  }}
+                                  className="px-3 h-full text-[#0E3D2D] hover:bg-[#0E3D2D]/10 flex items-center"
+                                  data-testid={`btn-stepper-plus-${p.slug}`}
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
+                            <Button
+                              size="sm"
+                              onClick={() => handleBuyNow(p)}
+                              className="bg-amber-500 hover:bg-amber-600 text-white rounded-full"
+                              data-testid={`btn-buy-now-${p.slug}`}
+                            >
+                              <Zap className="w-4 h-4 mr-1" /> Buy now
                             </Button>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-white rounded-2xl p-12 text-center">
-                <p className="text-muted-foreground">No products match your search.</p>
-              </div>
-            )}
-          </div>
+                          </div>
+                        )}
+                        {p.requiresConsultation && (
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="outline"
+                            className="w-full rounded-full"
+                            data-testid={`btn-consult-${p.slug}`}
+                          >
+                            <Link href="/conditions">Start consultation</Link>
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl p-12 text-center">
+              <p className="text-muted-foreground">
+                No products match your search.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       <Footer />

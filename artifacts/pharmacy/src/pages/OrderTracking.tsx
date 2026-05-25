@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { Link, useRoute } from "wouter";
-import { ArrowLeft, Package, Truck, Check, MapPin, Clock, Pill, FileText, ExternalLink } from "lucide-react";
+import { ArrowLeft, Package, Truck, Check, MapPin, Clock, Pill, FileText, ExternalLink, MessageSquare } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
 import { formatGbp } from "@/hooks/useCart";
-import ConsultationChat from "@/components/ConsultationChat";
 
 type Order = {
   id: string; orderNumber: string; status: string; totalGbp: number; createdAt: string;
@@ -215,7 +215,15 @@ export default function OrderTracking() {
 
               {data.order.consultationId && (
                 <div className="md:col-span-2">
-                  <ConsultationChat consultationId={data.order.consultationId} audience="patient" />
+                  <Card><CardContent className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <h3 className="font-semibold mb-1 flex items-center gap-2"><MessageSquare className="w-4 h-4" /> Message your pharmacy team</h3>
+                      <p className="text-sm text-muted-foreground">All consultations share one secure inbox.</p>
+                    </div>
+                    <Button asChild className="rounded-full shrink-0">
+                      <Link href="/my-messages">Open messages</Link>
+                    </Button>
+                  </CardContent></Card>
                 </div>
               )}
               <Card><CardContent className="p-5">

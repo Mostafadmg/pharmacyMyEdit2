@@ -9,6 +9,7 @@ import { Queue } from "@/pages/Queue";
 import { OrderDetail } from "@/pages/OrderDetail";
 import { PatientMessages } from "@/pages/PatientMessages";
 import { Patients } from "@/pages/Patients";
+import { PatientDetail } from "@/pages/PatientDetail";
 import { Prescriptions } from "@/pages/Prescriptions";
 import { DispensingLabels } from "@/pages/DispensingLabels";
 import { Profile } from "@/pages/Profile";
@@ -28,6 +29,9 @@ function Routes() {
         <Route path="/orders/:id">{(p) => <OrderDetail id={p.id} />}</Route>
         <Route path="/messages" component={PatientMessages} />
         <Route path="/patients" component={Patients} />
+        <Route path="/patients/:email">
+          {(p) => <PatientDetail email={decodeURIComponent(p.email)} />}
+        </Route>
         <Route path="/prescriptions" component={Prescriptions} />
         <Route path="/labels" component={DispensingLabels} />
         <Route path="/profile" component={Profile} />

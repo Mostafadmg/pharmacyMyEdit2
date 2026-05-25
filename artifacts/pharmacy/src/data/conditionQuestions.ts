@@ -1,6 +1,8 @@
 // Consumer (Consultation.tsx) needs migration to new question kinds — see session plan T003.
 //
 // Per-condition clinical questionnaire schemas for the patient pharmacy app.
+
+import { extendedConditionQuestions } from './extendedConditionQuestions';
 // Data-only module. Strict types, no `any`. Single source of truth for clinical
 // + eligibility questions used during the consultation flow.
 
@@ -2241,6 +2243,7 @@ export const conditionQuestions = {
   'sleep': sleep,
   'numbing-cream': numbingCream,
   'weight-loss': weightLossPlaceholder,
+  ...extendedConditionQuestions,
 } as const satisfies Record<string, ConditionQuestionnaire>;
 
 export const conditionAliases: Record<string, string> = {
@@ -2272,7 +2275,22 @@ export const conditionAliases: Record<string, string> = {
   acne: 'acne-vulgaris',
   influenza: 'flu',
   tamiflu: 'flu',
+  thrush: 'vaginal-thrush',
+  eczema: 'dry-skin',
+  'dry-skin-eczema': 'dry-skin',
+  'cold-sore': 'cold-sores',
+  threadworm: 'threadworms',
+  conjunctivitis: 'conjunctivitis',
+  'bacterial-conjunctivitis': 'conjunctivitis',
+  'dry-eye': 'dry-eye',
+  'mouth-ulcers': 'mouth-ulcers',
+  'oral-thrush': 'oral-candidiasis',
+  'oral-candidiasis': 'oral-candidiasis',
 };
+
+export function countConditionQuestions(q: ConditionQuestionnaire): number {
+  return q.eligibilityQuestions.length + q.clinicalQuestions.length;
+}
 
 const defaultQuestionnaire: ConditionQuestionnaire = {
   eligibilityQuestions: [],
