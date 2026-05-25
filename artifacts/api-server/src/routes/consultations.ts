@@ -33,15 +33,23 @@ import {
 import {
   buildCriteriaEmailNote,
   getDocumentRequirements,
+  PATIENT_DOCUMENT_DATA_URL_MAX,
+  validatePatientDocumentDataUrl,
+  patientDocumentsHasAnyUpload,
+  slotHasUploads,
   type DocumentRequirement,
   type DocumentRequirementChange,
+  type PatientDocumentsMap,
 } from "@workspace/evidence-slots";
 import {
   applyPatientDocumentUpload,
   buildDocumentUploadPath,
   buildDocumentUploadUrl,
+  DocumentRequirementSchema,
   EVIDENCE_SLOT_TITLES,
+  EvidenceSlotIdSchema,
   isEvidenceSlotId,
+  applyPatientDocumentUploadRequest,
   trackOrderDocumentSlot,
   type DocumentReviewEntry,
 } from "../utils/patientDocuments";
@@ -49,11 +57,20 @@ import { checkDrugInteractions } from "./pharmacist-tools";
 import { pushToAllPharmacists } from "../lib/expo-push";
 import { jsonConsultation } from "../utils/apiResponse";
 import {
+  applyOrderTagChange,
+  applyOrderTagsBatchAdd,
+  applyOrderTagsBatchRemove,
+  applyUploadLinkRequestedOrderTags,
+  reconcileAutoOrderTags,
+} from "../utils/orderTags";
+import {
   extractDateOfBirthFromAnswers,
   findDuplicatePatientMatches,
   isWeightManagementCondition,
   nextConsultationNumber,
+  isUniqueViolation,
 } from "../utils/patientIdentity";
+import { detectAutoComplexPatient } from "../utils/autoComplexPatient";
 
 const REJECT_REASON_LABELS: Record<string, string> = {
   medically_unsuitable: "Medically unsuitable for this treatment",
@@ -93,6 +110,30 @@ const RED_FLAG_KEYWORDS = [
 function detectRedFlags(answers: Record<string, unknown>): boolean {
   const answersStr = JSON.stringify(answers).toLowerCase();
   return RED_FLAG_KEYWORDS.some((flag) => answersStr.includes(flag));
+}
+
+function hasPatientDocumentsInAnswers(answers: Record<string, unknown>): boolean {
+  const docs = answers.patient_documents;
+  if (!docs || typeof docs !== "object" || Array.isArray(docs)) return false;
+  return patientDocumentsHasAnyUpload(docs as PatientDocumentsMap);
+}
+
+function createConsultationErrorMessage(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (
+    msg.includes("does not exist") ||
+    msg.includes("prescription_items") ||
+    msg.includes("consultation_number") ||
+    msg.includes("duplicate_patient_matches") ||
+    msg.includes("unique constraint") ||
+    msg.includes("duplicate key")
+  ) {
+    return "The server database needs to finish updating. Restart the API server, wait a few seconds, then submit again.";
+  }
+  if (msg.includes("Failed query")) {
+    return "Could not save your consultation. Restart the API server if this keeps happening, then try again.";
+  }
+  return "Could not save your consultation. Please try again.";
 }
 
 router.get(
@@ -189,10 +230,11 @@ router.post("/consultations", async (req, res): Promise<void> => {
     return;
   }
 
-  const hasRedFlag = detectRedFlags(data.answers as Record<string, unknown>);
-  const id = randomUUID();
-  const consultationNumber = await nextConsultationNumber();
   const answersObj = (data.answers ?? {}) as Record<string, unknown>;
+  const hasRedFlag = detectRedFlags(answersObj);
+  const id = randomUUID();
+  const hasUploadedDocs =
+    data.hasPhoto || hasPatientDocumentsInAnswers(answersObj);
   const patientDateOfBirth = extractDateOfBirthFromAnswers(answersObj);
 
   const duplicateMatches = await findDuplicatePatientMatches({
@@ -209,6 +251,11 @@ router.post("/consultations", async (req, res): Promise<void> => {
   if (shouldFlagDuplicate) {
     riskFlags.push("possible_duplicate_patient");
   }
+
+  const verifiedWeightForComplex =
+    extra.verifiedWeightKg != null
+      ? Math.round(extra.verifiedWeightKg)
+      : null;
 
   // ── Validate previousConsultationId ownership ──
   // Same protection as the compliance route: never trust the client's claim
@@ -234,48 +281,83 @@ router.post("/consultations", async (req, res): Promise<void> => {
     safePreviousConsultationId = prior.id;
   }
 
-  const [consultation] = await db
-    .insert(consultationsTable)
-    .values({
-      id,
-      consultationNumber,
-      patientName,
-      patientEmail,
-      patientDateOfBirth,
-      patientAge: data.patientAge,
-      patientSex: data.patientSex,
-      conditionId: data.conditionId,
-      conditionName: condition.name,
-      status: hasRedFlag ? "red_flag" : "pending",
-      answers: data.answers,
-      hasRedFlag,
-      hasPhoto: data.hasPhoto,
-      photoUrls: Array.isArray(data.photoUrls) ? data.photoUrls : [],
-      isPregnant: data.isPregnant ?? null,
-      allergies: data.allergies ?? null,
-      currentMedications: data.currentMedications ?? null,
-      medicalHistory: data.medicalHistory ?? null,
-      previousConsultationId: safePreviousConsultationId,
-      riskFlags,
-      duplicatePatientMatches: duplicateMatches,
-      verifiedHeightCm: extra.verifiedHeightCm ?? null,
-      verifiedWeightKg:
-        extra.verifiedWeightKg != null
-          ? Math.round(extra.verifiedWeightKg)
-          : null,
-      bmi: extra.bmi != null ? Math.round(extra.bmi) : null,
-      gpName: extra.gpName ?? null,
-      gpSurgery: extra.gpSurgery ?? null,
-      gpAddress: extra.gpAddress ?? null,
-      gpPhone: extra.gpPhone ?? null,
-      hasRegularGp: extra.hasRegularGp ?? true,
-      consentShareWithGp: extra.consentShareWithGp ?? false,
-      consentToTreatment: extra.consentToTreatment ?? true,
-      consentToDelivery: extra.consentToDelivery ?? true,
-      consentDataProcessing: extra.consentDataProcessing ?? true,
-      prescriptionItems: extra.prescriptionItems ?? [],
-    })
-    .returning();
+  const autoComplex = await detectAutoComplexPatient({
+    patientEmail,
+    conditionId: data.conditionId,
+    answers: answersObj,
+    verifiedWeightKg: verifiedWeightForComplex,
+    prescriptionItems: extra.prescriptionItems,
+    conditionName: condition.name,
+    previousConsultationId: safePreviousConsultationId,
+    excludeConsultationId: id,
+  });
+  for (const flag of autoComplex.riskFlags) {
+    if (!riskFlags.includes(flag)) riskFlags.push(flag);
+  }
+
+  const answersWithAutoComplex = {
+    ...answersObj,
+    ...autoComplex.answersPatch,
+  };
+
+  const answersWithTags = reconcileAutoOrderTags(answersWithAutoComplex, {
+    actor: "System",
+  });
+
+  const insertPayload = {
+    id,
+    patientName,
+    patientEmail,
+    patientDateOfBirth,
+    patientAge: data.patientAge,
+    patientSex: data.patientSex,
+    conditionId: data.conditionId,
+    conditionName: condition.name,
+    status: hasRedFlag ? "red_flag" : "pending",
+    answers: answersWithTags,
+    hasRedFlag,
+    hasPhoto: hasUploadedDocs,
+    photoUrls: [] as string[],
+    isPregnant: data.isPregnant ?? null,
+    allergies: data.allergies ?? null,
+    currentMedications: data.currentMedications ?? null,
+    medicalHistory: data.medicalHistory ?? null,
+    previousConsultationId: safePreviousConsultationId,
+    riskFlags,
+    duplicatePatientMatches: duplicateMatches,
+    verifiedHeightCm: extra.verifiedHeightCm ?? null,
+    verifiedWeightKg: verifiedWeightForComplex,
+    bmi: extra.bmi != null ? Math.round(extra.bmi) : null,
+    gpName: extra.gpName ?? null,
+    gpSurgery: extra.gpSurgery ?? null,
+    gpAddress: extra.gpAddress ?? null,
+    gpPhone: extra.gpPhone ?? null,
+    hasRegularGp: extra.hasRegularGp ?? true,
+    consentShareWithGp: extra.consentShareWithGp ?? false,
+    consentToTreatment: extra.consentToTreatment ?? true,
+    consentToDelivery: extra.consentToDelivery ?? true,
+    consentDataProcessing: extra.consentDataProcessing ?? true,
+    prescriptionItems: extra.prescriptionItems ?? [],
+  };
+
+  let consultation: (typeof consultationsTable.$inferSelect) | undefined;
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const consultationNumber = await nextConsultationNumber(attempt);
+    try {
+      [consultation] = await db
+        .insert(consultationsTable)
+        .values({ ...insertPayload, consultationNumber })
+        .returning();
+      break;
+    } catch (err) {
+      if (!isUniqueViolation(err) || attempt === 19) throw err;
+    }
+  }
+
+  if (!consultation) {
+    res.status(500).json({ error: "Could not allocate a consultation reference. Please try again." });
+    return;
+  }
 
   await db.insert(notificationsTable).values({
     id: randomUUID(),
@@ -310,8 +392,7 @@ router.post("/consultations", async (req, res): Promise<void> => {
     console.error("Create consultation failed:", err);
     if (!res.headersSent) {
       res.status(500).json({
-        error:
-          err instanceof Error ? err.message : "Failed to save consultation",
+        error: createConsultationErrorMessage(err),
       });
     }
   }
@@ -593,6 +674,27 @@ router.post(
           throw new Error("CONSULTATION_NOT_FOUND");
         }
 
+        if (
+          action === "more_info" &&
+          pharmacistNote?.trim().toUpperCase().startsWith("[CS_HOLD]")
+        ) {
+          const reviewer = req.authActor?.name ?? "Pharmacist";
+          let taggedAnswers = {
+            ...((row.answers ?? {}) as Record<string, unknown>),
+          };
+          const pending = applyOrderTagChange(taggedAnswers, {
+            action: "add",
+            tagId: "pending_customer_response",
+            pharmacistName: reviewer,
+            source: "cs_hold",
+          });
+          taggedAnswers = pending.answers;
+          await tx
+            .update(consultationsTable)
+            .set({ answers: taggedAnswers })
+            .where(eq(consultationsTable.id, row.id));
+        }
+
         await tx.insert(consultationActionsTable).values({
           id: randomUUID(),
           consultationId: row.id,
@@ -758,7 +860,7 @@ router.post(
               : `${row.conditionName} — open to read full details and reply.`,
           link:
             action === "approve" && createdOrderId
-              ? `/track-order/${createdOrderId}`
+              ? `/order-confirmation/${createdOrderId}`
               : "/my-messages",
           consultationId: row.id,
           orderId: createdOrderId,
@@ -809,13 +911,13 @@ const PatchDocumentReviewBody = z.object({
 
 const PatientDocumentUploadBody = z.object({
   docId: z.string().min(1),
-  dataUrl: z.string().min(32).max(55_000_000),
+  dataUrl: z.string().min(32).max(PATIENT_DOCUMENT_DATA_URL_MAX),
   messageBody: z.string().max(4000).optional(),
 });
 
 const PatchDocumentRequirementsBody = z.object({
-  slotId: z.literal("previous-prescription"),
-  requirement: z.enum(["required", "not_required"]),
+  slotId: EvidenceSlotIdSchema,
+  requirement: DocumentRequirementSchema,
   sendUploadEmail: z.boolean().optional(),
 });
 
@@ -829,6 +931,69 @@ const PatchPrescriptionItemsBody = z.object({
 });
 
 type ConsultationRow = typeof consultationsTable.$inferSelect;
+
+async function recordDocumentUploadRequestComms(opts: {
+  consultation: ConsultationRow;
+  docId: string;
+  docTitle: string;
+  pharmacistName: string;
+  emailSent?: boolean;
+  note?: string;
+}): Promise<void> {
+  const { consultation, docId, docTitle, pharmacistName, emailSent, note } =
+    opts;
+  const shortDoc = docTitle.replace(/ video$/i, "").trim();
+  const baseBody = emailSent
+    ? `Please upload ${shortDoc}. We've also sent you a secure upload link by email.`
+    : `Please upload ${shortDoc} using the button below or from My consultations.`;
+  const body = note?.trim() ? `${baseBody}\n\n${note.trim()}` : baseBody;
+  const uploadPath = isEvidenceSlotId(docId)
+    ? buildDocumentUploadPath(consultation.id, docId)
+    : null;
+
+  await db.insert(consultationMessagesTable).values({
+    id: randomUUID(),
+    consultationId: consultation.id,
+    patientEmail: consultation.patientEmail,
+    senderRole: "pharmacist",
+    senderName: pharmacistName,
+    body,
+    kind: "document_upload_requested",
+    meta: JSON.stringify({
+      docId,
+      docTitle,
+      emailSent: Boolean(emailSent),
+      uploadPath,
+    }),
+    readByPatient: false,
+    readByPharmacist: true,
+  });
+
+  await db.insert(consultationActionsTable).values({
+    id: randomUUID(),
+    consultationId: consultation.id,
+    action: "document_upload_requested",
+    actorRole: "pharmacist",
+    actorName: pharmacistName,
+    details: { docId, docTitle, emailSent: Boolean(emailSent) },
+    note: note?.trim()?.slice(0, 500) ?? body.slice(0, 500),
+  });
+
+  if (isEvidenceSlotId(docId) && uploadPath) {
+    await db.insert(notificationsTable).values({
+      id: randomUUID(),
+      recipientType: "patient",
+      recipientKey: consultation.patientEmail,
+      category: "document",
+      title: `Upload needed: ${shortDoc}`,
+      body: (note?.trim() || `Please upload ${shortDoc}.`).slice(0, 200),
+      link: uploadPath,
+      consultationId: consultation.id,
+      orderId: null,
+      read: false,
+    });
+  }
+}
 
 async function recordDocumentReviewComms(opts: {
   consultation: ConsultationRow;
@@ -859,10 +1024,10 @@ async function recordDocumentReviewComms(opts: {
 
   const body =
     status === "verified"
-      ? `${docTitle} marked verified by prescriber.`
+      ? `Your ${shortDoc} has been verified by the pharmacist.`
       : emailSent
-        ? `${docTitle} rejected. Upload link emailed to patient${templateTitle ? ` (${templateTitle})` : ""}.`
-        : `${docTitle} rejected — awaiting new upload.`;
+        ? `Your ${shortDoc} was rejected. Please upload a new file — we've also sent you a secure upload link by email${templateTitle ? ` (${templateTitle})` : ""}.`
+        : `Your ${shortDoc} was rejected. Please upload a new file using the button below${templateTitle ? ` (${templateTitle})` : ""}.`;
 
   const expandable =
     note?.trim() ||
@@ -907,7 +1072,9 @@ async function recordDocumentReviewComms(opts: {
     const notifyBody = [
       `${docTitle} was rejected.`,
       note?.trim() || templateTitle || "Please upload a clearer replacement.",
-      emailSent ? "We also emailed you a secure upload link." : "Upload from your portal below.",
+      emailSent
+        ? "We've also sent you a secure upload link by email."
+        : "Upload from Messages or My Consultations below.",
     ]
       .filter(Boolean)
       .join(" ")
@@ -1011,11 +1178,11 @@ router.patch(
       return;
     }
 
-    const answers = {
+    let answers = {
       ...((existing.answers ?? {}) as Record<string, unknown>),
     };
     if (isEvidenceSlotId(parsed.data.docId)) {
-      Object.assign(answers, trackOrderDocumentSlot(answers, parsed.data.docId));
+      answers = applyPatientDocumentUploadRequest(answers, parsed.data.docId);
     }
     const reviews = {
       ...((answers.document_reviews ?? {}) as Record<string, unknown>),
@@ -1086,6 +1253,21 @@ router.patch(
       }
     }
 
+    if (shouldSendUploadEmail && isEvidenceSlotId(parsed.data.docId)) {
+      answers = applyUploadLinkRequestedOrderTags(answers, {
+        slotId: parsed.data.docId,
+        pharmacistName,
+        note: parsed.data.rejectionNote,
+      });
+    }
+
+    if (isEvidenceSlotId(parsed.data.docId)) {
+      answers = reconcileAutoOrderTags(answers, {
+        actor: pharmacistName,
+        photoUrls: (existing.photoUrls ?? []) as string[],
+      });
+    }
+
     if (parsed.data.status === "verified" || parsed.data.status === "rejected") {
       await recordDocumentReviewComms({
         consultation: existing,
@@ -1097,19 +1279,14 @@ router.patch(
         templateTitle: parsed.data.rejectionTemplateTitle,
         note: parsed.data.rejectionNote,
       });
-    } else if (emailSent && parsed.data.sendUploadEmail === true) {
-      const uploadPath = buildDocumentUploadPath(existing.id, parsed.data.docId);
-      await db.insert(notificationsTable).values({
-        id: randomUUID(),
-        recipientType: "patient",
-        recipientKey: existing.patientEmail,
-        category: "document",
-        title: `Upload needed: ${docTitle.replace(/ video$/i, "").trim()}`,
-        body: `Please upload ${docTitle}.${emailSent ? " We also emailed you a secure link." : ""}`,
-        link: uploadPath,
-        consultationId: existing.id,
-        orderId: null,
-        read: false,
+    } else if (shouldSendUploadEmail && parsed.data.sendUploadEmail === true) {
+      await recordDocumentUploadRequestComms({
+        consultation: existing,
+        docId: parsed.data.docId,
+        docTitle,
+        pharmacistName,
+        emailSent,
+        note: parsed.data.rejectionNote,
       });
     }
 
@@ -1132,6 +1309,165 @@ router.patch(
         error:
           err instanceof Error ? err.message : "Could not save document review",
       });
+    }
+  },
+);
+
+const PatchOrderTagsBody = z.object({
+  action: z.enum([
+    "add",
+    "add_batch",
+    "remove",
+    "remove_batch",
+    "sync_weight",
+    "sync_documents",
+    "save_hold_draft",
+  ]),
+  tagId: z.string().min(1).max(80).optional(),
+  tagIds: z.array(z.string().min(1).max(80)).min(1).max(30).optional(),
+  label: z.string().min(1).max(48).optional(),
+  labels: z.record(z.string().min(1).max(48)).optional(),
+  pharmacistName: z.string().min(1).max(120),
+  note: z.string().max(500).optional(),
+  source: z
+    .enum([
+      "manual",
+      "document_reject",
+      "weight_monitoring",
+      "cs_hold",
+      "prescriber_hold",
+      "document_requirement",
+      "system",
+    ])
+    .optional(),
+});
+
+router.patch(
+  "/consultations/:id/order-tags",
+  requirePharmacist,
+  async (req: AuthedRequest, res): Promise<void> => {
+    try {
+      const rawId = Array.isArray(req.params.id)
+        ? req.params.id[0]
+        : req.params.id;
+      const params = GetConsultationParams.safeParse({ id: rawId });
+      if (!params.success) {
+        res.status(400).json({ error: params.error.message });
+        return;
+      }
+
+      const parsed = PatchOrderTagsBody.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: parsed.error.message });
+        return;
+      }
+
+      const [existing] = await db
+        .select()
+        .from(consultationsTable)
+        .where(eq(consultationsTable.id, params.data.id));
+
+      if (!existing) {
+        res.status(404).json({ error: "Consultation not found" });
+        return;
+      }
+
+      const pharmacistName =
+        parsed.data.pharmacistName ||
+        req.authActor?.name ||
+        "Pharmacist";
+
+      let answers = {
+        ...((existing.answers ?? {}) as Record<string, unknown>),
+      };
+
+      if (parsed.data.action === "sync_documents") {
+        answers = reconcileAutoOrderTags(answers, {
+          actor: pharmacistName,
+          photoUrls: (existing.photoUrls ?? []) as string[],
+        });
+      } else if (parsed.data.action === "sync_weight") {
+        const { tagId } = parsed.data;
+        if (tagId === "gained_7_percent" || tagId === "lost_10_percent") {
+          const result = applyOrderTagChange(answers, {
+            action: "add",
+            tagId,
+            pharmacistName,
+            source: "weight_monitoring",
+          });
+          answers = result.answers;
+        }
+      } else if (parsed.data.action === "save_hold_draft") {
+        const note = parsed.data.note?.trim();
+        if (!note) {
+          res.status(400).json({ error: "note is required" });
+          return;
+        }
+        const draftKey =
+          parsed.data.source === "cs_hold"
+            ? "cs_hold_draft"
+            : parsed.data.source === "prescriber_hold"
+              ? "prescriber_hold_draft"
+              : "hold_draft";
+        answers = {
+          ...answers,
+          [draftKey]: {
+            note,
+            updatedAt: new Date().toISOString(),
+            updatedBy: pharmacistName,
+          },
+        };
+      } else if (parsed.data.action === "add_batch") {
+        const tagIds = parsed.data.tagIds;
+        if (!tagIds?.length) {
+          res.status(400).json({ error: "tagIds is required" });
+          return;
+        }
+        const result = applyOrderTagsBatchAdd(answers, {
+          tagIds,
+          pharmacistName,
+          note: parsed.data.note,
+          labels: parsed.data.labels,
+        });
+        answers = result.answers;
+      } else if (parsed.data.action === "remove_batch") {
+        const tagIds = parsed.data.tagIds;
+        if (!tagIds?.length) {
+          res.status(400).json({ error: "tagIds is required" });
+          return;
+        }
+        const result = applyOrderTagsBatchRemove(answers, {
+          tagIds,
+          pharmacistName,
+          note: parsed.data.note,
+        });
+        answers = result.answers;
+      } else {
+        if (!parsed.data.tagId) {
+          res.status(400).json({ error: "tagId is required" });
+          return;
+        }
+        const result = applyOrderTagChange(answers, {
+          action: parsed.data.action,
+          tagId: parsed.data.tagId,
+          pharmacistName,
+          source: parsed.data.source ?? "manual",
+          note: parsed.data.note,
+          label: parsed.data.label,
+        });
+        answers = result.answers;
+      }
+
+      const [updated] = await db
+        .update(consultationsTable)
+        .set({ answers })
+        .where(eq(consultationsTable.id, params.data.id))
+        .returning();
+
+      res.json(jsonConsultation(updated));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Could not update tags";
+      res.status(400).json({ error: msg });
     }
   },
 );
@@ -1161,7 +1497,7 @@ router.patch(
       return;
     }
 
-    const answers = { ...((existing.answers ?? {}) as Record<string, unknown>) };
+    let answers = { ...((existing.answers ?? {}) as Record<string, unknown>) };
     const before = getDocumentRequirements(answers);
     const from = before[parsed.data.slotId];
     const to = parsed.data.requirement as DocumentRequirement;
@@ -1198,25 +1534,31 @@ router.patch(
     ];
     answers.document_requirement_history = history;
 
-    const docs = (answers.patient_documents ?? {}) as Record<string, string>;
+    const docs = (answers.patient_documents ?? {}) as PatientDocumentsMap;
     const pending = {
       ...((answers.documents_pending ?? {}) as Record<string, boolean>),
     };
-    pending.previous_prescription =
-      to === "required" && !docs["previous-prescription"];
+    if (parsed.data.slotId === "previous-prescription") {
+      pending.previous_prescription =
+        to === "required" && !slotHasUploads(docs["previous-prescription"]);
+    }
+    if (parsed.data.slotId === "previous-bmi-verification") {
+      pending.previous_bmi_verification =
+        to === "required" && !slotHasUploads(docs["previous-bmi-verification"]);
+    }
     answers.documents_pending = pending;
 
     const docTitle = EVIDENCE_SLOT_TITLES[parsed.data.slotId];
     const noteLabel =
       to === "required"
-        ? "Previous prescription requirement changed to required."
-        : "Previous prescription requirement changed to not required.";
+        ? `${docTitle} requirement changed to required.`
+        : `${docTitle} requirement changed to not required.`;
 
     let emailSent = false;
     const shouldEmail =
       to === "required" &&
       parsed.data.sendUploadEmail !== false &&
-      !docs[parsed.data.slotId];
+      !slotHasUploads(docs[parsed.data.slotId]);
 
     if (shouldEmail) {
       const reviews = {
@@ -1234,15 +1576,6 @@ router.patch(
         emailSent = true;
       } catch (err) {
         console.error("Document requirement upload email failed:", err);
-      }
-      if (
-        existing.status === "pending" ||
-        existing.status === "approved"
-      ) {
-        await db
-          .update(consultationsTable)
-          .set({ status: "more_info_needed" })
-          .where(eq(consultationsTable.id, params.data.id));
       }
     }
 
@@ -1262,9 +1595,31 @@ router.patch(
       note: noteLabel,
     });
 
+    if (to === "required") {
+      answers = applyUploadLinkRequestedOrderTags(answers, {
+        slotId: parsed.data.slotId,
+        pharmacistName,
+        note: noteLabel,
+      });
+    }
+
+    answers = reconcileAutoOrderTags(answers, {
+      actor: pharmacistName,
+      photoUrls: (existing.photoUrls ?? []) as string[],
+    });
+
+    const statusUpdate =
+      emailSent &&
+      (existing.status === "pending" || existing.status === "approved")
+        ? "more_info_needed"
+        : undefined;
+
     const [updated] = await db
       .update(consultationsTable)
-      .set({ answers })
+      .set({
+        answers,
+        ...(statusUpdate ? { status: statusUpdate } : {}),
+      })
       .where(eq(consultationsTable.id, params.data.id))
       .returning();
 
@@ -1305,8 +1660,8 @@ router.post(
       return;
     }
 
-    const answers = { ...((existing.answers ?? {}) as Record<string, unknown>) };
-    Object.assign(answers, trackOrderDocumentSlot(answers, parsed.data.docId));
+    let answers = { ...((existing.answers ?? {}) as Record<string, unknown>) };
+    answers = applyPatientDocumentUploadRequest(answers, parsed.data.docId);
     const reviews = {
       ...((answers.document_reviews ?? {}) as Record<string, DocumentReviewEntry>),
     };
@@ -1326,19 +1681,28 @@ router.post(
     });
     answers.document_reviews = reviews;
 
-    await recordDocumentReviewComms({
+    await recordDocumentUploadRequestComms({
       consultation: existing,
       docId: parsed.data.docId,
       docTitle,
       pharmacistName,
-      status: "rejected",
       emailSent: true,
       note: parsed.data.note,
     });
 
+    let taggedAnswers = applyUploadLinkRequestedOrderTags(answers, {
+      slotId: parsed.data.docId,
+      pharmacistName,
+      note: parsed.data.note,
+    });
+    taggedAnswers = reconcileAutoOrderTags(taggedAnswers, {
+      actor: pharmacistName,
+      photoUrls: (existing.photoUrls ?? []) as string[],
+    });
+
     const [updated] = await db
       .update(consultationsTable)
-      .set({ answers, status: "more_info_needed" })
+      .set({ answers: taggedAnswers, status: "more_info_needed" })
       .where(eq(consultationsTable.id, params.data.id))
       .returning();
 
@@ -1377,6 +1741,15 @@ router.post(
       return;
     }
 
+    const mimeCheck = validatePatientDocumentDataUrl(
+      parsed.data.dataUrl,
+      parsed.data.docId,
+    );
+    if (!mimeCheck.ok) {
+      res.status(400).json({ error: mimeCheck.message });
+      return;
+    }
+
     const [existing] = await db
       .select()
       .from(consultationsTable)
@@ -1398,11 +1771,15 @@ router.post(
       return;
     }
 
-    const answers = applyPatientDocumentUpload(
+    let answers = applyPatientDocumentUpload(
       { ...((existing.answers ?? {}) as Record<string, unknown>) },
       parsed.data.docId,
       parsed.data.dataUrl,
     );
+    answers = reconcileAutoOrderTags(answers, {
+      actor: actor.name,
+      photoUrls: (existing.photoUrls ?? []) as string[],
+    });
 
     const docTitle = EVIDENCE_SLOT_TITLES[parsed.data.docId];
     const messageText =
@@ -1438,7 +1815,9 @@ router.post(
     });
 
     const nextStatus =
-      actor.role === "patient" && existing.status === "more_info_needed"
+      actor.role === "patient" &&
+      (existing.status === "more_info_needed" ||
+        existing.status === "pending")
         ? "patient_responded"
         : existing.status;
 

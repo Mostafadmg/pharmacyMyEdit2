@@ -11,39 +11,56 @@ import { cn } from "@/lib/utils";
 import {
   getActiveWaitTags,
   hasWaitTagKind,
-  isWaitingOnPatient,
   WAIT_TAG_META,
-  type CustomerWaitTagKind,
 } from "@/lib/orderWaitingTags";
-
-type TypeFilter = "all" | "new_starter" | "transfer" | "simple_repeat";
-type CsWaitSubFilter = "all" | CustomerWaitTagKind;
-
-type QueueCategory =
-  | "all"
-  | "needs_approval"
-  | "cs_hold"
-  | "prescriber_hold"
-  | "re_review"
-  | "clinical_check"
-  | "urgent_approval"
-  | "urgent_dispatch";
+import { getDisplayOrderTags } from "@/lib/orderTags";
+import {
+  buildOrderDetailHref,
+  filterQueueConsultations,
+  getQueueCategory,
+  parseQueueContextFromSearch,
+  QUEUE_CATEGORY_LABELS,
+  type CsWaitSubFilter,
+  type QueueCategory,
+  type QueueContext,
+  type TypeFilter,
+} from "@/lib/queueFilters";
+import { hasAutoComplexRiskFlags } from "@/lib/autoComplexPatient";
 
 const CATEGORY_FILTERS: {
   id: QueueCategory;
   label: string;
   accent: string;
   countClass: string;
-}[] = [
-  { id: "all", label: "All Orders", accent: "text-foreground", countClass: "bg-muted text-foreground" },
-  { id: "needs_approval", label: "Needs Approval", accent: "text-muted-foreground", countClass: "bg-muted text-foreground" },
-  { id: "cs_hold", label: "CS On Hold", accent: "text-muted-foreground", countClass: "bg-muted text-foreground" },
-  { id: "prescriber_hold", label: "Prescriber Hold", accent: "text-muted-foreground", countClass: "bg-rose-100 text-rose-700" },
-  { id: "re_review", label: "Re-Review", accent: "text-muted-foreground", countClass: "bg-muted text-foreground" },
-  { id: "clinical_check", label: "Clinical Check", accent: "text-muted-foreground", countClass: "bg-muted text-foreground" },
-  { id: "urgent_approval", label: "Urgent Approval", accent: "text-rose-600", countClass: "bg-rose-100 text-rose-700" },
-  { id: "urgent_dispatch", label: "Urgent Dispatch", accent: "text-muted-foreground", countClass: "bg-rose-100 text-rose-700" },
-];
+}[] = (
+  [
+    "all",
+    "needs_approval",
+    "cs_hold",
+    "prescriber_hold",
+    "re_review",
+    "clinical_check",
+    "urgent_approval",
+    "urgent_dispatch",
+  ] as const
+).map((id) => ({
+  id,
+  label: QUEUE_CATEGORY_LABELS[id],
+  accent:
+    id === "urgent_approval"
+      ? "text-rose-600"
+      : id === "prescriber_hold"
+        ? "text-muted-foreground"
+        : id === "all"
+          ? "text-foreground"
+          : "text-muted-foreground",
+  countClass:
+    id === "urgent_approval" || id === "urgent_dispatch" || id === "prescriber_hold"
+      ? "bg-rose-100 text-rose-700"
+      : id === "all"
+        ? "bg-muted text-foreground"
+        : "bg-muted text-foreground",
+}));
 
 const TYPE_FILTERS: { id: TypeFilter; label: string; tint: string }[] = [
   { id: "all", label: "All", tint: "bg-muted text-foreground" },
@@ -57,6 +74,11 @@ const TYPE_FILTERS: { id: TypeFilter; label: string; tint: string }[] = [
     id: "simple_repeat",
     label: "Simple Repeat",
     tint: "bg-sky-500/10 text-sky-700 dark:text-sky-200",
+  },
+  {
+    id: "complex",
+    label: "Complex",
+    tint: "bg-rose-500/10 text-rose-800 dark:text-rose-200",
   },
 ];
 
@@ -105,32 +127,6 @@ function getType(c: Consultation): {
     tint: "bg-[#E7F4D5] text-[#0E3D2D]",
     rowBg: "bg-card",
   };
-}
-
-function getQueueCategory(c: Consultation): Exclude<QueueCategory, "all"> {
-  const note = (c.pharmacistNote ?? "").toUpperCase();
-
-  if (c.status === "patient_responded") return "re_review";
-
-  if (isWaitingOnPatient(c)) return "cs_hold";
-
-  if (c.status === "more_info_needed") {
-    if (note.startsWith("[CS_HOLD]")) return "cs_hold";
-    if (note.startsWith("[PRESCRIBER_HOLD]")) return "prescriber_hold";
-    return "prescriber_hold";
-  }
-
-  if (c.status === "pending") {
-    return c.hasRedFlag ? "urgent_approval" : "needs_approval";
-  }
-
-  if (c.status === "approved") {
-    return c.dispatchedAt ? "urgent_dispatch" : c.hasRedFlag ? "urgent_approval" : "clinical_check";
-  }
-
-  if (c.status === "red_flag") return "urgent_approval";
-
-  return "clinical_check";
 }
 
 function computeCategoryCounts(rows: Consultation[]): Record<QueueCategory, number> {
@@ -216,15 +212,42 @@ function medicationFor(c: Consultation): {
   };
 }
 
+function queueContextFromFilters(
+  categoryFilter: QueueCategory,
+  typeFilter: TypeFilter,
+  csSubFilter: CsWaitSubFilter,
+  search: string,
+): QueueContext {
+  return {
+    category: categoryFilter,
+    typeFilter,
+    csSubFilter,
+    search,
+  };
+}
+
 export function Queue() {
   const [location, navigate] = useLocation();
   const [search, setSearch] = useState(() => {
     if (typeof window === "undefined") return "";
-    return new URLSearchParams(window.location.search).get("search") ?? "";
+    const params = new URLSearchParams(window.location.search);
+    return params.get("queueSearch") ?? params.get("search") ?? "";
   });
-  const [categoryFilter, setCategoryFilter] = useState<QueueCategory>("all");
-  const [csSubFilter, setCsSubFilter] = useState<CsWaitSubFilter>("all");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [categoryFilter, setCategoryFilter] = useState<QueueCategory>(() => {
+    if (typeof window === "undefined") return "all";
+    const ctx = parseQueueContextFromSearch(window.location.search);
+    return ctx?.category ?? "all";
+  });
+  const [csSubFilter, setCsSubFilter] = useState<CsWaitSubFilter>(() => {
+    if (typeof window === "undefined") return "all";
+    const ctx = parseQueueContextFromSearch(window.location.search);
+    return ctx?.csSubFilter ?? "all";
+  });
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>(() => {
+    if (typeof window === "undefined") return "all";
+    const ctx = parseQueueContextFromSearch(window.location.search);
+    return ctx?.typeFilter ?? "all";
+  });
 
   const { data, isLoading } = useListConsultations({ limit: 200 });
 
@@ -233,29 +256,24 @@ export function Queue() {
 
   useEffect(() => {
     const [, query = ""] = location.split("?");
-    setSearch(new URLSearchParams(query).get("search") ?? "");
+    const params = new URLSearchParams(query);
+    setSearch(params.get("queueSearch") ?? params.get("search") ?? "");
+    const ctx = parseQueueContextFromSearch(query);
+    if (ctx) {
+      setCategoryFilter(ctx.category);
+      setTypeFilter(ctx.typeFilter);
+      setCsSubFilter(ctx.csSubFilter);
+    }
   }, [location]);
 
-  const rows = allRows.filter((c) => {
-    if (search) {
-      const hay =
-        `${c.patientName} ${c.patientEmail} ${c.conditionName} ${c.id}`.toLowerCase();
-      if (!hay.includes(search.toLowerCase())) return false;
-    }
-    if (categoryFilter !== "all") {
-      if (getQueueCategory(c) !== categoryFilter) return false;
-    }
-    if (categoryFilter === "cs_hold" && csSubFilter !== "all") {
-      if (!hasWaitTagKind(c, csSubFilter)) return false;
-    }
-    if (typeFilter !== "all") {
-      const t = getType(c).label.toLowerCase().replace(/\s+/g, "_");
-      if (typeFilter === "new_starter" && t !== "new_starter") return false;
-      if (typeFilter === "transfer" && t !== "transfer") return false;
-      if (typeFilter === "simple_repeat" && t !== "simple_repeat") return false;
-    }
-    return true;
-  });
+  const queueCtx = queueContextFromFilters(
+    categoryFilter,
+    typeFilter,
+    csSubFilter,
+    search,
+  );
+
+  const rows = filterQueueConsultations(allRows, queueCtx);
 
   const ageBucketCounts = computeAgeBucketCounts(rows);
   const csSubCounts = useMemo(
@@ -483,7 +501,9 @@ export function Queue() {
                 <QueueRow
                   key={c.id}
                   c={c}
-                  onOpen={() => navigate(`/orders/${c.id}`)}
+                  onOpen={() =>
+                    navigate(buildOrderDetailHref(c.id, queueCtx))
+                  }
                 />
               ))}
             </div>
@@ -534,7 +554,7 @@ function QueueRow({ c, onOpen }: { c: Consultation; onOpen: () => void }) {
     .slice(0, 2)
     .join("");
   const orderRef = "#" + c.id.slice(-5);
-  const waitTags = getActiveWaitTags(c);
+  const waitTags = getDisplayOrderTags(c);
   const chargeback =
     days >= 10
       ? { label: "At risk", cls: "bg-red-100 text-red-700" }
@@ -556,7 +576,7 @@ function QueueRow({ c, onOpen }: { c: Consultation; onOpen: () => void }) {
           onClick={(e) => e.stopPropagation()}
         />
       </div>
-      <div>
+      <div className="flex flex-col gap-1">
         <span
           className={cn(
             "inline-flex items-center px-2 py-0.5 text-[11px] font-semibold rounded-full",
@@ -565,6 +585,12 @@ function QueueRow({ c, onOpen }: { c: Consultation; onOpen: () => void }) {
         >
           {type.label}
         </span>
+        {hasAutoComplexRiskFlags(c) && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-rose-500/15 text-rose-800 dark:text-rose-200">
+            <AlertTriangle className="h-3 w-3" />
+            Complex
+          </span>
+        )}
       </div>
       <div className="rx-ref-sm">{orderRef}</div>
       <div className="flex items-center gap-2 min-w-0">
@@ -607,11 +633,11 @@ function QueueRow({ c, onOpen }: { c: Consultation; onOpen: () => void }) {
         ) : (
           waitTags.slice(0, 2).map((tag) => (
             <span
-              key={tag.id}
+              key={tag.key}
               title={tag.detail}
               className={cn(
                 "inline-flex max-w-full truncate rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-                WAIT_TAG_META[tag.kind].queueCls,
+                tag.pillCls,
               )}
             >
               {tag.label}

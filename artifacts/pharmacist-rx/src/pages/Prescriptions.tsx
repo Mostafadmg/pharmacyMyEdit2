@@ -4,6 +4,7 @@ import { useListConsultations } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RxPageTitle, RxShell } from "@/components/rx";
+import { prescriptionPdfUrl } from "@/lib/pharmacistSession";
 
 export function Prescriptions() {
   const { data, isLoading } = useListConsultations({ status: "approved", limit: 100 });
@@ -48,7 +49,7 @@ export function Prescriptions() {
               <button className="text-sm text-primary hover:underline">View</button>
             </Link>
             <a
-              href={`/api/consultations/${c.id}/prescription.pdf`}
+              href={prescriptionPdfUrl(c.id)}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1 text-sm text-foreground/70 hover:text-primary"

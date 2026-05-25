@@ -2,6 +2,7 @@ import * as React from "react"
 import { Drawer as DrawerPrimitive } from "vaul"
 
 import { cn } from "@/lib/utils"
+import { RX_MODAL_CONTENT_Z, RX_MODAL_OVERLAY_Z } from "@/lib/modalLayers"
 
 const Drawer = ({
   shouldScaleBackground = true,
@@ -26,7 +27,7 @@ const DrawerOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 z-50 bg-secondary/40 backdrop-blur-sm", className)}
+    className={cn("fixed inset-0 bg-secondary/40 backdrop-blur-sm", RX_MODAL_OVERLAY_Z, className)}
     {...props}
   />
 ))
@@ -41,7 +42,8 @@ const DrawerContent = React.forwardRef<
     <DrawerPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
+        "fixed inset-x-0 bottom-0 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
+        RX_MODAL_CONTENT_Z,
         className
       )}
       {...props}

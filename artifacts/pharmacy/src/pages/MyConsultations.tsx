@@ -1,26 +1,28 @@
-import React, { useEffect, useState } from "react";
-import { Link, useLocation } from "wouter";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Clock, CheckCircle2, XCircle, AlertTriangle, MessageSquare, ExternalLink,
-  Plus, FileText, Pill, RefreshCw, Ban, Download, ChevronLeft, ChevronDown,
-  Stethoscope, CalendarDays, CircleAlert,
+  Plus, FileText, Pill, RefreshCw, Ban, ChevronDown, ChevronLeft, Download,
+  Stethoscope, CalendarDays, CircleAlert, ClipboardList,
 } from "lucide-react";
+import PatientDocumentViewer from "@/components/PatientDocumentViewer";
+import { ConsultationAnswersModal } from "@/components/consultation/ConsultationAnswersModal";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
+import { prescriptionPdfUrl } from "@/lib/prescriptionPdf";
 import { shortConditionName, displayConsultationNumber } from "@/lib/patientOrderContext";
 import { InlineDocumentUploadButton } from "@/components/consultation/InlineDocumentUpload";
 import { cn } from "@/lib/utils";
-import { EVIDENCE_SLOT_META, isEvidenceSlotId } from "@workspace/evidence-slots";
+import { getSlotMeta, isEvidenceSlotId } from "@workspace/evidence-slots";
+import {
+  buildConsultationDocumentFocusPath,
+  parseConsultationDocumentFocus,
+  patientDocSlotElementId,
+} from "@/lib/consultationDocumentFocus";
 
 type DocumentSlotStatus = "required" | "uploaded" | "verified" | "rejected";
 
@@ -29,9 +31,11 @@ type DocumentSlot = {
   docTitle: string;
   status: DocumentSlotStatus;
   uploadedAt?: string;
+  uploadCount?: number;
   rejectionNote?: string;
   uploadPath: string;
   uploadUrl: string;
+  pharmacistUploadRequested?: boolean;
 };
 
 type DocumentAction = {
@@ -45,7 +49,9 @@ type DocumentAction = {
 interface Consultation {
   id: string;
   consultationNumber?: string | null;
+  conditionId?: string;
   conditionName: string;
+  answers?: Record<string, unknown>;
   status: string;
   patientName: string;
   createdAt: string;
@@ -56,6 +62,7 @@ interface Consultation {
   documentSlots?: DocumentSlot[];
   documentActions?: DocumentAction[];
   documentsNeedAttention?: boolean;
+  pharmacistUploadRequested?: boolean;
   requiresPatientReply?: boolean;
 }
 
@@ -71,6 +78,25 @@ function actionToSlot(a: DocumentAction): DocumentSlot {
 function resolveDocumentSlots(c: Consultation): DocumentSlot[] {
   if (c.documentSlots?.length) return c.documentSlots;
   return (c.documentActions ?? []).map(actionToSlot);
+}
+
+/** Red alert on order row when any slot needs upload (required / rejected). */
+function needsDocumentAction(c: Consultation): boolean {
+  if (c.documentsNeedAttention) return true;
+  return resolveDocumentSlots(c).some(
+    (s) => s.status === "required" || s.status === "rejected",
+  );
+}
+
+/** Internal RX notes (holds, tag sync) — not shown to patients; they see Messages instead. */
+function isPatientVisiblePharmacistNote(
+  note: string | null | undefined,
+): note is string {
+  if (!note?.trim()) return false;
+  const t = note.trim();
+  if (/^\[(CS_HOLD|PRESCRIBER_HOLD|HOLD)\]/i.test(t)) return false;
+  if (/tags applied:/i.test(t)) return false;
+  return true;
 }
 
 function mergeDocumentSlotLists(
@@ -89,24 +115,37 @@ function mergeDocumentSlotLists(
   for (const slot of next) byId.set(slot.docId, slot);
   for (const slot of prev) {
     const fresh = byId.get(slot.docId);
-    if (
-      slot.status === "uploaded" &&
-      (!fresh || fresh.status === "required")
-    ) {
-      byId.set(slot.docId, {
-        ...slot,
-        ...fresh,
-        status: "uploaded",
-        uploadedAt: slot.uploadedAt ?? fresh?.uploadedAt,
-      });
-    } else if (
-      slot.status === "verified" &&
-      fresh?.status !== "rejected"
-    ) {
+    if (!fresh) {
+      byId.set(slot.docId, slot);
+      continue;
+    }
+    if (fresh.status === "rejected") {
+      continue;
+    }
+    if (fresh.status === "required") {
+      const recentUpload =
+        slot.status === "uploaded" &&
+        slot.uploadedAt &&
+        Date.now() - new Date(slot.uploadedAt).getTime() < 120_000;
+      if (recentUpload) {
+        byId.set(slot.docId, {
+          ...fresh,
+          ...slot,
+          status: "uploaded",
+          uploadedAt: slot.uploadedAt ?? fresh.uploadedAt,
+        });
+      }
+      continue;
+    }
+    if (slot.status === "verified" && fresh.status !== "rejected") {
       byId.set(slot.docId, { ...slot, ...fresh, status: "verified" });
     }
   }
   return Array.from(byId.values());
+}
+
+function slotDisplayTitle(docId: string, fallback?: string): string {
+  return isEvidenceSlotId(docId) ? getSlotMeta(docId).title : (fallback ?? docId);
 }
 
 function buildUploadedSlot(
@@ -114,12 +153,10 @@ function buildUploadedSlot(
   docId: string,
   existing?: DocumentSlot,
 ): DocumentSlot {
-  const title =
-    existing?.docTitle ??
-    (isEvidenceSlotId(docId) ? EVIDENCE_SLOT_META[docId].title : docId);
+  const title = slotDisplayTitle(docId, existing?.docTitle);
   const uploadPath =
     existing?.uploadPath ??
-    `/upload-documents/${consultationId}?slot=${encodeURIComponent(docId)}`;
+    buildConsultationDocumentFocusPath(consultationId, docId);
   return {
     docId,
     docTitle: title,
@@ -188,122 +225,6 @@ function DocumentStatusBadge({ status }: { status: DocumentSlotStatus }) {
   );
 }
 
-function PatientDocumentViewer({
-  consultationId,
-  docId,
-  docTitle,
-  open,
-  onOpenChange,
-}: {
-  consultationId: string;
-  docId: string;
-  docTitle: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [payload, setPayload] = useState<{
-    dataUrl: string;
-    uploadedAt?: string;
-    reviewStatus?: string;
-  } | null>(null);
-
-  useEffect(() => {
-    if (!open) {
-      setPayload(null);
-      setError(null);
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    void apiFetch<{
-      dataUrl: string;
-      uploadedAt?: string;
-      reviewStatus?: string;
-    }>(
-      `/api/patient/consultations/${consultationId}/documents/${encodeURIComponent(docId)}`,
-      { auth: "patient" },
-    )
-      .then((data) => {
-        if (!cancelled) setPayload(data);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "Could not load document.",
-          );
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [open, consultationId, docId]);
-
-  const isVideo =
-    payload?.dataUrl.startsWith("data:video") ||
-    /\.(mp4|webm|mov)/i.test(payload?.dataUrl ?? "");
-  const isPdf =
-    payload?.dataUrl.startsWith("data:application/pdf") ||
-    payload?.dataUrl.includes("application/pdf");
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{docTitle}</DialogTitle>
-        </DialogHeader>
-        {loading ? (
-          <p className="text-sm text-muted-foreground py-8 text-center">
-            Loading your upload…
-          </p>
-        ) : error ? (
-          <p className="text-sm text-destructive py-4">{error}</p>
-        ) : payload ? (
-          <div className="space-y-3">
-            {payload.uploadedAt ? (
-              <p className="text-xs text-muted-foreground">
-                Uploaded {formatUploadTime(payload.uploadedAt)}
-                {payload.reviewStatus === "verified"
-                  ? " · Verified by pharmacist"
-                  : payload.reviewStatus === "rejected"
-                    ? " · Rejected — please upload again"
-                    : " · Awaiting pharmacist review"}
-              </p>
-            ) : null}
-            {isPdf ? (
-              <a
-                href={payload.dataUrl}
-                download={`${docId}.pdf`}
-                className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
-              >
-                <Download className="h-4 w-4" />
-                Download PDF
-              </a>
-            ) : isVideo ? (
-              <video
-                src={payload.dataUrl}
-                controls
-                className="w-full max-h-[60vh] rounded-xl border border-border bg-black"
-              />
-            ) : (
-              <img
-                src={payload.dataUrl}
-                alt={docTitle}
-                className="w-full max-h-[60vh] object-contain rounded-xl border border-border bg-muted/30"
-              />
-            )}
-          </div>
-        ) : null}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 // ── Status config ────────────────────────────────────────────────────────────
 const STATUS_CONFIG: Record<string, {
   label: string; pillClass: string; description: string; icon: React.ReactNode;
@@ -368,27 +289,28 @@ function StatusPill({ status }: { status: string }) {
   );
 }
 
-// ── Status accent map (left bar + soft icon tile) ────────────────────────────
-const STATUS_ACCENT: Record<string, { bar: string; tile: string; tileText: string }> = {
-  pending:           { bar: "bg-primary/40",    tile: "bg-accent",         tileText: "text-primary" },
-  red_flag:          { bar: "bg-destructive",   tile: "bg-destructive/10", tileText: "text-destructive" },
-  approved:          { bar: "bg-primary",       tile: "bg-primary/10",     tileText: "text-primary" },
-  rejected:          { bar: "bg-destructive",   tile: "bg-destructive/10", tileText: "text-destructive" },
-  more_info_needed:  { bar: "bg-primary",       tile: "bg-primary/10",     tileText: "text-primary" },
-  patient_responded: { bar: "bg-primary/60",    tile: "bg-primary/10",     tileText: "text-primary" },
-  referred:          { bar: "bg-muted-foreground/40", tile: "bg-muted",    tileText: "text-foreground" },
-  cancelled:         { bar: "bg-border",        tile: "bg-muted",          tileText: "text-muted-foreground" },
+// ── Status accent map (icon tile; left bar is always primary) ────────────────
+const STATUS_ACCENT: Record<string, { tile: string; tileText: string }> = {
+  pending:           { tile: "bg-accent",         tileText: "text-primary" },
+  red_flag:          { tile: "bg-destructive/10", tileText: "text-destructive" },
+  approved:          { tile: "bg-primary/10",     tileText: "text-primary" },
+  rejected:          { tile: "bg-destructive/10", tileText: "text-destructive" },
+  more_info_needed:  { tile: "bg-primary/10",     tileText: "text-primary" },
+  patient_responded: { tile: "bg-primary/10",     tileText: "text-primary" },
+  referred:          { tile: "bg-muted",            tileText: "text-foreground" },
+  cancelled:         { tile: "bg-muted",          tileText: "text-muted-foreground" },
 };
 
 // ── Collapsible row ──────────────────────────────────────────────────────────
 function ConsultationRow({
-  consultation, index, onCancel, cancelling, defaultOpen, onDocumentsChanged, onDocumentUploaded,
+  consultation, index, onCancel, cancelling, defaultOpen, focusSlot, onDocumentsChanged, onDocumentUploaded,
 }: {
   consultation: Consultation;
   index: number;
   onCancel: (id: string) => void;
   cancelling: string | null;
   defaultOpen?: boolean;
+  focusSlot?: string;
   onDocumentsChanged: () => void;
   onDocumentUploaded: (consultationId: string, docId: string) => void;
 }) {
@@ -403,25 +325,55 @@ function ConsultationRow({
     requiresPatientReply ||
     (consultation.documentActions?.length ?? 0) > 0;
   const documentSlots = resolveDocumentSlots(consultation);
-  const documentsNeedAttention =
-    consultation.documentsNeedAttention ??
-    documentSlots.some(
-      (s) => s.status === "required" || s.status === "rejected",
-    );
-  const hasUpdate = !!(consultation.prescription || consultation.pharmacistNote || consultation.referralInfo);
+  const documentsNeedAttention = needsDocumentAction(consultation);
+  const patientPharmacistNote = isPatientVisiblePharmacistNote(
+    consultation.pharmacistNote,
+  )
+    ? consultation.pharmacistNote
+    : null;
+  const showPharmacistNote =
+    Boolean(patientPharmacistNote) && !documentsNeedAttention;
+  const showMessagesUploadHint =
+    consultation.pharmacistUploadRequested ??
+    documentSlots.some((d) => d.pharmacistUploadRequested);
+  const showReviewedDate =
+    !isPending && !documentsNeedAttention && Boolean(consultation.reviewedAt);
+  const hasUpdate = !!(
+    consultation.prescription ||
+    patientPharmacistNote ||
+    consultation.referralInfo
+  );
   const orderNumber = displayConsultationNumber(
     consultation.consultationNumber,
     consultation.id,
   );
 
   const [open, setOpen] = useState(
-    !!defaultOpen || documentsNeedAttention || needsReply,
+    !!defaultOpen || !!focusSlot || documentsNeedAttention || needsReply,
   );
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [viewingDoc, setViewingDoc] = useState<{
     docId: string;
     docTitle: string;
   } | null>(null);
+  const [showAnswers, setShowAnswers] = useState(false);
+
+  useEffect(() => {
+    if (!focusSlot || !open) return;
+    const id = patientDocSlotElementId(focusSlot);
+    const scrollToSlot = () => {
+      document.getElementById(id)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    };
+    const t0 = window.setTimeout(scrollToSlot, 120);
+    const t1 = window.setTimeout(scrollToSlot, 450);
+    return () => {
+      window.clearTimeout(t0);
+      window.clearTimeout(t1);
+    };
+  }, [focusSlot, open]);
 
   return (
     <motion.article
@@ -432,27 +384,26 @@ function ConsultationRow({
       className="relative bg-white rounded-2xl border border-border/40 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
       data-testid={`consult-card-${orderNumber}`}
     >
-      {/* Notification-style header (always visible, click to expand) */}
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
-        aria-expanded={open}
-        className="relative z-0 w-full text-left flex items-stretch gap-0 group"
-        data-testid={`consult-toggle-${orderNumber}`}
-      >
-        {/* Left status bar */}
-        <span className={`w-1.5 ${accent.bar} flex-shrink-0`} aria-hidden="true" />
+      {/* Notification-style header (expand on title row; View answers is separate) */}
+      <div className="relative z-0 flex w-full items-stretch gap-0 group">
+        <span className="w-1.5 shrink-0 bg-primary" aria-hidden="true" />
 
-        <div className="relative flex-1 flex items-center gap-4 px-4 md:px-6 py-5 min-w-0">
-          {/* Icon tile */}
-          <div className={`hidden sm:flex w-12 h-12 rounded-xl ${accent.tile} ${accent.tileText} items-center justify-center flex-shrink-0`}>
-            <Stethoscope className="w-5 h-5" />
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          className="relative flex min-w-0 flex-1 items-center gap-4 px-4 py-5 text-left md:px-6"
+          data-testid={`consult-toggle-${orderNumber}`}
+        >
+          <div
+            className={`hidden sm:flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${accent.tile} ${accent.tileText}`}
+          >
+            <Stethoscope className="h-5 w-5" />
           </div>
 
-          {/* Title + meta */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-base md:text-lg font-extrabold text-secondary truncate">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="truncate text-base font-extrabold text-secondary md:text-lg">
                 {shortConditionName(consultation.conditionName)}
               </h3>
               {documentsNeedAttention && (
@@ -465,14 +416,14 @@ function ConsultationRow({
                 </span>
               )}
               {hasUpdate && !open && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary" /> Update
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Update
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+            <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
-                <CalendarDays className="w-3 h-3" />
+                <CalendarDays className="h-3 w-3" />
                 Order placed {placedAt}
               </span>
               <span className="hidden sm:inline text-border">·</span>
@@ -484,16 +435,34 @@ function ConsultationRow({
               </span>
             </div>
           </div>
+        </button>
 
-          {/* Status + chevron */}
-          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-            <StatusPill status={consultation.status} />
+        <div className="flex shrink-0 items-center gap-2 px-3 py-5 sm:gap-3 md:pr-6">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="hidden rounded-lg border-primary/25 bg-primary/5 font-semibold text-primary hover:bg-primary/10 sm:inline-flex"
+            data-testid={`button-view-answers-${orderNumber}`}
+            onClick={() => setShowAnswers(true)}
+          >
+            <ClipboardList className="mr-1.5 h-3.5 w-3.5" />
+            View answers
+          </Button>
+          <StatusPill status={consultation.status} />
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            aria-expanded={open}
+            aria-label={open ? "Collapse consultation details" : "Expand consultation details"}
+            className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+          >
             <ChevronDown
-              className={`h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:text-foreground ${open ? "rotate-180" : ""}`}
+              className={`h-5 w-5 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
             />
-          </div>
+          </button>
         </div>
-      </button>
+      </div>
 
       {/* Expanded body */}
       <AnimatePresence initial={false}>
@@ -508,6 +477,20 @@ function ConsultationRow({
             <div className="px-5 md:px-7 py-6 space-y-6">
               <p className="text-sm text-foreground/85 leading-relaxed">{cfg.description}</p>
 
+              <div className="sm:hidden">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="w-full rounded-lg border-primary/25 bg-primary/5 font-semibold text-primary hover:bg-primary/10"
+                  data-testid={`button-view-answers-mobile-${orderNumber}`}
+                  onClick={() => setShowAnswers(true)}
+                >
+                  <ClipboardList className="mr-1.5 h-3.5 w-3.5" />
+                  View your consultation answers
+                </Button>
+              </div>
+
               {documentSlots.length > 0 && (
                 <section>
                   <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -516,33 +499,37 @@ function ConsultationRow({
                   <div className="space-y-3">
                     {documentSlots.map((doc) => {
                       const uploadedLabel = formatUploadTime(doc.uploadedAt);
+                      const title = slotDisplayTitle(doc.docId, doc.docTitle);
+                      const needsAction =
+                        doc.status === "required" || doc.status === "rejected";
                       const canView =
-                        doc.status === "uploaded" || doc.status === "verified";
+                        !needsAction &&
+                        (doc.status === "uploaded" || doc.status === "verified");
+                      const isFocused = focusSlot === doc.docId;
                       return (
                         <div
                           key={doc.docId}
+                          id={patientDocSlotElementId(doc.docId)}
                           className={cn(
                             "flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-start sm:justify-between",
-                            doc.status === "rejected" &&
-                              "border-destructive/35 bg-destructive/[0.03]",
-                            doc.status === "required" &&
-                              "border-amber-200/90 bg-amber-50/40",
+                            needsAction &&
+                              "border-amber-300/90 bg-amber-50 shadow-sm",
                             doc.status === "uploaded" &&
                               "border-emerald-200/80 bg-emerald-50/45",
                             doc.status === "verified" &&
                               "border-primary/25 bg-primary/5",
-                            doc.status !== "rejected" &&
-                              doc.status !== "required" &&
+                            !needsAction &&
                               doc.status !== "uploaded" &&
                               doc.status !== "verified" &&
                               "border-border bg-muted/20",
+                            isFocused && "ring-2 ring-amber-400/80 ring-offset-2",
                           )}
                         >
                           <div className="min-w-0 flex-1 space-y-1.5">
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                               <DocumentStatusBadge status={doc.status} />
                               <span className="text-sm font-semibold text-foreground">
-                                {doc.docTitle}
+                                {title}
                               </span>
                             </div>
                             {doc.status === "rejected" && doc.rejectionNote ? (
@@ -570,7 +557,15 @@ function ConsultationRow({
                             {doc.status === "uploaded" ? (
                               <p className="text-xs text-muted-foreground">
                                 Uploaded — your pharmacist will review it shortly.
-                                {uploadedLabel ? ` (${uploadedLabel})` : ""}
+                                {(doc.uploadCount ?? 0) > 1
+                                  ? ` (${doc.uploadCount} files`
+                                  : uploadedLabel
+                                    ? ` (${uploadedLabel}`
+                                    : ""}
+                                {(doc.uploadCount ?? 0) > 1 || uploadedLabel ? ")" : ""}
+                                {uploadedLabel && (doc.uploadCount ?? 0) > 1
+                                  ? ` · latest ${uploadedLabel}`
+                                  : ""}
                               </p>
                             ) : null}
                             {doc.status === "verified" ? (
@@ -590,7 +585,7 @@ function ConsultationRow({
                               onClick={() =>
                                 setViewingDoc({
                                   docId: doc.docId,
-                                  docTitle: doc.docTitle,
+                                  docTitle: title,
                                 })
                               }
                             >
@@ -599,14 +594,18 @@ function ConsultationRow({
                             </Button>
                           ) : null}
                           {(doc.status === "required" ||
-                            doc.status === "rejected") && (
+                            doc.status === "rejected" ||
+                            doc.status === "uploaded" ||
+                            doc.status === "verified") && (
                             <InlineDocumentUploadButton
                               consultationId={consultation.id}
                               docId={doc.docId}
                               label={
                                 doc.status === "rejected"
                                   ? "Upload again"
-                                  : "Upload now"
+                                  : doc.status === "required"
+                                    ? "Upload now"
+                                    : "Upload another"
                               }
                               onSuccess={() => {
                                 onDocumentUploaded(consultation.id, doc.docId);
@@ -619,26 +618,28 @@ function ConsultationRow({
                       );
                     })}
                   </div>
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    You can also attach files in{" "}
-                    <Link
-                      href="/my-messages"
-                      className="font-semibold text-primary hover:underline"
-                    >
-                      Messages
-                    </Link>
-                    .
-                  </p>
+                  {showMessagesUploadHint ? (
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      You can also attach files in{" "}
+                      <Link
+                        href="/my-messages"
+                        className="font-semibold text-primary hover:underline"
+                      >
+                        Messages
+                      </Link>
+                      .
+                    </p>
+                  ) : null}
                 </section>
               )}
 
-              {consultation.pharmacistNote && (
+              {showPharmacistNote && (
                 <section>
                   <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     Pharmacist&apos;s note
                   </h4>
                   <p className="text-sm leading-relaxed text-foreground/90">
-                    {consultation.pharmacistNote}
+                    {patientPharmacistNote}
                   </p>
                 </section>
               )}
@@ -651,7 +652,7 @@ function ConsultationRow({
                       Prescription issued
                     </h4>
                     <a
-                      href={`${(import.meta.env.BASE_URL as string).replace(/\/$/, "")}/api/consultations/${consultation.id}/prescription.pdf`}
+                      href={prescriptionPdfUrl(consultation.id)}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold transition-colors shadow-sm"
@@ -679,7 +680,7 @@ function ConsultationRow({
                 </section>
               )}
 
-              {!isPending && consultation.reviewedAt && (
+              {showReviewedDate && consultation.reviewedAt && (
                 <p className="text-xs text-muted-foreground">
                   Reviewed {new Date(consultation.reviewedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                 </p>
@@ -786,6 +787,15 @@ function ConsultationRow({
           }}
         />
       ) : null}
+
+      <ConsultationAnswersModal
+        consultationId={consultation.id}
+        conditionName={shortConditionName(consultation.conditionName)}
+        conditionId={consultation.conditionId}
+        initialAnswers={consultation.answers}
+        open={showAnswers}
+        onOpenChange={setShowAnswers}
+      />
     </motion.article>
   );
 }
@@ -793,6 +803,11 @@ function ConsultationRow({
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function MyConsultations() {
   const [, navigate] = useLocation();
+  const search = useSearch();
+  const urlFocus = useMemo(
+    () => parseConsultationDocumentFocus(search),
+    [search],
+  );
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -800,6 +815,22 @@ export default function MyConsultations() {
   const [cancelling, setCancelling] = useState<string | null>(null);
 
   const token = localStorage.getItem("patient_token");
+
+  useEffect(() => {
+    if (urlFocus.consultationId) setFilter("all");
+  }, [urlFocus.consultationId]);
+
+  useEffect(() => {
+    if (!urlFocus.consultationId || !urlFocus.focusSlot || loading) return;
+    const id = patientDocSlotElementId(urlFocus.focusSlot);
+    const t = window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 500);
+    return () => window.clearTimeout(t);
+  }, [urlFocus, loading, consultations]);
 
   useEffect(() => {
     if (!token) { navigate("/my-account/login"); return; }
@@ -835,9 +866,10 @@ export default function MyConsultations() {
           return {
             ...c,
             documentSlots,
-            documentsNeedAttention: documentSlots.some(
-              (s) => s.status === "required" || s.status === "rejected",
-            ),
+            documentsNeedAttention: needsDocumentAction({
+              ...c,
+              documentSlots,
+            }),
           };
         });
       });
@@ -900,9 +932,10 @@ export default function MyConsultations() {
         return {
           ...c,
           documentSlots: nextSlots,
-          documentsNeedAttention: nextSlots.some(
-            (s) => s.status === "required" || s.status === "rejected",
-          ),
+          documentsNeedAttention: needsDocumentAction({
+            ...c,
+            documentSlots: nextSlots,
+          }),
         };
       }),
     );
@@ -919,8 +952,7 @@ export default function MyConsultations() {
   const PENDING_STATUSES = ["pending", "red_flag"];
 
   const filtered = consultations.filter((c) => {
-    const needsAction =
-      c.documentsNeedAttention ?? (c.documentActions?.length ?? 0) > 0;
+    const needsAction = needsDocumentAction(c);
     if (filter === "pending") {
       return PENDING_STATUSES.includes(c.status) || needsAction;
     }
@@ -931,10 +963,7 @@ export default function MyConsultations() {
   });
 
   const pendingCount = consultations.filter(
-    (c) =>
-      PENDING_STATUSES.includes(c.status) ||
-      c.documentsNeedAttention ||
-      (c.documentActions?.length ?? 0) > 0,
+    (c) => PENDING_STATUSES.includes(c.status) || needsDocumentAction(c),
   ).length;
   const completedCount = consultations.filter(c => COMPLETED_STATUSES.includes(c.status)).length;
 
@@ -972,7 +1001,7 @@ export default function MyConsultations() {
             type="button"
             variant="ghost"
             size="sm"
-            onClick={fetchConsultations}
+            onClick={() => void fetchConsultations()}
             className="rounded-lg text-muted-foreground hover:text-foreground font-semibold"
             data-testid="button-refresh"
           >
@@ -1039,7 +1068,7 @@ export default function MyConsultations() {
                 <XCircle className="w-7 h-7 text-destructive" />
               </div>
               <p className="text-foreground/80 mb-4">{error}</p>
-              <Button onClick={fetchConsultations} variant="outline" className="rounded-lg">Try again</Button>
+              <Button onClick={() => void fetchConsultations()} variant="outline" className="rounded-lg">Try again</Button>
             </div>
           ) : filtered.length === 0 ? (
             <div className="bg-white rounded-2xl border border-dashed border-border/60 text-center py-16 px-6">
@@ -1070,6 +1099,12 @@ export default function MyConsultations() {
                     index={i}
                     onCancel={handleCancel}
                     cancelling={cancelling}
+                    defaultOpen={c.id === urlFocus.consultationId}
+                    focusSlot={
+                      c.id === urlFocus.consultationId
+                        ? urlFocus.focusSlot
+                        : undefined
+                    }
                     onDocumentsChanged={() => void fetchConsultations({ silent: true })}
                     onDocumentUploaded={handleDocumentUploaded}
                   />

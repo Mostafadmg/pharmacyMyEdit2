@@ -314,10 +314,10 @@
   }
 
   .rx-tabs-track {
-    @apply relative z-30 flex min-w-0 items-stretch gap-1 overflow-visible rounded-xl border border-border bg-muted/40 p-1.5 pb-1.5 pt-4;
+    @apply relative z-30 flex min-w-0 items-stretch gap-2 overflow-visible rounded-xl border border-border bg-muted/40 p-1.5 pb-1.5 pt-4;
   }
   .rx-tabs-scroll {
-    @apply flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overflow-y-visible scroll-smooth px-0.5 pb-1.5 pt-2 pr-2 [scroll-padding-inline:16px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden;
+    @apply flex min-h-0 min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overflow-y-visible scroll-smooth pb-1.5 pt-2 [scroll-padding-inline-start:1.5rem] [scroll-padding-inline-end:1.5rem] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden;
   }
   .rx-tab-active {
     @apply bg-primary text-primary-foreground border-primary font-semibold shadow-sm;
@@ -330,6 +330,16 @@
   }
   .rx-stat-cell {
     @apply flex min-h-[5.5rem] flex-col justify-between rounded-2xl border border-border bg-card p-3.5 shadow-sm;
+  }
+
+  .rx-patient-record {
+    @apply rounded-2xl border border-border bg-card shadow-sm;
+  }
+  .rx-patient-section {
+    @apply rounded-xl border border-border/80 bg-muted/30 px-3.5 py-3;
+  }
+  .rx-patient-section-title {
+    @apply mb-2 font-serif text-sm font-bold tracking-tight text-secondary;
   }
   .rx-verified-banner {
     @apply rounded-2xl border border-border bg-muted/50 p-4 shadow-sm;

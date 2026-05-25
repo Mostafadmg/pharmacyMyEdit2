@@ -7,6 +7,7 @@ export {
 } from "./ClinicalReviewSection";
 export {
   ClinicalReviewOrderSummary,
+  ClinicalReviewOrderHistory,
   ClinicalReviewNhsScr,
   CLINICAL_PANEL,
 } from "./ClinicalReviewPanels";

@@ -40,7 +40,7 @@ class MockDeliveryProvider implements DeliveryProvider {
     return {
       carrier: this.name,
       trackingNumber: tracking,
-      trackingUrl: `/track-order?ref=${tracking}`,
+      trackingUrl: `/my-orders`,
       estimatedDelivery: eta,
     };
   }

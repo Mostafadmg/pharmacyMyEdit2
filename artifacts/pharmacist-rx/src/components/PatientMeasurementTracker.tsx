@@ -26,6 +26,10 @@ import { useListConsultations } from "@workspace/api-client-react";
 
 import { Button } from "@/components/ui/button";
 
+import {
+  orderHistoryCurrentBadgeClass,
+  orderHistoryCurrentTableRowClass,
+} from "@/components/OrderHistoryTable";
 import { ClinicalReviewSection } from "@/components/rx/ClinicalReviewSection";
 
 import { CLINICAL_PANEL } from "@/components/rx/ClinicalReviewPanels";
@@ -437,11 +441,11 @@ function TitrationLogBody({ log }: { log: MeasurementLogEntry[] }) {
 
               className={cn(
 
-                "border-b border-border transition-colors last:border-0",
+                "relative border-b border-border transition-colors last:border-0",
 
                 entry.isCurrent
-                  ? "bg-muted/70 ring-1 ring-inset ring-border"
-                  : "hover:bg-muted/30",
+                  ? orderHistoryCurrentTableRowClass
+                  : "bg-card hover:bg-muted/30",
 
               )}
 
@@ -463,11 +467,7 @@ function TitrationLogBody({ log }: { log: MeasurementLogEntry[] }) {
 
                 {entry.isCurrent ? (
 
-                  <span className="mt-2 inline-flex rounded-full bg-secondary px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-secondary-foreground shadow-sm">
-
-                    Current order
-
-                  </span>
+                  <span className={orderHistoryCurrentBadgeClass}>current</span>
 
                 ) : null}
 

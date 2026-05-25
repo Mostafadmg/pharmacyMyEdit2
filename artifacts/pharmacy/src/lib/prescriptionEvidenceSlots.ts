@@ -13,6 +13,7 @@ export const PRESCRIPTION_EVIDENCE_SLOTS = (
     "full-body-video",
     "weight-scale-video",
     "previous-prescription",
+    "previous-bmi-verification",
     "supporting-evidence",
   ] as const
 ).map((id) => ({

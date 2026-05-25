@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -10,8 +10,8 @@ import {
   Plus,
   Minus,
   Filter,
-  Zap,
   Check,
+  ImageIcon,
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
 import { useCart, formatGbp } from "@/hooks/useCart";
 import WishlistButton from "@/components/WishlistButton";
+import ShopCategoryBar from "@/components/ShopCategoryBar";
 import { useSeo } from "@/hooks/useSeo";
 
 type Product = {
@@ -40,7 +41,16 @@ type Product = {
   rrpGbp: number | null;
   stock: number;
   requiresConsultation: boolean;
+  tags?: string[];
 };
+
+function reviewCountFromTags(tags?: string[]): number | null {
+  for (const t of tags ?? []) {
+    const m = /^(\d+)-reviews$/.exec(t);
+    if (m) return parseInt(m[1], 10);
+  }
+  return null;
+}
 
 const CATEGORY_LABELS: Record<string, string> = {
   "pain-relief": "Pain Relief",
@@ -50,11 +60,21 @@ const CATEGORY_LABELS: Record<string, string> = {
   skin: "Skin Care",
   "eye-care": "Eye & Ear Care",
   "first-aid": "First Aid",
-  vitamins: "Vitamins",
+  vitamins: "Vitamins & Supplements",
   sleep: "Sleep & Stress",
   oral: "Oral Care",
   "foot-care": "Foot Care",
   "womens-health": "Women's Health",
+  "weight-loss": "Weight Loss",
+  "erectile-dysfunction": "Men's Health (ED)",
+  migraine: "Migraine",
+  asthma: "Asthma",
+  acne: "Acne",
+  "hair-loss": "Hair Loss",
+  "travel-health": "Travel Health",
+  "sexual-health": "Sexual Health",
+  "stop-smoking": "Stop Smoking",
+  "general-health": "General Health",
 };
 
 export default function Shop() {
@@ -64,7 +84,6 @@ export default function Shop() {
       "Shop UK pharmacy medicines, vitamins and skincare from PharmaCare. Free tracked next-day delivery on orders over £25, dispatched same-day from a GPhC-registered pharmacy.",
     canonicalPath: "/shop",
   });
-  const [, navigate] = useLocation();
   const [products, setProducts] = useState<Product[] | null>(null);
   const [categories, setCategories] = useState<
     Array<{ category: string; count: number }>
@@ -84,10 +103,12 @@ export default function Shop() {
     const params = new URLSearchParams();
     if (activeCategory !== "all") params.set("category", activeCategory);
     if (search.trim()) params.set("search", search.trim());
+    const q = new URLSearchParams(params);
+    q.set("limit", "1500");
     apiFetch<{
       products: Product[];
       categories: Array<{ category: string; count: number }>;
-    }>(`/api/products?${params.toString()}`)
+    }>(`/api/products?${q.toString()}`)
       .then((d) => {
         setProducts(d.products);
         setCategories(d.categories);
@@ -177,25 +198,33 @@ export default function Shop() {
     toast.success(`${p.name} added to basket`);
   };
 
-  const handleBuyNow = (p: Product) => {
-    if (p.requiresConsultation) {
-      toast.error("This product requires a consultation");
+  const bumpQty = (p: Product, delta: number) => {
+    if (p.requiresConsultation) return;
+    const cur = cartQtyById[p.id] ?? 0;
+    const next = cur + delta;
+    if (next <= 0) {
+      if (cur > 0) removeItem(p.id);
       return;
     }
-    if (p.stock <= 0) {
-      toast.error("Out of stock");
+    if (next > Math.min(20, p.stock)) {
+      toast.error(`Only ${p.stock} available`);
       return;
     }
-    addItem({
-      productId: p.id,
-      slug: p.slug,
-      name: p.name,
-      brand: p.brand,
-      imageUrl: p.imageUrl,
-      unitPriceGbp: p.priceGbp,
-      category: p.category,
-    });
-    navigate("/checkout");
+    if (cur === 0) {
+      addItem({
+        productId: p.id,
+        slug: p.slug,
+        name: p.name,
+        brand: p.brand,
+        imageUrl: p.imageUrl,
+        unitPriceGbp: p.priceGbp,
+        category: p.category,
+      });
+      if (next > 1) updateQty(p.id, next);
+      toast.success(`${p.name} added to basket`);
+      return;
+    }
+    updateQty(p.id, next);
   };
 
   return (
@@ -254,40 +283,13 @@ export default function Shop() {
       </section>
 
       <div className="max-w-7xl mx-auto px-6 py-8 flex-1 w-full">
-        {/* Category filter bar — horizontal scrollable chips */}
         <div className="mb-6">
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none -mx-1 px-1">
-            <button
-              onClick={() => setActiveCategory("all")}
-              className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all border-2 ${
-                activeCategory === "all"
-                  ? "bg-[#0E3D2D] border-[#0E3D2D] text-white shadow-sm"
-                  : "bg-white border-border text-foreground hover:border-[#0E3D2D]/40 hover:text-[#0E3D2D]"
-              }`}
-              data-testid="btn-category-all"
-            >
-              All products
-            </button>
-            {categories.map((c) => (
-              <button
-                key={c.category}
-                onClick={() => setActiveCategory(c.category)}
-                className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all border-2 ${
-                  activeCategory === c.category
-                    ? "bg-[#0E3D2D] border-[#0E3D2D] text-white shadow-sm"
-                    : "bg-white border-border text-foreground hover:border-[#0E3D2D]/40 hover:text-[#0E3D2D]"
-                }`}
-                data-testid={`btn-category-${c.category}`}
-              >
-                {CATEGORY_LABELS[c.category] ?? c.category}
-                <span
-                  className={`text-xs rounded-full px-1.5 py-0.5 ${activeCategory === c.category ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"}`}
-                >
-                  {c.count}
-                </span>
-              </button>
-            ))}
-          </div>
+          <ShopCategoryBar
+            categories={categories}
+            activeCategory={activeCategory}
+            onSelect={setActiveCategory}
+            categoryLabels={CATEGORY_LABELS}
+          />
         </div>
 
         {/* Product grid — full width */}
@@ -304,13 +306,13 @@ export default function Shop() {
           </div>
 
           {loading ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {[...Array(9)].map((_, i) => (
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
+              {[...Array(8)].map((_, i) => (
                 <Skeleton key={i} className="h-80 rounded-2xl" />
               ))}
             </div>
           ) : products && products.length > 0 ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
               {products.map((p) => (
                 <motion.div
                   key={p.id}
@@ -323,14 +325,26 @@ export default function Shop() {
                     data-testid={`product-card-${p.slug}`}
                   >
                     <Link href={`/product/${p.slug}`}>
-                      <div className="aspect-square bg-gradient-to-br from-muted/30 to-muted overflow-hidden relative">
-                        <img
-                          src={p.imageUrl}
-                          alt={p.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          loading="lazy"
-                        />
-                        {p.classification === "P" && (
+                      <div className="aspect-square bg-white overflow-hidden relative border-b border-border/30">
+                        {p.imageUrl ? (
+                          <img
+                            src={p.imageUrl}
+                            alt={p.name}
+                            className="w-full h-full object-contain p-4 group-hover:scale-[1.02] transition-transform duration-500"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-2 bg-[#FAF7F2]">
+                            <ImageIcon className="w-10 h-10 opacity-30" />
+                            <span className="text-xs">No image</span>
+                          </div>
+                        )}
+                        {p.requiresConsultation && (
+                          <Badge className="absolute top-3 left-3 bg-[#0E3D2D] hover:bg-[#0E3D2D] text-white border-0">
+                            Consultation
+                          </Badge>
+                        )}
+                        {!p.requiresConsultation && p.classification === "P" && (
                           <Badge className="absolute top-3 left-3 bg-amber-500 hover:bg-amber-500 text-white border-0">
                             Pharmacy
                           </Badge>
@@ -359,9 +373,25 @@ export default function Shop() {
                             {p.brand}
                           </p>
                         )}
-                        <h3 className="font-semibold leading-snug text-base line-clamp-2 mb-1.5 hover:text-[#0E3D2D] transition-colors">
+                        <h3 className="font-serif font-semibold leading-snug text-base line-clamp-2 mb-1 hover:text-[#0E3D2D] transition-colors text-secondary">
                           {p.name}
                         </h3>
+                        {reviewCountFromTags(p.tags) != null ? (
+                          <div className="flex items-center gap-1 mb-2">
+                            <div className="flex text-amber-400">
+                              {[1, 2, 3, 4, 5].map((i) => (
+                                <Star
+                                  key={i}
+                                  className="w-3.5 h-3.5 fill-current"
+                                />
+                              ))}
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {reviewCountFromTags(p.tags)!.toLocaleString()}{" "}
+                              reviews
+                            </span>
+                          </div>
+                        ) : null}
                         <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                           {p.shortDescription}
                         </p>
@@ -397,68 +427,54 @@ export default function Shop() {
                           ) : null}
                         </div>
                         {!p.requiresConsultation && p.stock > 0 && (
-                          <div className="grid grid-cols-2 gap-2">
-                            {(cartQtyById[p.id] ?? 0) === 0 ? (
+                          <div className="space-y-2">
+                            <div
+                              className="flex items-center justify-between rounded-full border border-[#0E3D2D]/40 bg-white overflow-hidden h-9 shrink-0"
+                              data-testid={`stepper-${p.slug}`}
+                            >
+                              <button
+                                type="button"
+                                aria-label="Decrease quantity"
+                                disabled={(cartQtyById[p.id] ?? 0) === 0}
+                                onClick={() => bumpQty(p, -1)}
+                                className="px-2.5 h-full text-[#0E3D2D] hover:bg-[#0E3D2D]/10 flex items-center disabled:opacity-30 disabled:pointer-events-none"
+                                data-testid={`btn-stepper-minus-${p.slug}`}
+                              >
+                                <Minus className="w-4 h-4" />
+                              </button>
+                              <span
+                                className="font-semibold text-sm text-[#0E5A52] min-w-[1.25rem] text-center tabular-nums"
+                                data-testid={`text-stepper-qty-${p.slug}`}
+                              >
+                                {cartQtyById[p.id] ?? 0}
+                              </span>
+                              <button
+                                type="button"
+                                aria-label="Increase quantity"
+                                onClick={() => bumpQty(p, 1)}
+                                className="px-2.5 h-full text-[#0E3D2D] hover:bg-[#0E3D2D]/10 flex items-center"
+                                data-testid={`btn-stepper-plus-${p.slug}`}
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
+                            </div>
+                            {(cartQtyById[p.id] ?? 0) === 0 && (
                               <Button
                                 size="sm"
-                                variant="outline"
                                 onClick={() => handleQuickAdd(p)}
-                                className="rounded-full border-[#0E3D2D] text-[#0E3D2D] hover:bg-[#0E3D2D]/5"
+                                className="w-full rounded-full bg-[#0E3D2D] hover:bg-[#0E5A52] text-white"
                                 data-testid={`btn-add-${p.slug}`}
                               >
-                                <Plus className="w-4 h-4 mr-1" /> Add
+                                <ShoppingBag className="w-4 h-4 mr-1.5" />
+                                Add to basket
                               </Button>
-                            ) : (
-                              <div
-                                className="flex items-center justify-between rounded-full border border-[#0E3D2D] bg-[#0E3D2D]/5 overflow-hidden h-9"
-                                data-testid={`stepper-${p.slug}`}
-                              >
-                                <button
-                                  type="button"
-                                  aria-label="Decrease quantity"
-                                  onClick={() => {
-                                    const next = (cartQtyById[p.id] ?? 1) - 1;
-                                    if (next <= 0) removeItem(p.id);
-                                    else updateQty(p.id, next);
-                                  }}
-                                  className="px-3 h-full text-[#0E3D2D] hover:bg-[#0E3D2D]/10 flex items-center"
-                                  data-testid={`btn-stepper-minus-${p.slug}`}
-                                >
-                                  <Minus className="w-4 h-4" />
-                                </button>
-                                <span
-                                  className="font-semibold text-sm text-[#0E5A52] flex items-center gap-1"
-                                  data-testid={`text-stepper-qty-${p.slug}`}
-                                >
-                                  <Check className="w-3.5 h-3.5" />{" "}
-                                  {cartQtyById[p.id]}
-                                </span>
-                                <button
-                                  type="button"
-                                  aria-label="Increase quantity"
-                                  onClick={() => {
-                                    const cur = cartQtyById[p.id] ?? 0;
-                                    if (cur >= Math.min(20, p.stock)) {
-                                      toast.error(`Only ${p.stock} available`);
-                                      return;
-                                    }
-                                    updateQty(p.id, cur + 1);
-                                  }}
-                                  className="px-3 h-full text-[#0E3D2D] hover:bg-[#0E3D2D]/10 flex items-center"
-                                  data-testid={`btn-stepper-plus-${p.slug}`}
-                                >
-                                  <Plus className="w-4 h-4" />
-                                </button>
-                              </div>
                             )}
-                            <Button
-                              size="sm"
-                              onClick={() => handleBuyNow(p)}
-                              className="bg-amber-500 hover:bg-amber-600 text-white rounded-full"
-                              data-testid={`btn-buy-now-${p.slug}`}
-                            >
-                              <Zap className="w-4 h-4 mr-1" /> Buy now
-                            </Button>
+                            {(cartQtyById[p.id] ?? 0) > 0 && (
+                              <p className="text-xs text-[#0E5A52] font-medium flex items-center gap-1">
+                                <Check className="w-3.5 h-3.5" />
+                                In basket
+                              </p>
+                            )}
                           </div>
                         )}
                         {p.requiresConsultation && (

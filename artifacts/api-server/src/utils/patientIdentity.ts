@@ -31,18 +31,34 @@ export function normalizePatientName(name: string): string {
     .replace(/[^a-z\s'-]/g, "");
 }
 
+function isValidIsoDate(iso: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
+  const [y, m, d] = iso.split("-").map((n) => Number.parseInt(n, 10));
+  if (m < 1 || m > 12 || d < 1 || d > 31) return false;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return (
+    dt.getUTCFullYear() === y &&
+    dt.getUTCMonth() === m - 1 &&
+    dt.getUTCDate() === d
+  );
+}
+
 export function normalizeDateOfBirth(dob: string | null | undefined): string | null {
   if (!dob?.trim()) return null;
   const trimmed = dob.trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return isValidIsoDate(trimmed) ? trimmed : null;
+  }
   const slash = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
   if (slash) {
     const [, d, m, y] = slash;
-    return `${y}-${m!.padStart(2, "0")}-${d!.padStart(2, "0")}`;
+    const iso = `${y}-${m!.padStart(2, "0")}-${d!.padStart(2, "0")}`;
+    return isValidIsoDate(iso) ? iso : null;
   }
   const parsed = new Date(trimmed);
   if (!Number.isNaN(parsed.getTime())) {
-    return parsed.toISOString().slice(0, 10);
+    const iso = parsed.toISOString().slice(0, 10);
+    return isValidIsoDate(iso) ? iso : null;
   }
   return null;
 }
@@ -316,15 +332,30 @@ export async function nextPmrNumber(): Promise<string> {
   return `PMR-${String(max + 1).padStart(6, "0")}`;
 }
 
-export async function nextConsultationNumber(): Promise<string> {
+export function isUniqueViolation(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.includes("unique constraint") || msg.includes("duplicate key");
+}
+
+export async function nextConsultationNumber(bump = 0): Promise<string> {
   const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const prefix = `CON-${today}-`;
   const [row] = await db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({ consultationNumber: consultationsTable.consultationNumber })
     .from(consultationsTable)
-    .where(sql`${consultationsTable.consultationNumber} LIKE ${prefix + "%"}`);
+    .where(sql`${consultationsTable.consultationNumber} LIKE ${prefix + "%"}`)
+    .orderBy(desc(consultationsTable.consultationNumber))
+    .limit(1);
 
-  const seq = (row?.count ?? 0) + 1;
+  let maxSeq = 0;
+  const last = row?.consultationNumber?.trim();
+  if (last?.startsWith(prefix)) {
+    const tail = last.slice(prefix.length);
+    const parsed = Number.parseInt(tail, 10);
+    if (Number.isFinite(parsed)) maxSeq = parsed;
+  }
+
+  const seq = maxSeq + 1 + bump;
   return `${prefix}${String(seq).padStart(4, "0")}`;
 }
 
@@ -338,12 +369,20 @@ export async function ensureConsultationNumbersForConsultations(
       out.set(row.id, row.consultationNumber.trim());
       continue;
     }
-    const consultationNumber = await nextConsultationNumber();
-    await db
-      .update(consultationsTable)
-      .set({ consultationNumber })
-      .where(eq(consultationsTable.id, row.id));
-    out.set(row.id, consultationNumber);
+    let assigned: string | null = null;
+    for (let attempt = 0; attempt < 12 && !assigned; attempt++) {
+      const consultationNumber = await nextConsultationNumber(attempt);
+      try {
+        await db
+          .update(consultationsTable)
+          .set({ consultationNumber })
+          .where(eq(consultationsTable.id, row.id));
+        assigned = consultationNumber;
+      } catch (err) {
+        if (!isUniqueViolation(err)) throw err;
+      }
+    }
+    if (assigned) out.set(row.id, assigned);
   }
   return out;
 }

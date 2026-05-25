@@ -154,7 +154,7 @@ export function deriveWaitTagsFromConsultation(
       ? ` (${rev.rejectionTemplateTitle})`
       : "";
     const emailLine = rev?.uploadEmailSentAt
-      ? "Upload link sent — awaiting patient re-upload."
+      ? "Upload requested — awaiting patient re-upload."
       : "Document rejected — awaiting re-upload.";
     tags.push({
       id: `doc-${slotId}`,

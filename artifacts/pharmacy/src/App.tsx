@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation, useRoute } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -45,7 +45,6 @@ import Prescriptions from "./pages/account/Prescriptions";
 import Preferences from "./pages/account/Preferences";
 import DataAndPrivacy from "./pages/account/DataAndPrivacy";
 import OrderConfirmation from "./pages/OrderConfirmation";
-import OrderTracking from "./pages/OrderTracking";
 import AdminOrders from "./pages/AdminOrders";
 import AdminOrderDetail from "./pages/AdminOrderDetail";
 import AdminProducts from "./pages/AdminProducts";
@@ -78,6 +77,20 @@ function ScrollToTop() {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, [location]);
   return null;
+}
+
+function RedirectTo({ href }: { href: string }) {
+  const [, navigate] = useLocation();
+  useEffect(() => {
+    navigate(href);
+  }, [href, navigate]);
+  return null;
+}
+
+function RedirectTrackOrder() {
+  const [, params] = useRoute<{ id: string }>("/track-order/:id");
+  const target = params?.id ? `/order-confirmation/${params.id}` : "/my-orders";
+  return <RedirectTo href={target} />;
 }
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -149,7 +162,18 @@ function Router() {
       <Route path="/account/preferences" component={Preferences} />
       <Route path="/account/data-and-privacy" component={DataAndPrivacy} />
       <Route path="/order-confirmation/:id" component={OrderConfirmation} />
-      <Route path="/track-order/:id" component={OrderTracking} />
+      <Route path="/track-order/:id" component={RedirectTrackOrder} />
+      <Route path="/track">
+        {() => (
+          <RedirectTo
+            href={
+              typeof localStorage !== "undefined" && localStorage.getItem("patient_token")
+                ? "/my-orders"
+                : "/my-account/login"
+            }
+          />
+        )}
+      </Route>
       <Route path="/contact" component={Contact} />
       <Route path="/feedback" component={Feedback} />
       <Route path="/about/our-service" component={OurService} />

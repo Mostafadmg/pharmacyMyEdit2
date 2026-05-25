@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 import {
-  EVIDENCE_SLOT_META,
+  getSlotMeta,
   isEvidenceSlotId,
+  validatePatientDocumentFile,
   type EvidenceSlotId,
 } from "@workspace/evidence-slots";
 
@@ -25,12 +26,13 @@ export function InlineDocumentUploadButton({
 
   if (!isEvidenceSlotId(docId)) return null;
 
-  const slotMeta = EVIDENCE_SLOT_META[docId as EvidenceSlotId];
+  const slotMeta = getSlotMeta(docId as EvidenceSlotId);
 
   const onFile = async (file: File | undefined) => {
     if (!file) return;
-    if (file.size > slotMeta.maxMb * 1024 * 1024) {
-      toast.error(`File must be under ${slotMeta.maxMb} MB.`);
+    const check = validatePatientDocumentFile(file, docId as EvidenceSlotId);
+    if (!check.ok) {
+      toast.error(check.message);
       return;
     }
 
@@ -72,8 +74,7 @@ export function InlineDocumentUploadButton({
       <input
         ref={fileRef}
         type="file"
-        accept={slotMeta.acceptMime}
-        capture={slotMeta.isVideo ? "environment" : undefined}
+        accept={slotMeta.accept}
         className="hidden"
         onChange={(e) => void onFile(e.target.files?.[0])}
       />

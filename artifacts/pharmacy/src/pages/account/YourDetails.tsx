@@ -16,7 +16,7 @@ function DetailCard({
   "data-testid"?: string;
 }) {
   return (
-    <Link href={href} data-testid={testId}>
+    <Link href={href} data-testid={testId} className="block">
       <motion.div
         whileHover={{ y: -2 }}
         className="group bg-white rounded-2xl border border-border/40 hover:border-primary/40 hover:shadow-md transition-all p-5 md:p-6 flex items-center gap-4 cursor-pointer"
@@ -62,7 +62,7 @@ export default function YourDetails() {
         <h1 className="text-3xl md:text-4xl font-extrabold text-secondary">Your details</h1>
         <p className="text-muted-foreground mt-1">Manage your personal, payment and GP details.</p>
 
-        <div className="mt-8 space-y-3">
+        <div className="mt-8 flex flex-col gap-4">
           <DetailCard
             href="/account/details/payments"
             icon={CreditCard}

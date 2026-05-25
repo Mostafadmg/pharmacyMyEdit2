@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import { Mail, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { CheckCircle2 } from "lucide-react";
 
-export default function NewsletterSignup() {
+export default function NewsletterSignup({ compact = false }: { compact?: boolean }) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
 
@@ -11,65 +11,103 @@ export default function NewsletterSignup() {
       setStatus("error");
       return;
     }
-    // Frontend-only stub — would post to /api/newsletter in production
     setStatus("success");
     setEmail("");
   };
 
-  return (
-    <div className="bg-secondary-foreground/5 border border-secondary-foreground/10 rounded-2xl p-6">
-      <div className="flex items-center gap-2 mb-2">
-        <Mail className="w-4 h-4 text-primary" />
-        <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Health Tips Newsletter</h3>
-      </div>
-      <p className="text-secondary-foreground/75 text-sm mb-4 leading-relaxed">
-        Practical, evidence-based health advice from our UK pharmacists. One email a month, never more. Unsubscribe any
-        time.
+  if (status === "success") {
+    return (
+      <p
+        className="flex items-center gap-2 text-sm text-white/90"
+        data-testid="newsletter-success"
+      >
+        <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+        Subscribed — check your inbox to confirm.
       </p>
+    );
+  }
 
-      {status === "success" ? (
-        <div
-          className="flex items-center gap-2 px-4 py-3 rounded-xl bg-primary/15 border border-primary/30 text-white text-sm"
-          data-testid="newsletter-success"
+  if (compact) {
+    return (
+      <form
+        onSubmit={submit}
+        className="flex w-full max-w-md flex-col gap-2 sm:flex-row sm:items-center"
+        data-testid="newsletter-form"
+      >
+        <label className="sr-only" htmlFor="newsletter-email">
+          Email for newsletter
+        </label>
+        <input
+          id="newsletter-email"
+          type="email"
+          value={email}
+          required
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (status === "error") setStatus("idle");
+          }}
+          placeholder="Email for health tips"
+          className="min-w-0 flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          data-testid="newsletter-email"
+        />
+        <button
+          type="submit"
+          className="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          data-testid="newsletter-submit"
         >
-          <CheckCircle2 className="w-4 h-4 text-primary" />
-          Thanks — you're subscribed. Check your inbox to confirm.
-        </div>
-      ) : (
-        <form onSubmit={submit} className="flex flex-col sm:flex-row gap-2" data-testid="newsletter-form">
-          <input
-            type="email"
-            value={email}
-            required
-            onChange={(e) => {
-              setEmail(e.target.value);
-              if (status === "error") setStatus("idle");
-            }}
-            placeholder="you@example.com"
-            aria-label="Email address"
-            className="flex-1 min-w-0 px-4 py-2.5 rounded-full bg-white/5 border border-secondary-foreground/20 text-white placeholder:text-secondary-foreground/40 focus:outline-none focus:border-primary text-sm"
-            data-testid="newsletter-email"
-          />
-          <button
-            type="submit"
-            className="px-5 py-2.5 rounded-full bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition-colors shrink-0"
-            data-testid="newsletter-submit"
-          >
-            Subscribe
-          </button>
-        </form>
-      )}
+          Subscribe
+        </button>
+        {status === "error" ? (
+          <p className="text-xs text-red-300 sm:absolute sm:mt-12" role="alert">
+            Enter a valid email.
+          </p>
+        ) : null}
+      </form>
+    );
+  }
+
+  return (
+    <div>
+      <p className="mb-3 text-sm text-white/75 leading-relaxed">
+        Monthly health tips from our pharmacists. Unsubscribe anytime.
+      </p>
+      <form
+        onSubmit={submit}
+        className="flex flex-col gap-2 sm:flex-row"
+        data-testid="newsletter-form"
+      >
+        <input
+          type="email"
+          value={email}
+          required
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (status === "error") setStatus("idle");
+          }}
+          placeholder="you@example.com"
+          aria-label="Email address"
+          className="min-w-0 flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-primary focus:outline-none"
+          data-testid="newsletter-email"
+        />
+        <button
+          type="submit"
+          className="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+          data-testid="newsletter-submit"
+        >
+          Subscribe
+        </button>
+      </form>
       {status === "error" && (
-        <p className="text-red-300 text-xs mt-2" role="alert">
+        <p className="mt-2 text-xs text-red-300" role="alert">
           Please enter a valid email address.
         </p>
       )}
-      <p className="text-secondary-foreground/55 text-[11px] mt-3 leading-relaxed">
-        By subscribing you agree to our{" "}
+      <p className="mt-2 text-[11px] text-white/45">
+        See our{" "}
         <a href="/legal/privacy" className="underline hover:text-primary">
           Privacy Policy
         </a>
-        . We will never sell your data.
+        .
       </p>
     </div>
   );

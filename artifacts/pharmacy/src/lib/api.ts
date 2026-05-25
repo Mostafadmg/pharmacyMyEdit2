@@ -8,6 +8,21 @@ function resolveApiBase(): string {
 
 export const API_BASE = resolveApiBase();
 
+/** Never show raw SQL / Drizzle errors to patients. */
+export function sanitizeApiError(message: string): string {
+  if (
+    message.includes("Failed query") ||
+    message.includes("insert into") ||
+    message.includes("DrizzleQueryError")
+  ) {
+    return "We could not save your consultation. Please wait a moment and try again. If this continues, refresh the page and ensure the pharmacy server is running.";
+  }
+  if (message.length > 280) {
+    return `${message.slice(0, 280)}…`;
+  }
+  return message;
+}
+
 export function apiUrl(path: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
   if (!API_BASE) return normalized;
@@ -55,8 +70,9 @@ export async function apiFetch<T = unknown>(
 
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const message =
+    const raw =
       (json as { error?: string }).error || `Request failed: ${res.status}`;
+    const message = sanitizeApiError(raw);
     throw new Error(message);
   }
   return json as T;

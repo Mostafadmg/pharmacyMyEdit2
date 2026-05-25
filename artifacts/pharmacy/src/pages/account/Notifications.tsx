@@ -5,6 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import { AccountSubPage } from "./AccountSubPage";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api";
+import { normalizePatientDocumentLink } from "@/lib/consultationDocumentFocus";
 import { toast } from "sonner";
 
 const PARENTS = [{ label: "Your account", href: "/account" }];
@@ -76,7 +77,8 @@ export default function Notifications() {
         setUnread(u => Math.max(0, u - 1));
       } catch { /* ignore */ }
     }
-    if (n.link) navigate(n.link);
+    const href = normalizePatientDocumentLink(n.link) ?? n.link;
+    if (href) navigate(href);
   }
 
   return (

@@ -55,16 +55,16 @@ export function ClinicalQaRow({
   return (
     <div
       className={cn(
-        "flex items-stretch justify-between gap-5 bg-card",
+        "grid grid-cols-[1fr_auto] items-center gap-x-5 bg-card",
         !isLast && "border-b border-border/80",
       )}
     >
-      <div className="min-w-0 flex-1 px-5 py-4">
+      <div className="min-w-0 px-5 py-4">
         <p className="text-[15px] font-medium leading-relaxed text-foreground wrap-anywhere">
           {question}
         </p>
       </div>
-      <div className="flex shrink-0 items-center border-l border-border/60 px-5 py-4">
+      <div className="flex items-center justify-end px-5 py-4">
         <AnswerValue value={value} />
       </div>
     </div>

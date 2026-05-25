@@ -8,6 +8,28 @@ export function shortConditionName(conditionName: string): string {
 export type PatientJourneyType = "new_starter" | "transfer" | "simple_repeat";
 
 export function getPatientJourneyType(c: Consultation): PatientJourneyType {
+  const answers = (c.answers ?? {}) as Record<string, unknown>;
+  const consultationType =
+    typeof answers.consultation_type === "string"
+      ? answers.consultation_type.trim()
+      : "";
+  if (consultationType === "transfer") return "transfer";
+  if (consultationType === "simple_repeat") return "simple_repeat";
+  if (consultationType === "new_start" || consultationType === "new_starter") {
+    return "new_starter";
+  }
+
+  const journeyStage = answers.journey_stage;
+  if (journeyStage === "transferring") return "transfer";
+  if (journeyStage === "existing") return "simple_repeat";
+  if (
+    answers.changing_from_provider === "yes" &&
+    answers.new_to_injectables === "no"
+  ) {
+    return "transfer";
+  }
+  if (answers.transfer_continuation_questionnaire === true) return "transfer";
+
   if (!c.previousConsultationId) return "new_starter";
   if (c.status === "patient_responded" || c.status === "more_info_needed") {
     return "transfer";
@@ -103,8 +125,19 @@ export function parseOrderMedication(c: Consultation): {
     subtitle = it.form || c.conditionName;
     qty = Number.parseInt(String(it.quantity), 10) || 1;
   } else if (items.length > 1) {
-    title = items.map((i) => i.name).join(" · ");
-    subtitle = items.map((i) => i.strength).filter(Boolean).join(" · ");
+    const lines = items.map((i) => {
+      const q = Number.parseInt(String(i.quantity), 10) || 1;
+      const strength = i.strength?.trim();
+      return strength
+        ? `${q}× ${i.name} ${strength}`
+        : `${q}× ${i.name}`;
+    });
+    title =
+      new Set(items.map((i) => i.name)).size === 1
+        ? `${items[0]!.name} bundle`
+        : lines.join(" + ");
+    subtitle = lines.join(" · ");
+    doseLabel = null;
     qty =
       items.reduce(
         (s, i) => s + (Number.parseInt(String(i.quantity), 10) || 0),
@@ -216,6 +249,20 @@ export function formatEthnicityLabel(raw: unknown): string | null {
   );
 }
 
+/** Compact height + weight for stat cards, e.g. `190 cm · 85.2 kg`. */
+export function formatConsultationHeightWeightLine(c: Consultation): string | null {
+  const heightCm = resolveConsultationHeightCm(c);
+  const weightKg = resolveConsultationWeightKg(c);
+  const parts: string[] = [];
+  if (heightCm != null && heightCm > 0) {
+    parts.push(`${Math.round(heightCm)} cm`);
+  }
+  if (weightKg != null && weightKg > 0) {
+    parts.push(`${weightKg.toFixed(1)} kg`);
+  }
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
 /** e.g. `85.2 kg · 187.8 lb · 13 st 5 lb` */
 export function formatWeightAllUnits(kg: number | null): string {
   if (kg == null || !Number.isFinite(kg) || kg <= 0) {
@@ -225,6 +272,45 @@ export function formatWeightAllUnits(kg: number | null): string {
   const stone = Math.floor(lbsTotal / 14);
   const lbRem = Math.round((lbsTotal - stone * 14) * 10) / 10;
   return `${kg.toFixed(1)} kg · ${lbsTotal.toFixed(1)} lb · ${stone} st ${lbRem} lb`;
+}
+
+/** Placed / reviewed timestamps for patient and PMR lists (en-GB). */
+export function formatOrderDateTime(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export function consultationOrderRef(c: Consultation): string {
+  const num = (c as Consultation & { consultationNumber?: string | null })
+    .consultationNumber;
+  if (num?.trim()) return num.trim();
+  return `#${c.id.replace(/-/g, "").toUpperCase().slice(-8)}`;
+}
+
+/** When approved/declined/referred, show decision date and time. */
+export function consultationStatusTimestamp(
+  c: Consultation,
+): string | null {
+  const at = c.reviewedAt;
+  if (!at) return null;
+  switch (c.status) {
+    case "approved":
+      return `Approved ${formatOrderDateTime(at)}`;
+    case "rejected":
+      return `Declined ${formatOrderDateTime(at)}`;
+    case "referred":
+      return `Referred ${formatOrderDateTime(at)}`;
+    default:
+      return null;
+  }
 }
 
 export function statusPillForConsultation(status: Consultation["status"]): {

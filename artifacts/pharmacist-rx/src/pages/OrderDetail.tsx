@@ -1,4 +1,12 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
 import { Link, useLocation } from "wouter";
 import {
   ChevronLeft,
@@ -31,6 +39,7 @@ import {
 } from "lucide-react";
 import {
   getGetConsultationQueryKey,
+  getListConsultationsQueryKey,
   useGetConsultation,
   useListConsultations,
   useReviewConsultation,
@@ -47,6 +56,7 @@ import {
   DialogHeader,
   DialogDescription,
   DialogTitle,
+  DialogBody,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -55,6 +65,7 @@ import { ClinicalReviewBmiHistory } from "@/components/PatientMeasurementTracker
 import { MonitoringTab } from "@/components/MonitoringTab";
 import { DocumentsTabPro } from "@/components/DocumentsTabPro";
 import { MessagesTab } from "@/components/MessagesTab";
+import { RxOptionPicker } from "@/components/RxOptionPicker";
 import { PatientChatPanel } from "@/components/PatientChatPanel";
 import { WeightLossClinicalReview, WEIGHT_LOSS_BUNDLED_ANSWER_KEYS } from "@/components/WeightLossClinicalReview";
 import { DateField } from "@/components/DateField";
@@ -62,7 +73,16 @@ import { PatientDetailsEditorDialog } from "@/components/PatientDetailsEditorDia
 import { toIsoDate } from "@workspace/date-picker";
 import { OrderHistoryTab } from "@/components/OrderHistoryTab";
 import { BmiCalculatorDialog } from "@/components/BmiCalculatorDialog";
+import { HoldOrderTagPicker } from "@/components/HoldOrderTagPicker";
+import { useCustomOrderTags } from "@/context/CustomOrderTagsContext";
+import { buildOrderTagPatchBody } from "@/lib/orderTagApi";
+import { resolveOrderTagLabel } from "@/lib/orderTags";
 import { isInjectableWeightLossOrder } from "@/lib/clinicalReview";
+import {
+  getConsultationRxItems,
+  reviewActionErrorMessage,
+  validatePrescriptionItemsForApproval,
+} from "@/lib/consultationPrescriptionItems";
 import { apiFetch } from "@/lib/api";
 import { showVerificationFeedbackToast } from "@/lib/verificationFeedbackToast";
 import {
@@ -86,6 +106,9 @@ import {
   activityForWaitTag,
   activityForUploadLinkSent,
   activityForMedicationChange,
+  activityForOrderTagChange,
+  activityForOrderTagsBatchAdd,
+  activityForOrderTagsBatchRemove,
   activityForPrescriptionApproved,
   activityForProfileEdits,
   activityForTabVerified,
@@ -93,8 +116,10 @@ import {
   buildMultiOrderActivityTimeline,
   communicationsFromConsultationMessages,
   createActivityEvent,
+  formatActivityDateTime,
   groupActivityEvents,
   orderStatusBadgeClass,
+  resolveTagActivitySentence,
   readSessionActivity,
   type PatientCommunication,
   writeSessionActivity,
@@ -102,20 +127,36 @@ import {
 import { plainActivityText } from "@/lib/plainText";
 import {
   bmiHighlightClass,
+  formatConsultationHeightWeightLine,
   formatEthnicityLabel,
   resolveConsultationBmi,
   getPatientJourneyType,
   JOURNEY_BADGE,
   parseOrderMedication,
 } from "@/lib/orderPatientUi";
-import { OrderPatientHeader, ActionCard, ClinicalReviewOrderSummary, ClinicalReviewNhsScr } from "@/components/rx";
+import {
+  OrderPatientHeader,
+  ActionCard,
+  ClinicalReviewOrderSummary,
+  ClinicalReviewOrderHistory,
+  ClinicalReviewNhsScr,
+} from "@/components/rx";
+import { QueueOrderNav } from "@/components/QueueOrderNav";
+import { useUiPreferences } from "@/context/UiPreferencesContext";
+import {
+  buildOrderDetailHref,
+  buildQueueListHref,
+  filterQueueConsultations,
+  parseQueueContextFromSearch,
+  queueNeighbors,
+} from "@/lib/queueFilters";
 import { ClinicalQaList } from "@/components/rx/ClinicalQaDisplay";
 import { RX } from "@/lib/orderTheme";
 import {
   buildWaitTag,
   upsertSessionWaitTag,
 } from "@/lib/orderWaitingTags";
-import { evaluateWeightChangeMonitoring } from "@/lib/weightChangeMonitoring";
+import { evaluateAllAutoComplexAlerts } from "@/lib/autoComplexPatient";
 import {
   countUnreadMessages,
   countUnreadNotes,
@@ -125,6 +166,11 @@ import {
   writeStoredNotes,
   type ClinicalNote,
 } from "@/lib/tabUnreadState";
+import { getPharmacistName } from "@/lib/pharmacistSession";
+import {
+  RX_MODAL_CONTENT_Z,
+  RX_MODAL_OVERLAY_Z,
+} from "@/lib/modalLayers";
 
 type TabId =
   | "clinical"
@@ -136,6 +182,14 @@ type TabId =
   | "monitoring"
   | "notes"
   | "activity";
+
+/**
+ * Scroll inset so the active pill stays clear of the chevrons when scrolled.
+ * Row padding (`ps-3` / `pe-3`) supplies the modest gap at scrollLeft=0; keep
+ * scroll-padding-inline-* in index.css aligned with these values.
+ */
+const TAB_SCROLL_START_INSET_PX = 24;
+const TAB_SCROLL_END_INSET_PX = 24;
 
 const TABS: {
   id: TabId;
@@ -171,8 +225,6 @@ type VerificationRecord = {
 };
 
 type VerificationState = Partial<Record<VerifiableTabId, VerificationRecord>>;
-
-const CURRENT_PHARMACIST_NAME = "Mostafa Damghani";
 
 const CHECKLIST_ITEMS: { id: VerifiableTabId; label: string }[] = [
   { id: "clinical", label: "Clinical Review" },
@@ -247,7 +299,7 @@ function useOrderVerifications(orderId: string) {
     setState((current) => ({
       ...current,
       [section]: {
-        verifiedBy: CURRENT_PHARMACIST_NAME,
+        verifiedBy: getPharmacistName(),
         verifiedAt: new Date().toISOString(),
       },
     }));
@@ -294,9 +346,56 @@ function formatDateTime(iso: string): string {
 
 export function OrderDetail({ id }: { id: string }) {
   const { data: c, isLoading } = useGetConsultation(id);
+  const { data: consultList } = useListConsultations({ limit: 200 });
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { preferences: uiPrefs } = useUiPreferences();
   const [location, navigate] = useLocation();
+  const locationSearch = location.split("?")[1] ?? "";
+  const queueContext = useMemo(
+    () => parseQueueContextFromSearch(locationSearch),
+    [locationSearch],
+  );
+  const queueFiltered = useMemo(() => {
+    if (!queueContext) return [];
+    return filterQueueConsultations(
+      consultList?.consultations ?? [],
+      queueContext,
+    );
+  }, [consultList?.consultations, queueContext]);
+  const queueNav = useMemo(
+    () => queueNeighbors(queueFiltered, id),
+    [queueFiltered, id],
+  );
+  const advanceQueueAfterAction = useCallback(async () => {
+    await queryClient.invalidateQueries({
+      queryKey: getListConsultationsQueryKey({ limit: 200 }),
+    });
+    if (!queueContext) {
+      navigate("/queue");
+      return;
+    }
+    const refreshed = filterQueueConsultations(
+      queryClient.getQueryData<{ consultations: Consultation[] }>(
+        getListConsultationsQueryKey({ limit: 200 }),
+      )?.consultations ?? consultList?.consultations ?? [],
+      queueContext,
+    );
+    const { nextId } = queueNeighbors(refreshed, id);
+    if (nextId) {
+      navigate(buildOrderDetailHref(nextId, queueContext, locationSearch));
+      return;
+    }
+    navigate(buildQueueListHref(queueContext));
+  }, [
+    queueContext,
+    queueNav.nextId,
+    locationSearch,
+    navigate,
+    queryClient,
+    consultList?.consultations,
+    id,
+  ]);
   const [tab, setTab] = useState<TabId>(
     () => tabFromLocation(location) ?? "clinical",
   );
@@ -504,12 +603,12 @@ export function OrderDetail({ id }: { id: string }) {
 
   const markSectionDoneWithLog = (section: VerifiableTabId) => {
     markSectionDone(section);
-    showVerificationFeedbackToast(section, CURRENT_PHARMACIST_NAME);
+    showVerificationFeedbackToast(section, getPharmacistName());
     addActivityEntry(
       activityForTabVerified(
         section,
         new Date().toISOString(),
-        CURRENT_PHARMACIST_NAME,
+        getPharmacistName(),
       ),
     );
   };
@@ -526,7 +625,7 @@ export function OrderDetail({ id }: { id: string }) {
       activityForDocumentReview(
         payload.docTitle,
         payload.status,
-        CURRENT_PHARMACIST_NAME,
+        getPharmacistName(),
         {
           emailSent: payload.emailSent,
           note: payload.note,
@@ -538,12 +637,12 @@ export function OrderDetail({ id }: { id: string }) {
       const tag = buildWaitTag({
         id: `doc-${payload.docId}`,
         kind: "pending_document_upload",
-        detail: `${payload.docTitle}${payload.templateTitle ? ` (${payload.templateTitle})` : ""} — ${payload.emailSent ? "upload link emailed, awaiting re-upload" : "rejected, awaiting re-upload"}.`,
+        detail: `${payload.docTitle}${payload.templateTitle ? ` (${payload.templateTitle})` : ""} — ${payload.emailSent ? "upload requested, awaiting re-upload" : "rejected, awaiting re-upload"}.`,
         source: payload.emailSent ? "upload_link" : "document_reject",
         relatedDocId: payload.docId,
       });
       upsertSessionWaitTag(c.id, tag);
-      addActivityEntry(activityForWaitTag(tag, CURRENT_PHARMACIST_NAME));
+      addActivityEntry(activityForWaitTag(tag, getPharmacistName()));
     }
   };
 
@@ -551,12 +650,13 @@ export function OrderDetail({ id }: { id: string }) {
     docId: string;
     docTitle: string;
     emailSent?: boolean;
+    note?: string;
   }) => {
     if (!c) return;
     const tag = buildWaitTag({
       id: `doc-${payload.docId}`,
       kind: "pending_document_upload",
-      detail: `${payload.docTitle} — ${payload.emailSent ? "upload link emailed, awaiting patient upload" : "upload request recorded, awaiting patient upload"}.`,
+      detail: `${payload.docTitle} — ${payload.emailSent ? "document upload requested (email sent), awaiting patient upload" : "document upload requested, awaiting patient upload"}.`,
       source: "upload_link",
       relatedDocId: payload.docId,
     });
@@ -564,8 +664,9 @@ export function OrderDetail({ id }: { id: string }) {
     addActivityEntry(
       activityForUploadLinkSent(
         payload.docTitle,
-        CURRENT_PHARMACIST_NAME,
+        getPharmacistName(),
         payload.emailSent,
+        payload.note,
       ),
     );
   };
@@ -577,7 +678,7 @@ export function OrderDetail({ id }: { id: string }) {
     addActivityEntry(
       activityForDocumentRequirementChange(
         payload.requirement,
-        CURRENT_PHARMACIST_NAME,
+        getPharmacistName(),
       ),
     );
     if (payload.requirement === "required" && payload.emailSent && c) {
@@ -585,12 +686,12 @@ export function OrderDetail({ id }: { id: string }) {
         id: "doc-previous-prescription",
         kind: "pending_document_upload",
         detail:
-          "Previous prescription — marked required and upload link emailed, awaiting patient upload.",
+          "Previous prescription — marked required and upload requested, awaiting patient upload.",
         source: "requirement_email",
         relatedDocId: "previous-prescription",
       });
       upsertSessionWaitTag(c.id, tag);
-      addActivityEntry(activityForWaitTag(tag, CURRENT_PHARMACIST_NAME));
+      addActivityEntry(activityForWaitTag(tag, getPharmacistName()));
     }
   };
 
@@ -600,7 +701,7 @@ export function OrderDetail({ id }: { id: string }) {
       | { changes: Array<{ field: string; from: string; to: string }> },
   ) => {
     addActivityEntry(
-      activityForMedicationChange(input, CURRENT_PHARMACIST_NAME),
+      activityForMedicationChange(input, getPharmacistName()),
     );
   };
 
@@ -622,21 +723,21 @@ export function OrderDetail({ id }: { id: string }) {
       id: `msg-${Date.now()}`,
       direction: "outgoing",
       status: "awaiting_response",
-      title: `${CURRENT_PHARMACIST_NAME} sent a message to ${c.patientName}`,
+      title: `${getPharmacistName()} sent a message to ${c.patientName}`,
       preview,
       message,
       at: nowIso,
-      actor: CURRENT_PHARMACIST_NAME,
+      actor: getPharmacistName(),
     });
     addActivityEntry(
       createActivityEvent({
         atIso: nowIso,
         kind: "message_out",
         consultationId: c.id,
-        title: `${CURRENT_PHARMACIST_NAME} sent a message to ${c.patientName}`,
+        title: `${getPharmacistName()} sent a message to ${c.patientName}`,
         body: preview,
         expandableBody: message,
-        actor: CURRENT_PHARMACIST_NAME,
+        actor: getPharmacistName(),
       }),
     );
     const waitTag = buildWaitTag({
@@ -646,7 +747,7 @@ export function OrderDetail({ id }: { id: string }) {
       source: "message",
     });
     upsertSessionWaitTag(c.id, waitTag);
-    addActivityEntry(activityForWaitTag(waitTag, CURRENT_PHARMACIST_NAME));
+    addActivityEntry(activityForWaitTag(waitTag, getPharmacistName()));
     void apiFetch(`/api/consultations/${c.id}/messages`, {
       method: "POST",
       body: JSON.stringify({ body: message, kind: "message" }),
@@ -677,6 +778,34 @@ export function OrderDetail({ id }: { id: string }) {
           variant: "destructive",
         });
       });
+  };
+
+  const reloadConsultationMessages = async () => {
+    if (!c) return;
+    try {
+      const res = await apiFetch<{
+        messages: Array<{
+          id: string;
+          senderRole: string;
+          senderName: string;
+          body: string;
+          createdAt: string;
+          kind?: string;
+        }>;
+      }>(`/api/consultations/${c.id}/messages`);
+      setCommsByOrderId((prev) => ({
+        ...prev,
+        [c.id]: communicationsFromConsultationMessages(
+          res.messages ?? [],
+          c.patientName,
+        ),
+      }));
+      await queryClient.invalidateQueries({
+        queryKey: getGetConsultationQueryKey(c.id),
+      });
+    } catch {
+      /* offline */
+    }
   };
 
   const logIncomingReply = (message: string) => {
@@ -714,23 +843,6 @@ export function OrderDetail({ id }: { id: string }) {
   }, [location, tab]);
 
   const handleTabChange = (next: TabId) => {
-    // #region agent log
-    fetch("http://127.0.0.1:7633/ingest/75db917f-84df-454f-82c7-2e6c9a6aa114", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "00879a",
-      },
-      body: JSON.stringify({
-        sessionId: "00879a",
-        hypothesisId: "H6",
-        location: "OrderDetail.tsx:handleTabChange",
-        message: "tab click",
-        data: { from: tab, to: next },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     setTab(next);
     const [path, search = ""] = location.split("?");
     const params = new URLSearchParams(search);
@@ -776,19 +888,67 @@ export function OrderDetail({ id }: { id: string }) {
 
   return (
     <div className="rx-page-inner max-w-[118rem] overflow-x-hidden">
+      {queueContext && uiPrefs.showQueueNav ? (
+        <QueueOrderNav
+          ctx={queueContext}
+          index={queueNav.index}
+          total={queueNav.total}
+          prevId={queueNav.prevId}
+          nextId={queueNav.nextId}
+          currentSearch={locationSearch}
+        />
+      ) : null}
       <OrderPatientHeader
         c={c}
         onMedicationChanged={logMedicationChange}
+        onTagActivity={(payload) => {
+          if (payload.action === "add_batch") {
+            addActivityEntry(
+              activityForOrderTagsBatchAdd(
+                payload.labels,
+                getPharmacistName(),
+                payload.note,
+              ),
+            );
+            return;
+          }
+          if (payload.action === "remove_batch") {
+            addActivityEntry(
+              activityForOrderTagsBatchRemove(
+                payload.labels,
+                getPharmacistName(),
+                payload.note,
+              ),
+            );
+            return;
+          }
+          addActivityEntry(
+            activityForOrderTagChange(
+              payload.action,
+              payload.label,
+              getPharmacistName(),
+              payload.note,
+            ),
+          );
+        }}
       />
 
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,320px)_minmax(0,1fr)_minmax(320px,360px)] xl:gap-7">
+      <div
+        className={cn(
+          "grid grid-cols-1 items-start gap-6 xl:gap-7",
+          uiPrefs.showPatientRail
+            ? "lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,320px)_minmax(0,1fr)_minmax(320px,360px)]"
+            : "xl:grid-cols-[minmax(0,1fr)_minmax(320px,360px)]",
+        )}
+      >
         {/* LEFT  -  Patient sidebar */}
+        {uiPrefs.showPatientRail ? (
         <div className="space-y-4 min-w-0 w-full">
             <PatientCardPro
               c={c}
               onProfileSaved={(changes) =>
                 addActivityEntry(
-                  activityForProfileEdits(changes, CURRENT_PHARMACIST_NAME),
+                  activityForProfileEdits(changes, getPharmacistName()),
                 )
               }
               onConsultationRefresh={() =>
@@ -807,9 +967,10 @@ export function OrderDetail({ id }: { id: string }) {
             />
             <AutoFlags c={c} />
         </div>
+        ) : null}
 
           {/* CENTER  -  Tab content */}
-          <div className="relative z-30 min-w-0 w-full overflow-visible">
+          <div className="relative z-0 min-w-0 w-full overflow-visible">
             <TabsBar
               current={tab}
               onChange={handleTabChange}
@@ -823,6 +984,7 @@ export function OrderDetail({ id }: { id: string }) {
             {tab === "clinical" && (
               <ClinicalReviewTab
                 c={c}
+                orders={patientOrders.length > 0 ? patientOrders : [c]}
                 onUndo={() => undoSectionDone("clinical")}
                 onVerify={() => markSectionDoneWithLog("clinical")}
                 verification={verifications.clinical}
@@ -888,6 +1050,7 @@ export function OrderDetail({ id }: { id: string }) {
                 patientName={c.patientName}
                 communications={activePatientComms}
                 onCompose={logOutgoingCommunication}
+                onRefreshMessages={reloadConsultationMessages}
                 unreadCount={unreadMessageCount}
               />
             )}
@@ -895,8 +1058,16 @@ export function OrderDetail({ id }: { id: string }) {
           </div>
 
           {/* RIGHT  -  Decision panel */}
-          <div className="space-y-4 min-w-0 w-full lg:col-span-2 xl:col-span-1 xl:col-start-3 xl:sticky xl:top-6 xl:self-start">
+          <div
+            className={cn(
+              "space-y-4 min-w-0 w-full xl:sticky xl:top-6 xl:self-start",
+              uiPrefs.showPatientRail
+                ? "lg:col-span-2 xl:col-span-1 xl:col-start-3"
+                : "xl:col-start-2",
+            )}
+          >
             <DecisionPanel
+              consultation={c}
               consultationId={c.id}
               patientName={c.patientName}
               patientAge={c.patientAge}
@@ -906,6 +1077,7 @@ export function OrderDetail({ id }: { id: string }) {
               onLog={addActivityEntry}
               communications={activePatientComms}
               onNoteCommunication={logOutgoingCommunication}
+              onActionComplete={advanceQueueAfterAction}
             />
           </div>
         </div>
@@ -1005,7 +1177,7 @@ function PatientCardPro({
         body: JSON.stringify({
           consultationId: c.id,
           changes,
-          editedBy: CURRENT_PHARMACIST_NAME,
+          editedBy: getPharmacistName(),
         }),
       }).catch(() => {
         /* server log unavailable - changes still saved */
@@ -1038,35 +1210,39 @@ function PatientCardPro({
   const journey = getPatientJourneyType(c);
   const journeyMeta = JOURNEY_BADGE[journey];
 
-  const infoRows: { label: string; value: string }[] = [
-    { label: "ORDER NO", value: orderRefFromId(c.id, (c as { consultationNumber?: string | null }).consultationNumber) },
-    { label: "DOB", value: fmtDob(profile, c.patientAge) },
-    { label: "PHONE", value: profile.phone || "-" },
-    { label: "EMAIL", value: profile.email || "-" },
-    { label: "ADDRESS", value: fmtAddress(profile) },
-    { label: "GP", value: fmtGp(profile) },
-  ];
+  const orderRef = orderRefFromId(
+    c.id,
+    (c as { consultationNumber?: string | null }).consultationNumber,
+  );
+  const gpText = fmtGp(profile);
+  const hasGp = gpText !== "—";
+  const patientRecordHref = profile.email
+    ? `/patients/${encodeURIComponent(profile.email)}`
+    : null;
+
+  const renderValue = (value: string) =>
+    value === "-" || value === "—" ? (
+      <span className="text-muted-foreground/70 italic text-xs">Not set</span>
+    ) : (
+      value
+    );
 
   return (
     <>
-      <div className="rx-surface overflow-hidden">
-        {/* -- Header: avatar + name + single Edit button -- */}
-        <div className="border-b border-border bg-muted/40 px-4 py-3">
-          <div className="flex items-center justify-between gap-3">
+      <div className="rx-patient-record overflow-hidden">
+        <div className="border-b border-border bg-linear-to-br from-accent/40 to-card px-4 py-4">
+          <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 select-none items-center justify-center rounded-xl bg-primary font-bold text-sm text-primary-foreground">
+              <div className="flex h-11 w-11 shrink-0 select-none items-center justify-center rounded-2xl bg-primary font-bold text-sm text-primary-foreground shadow-sm ring-2 ring-primary/10">
                 {initials}
               </div>
               <div className="min-w-0">
-                <h3 className="wrap-break-word font-serif text-base font-bold leading-tight tracking-tight text-secondary">
+                <p className="rx-label-caps mb-0.5">Patient record</p>
+                <h3 className="wrap-break-word font-serif text-lg font-bold leading-tight tracking-tight text-secondary">
                   {fmtName(profile)}
                 </h3>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1 rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-foreground",
-                    )}
-                  >
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-foreground">
                     <span
                       className={cn(
                         "h-1.5 w-1.5 shrink-0 rounded-full",
@@ -1075,6 +1251,11 @@ function PatientCardPro({
                     />
                     {journeyMeta.label}
                   </span>
+                  {c.patientSex ? (
+                    <span className="rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      {c.patientSex}
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -1086,31 +1267,79 @@ function PatientCardPro({
               <Pencil className="h-3.5 w-3.5" /> Edit
             </button>
           </div>
+          {patientRecordHref ? (
+            <Link
+              href={patientRecordHref}
+              className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+            >
+              Full patient profile
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          ) : null}
         </div>
 
-        {/* -- Info rows with dividers -- */}
-        <div className="px-4 py-2">
-          <dl>
-            {infoRows.map((r, i) => (
-              <div key={r.label}>
-                {i > 0 && <div className="border-t border-border" />}
-                <div className="flex items-start gap-3 py-2.5">
-                  <dt className="w-[68px] shrink-0 pt-0.5 rx-label-caps">
-                    {r.label}
-                  </dt>
-                  <dd className="text-sm text-foreground leading-relaxed min-w-0 flex-1 break-words [overflow-wrap:anywhere]">
-                    {r.value === "-" ? (
-                      <span className="text-muted-foreground/60 italic text-xs">
-                        Not set
-                      </span>
-                    ) : (
-                      r.value
-                    )}
+        <div className="space-y-3 px-4 py-4">
+          <div className="rx-patient-section">
+            <h4 className="rx-patient-section-title">This order</h4>
+            <p className="font-mono text-sm font-bold text-primary">{orderRef}</p>
+          </div>
+
+          <div className="rx-patient-section">
+            <h4 className="rx-patient-section-title">Demographics</h4>
+            <dl className="space-y-2.5">
+              <div className="flex items-start gap-3">
+                <dt className="w-[4.5rem] shrink-0 rx-label-caps">DOB</dt>
+                <dd className="text-sm text-foreground leading-relaxed min-w-0 flex-1">
+                  {renderValue(fmtDob(profile, c.patientAge))}
+                </dd>
+              </div>
+              {c.patientAge ? (
+                <div className="flex items-start gap-3">
+                  <dt className="w-[4.5rem] shrink-0 rx-label-caps">Age</dt>
+                  <dd className="text-sm font-medium text-foreground tabular-nums">
+                    {c.patientAge} years
                   </dd>
                 </div>
-              </div>
-            ))}
-          </dl>
+              ) : null}
+            </dl>
+          </div>
+
+          <div className="rx-patient-section">
+            <h4 className="rx-patient-section-title">Contact</h4>
+            <dl className="space-y-2.5">
+              {[
+                { label: "Phone", value: profile.phone || "-" },
+                { label: "Email", value: profile.email || "-" },
+              ].map((row) => (
+                <div key={row.label} className="flex items-start gap-3">
+                  <dt className="w-[4.5rem] shrink-0 rx-label-caps">{row.label}</dt>
+                  <dd className="text-sm text-foreground leading-relaxed min-w-0 flex-1 break-words [overflow-wrap:anywhere]">
+                    {renderValue(row.value)}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+
+          <div className="rx-patient-section">
+            <h4 className="rx-patient-section-title">Delivery address</h4>
+            <p className="text-sm text-foreground leading-relaxed break-words [overflow-wrap:anywhere]">
+              {renderValue(fmtAddress(profile))}
+            </p>
+          </div>
+
+          <div className="rx-patient-section">
+            <h4 className="rx-patient-section-title">GP practice</h4>
+            {hasGp ? (
+              <p className="text-sm text-foreground leading-relaxed break-words [overflow-wrap:anywhere]">
+                {gpText}
+              </p>
+            ) : (
+              <p className="text-xs italic text-muted-foreground/70">
+                No GP details on file — use Edit to add.
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1140,37 +1369,55 @@ function StatsGrid({
   const [bmiDialogOpen, setBmiDialogOpen] = useState(false);
   const bmiNum = resolveConsultationBmi(c);
   const bmiValue = bmiNum != null ? bmiNum.toFixed(1) : "-";
-  const ethnicityLabel =
-    formatEthnicityLabel((c.answers as Record<string, unknown>)?.ethnicity) ??
-    "-";
+  const measurementsLine = formatConsultationHeightWeightLine(c);
 
   const showBmi = isInjectableWeightLossOrder(c);
+  const answers = (c.answers ?? {}) as Record<string, unknown>;
+  const ethnicityValue = formatEthnicityLabel(answers.ethnicity) ?? "-";
 
-  const cells = [
-    ...(showBmi
-      ? [
-          {
-            value: bmiValue,
-            label: "BMI",
-            valueClass:
-              bmiNum != null ? bmiHighlightClass(bmiNum) : "text-foreground",
-            editable: true,
-          },
-        ]
-      : []),
-    {
-      value: c.patientAge ? `${c.patientAge}` : "-",
-      suffix: "yrs",
-      label: "Age",
-    },
-    {
-      value: c.patientSex
-        ? c.patientSex.charAt(0).toUpperCase() + c.patientSex.slice(1)
-        : "-",
-      label: "Sex",
-    },
-    { value: ethnicityLabel, label: "Ethnicity" },
-  ];
+  type StatCell = {
+    label: string;
+    value: string;
+    suffix?: string;
+    subline?: string | null;
+    valueClass?: string;
+    editable?: boolean;
+    wrapValue?: boolean;
+  };
+
+  const ageCell: StatCell = {
+    value: c.patientAge ? `${c.patientAge}` : "-",
+    suffix: "yrs",
+    label: "Age",
+  };
+  const sexCell: StatCell = {
+    value: c.patientSex
+      ? c.patientSex.charAt(0).toUpperCase() + c.patientSex.slice(1)
+      : "-",
+    label: "Sex",
+  };
+  const ethnicityCell: StatCell = {
+    value: ethnicityValue,
+    label: "Ethnicity",
+    wrapValue: true,
+  };
+
+  const cells: StatCell[] = showBmi
+    ? [
+        {
+          value: bmiValue,
+          label: "BMI",
+          subline: measurementsLine,
+          valueClass:
+            bmiNum != null ? bmiHighlightClass(bmiNum) : "text-foreground",
+          editable: true,
+        },
+        ageCell,
+        sexCell,
+        ethnicityCell,
+      ]
+    : [ageCell, sexCell, ethnicityCell];
+
   return (
     <>
       <div className="grid grid-cols-2 gap-2.5">
@@ -1179,34 +1426,40 @@ function StatsGrid({
             key={cell.label}
             className="flex min-h-[5.5rem] flex-col justify-between rx-stat-cell"
           >
-            <div className="flex items-start gap-1 min-w-0">
-              <span
-                className={cn(
-                  "font-bold leading-tight tracking-tight tabular-nums",
-                  cell.label === "Ethnicity" && cell.value !== "-"
-                    ? "text-sm line-clamp-2"
-                    : "text-2xl truncate",
-                  cell.valueClass ?? "text-foreground",
-                )}
-                title={cell.label === "Ethnicity" ? cell.value : undefined}
-              >
-                {cell.value}
-              </span>
-              {cell.suffix && (
-                <span className="text-sm font-medium text-muted-foreground pt-1 shrink-0">
-                  {cell.suffix}
-                </span>
-              )}
-              {cell.editable && (
-                <button
-                  type="button"
-                  className="ml-0.5 mt-0.5 shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
-                  aria-label="Edit BMI"
-                  onClick={() => setBmiDialogOpen(true)}
+            <div className="min-w-0">
+              <div className="flex items-start gap-1 min-w-0">
+                <span
+                  className={cn(
+                    "font-bold leading-tight tracking-tight",
+                    cell.wrapValue
+                      ? "text-sm break-words"
+                      : "tabular-nums text-2xl",
+                    cell.valueClass ?? "text-foreground",
+                  )}
                 >
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
-              )}
+                  {cell.value}
+                </span>
+                {cell.suffix && (
+                  <span className="text-sm font-medium text-muted-foreground pt-1 shrink-0">
+                    {cell.suffix}
+                  </span>
+                )}
+                {cell.editable && (
+                  <button
+                    type="button"
+                    className="ml-0.5 mt-0.5 shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
+                    aria-label="Edit BMI"
+                    onClick={() => setBmiDialogOpen(true)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              {cell.subline ? (
+                <p className="mt-1 text-[11px] font-medium leading-snug text-muted-foreground tabular-nums">
+                  {cell.subline}
+                </p>
+              ) : null}
             </div>
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               {cell.label}
@@ -1238,19 +1491,30 @@ type FlagTone = "red" | "green" | "amber" | "stone";
 
 function AutoFlags({ c }: { c: Consultation }) {
   const { data: allConsults } = useListConsultations({ limit: 200 });
-  const weightAlert = useMemo(
+  const complexAlerts = useMemo(
     () =>
-      evaluateWeightChangeMonitoring(c, allConsults?.consultations ?? []),
+      evaluateAllAutoComplexAlerts(c, allConsults?.consultations ?? []),
     [c, allConsults?.consultations],
   );
 
   const flags: { tone: FlagTone; label: string }[] = [];
 
-  if (isInjectableWeightLossOrder(c) && weightAlert) {
-    flags.push({
-      tone: weightAlert.kind === "gain_7" ? "red" : "amber",
-      label: `Complex patient - ${weightAlert.pctChange > 0 ? "+" : ""}${weightAlert.pctChange}% weight vs last order`,
-    });
+  if (isInjectableWeightLossOrder(c)) {
+    for (const alert of complexAlerts) {
+      if (alert.kind === "medication_switch") {
+        flags.push({
+          tone: "amber",
+          label: `Complex patient — switched ${alert.fromMedicine ?? "?"} → ${alert.toMedicine ?? "?"}`,
+        });
+      } else if (alert.kind === "weight_change" && alert.pctChange != null) {
+        flags.push({
+          tone: alert.pctChange > 0 ? "red" : "amber",
+          label: `Complex patient — ${alert.deltaKg?.toFixed(1) ?? "?"} kg (${alert.pctChange > 0 ? "+" : ""}${alert.pctChange}%) vs last order`,
+        });
+      } else {
+        flags.push({ tone: "amber", label: alert.headline });
+      }
+    }
   }
 
   if (c.currentMedications && c.currentMedications !== "None") {
@@ -1367,50 +1631,18 @@ function TabsBar({
     setShowNext(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
   }, []);
 
-  useEffect(() => {
-    const el = contRef.current;
-    if (!el) return;
-    updateScrollAffordance();
-    el.addEventListener("scroll", updateScrollAffordance, { passive: true });
-    const ro = new ResizeObserver(updateScrollAffordance);
-    ro.observe(el);
-    if (innerRef.current) ro.observe(innerRef.current);
-    window.addEventListener("resize", updateScrollAffordance);
-    return () => {
-      el.removeEventListener("scroll", updateScrollAffordance);
-      ro.disconnect();
-      window.removeEventListener("resize", updateScrollAffordance);
-    };
-  }, [updateScrollAffordance, current, unreadCounts.messages, unreadCounts.notes]);
-
   const scrollTabIntoView = useCallback(
     (tabId: TabId, previousTabId: TabId) => {
       const btn = btnRefs.current[tabId];
       const el = contRef.current;
-      if (!btn || !el) {
-        // #region agent log
-        fetch("http://127.0.0.1:7633/ingest/75db917f-84df-454f-82c7-2e6c9a6aa114", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Debug-Session-Id": "00879a",
-          },
-          body: JSON.stringify({
-            sessionId: "00879a",
-            hypothesisId: "H3",
-            location: "OrderDetail.tsx:scrollTabIntoView:earlyReturn",
-            message: "scroll skipped — missing btn or container",
-            data: { tabId, hasBtn: Boolean(btn), hasEl: Boolean(el) },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        // #endregion
-        return;
-      }
+      if (!btn || !el) return;
 
       const wrap = btn.parentElement as HTMLElement | null;
       const target = wrap ?? btn;
-      const pad = 16;
+      const startInset = TAB_SCROLL_START_INSET_PX;
+      const endInset = TAB_SCROLL_END_INSET_PX;
+      const peekPad = 16;
+      const tabIndex = TABS.findIndex((t) => t.id === tabId);
       const maxLeft = Math.max(0, el.scrollWidth - el.clientWidth);
 
       const tabOffsetLeft = (id: TabId) => {
@@ -1430,115 +1662,74 @@ function TabsBar({
       const tabLeft = target.offsetLeft;
       const tabRight = tabLeft + target.offsetWidth;
       const viewLeft = el.scrollLeft;
-      const viewRight = viewLeft + el.clientWidth;
+      const visibleLeft = tabLeft - viewLeft;
+      const visibleRight = tabRight - viewLeft;
 
-      const tabIndex = TABS.findIndex((t) => t.id === tabId);
       const prevIndex = TABS.findIndex((t) => t.id === previousTabId);
-      const movingRight = tabIndex > prevIndex;
-      const movingLeft = tabIndex < prevIndex;
       const tabChanged = tabId !== previousTabId;
+      const indexDelta = tabIndex - prevIndex;
+      const stepNav = tabChanged && Math.abs(indexDelta) >= 1 && Math.abs(indexDelta) <= 2;
 
-      const minScroll = Math.max(0, tabRight + pad - el.clientWidth);
-      const maxScroll = Math.max(0, tabLeft - pad);
+      const minScroll = Math.max(0, tabRight + endInset - el.clientWidth);
+      const maxScroll = Math.max(0, tabLeft - startInset);
+      const clampScroll = (value: number) =>
+        Math.max(0, Math.min(value, maxLeft));
+
+      const clampForActive = (value: number) => {
+        if (minScroll <= maxScroll) {
+          return clampScroll(Math.max(minScroll, Math.min(value, maxScroll)));
+        }
+        return clampScroll(
+          tabLeft + target.offsetWidth / 2 - el.clientWidth / 2,
+        );
+      };
+
+      const alignStart = () => tabLeft - startInset;
+      const alignEnd = () => tabRight + endInset - el.clientWidth;
+
+      const snapLeadingTabsToStart = () => {
+        if (tabIndex > 1) return null;
+        const rightEdge = tabOffsetRight(tabId);
+        if (rightEdge + endInset <= el.clientWidth) return 0;
+        return clampForActive(Math.max(0, tabLeft - startInset));
+      };
 
       let nextLeft = el.scrollLeft;
-      let branch = "noChange";
-      if (tabLeft < viewLeft + pad) {
-        nextLeft = tabLeft - pad;
-        branch = "clippedLeft";
-      } else if (tabRight > viewRight - pad) {
-        nextLeft = tabRight + pad - el.clientWidth;
-        branch = "clippedRight";
-      }
 
-      let lookAheadApplied = false;
-      let lookBackApplied = false;
-      let peekRevealRight: number | null = null;
-      let peekRevealLeft: number | null = null;
-
-      if (tabChanged && movingRight && tabIndex < TABS.length - 1) {
-        const lookAhead = Math.min(TABS.length - 1, tabIndex + 2);
-        peekRevealRight = tabOffsetRight(TABS[lookAhead].id) + pad - el.clientWidth;
-        if (peekRevealRight > nextLeft) {
-          nextLeft = Math.min(peekRevealRight, maxScroll);
-          lookAheadApplied = true;
-          branch = "peekRightCapped";
+      const leadingSnap = tabChanged ? snapLeadingTabsToStart() : null;
+      if (leadingSnap !== null) {
+        nextLeft = leadingSnap;
+      } else if (tabChanged && tabIndex === TABS.length - 1) {
+        nextLeft = clampForActive(minScroll);
+      } else if (stepNav && indexDelta > 0 && tabIndex > 1) {
+        const ahead = Math.min(TABS.length - 1, tabIndex + 2);
+        const aheadRight = tabOffsetRight(TABS[ahead].id) + peekPad;
+        const peekRight = aheadRight - el.clientWidth;
+        nextLeft = clampForActive(Math.max(alignStart(), peekRight));
+      } else if (stepNav && indexDelta < 0 && tabIndex > 1) {
+        const behind = Math.max(0, tabIndex - 2);
+        const behindLeft = tabOffsetLeft(TABS[behind].id) - startInset;
+        nextLeft = clampForActive(behindLeft);
+      } else if (tabChanged) {
+        if (visibleLeft < startInset) {
+          nextLeft = clampForActive(alignStart());
+        } else if (el.clientWidth - visibleRight < endInset) {
+          nextLeft = clampForActive(alignEnd());
+        } else {
+          nextLeft = clampForActive(
+            tabLeft - (el.clientWidth - target.offsetWidth) / 2,
+          );
         }
-      } else if (tabChanged && movingLeft && tabIndex > 0) {
-        const lookBack = Math.max(0, tabIndex - 2);
-        peekRevealLeft = tabOffsetLeft(TABS[lookBack].id) - pad;
-        if (peekRevealLeft < nextLeft) {
-          nextLeft = Math.max(peekRevealLeft, minScroll);
-          lookBackApplied = true;
-          branch = "peekLeftCapped";
-        }
-      }
-
-      if (tabIndex === 0) {
-        nextLeft = 0;
-        branch = "snapFirst";
-      } else if (tabIndex === TABS.length - 1) {
-        nextLeft = maxLeft;
-        branch = "snapLast";
-      } else if (minScroll <= maxScroll) {
-        nextLeft = Math.max(minScroll, Math.min(nextLeft, maxScroll));
+      } else if (visibleLeft < startInset) {
+        nextLeft = clampForActive(alignStart());
+      } else if (el.clientWidth - visibleRight < endInset) {
+        nextLeft = clampForActive(alignEnd());
       } else {
-        nextLeft = Math.max(
-          0,
-          Math.min((tabLeft + tabRight) / 2 - el.clientWidth / 2, maxLeft),
-        );
-        branch = "centerWideTab";
+        nextLeft = clampForActive(nextLeft);
       }
-
-      const clampedLeft = Math.max(0, Math.min(nextLeft, maxLeft));
-      const fullyVisible =
-        tabLeft >= viewLeft + pad - 1 && tabRight <= viewRight + pad + 1;
-
-      // #region agent log
-      fetch("http://127.0.0.1:7633/ingest/75db917f-84df-454f-82c7-2e6c9a6aa114", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Debug-Session-Id": "00879a",
-        },
-        body: JSON.stringify({
-          sessionId: "00879a",
-          runId: "post-fix-v2",
-          hypothesisId: "H7",
-          location: "OrderDetail.tsx:scrollTabIntoView",
-          message: "tab scroll computed",
-          data: {
-            tabId,
-            tabIndex,
-            previousTabId,
-            prevIndex,
-            movingRight,
-            movingLeft,
-            tabChanged,
-            scrollBefore: el.scrollLeft,
-            nextLeft: clampedLeft,
-            scrollDelta: clampedLeft - el.scrollLeft,
-            maxLeft,
-            minScroll,
-            maxScroll,
-            tabLeft,
-            tabRight,
-            viewLeft,
-            viewRight,
-            peekRevealRight,
-            peekRevealLeft,
-            fullyVisible,
-            branch,
-            lookAheadApplied,
-            lookBackApplied,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
 
       el.scrollTo({
-        left: clampedLeft,
+        left: clampScroll(nextLeft),
         behavior: "smooth",
       });
       window.setTimeout(updateScrollAffordance, 320);
@@ -1547,10 +1738,38 @@ function TabsBar({
   );
 
   useEffect(() => {
+    const el = contRef.current;
+    if (!el) return;
+    updateScrollAffordance();
+    el.addEventListener("scroll", updateScrollAffordance, { passive: true });
+    const onLayoutChange = () => {
+      updateScrollAffordance();
+      requestAnimationFrame(() => scrollTabIntoView(current, current));
+    };
+    const ro = new ResizeObserver(onLayoutChange);
+    ro.observe(el);
+    if (innerRef.current) ro.observe(innerRef.current);
+    window.addEventListener("resize", onLayoutChange);
+    return () => {
+      el.removeEventListener("scroll", updateScrollAffordance);
+      ro.disconnect();
+      window.removeEventListener("resize", onLayoutChange);
+    };
+  }, [
+    updateScrollAffordance,
+    scrollTabIntoView,
+    current,
+    unreadCounts.messages,
+    unreadCounts.notes,
+  ]);
+
+  useEffect(() => {
     const previousTabId = prevTabRef.current;
     prevTabRef.current = current;
     const frame = requestAnimationFrame(() => {
-      scrollTabIntoView(current, previousTabId);
+      requestAnimationFrame(() => {
+        scrollTabIntoView(current, previousTabId);
+      });
     });
     const t = window.setTimeout(updateScrollAffordance, 80);
     return () => {
@@ -1600,7 +1819,10 @@ function TabsBar({
           }
         }}
       >
-        <div ref={innerRef} className="inline-flex min-w-full items-center gap-1.5 py-0.5 pr-3">
+        <div
+          ref={innerRef}
+          className="inline-flex min-w-full items-center gap-1.5 py-0.5 ps-3 pe-3"
+        >
         {TABS.map((t) => {
           const Icon = t.icon;
           const active = current === t.id;
@@ -1615,7 +1837,7 @@ function TabsBar({
           return (
             <span
               key={t.id}
-              className="relative shrink-0 scroll-mx-3"
+              className="relative shrink-0 scroll-mx-6"
             >
               <button
                 ref={(r) => {
@@ -1687,11 +1909,13 @@ function TabsBar({
 // --- CLINICAL REVIEW TAB ---------------------------------------------------
 function ClinicalReviewTab({
   c,
+  orders,
   onUndo,
   onVerify,
   verification,
 }: {
   c: Consultation;
+  orders: Consultation[];
   onUndo: () => void;
   onVerify: () => void;
   verification?: VerificationRecord;
@@ -1705,6 +1929,11 @@ function ClinicalReviewTab({
   return (
     <div className="space-y-5">
       <ClinicalReviewOrderSummary c={c} />
+
+      <ClinicalReviewOrderHistory
+        currentConsultationId={c.id}
+        orders={orders}
+      />
 
       {weightLoss ? <ClinicalReviewBmiHistory consultation={c} /> : null}
 
@@ -1884,6 +2113,34 @@ const ANSWER_LABELS: Record<string, string> = {
   side_effects_hospitalisation: "Hospitalisation since last order?",
   side_effects_vomiting_diarrhoea: "Vomiting or diarrhoea?",
   side_effects_injection_site: "Injection site reactions?",
+  new_medicines_since_last:
+    "Started new medicines since last supply (incl. OTC/herbal)?",
+  new_medicines_since_last_details: "New medicines — details",
+  stopped_medicines_since_last: "Stopped medicines since last supply?",
+  stopped_medicines_since_last_details: "Stopped medicines — details",
+  health_changes_since_last:
+    "Health changes or doctor/hospital visit since last supply?",
+  health_changes_since_last_details: "Health changes — details",
+  new_side_effects_since_last: "New side effects since last supply?",
+  new_side_effects_since_last_details: "New side effects — details",
+  adherence_problems_since_last: "Problems taking medicine as prescribed?",
+  adherence_problems_since_last_details: "Adherence problems — details",
+  pharmacist_questions_since_last: "Other questions for pharmacist?",
+  pharmacist_questions_since_last_details: "Pharmacist questions — details",
+  smoking_status: "Smoking status",
+  smoking_cigs_per_day: "Cigarettes per day",
+  recent_blood_pressure: "Recent blood pressure",
+  recent_weight_kg: "Recent weight (kg)",
+  repeat_high_risk_medications: "High-risk medicines (repeat monitoring)",
+  patient_declaration_confirmed: "Patient declaration confirmed",
+  asthma_inhaler_use: "Inhaler use as prescribed (asthma/COPD)",
+  asthma_symptoms_worse: "Asthma/COPD symptoms worse",
+  diabetes_foot_check_recent: "Diabetes foot check within last year",
+  diabetes_eye_check_recent: "Diabetes eye screening within last year",
+  diabetes_hba1c_known: "HbA1c known",
+  diabetes_hba1c_value: "HbA1c value",
+  cardiovascular_symptoms: "New cardiovascular symptoms",
+  cardiovascular_symptoms_details: "Cardiovascular symptoms — details",
   new_meds_since: "New medications since last order?",
   hospital_since: "Hospital admission since last order?",
   dose_change: "Dose preference (stay / step-up / step-down)",
@@ -1980,8 +2237,15 @@ function formatAnswerValue(key: string, v: unknown): string {
         )
         .join(", ");
     }
-    return (v as unknown[]).map(String).join(", ");
+    const parts = (v as unknown[]).map((item) => {
+      if (item === null || item === undefined) return "";
+      if (typeof item === "object") return "";
+      return String(item);
+    });
+    const joined = parts.filter(Boolean).join(", ");
+    return joined || "-";
   }
+  if (typeof v === "object") return "-";
   const s = String(v);
   // Enum lookups
   if (key === "journey_stage") return JOURNEY_DISPLAY[s] ?? s;
@@ -2000,6 +2264,7 @@ function formatAnswerValue(key: string, v: unknown): string {
   // yes/no normalise
   if (s.toLowerCase() === "yes") return "Yes";
   if (s.toLowerCase() === "no") return "No";
+  if (s === "[object Object]") return "-";
   return s;
 }
 
@@ -2033,6 +2298,15 @@ const SKIP_KEYS_QA = new Set([
   "consultation_type",
   "selected_plan",
   "addons",
+  "repeat_high_risk_medications",
+  // Prescriber / workflow metadata (not patient questionnaire answers)
+  "order_tags",
+  "document_requirements",
+  "document_requirement_history",
+  "order_document_slots",
+  "patient_complexity",
+  "auto_complex",
+  "order_price_gbp_pence",
 ]);
 
 // -- Keys shown with amber left-border regardless of answer value ----------
@@ -2046,6 +2320,14 @@ const AMBER_BORDER_KEYS = new Set([
   "side_effects_hospitalisation",
   "side_effects_vomiting_diarrhoea",
   "side_effects_injection_site",
+  "new_medicines_since_last",
+  "stopped_medicines_since_last",
+  "health_changes_since_last",
+  "new_side_effects_since_last",
+  "adherence_problems_since_last",
+  "pharmacist_questions_since_last",
+  "patient_declaration_confirmed",
+  "cardiovascular_symptoms",
   "new_meds_since",
   "hospital_since",
   "side_effects_previous",
@@ -2106,6 +2388,20 @@ const FULL_Q: Record<string, string> = {
     "Have you had vomiting or diarrhoea since your last order?",
   side_effects_injection_site:
     "Have you had injection site reactions since your last order?",
+  new_medicines_since_last:
+    "Since your last supply, have you started any new medicines (including OTC or herbal remedies)?",
+  stopped_medicines_since_last:
+    "Since your last supply, have you stopped any medicines?",
+  health_changes_since_last:
+    "Since your last supply, have there been any changes to your health or have you seen a doctor or hospital specialist?",
+  new_side_effects_since_last:
+    "Since your last supply, have you had any new side effects from your current medication?",
+  adherence_problems_since_last:
+    "Since your last supply, have you had any problems taking your medicine as prescribed?",
+  pharmacist_questions_since_last:
+    "Do you have any other questions or concerns you would like the pharmacist to know about?",
+  patient_declaration_confirmed:
+    "I confirm the information provided is accurate and complete.",
   new_meds_since: "Have you started any new medications since your last order?",
   hospital_since: "Have you been admitted to hospital since your last order?",
   dose_change:
@@ -2534,6 +2830,7 @@ function ConsultationTab({
           const changeGroups = new Map<string, { reason?: string; original?: string }>();
 
           for (const [key, raw] of Object.entries(answers)) {
+            if (SKIP_KEYS_QA.has(key)) continue;
             if (raw === null || raw === undefined || raw === "") continue;
 
             const directMatch = key.match(
@@ -3166,7 +3463,7 @@ function CounsellingTab({
                   {item.title}
                 </div>
                 <div className="mt-1 text-xs text-primary/80">
-                  Sent by {CURRENT_PHARMACIST_NAME} {formatVerifiedAt(item.at)}
+                  Sent by {getPharmacistName()} {formatVerifiedAt(item.at)}
                 </div>
               </li>
             ))}
@@ -3367,7 +3664,7 @@ function NotesTab({
         body: draft.trim(),
         at: new Date().toISOString(),
         pinned,
-        author: CURRENT_PHARMACIST_NAME,
+        author: getPharmacistName(),
       },
       ...notes,
     ];
@@ -3471,7 +3768,7 @@ function NotesTab({
             >
               <div className="flex items-start gap-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
-                  {(n.author || CURRENT_PHARMACIST_NAME)
+                  {(n.author || getPharmacistName())
                     .split(" ")
                     .map((p) => p[0])
                     .slice(0, 2)
@@ -3481,7 +3778,7 @@ function NotesTab({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-semibold text-foreground">
-                      {n.author || CURRENT_PHARMACIST_NAME}
+                      {n.author || getPharmacistName()}
                     </span>
                     {n.pinned && (
                       <span className="inline-flex items-center gap-1 rounded-full border border-rx-hold-border bg-card px-2 py-0.5 text-[10px] font-semibold text-rx-hold">
@@ -3667,6 +3964,7 @@ function ActivityTab({ sections }: { sections: ActivityOrderSection[] }) {
   const renderEvent = (ev: ActivityEvent, key: string) => {
     const style = ACTIVITY_KIND_STYLES[ev.kind];
     const isExpanded = Boolean(expanded[key]);
+    const tagSentence = resolveTagActivitySentence(ev);
     const initials = ev.actor
       ? ev.actor
           .split(" ")
@@ -3705,17 +4003,24 @@ function ActivityTab({ sections }: { sections: ActivityOrderSection[] }) {
                 >
                   {style.label}
                 </span>
-                <p className="font-semibold text-[13px] text-foreground leading-snug">
+                <p
+                  className={cn(
+                    "font-semibold text-[13px] leading-snug",
+                    ev.kind === "tag_removed"
+                      ? "text-muted-foreground"
+                      : "text-foreground",
+                  )}
+                >
                   {plainActivityText(ev.title)}
                 </p>
               </div>
               <span
                 className={cn(
-                  "shrink-0 text-[11px] font-semibold tabular-nums px-2 py-0.5 rounded-full border",
+                  "shrink-0 max-w-[11rem] text-right text-[11px] font-semibold leading-snug tabular-nums px-2 py-0.5 rounded-full border",
                   style.time,
                 )}
               >
-                {ev.time}
+                {formatActivityDateTime(ev.atIso)}
               </span>
             </div>
             <div className="mt-1.5 text-[12px] text-muted-foreground leading-relaxed">
@@ -3977,6 +4282,11 @@ function ActivityTab({ sections }: { sections: ActivityOrderSection[] }) {
   );
 }
 
+function renderRxPortal(node: ReactNode) {
+  if (typeof document === "undefined") return null;
+  return createPortal(node, document.body);
+}
+
 // --- RIGHT RAIL: DECISION PANEL --------------------------------------------
 type ActionKind =
   | "approve"
@@ -3986,6 +4296,7 @@ type ActionKind =
   | "urgent";
 
 function DecisionPanel({
+  consultation,
   consultationId,
   patientName,
   patientAge,
@@ -3995,7 +4306,9 @@ function DecisionPanel({
   onLog,
   communications,
   onNoteCommunication,
+  onActionComplete,
 }: {
+  consultation: Consultation;
   consultationId: string;
   patientName?: string;
   patientAge?: number;
@@ -4005,23 +4318,33 @@ function DecisionPanel({
   onLog: (ev: ActivityEvent) => void;
   communications: PatientCommunication[];
   onNoteCommunication: (message: string) => void;
+  onActionComplete?: () => void;
 }) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const [open, setOpen] = useState<ActionKind | null>(null);
   const [contactOpen, setContactOpen] = useState(false);
   const [reason, setReason] = useState("");
+  const { customTags } = useCustomOrderTags();
+  const [holdSelectedTags, setHoldSelectedTags] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [holdSaving, setHoldSaving] = useState(false);
   const [urgentMarked, setUrgentMarked] = useState(false);
   const [contactMethod, setContactMethod] = useState("Phone call");
   const [contactNote, setContactNote] = useState("");
-  // CS hold resubmission checkboxes
-  const [resubDocs, setResubDocs] = useState({
-    id: false,
-    video: false,
-    scale: false,
-    prescription: false,
-  });
   // -- Prescription Approval Panel (RXA drawer) form state ------------------
+  useEffect(() => {
+    const modalOpen = open != null || contactOpen;
+    if (!modalOpen) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open, contactOpen]);
+
   const [rxaStep, setRxaStep] = useState<1 | 2>(1);
   const [rxaScrStatus, setRxaScrStatus] = useState<
     "" | "accessed" | "not_accessed"
@@ -4046,6 +4369,7 @@ function DecisionPanel({
   const [rxaFinalDecision, setRxaFinalDecision] = useState<
     "approved" | "declined" | "deferred"
   >("approved");
+  const { preferences: uiPrefs } = useUiPreferences();
   const review = useReviewConsultation();
   const remainingSections = CHECKLIST_ITEMS.filter(
     (item) => !verifications[item.id],
@@ -4055,7 +4379,7 @@ function DecisionPanel({
     title: "No contact logged yet",
     preview: "Use Log to record a call or message.",
     message: "",
-    actor: CURRENT_PHARMACIST_NAME,
+    actor: getPharmacistName(),
     at: new Date().toISOString(),
     status: "awaiting_response" as const,
     direction: "outgoing" as const,
@@ -4068,22 +4392,111 @@ function DecisionPanel({
     (comm) => comm.status === "patient_responded",
   );
 
+  const holdSubmitReady =
+    reason.trim().length > 0 || holdSelectedTags.size > 0;
+
+  const holdTagSource = (
+    kind: "prescriber_hold" | "cs_hold",
+  ): "cs_hold" | "prescriber_hold" =>
+    kind === "cs_hold" ? "cs_hold" : "prescriber_hold";
+
+  const applySelectedHoldTags = async (
+    source: "cs_hold" | "prescriber_hold",
+  ) => {
+    const pharmacistName = getPharmacistName();
+    const tagNote = reason.trim().slice(0, 500) || undefined;
+    for (const tagId of holdSelectedTags) {
+      await apiFetch(`/api/consultations/${consultationId}/order-tags`, {
+        method: "PATCH",
+        body: JSON.stringify(
+          buildOrderTagPatchBody(
+            {
+              action: "add",
+              tagId,
+              pharmacistName,
+              note: tagNote,
+              source,
+            },
+            customTags,
+          ),
+        ),
+      });
+    }
+  };
+
+  const saveHoldChanges = async () => {
+    if (open !== "prescriber_hold" && open !== "cs_hold") return;
+    if (!holdSubmitReady) {
+      toast({
+        title: "Nothing to save",
+        description: "Select at least one tag or add a note.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const source = holdTagSource(open);
+    const trimmedReason = reason.trim().slice(0, 500);
+    setHoldSaving(true);
+    try {
+      if (holdSelectedTags.size > 0) {
+        await applySelectedHoldTags(source);
+      } else if (trimmedReason) {
+        await apiFetch(`/api/consultations/${consultationId}/order-tags`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            action: "save_hold_draft",
+            pharmacistName: getPharmacistName(),
+            note: trimmedReason,
+            source,
+          }),
+        });
+      }
+      await queryClient.invalidateQueries({
+        queryKey: getGetConsultationQueryKey(consultationId),
+      });
+      toast({
+        title: "Saved",
+        description:
+          "Tags and notes updated. You can continue reviewing this order.",
+      });
+      setOpen(null);
+      setReason("");
+      setHoldSelectedTags(new Set());
+    } catch (err) {
+      toast({
+        title: "Could not save",
+        description: reviewActionErrorMessage(err),
+        variant: "destructive",
+      });
+    } finally {
+      setHoldSaving(false);
+    }
+  };
+
   const submit = async () => {
     if (!open) return;
 
     if (open === "urgent") {
       setUrgentMarked(true);
-      onLog(activityForUrgent(CURRENT_PHARMACIST_NAME));
+      onLog(activityForUrgent(getPharmacistName()));
       toast({ title: "Order marked as urgent" });
       setOpen(null);
       setReason("");
       return;
     }
-    if (
-      (open === "prescriber_hold" || open === "cs_hold" || open === "reject") &&
-      !reason.trim()
-    ) {
+    if (open === "reject" && !reason.trim()) {
       toast({ title: "Please provide a reason", variant: "destructive" });
+      return;
+    }
+    if (
+      (open === "prescriber_hold" || open === "cs_hold") &&
+      !holdSubmitReady
+    ) {
+      toast({
+        title: "Add hold details",
+        description: "Provide a reason or select at least one order tag.",
+        variant: "destructive",
+      });
       return;
     }
     const actionMap: Record<
@@ -4095,65 +4508,71 @@ function DecisionPanel({
       cs_hold: "more_info",
       reject: "reject",
     };
-    const resubLabels: Record<keyof typeof resubDocs, string> = {
-      id: "ID Card",
-      video: "Full Body Video",
-      scale: "Weight Scale Video",
-      prescription: "Previous Prescription",
-    };
-    const resubList = (Object.keys(resubDocs) as Array<keyof typeof resubDocs>)
-      .filter((k) => resubDocs[k])
-      .map((k) => resubLabels[k]);
+    const holdDetailParts: string[] = [];
+    const trimmedReason = reason.trim();
+    if (trimmedReason) holdDetailParts.push(trimmedReason);
+    if (holdSelectedTags.size > 0) {
+      const tagLabels = [...holdSelectedTags]
+        .map((id) => resolveOrderTagLabel(id, customTags))
+        .join(", ");
+      holdDetailParts.push(`Tags applied: ${tagLabels}`);
+    }
+    const holdDetailText =
+      holdDetailParts.join(" | ") || "Placed on hold";
     const noteForAction =
       open === "prescriber_hold"
-        ? `[PRESCRIBER_HOLD] ${reason.trim()}`
+        ? `[PRESCRIBER_HOLD] ${holdDetailText}`
         : open === "cs_hold"
-          ? `[CS_HOLD] ${reason.trim()}${resubList.length > 0 ? ` | Resubmission requested: ${resubList.join(", ")}.` : ""}`
+          ? `[CS_HOLD] ${holdDetailText}`
           : reason.trim() || "Approved after completing the clinical checklist.";
+
+    const prescriptionItems =
+      open === "approve" ? getConsultationRxItems(consultation) : undefined;
+    if (open === "approve") {
+      const validationError = validatePrescriptionItemsForApproval(
+        prescriptionItems ?? [],
+      );
+      if (validationError) {
+        toast({
+          title: "Cannot approve yet",
+          description: validationError,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     try {
       await review.mutateAsync({
         id: consultationId,
         data: {
           action: actionMap[open],
-          pharmacistNote:
-            noteForAction,
+          pharmacistNote: noteForAction,
           rejectReason: open === "reject" ? "other" : undefined,
+          ...(open === "approve" ? { prescriptionItems } : {}),
         },
       });
       // -- Log the action to the activity feed ------------------------------
-      const holdDetail = [
-        reason.trim(),
-        resubList.length > 0
-          ? `Resubmission requested: ${resubList.join(", ")}.`
-          : "",
-      ]
-        .filter(Boolean)
-        .join(" ");
+      const holdDetail = holdDetailText;
 
       const logEntry: Record<Exclude<ActionKind, "urgent">, ActivityEvent> = {
         approve: activityForPrescriptionApproved(
-          CURRENT_PHARMACIST_NAME,
+          getPharmacistName(),
           reason.trim(),
         ),
         prescriber_hold: createActivityEvent({
           kind: "prescriber_hold",
           title: "Placed on Prescriber Hold",
-          body: shortenText(
-            reason.trim() || "Order placed on prescriber hold.",
-            96,
-          ),
-          expandableBody: reason.trim() || undefined,
-          actor: CURRENT_PHARMACIST_NAME,
+          body: shortenText(holdDetailText, 96),
+          expandableBody: holdDetailText,
+          actor: getPharmacistName(),
         }),
         cs_hold: createActivityEvent({
           kind: "cs_hold",
           title: "Placed on CS Hold",
-          body: shortenText(
-            holdDetail || "Order placed on clinical support hold.",
-            96,
-          ),
-          expandableBody: holdDetail || undefined,
-          actor: CURRENT_PHARMACIST_NAME,
+          body: shortenText(holdDetail, 96),
+          expandableBody: holdDetail,
+          actor: getPharmacistName(),
         }),
         reject: createActivityEvent({
           kind: "declined",
@@ -4163,10 +4582,13 @@ function DecisionPanel({
             96,
           ),
           expandableBody: reason.trim() || undefined,
-          actor: CURRENT_PHARMACIST_NAME,
+          actor: getPharmacistName(),
         }),
       };
-      onLog(logEntry[open]);
+      if (open === "approve" || open === "reject") {
+        onLog(logEntry[open]);
+      }
+      // CS / prescriber holds: activity comes from pharmacistNote after API refresh (no session duplicate).
       if (open === "cs_hold") {
         const responseTag = buildWaitTag({
           id: "cs-hold-response",
@@ -4175,46 +4597,51 @@ function DecisionPanel({
           source: "cs_hold",
         });
         upsertSessionWaitTag(consultationId, responseTag);
-        onLog(activityForWaitTag(responseTag, CURRENT_PHARMACIST_NAME));
-
-        const resubSlotIds: Record<keyof typeof resubDocs, string> = {
-          id: "government-id",
-          video: "full-body-video",
-          scale: "weight-scale-video",
-          prescription: "previous-prescription",
-        };
-        for (const key of Object.keys(resubDocs) as Array<
-          keyof typeof resubDocs
-        >) {
-          if (!resubDocs[key]) continue;
-          const docTag = buildWaitTag({
-            id: `doc-${resubSlotIds[key]}`,
-            kind: "pending_document_upload",
-            detail: `${resubLabels[key]} — resubmission requested on CS hold, awaiting patient upload.`,
-            source: "cs_hold",
-            relatedDocId: resubSlotIds[key],
+      }
+      if (
+        (open === "prescriber_hold" || open === "cs_hold") &&
+        holdSelectedTags.size > 0
+      ) {
+        try {
+          await applySelectedHoldTags(holdTagSource(open));
+          await queryClient.invalidateQueries({
+            queryKey: getGetConsultationQueryKey(consultationId),
           });
-          upsertSessionWaitTag(consultationId, docTag);
-          onLog(activityForWaitTag(docTag, CURRENT_PHARMACIST_NAME));
+        } catch {
+          toast({
+            title: "Hold saved — tags could not be applied",
+            description: "Add tags manually from Edit tags in the order header if needed.",
+            variant: "destructive",
+          });
         }
       }
       toast({ title: "Action recorded" });
       setOpen(null);
       setReason("");
-      navigate("/queue");
-    } catch {
-      toast({ title: "Failed to submit action", variant: "destructive" });
+      setHoldSelectedTags(new Set());
+      if (onActionComplete) onActionComplete();
+      else navigate("/queue");
+    } catch (err) {
+      toast({
+        title: "Failed to submit action",
+        description: reviewActionErrorMessage(err),
+        variant: "destructive",
+      });
     }
+  };
+
+  const toggleHoldTag = (tagId: string) => {
+    setHoldSelectedTags((prev) => {
+      const next = new Set(prev);
+      if (next.has(tagId)) next.delete(tagId);
+      else next.add(tagId);
+      return next;
+    });
   };
 
   const openDialog = (kind: ActionKind) => {
     setReason("");
-    setResubDocs({
-      id: false,
-      video: false,
-      scale: false,
-      prescription: false,
-    });
+    setHoldSelectedTags(new Set());
     if (kind === "approve" && !checklistComplete) {
       toast({
         title: "Complete the checklist before approving",
@@ -4283,110 +4710,113 @@ function DecisionPanel({
         </div>
       </div>
 
-      <div
-        className={cn(
-          "rounded-2xl p-4 shadow-sm border transition-colors duration-500",
-          checklistComplete
-            ? "bg-card border-border"
-            : "bg-linear-to-br from-card to-rx-cs-surface/60 border-border",
-        )}
-      >
-        <div className="flex items-center gap-2">
-          <div
-            className={cn(
-              "h-7 w-7 rounded-full flex items-center justify-center shrink-0 transition-colors",
-              checklistComplete
-                ? "bg-muted text-primary"
-                : "bg-rx-cs-surface text-rx-cs",
-            )}
-          >
-            {checklistComplete ? (
-              <CheckCircle2 className="h-3.5 w-3.5" />
-            ) : (
-              <AlertTriangle className="h-3.5 w-3.5" />
-            )}
-          </div>
-          <div className="text-sm font-semibold text-foreground flex-1">
-            Review checklist
-          </div>
-          <span
-            className={cn(
-              "text-[11px] font-semibold px-2 py-0.5 rounded-full tabular-nums",
-              checklistComplete
-                ? "bg-muted text-primary"
-                : "bg-rx-cs-surface text-rx-cs",
-            )}
-          >
-            {CHECKLIST_ITEMS.length - remainingSections.length}/
-            {CHECKLIST_ITEMS.length}
-          </span>
-        </div>
-        <div className="mt-3">
-          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+      {uiPrefs.showReviewChecklist ? (
+        <div
+          className={cn(
+            "rounded-2xl p-4 shadow-sm border transition-colors duration-500",
+            checklistComplete
+              ? "bg-card border-border"
+              : "bg-linear-to-br from-card to-rx-cs-surface/60 border-border",
+          )}
+          data-testid="panel-review-checklist"
+        >
+          <div className="flex items-center gap-2">
             <div
               className={cn(
-                "h-full rounded-full transition-all duration-700",
-                checklistComplete ? "bg-primary" : "bg-rx-cs",
+                "h-7 w-7 rounded-full flex items-center justify-center shrink-0 transition-colors",
+                checklistComplete
+                  ? "bg-muted text-primary"
+                  : "bg-rx-cs-surface text-rx-cs",
               )}
-              style={{
-                width: `${((CHECKLIST_ITEMS.length - remainingSections.length) / CHECKLIST_ITEMS.length) * 100}%`,
-              }}
-            />
+            >
+              {checklistComplete ? (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              ) : (
+                <AlertTriangle className="h-3.5 w-3.5" />
+              )}
+            </div>
+            <div className="text-sm font-semibold text-foreground flex-1">
+              Review checklist
+            </div>
+            <span
+              className={cn(
+                "text-[11px] font-semibold px-2 py-0.5 rounded-full tabular-nums",
+                checklistComplete
+                  ? "bg-muted text-primary"
+                  : "bg-rx-cs-surface text-rx-cs",
+              )}
+            >
+              {CHECKLIST_ITEMS.length - remainingSections.length}/
+              {CHECKLIST_ITEMS.length}
+            </span>
           </div>
-        </div>
-        <ul className="mt-3 space-y-1.5">
-          {CHECKLIST_ITEMS.map((it) => {
-            const verified = verifications[it.id];
-            return (
-              <li key={it.id}>
-                <button
-                  type="button"
-                  onClick={() => onSelectTab(it.id)}
-                  className={cn(
-                    "w-full rounded-xl px-3 py-2.5 text-left transition-all border",
-                    verified
-                      ? "bg-muted text-foreground hover:bg-muted/80 border-border"
-                      : "bg-card/80 text-muted-foreground hover:bg-muted/50 hover:border-border border-transparent",
-                  )}
-                >
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <div
-                      className={cn(
-                        "h-5 w-5 rounded-full flex items-center justify-center shrink-0",
-                        verified
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground",
-                      )}
-                    >
-                      {verified ? (
-                        <CheckCircle2 className="h-3 w-3" />
-                      ) : (
-                        <Lock className="h-3 w-3" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[13px] font-medium leading-snug">
-                        {it.label}
-                      </div>
-                      {verified && (
-                        <div className="mt-0.5 text-[10px] leading-relaxed text-primary truncate">
-                          {verified.verifiedBy}{" "}
-                          {formatVerifiedAt(verified.verifiedAt)}
-                        </div>
-                      )}
-                    </div>
-                    {!verified && (
-                      <span className="text-[10px] font-medium text-muted-foreground shrink-0">
-                        Pending
-                      </span>
+          <div className="mt-3">
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-all duration-700",
+                  checklistComplete ? "bg-primary" : "bg-rx-cs",
+                )}
+                style={{
+                  width: `${((CHECKLIST_ITEMS.length - remainingSections.length) / CHECKLIST_ITEMS.length) * 100}%`,
+                }}
+              />
+            </div>
+          </div>
+          <ul className="mt-3 space-y-1.5">
+            {CHECKLIST_ITEMS.map((it) => {
+              const verified = verifications[it.id];
+              return (
+                <li key={it.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelectTab(it.id)}
+                    className={cn(
+                      "w-full rounded-xl px-3 py-2.5 text-left transition-all border",
+                      verified
+                        ? "bg-muted text-foreground hover:bg-muted/80 border-border"
+                        : "bg-card/80 text-muted-foreground hover:bg-muted/50 hover:border-border border-transparent",
                     )}
-                  </div>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+                  >
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <div
+                        className={cn(
+                          "h-5 w-5 rounded-full flex items-center justify-center shrink-0",
+                          verified
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {verified ? (
+                          <CheckCircle2 className="h-3 w-3" />
+                        ) : (
+                          <Lock className="h-3 w-3" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13px] font-medium leading-snug">
+                          {it.label}
+                        </div>
+                        {verified && (
+                          <div className="mt-0.5 text-[10px] leading-relaxed text-primary truncate">
+                            {verified.verifiedBy}{" "}
+                            {formatVerifiedAt(verified.verifiedAt)}
+                          </div>
+                        )}
+                      </div>
+                      {!verified && (
+                        <span className="text-[10px] font-medium text-muted-foreground shrink-0">
+                          Pending
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
 
       <div className="grid gap-2">
         <ActionCard
@@ -4411,7 +4841,7 @@ function DecisionPanel({
         <ActionCard
           tone="warning"
           title="Place on CS Hold"
-          sub="Request resubmission from patient"
+          sub="Customer support queue — use order tags for document requests"
           onClick={() => openDialog("cs_hold")}
           IconCmp={Users}
         />
@@ -4429,7 +4859,7 @@ function DecisionPanel({
             sub="Remove urgent flag from this order"
             onClick={() => {
               setUrgentMarked(false);
-              onLog(activityForUrgent(CURRENT_PHARMACIST_NAME, true));
+              onLog(activityForUrgent(getPharmacistName(), true));
               toast({ title: "Urgent flag removed" });
             }}
             IconCmp={CheckCircle2}
@@ -4540,18 +4970,21 @@ function DecisionPanel({
             <DialogTitle>Log patient contact</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <label className="block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Method
-              <select
+            <label className="block space-y-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <span className="normal-case tracking-normal">Method</span>
+              <RxOptionPicker
                 value={contactMethod}
-                onChange={(event) => setContactMethod(event.target.value)}
-                className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm normal-case tracking-normal text-foreground outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
-              >
-                <option>Phone call</option>
-                <option>Secure message</option>
-                <option>Email</option>
-                <option>SMS</option>
-              </select>
+                onChange={setContactMethod}
+                options={[
+                  { value: "Phone call", label: "Phone call" },
+                  { value: "Secure message", label: "Secure message" },
+                  { value: "Email", label: "Email" },
+                  { value: "SMS", label: "SMS" },
+                ]}
+                placeholder="Select method…"
+                menuLabel="Contact method"
+                className="normal-case tracking-normal"
+              />
             </label>
             <label className="block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               Notes
@@ -4577,11 +5010,12 @@ function DecisionPanel({
         </DialogContent>
       </Dialog>
 
-      {/* -- Prescription Approval Panel - right-side sliding DRAWER -- */}
-      {open === "approve" ? (
+      {/* -- Prescription Approval Panel - portaled above page chrome -- */}
+      {open === "approve"
+        ? renderRxPortal(
         <>
           <div
-            className="rx-overlay z-[55]"
+            className={cn("rx-overlay", RX_MODAL_OVERLAY_Z)}
             onClick={() => !review.isPending && setOpen(null)}
             aria-hidden
           />
@@ -4589,7 +5023,10 @@ function DecisionPanel({
             role="dialog"
             aria-modal="true"
             aria-label="Prescription Approval Panel"
-            className="fixed inset-y-0 right-0 z-[60] flex w-full max-w-[520px] flex-col bg-card shadow-2xl transition-transform duration-300 ease-out translate-x-0"
+            className={cn(
+              "fixed inset-y-0 right-0 flex w-full max-w-[520px] flex-col bg-card shadow-2xl transition-transform duration-300 ease-out translate-x-0",
+              RX_MODAL_CONTENT_Z,
+            )}
           >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
@@ -5049,7 +5486,7 @@ function DecisionPanel({
                       Reviewed by
                     </span>
                     <span className="text-[12px] font-semibold text-foreground">
-                      {CURRENT_PHARMACIST_NAME}
+                      {getPharmacistName()}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
@@ -5110,8 +5547,9 @@ function DecisionPanel({
           </div>
         </div>
           </div>
-        </>
-      ) : null}
+        </>,
+        )
+        : null}
 
       {/* -- Prescriber Hold dialog -- */}
       <Dialog
@@ -5120,50 +5558,80 @@ function DecisionPanel({
       >
         <DialogContent
           elevated
-          className="max-w-2xl w-[min(calc(100vw-2rem),42rem)] gap-0 p-0 overflow-hidden rounded-2xl border-border shadow-2xl max-h-[min(92dvh,880px)]"
+          className="flex max-h-[min(90dvh,680px)] w-[min(calc(100vw-2rem),44rem)] max-w-none flex-col gap-0 overflow-hidden rounded-2xl border-border p-0 shadow-2xl"
         >
-          <div className="bg-linear-to-r from-rx-hold-surface to-card px-8 pt-8 pb-6 text-center border-b border-border">
-            <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-rx-hold-surface mb-5 mx-auto shadow-sm ring-1 ring-rx-hold-border">
-              <Lock className="h-8 w-8 text-rx-hold" />
+          <div className="flex shrink-0 items-start gap-3 border-b border-border bg-linear-to-r from-rx-hold-surface/80 to-card px-5 py-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rx-hold-surface ring-1 ring-rx-hold-border">
+              <Lock className="h-5 w-5 text-rx-hold" />
             </div>
-            <DialogHeader>
-              <DialogTitle className="font-serif text-3xl font-bold text-foreground tracking-tight text-center">
-                Place on Prescriber Hold
-              </DialogTitle>
-            </DialogHeader>
-            <p className="text-base text-muted-foreground mt-3 leading-relaxed max-w-md mx-auto">
-              This order will be held pending prescriber clarification. The
-              patient will not be notified until released.
-            </p>
+            <div className="min-w-0 flex-1">
+              <DialogHeader className="space-y-1 p-0 text-left">
+                <DialogTitle className="text-lg font-semibold leading-tight text-foreground">
+                  Place on Prescriber Hold
+                </DialogTitle>
+              </DialogHeader>
+              <p className="text-sm leading-snug text-muted-foreground">
+                Held pending prescriber clarification. Patient is not notified
+                until released.
+              </p>
+            </div>
           </div>
-          <div className="px-8 py-6 space-y-2">
-            <label className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
-              Reason <span className="text-rose-500">*</span>
-            </label>
-            <Textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Describe the clinical reason for placing on hold..."
-              className="min-h-[9rem] rounded-xl border-border text-base leading-relaxed px-4 py-3"
+          <DialogBody className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-5 py-4">
+            {/* Tags only — optional note is the field below */}
+            <HoldOrderTagPicker
+              consultation={consultation}
+              selectedIds={holdSelectedTags}
+              onToggle={toggleHoldTag}
+              variant="prescriber"
+              className="min-h-[14rem] flex-1"
             />
-          </div>
-          <DialogFooter className="px-8 py-5 gap-3 border-t border-border bg-muted/40/80 sm:justify-end">
+            <section className="shrink-0 space-y-1.5">
+              <label className="text-sm font-medium text-foreground">
+                Note{" "}
+                <span className="font-normal text-muted-foreground">
+                  (optional)
+                </span>
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Why this order is on hold. Applies to the hold record and any
+                tags you select.
+              </p>
+              <Textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                rows={2}
+                maxLength={1000}
+                placeholder="e.g. Awaiting GP letter, BMI inconsistency, missing documentation…"
+                className="min-h-[4.5rem] w-full resize-none rounded-xl border-border px-3 py-2.5 text-sm leading-relaxed"
+              />
+            </section>
+          </DialogBody>
+          <DialogFooter className="shrink-0 flex-row items-center justify-between gap-2 border-t border-border bg-muted/30 px-5 py-3">
             <Button
               variant="outline"
-              size="lg"
               onClick={() => setOpen(null)}
-              className="h-12 px-6 text-base border-rx-decline-border text-rose-700 hover:bg-rx-decline-surface"
+              disabled={review.isPending || holdSaving}
+              className="h-10 border-rx-decline-border px-4 text-sm text-rose-700 hover:bg-rx-decline-surface"
             >
               Cancel
             </Button>
-            <Button
-              size="lg"
-              onClick={submit}
-              disabled={review.isPending || !reason.trim()}
-              className="h-12 px-8 text-base bg-rx-hold hover:bg-rx-hold/90 text-white font-semibold"
-            >
-              {review.isPending ? "Placing..." : "Place on hold"}
-            </Button>
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => void saveHoldChanges()}
+                disabled={review.isPending || holdSaving || !holdSubmitReady}
+                className="h-10 px-4 text-sm"
+              >
+                {holdSaving ? "Saving..." : "Save"}
+              </Button>
+              <Button
+                onClick={submit}
+                disabled={review.isPending || holdSaving || !holdSubmitReady}
+                className="h-10 bg-rx-hold px-5 text-sm font-semibold text-white hover:bg-rx-hold/90"
+              >
+                {review.isPending ? "Placing..." : "Place on hold"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -5175,106 +5643,93 @@ function DecisionPanel({
       >
         <DialogContent
           elevated
-          className="max-w-2xl w-[min(calc(100vw-2rem),42rem)] gap-0 p-0 overflow-hidden rounded-2xl border-border shadow-2xl max-h-[min(92dvh,920px)] overflow-y-auto"
+          className="flex max-h-[min(90dvh,680px)] w-[min(calc(100vw-2rem),44rem)] max-w-none flex-col gap-0 overflow-hidden rounded-2xl border-border p-0 shadow-2xl"
         >
-          <div className="bg-linear-to-r from-rx-cs-surface to-card px-8 pt-8 pb-6 border-b border-border">
-            <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-rx-cs-surface mb-4 ring-1 ring-rx-cs-border">
-              <Clock className="h-7 w-7 text-rx-cs" />
+          <div className="flex shrink-0 items-start gap-3 border-b border-border bg-linear-to-r from-rx-cs-surface/80 to-card px-5 py-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rx-cs-surface ring-1 ring-rx-cs-border">
+              <Clock className="h-5 w-5 text-rx-cs" />
             </div>
-            <DialogHeader>
-              <DialogTitle className="text-3xl font-bold text-foreground text-left">
-                Place order on CS hold
-              </DialogTitle>
-            </DialogHeader>
-            <p className="text-base text-muted-foreground leading-relaxed mt-2">
-              This will move the order to the CS Hold queue. Only customer support
-              can release it back.
-            </p>
+            <div className="min-w-0 flex-1">
+              <DialogHeader className="space-y-1 p-0 text-left">
+                <DialogTitle className="text-lg font-semibold leading-tight text-foreground">
+                  Place order on CS hold
+                </DialogTitle>
+              </DialogHeader>
+              <p className="text-sm leading-snug text-muted-foreground">
+                Moves the order to the CS Hold queue. Only customer support can
+                release it.
+              </p>
+            </div>
           </div>
 
-          <div className="px-8 py-6 space-y-6">
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-foreground block">
-                Reason for placing on hold
+          <DialogBody className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-5 py-4">
+            {/* Tags only — optional note is the field below */}
+            <HoldOrderTagPicker
+              consultation={consultation}
+              selectedIds={holdSelectedTags}
+              onToggle={toggleHoldTag}
+              variant="cs"
+              className="min-h-[14rem] flex-1"
+            />
+            <section className="shrink-0 space-y-1.5">
+              <label className="text-sm font-medium text-foreground">
+                Note{" "}
+                <span className="font-normal text-muted-foreground">
+                  (optional)
+                </span>
               </label>
+              <p className="text-xs text-muted-foreground">
+                Why this order is on hold. Applies to the hold record and any
+                tags you select.
+              </p>
               <Textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                rows={4}
+                rows={2}
                 maxLength={1000}
-                placeholder="e.g. Awaiting GP confirmation, BMI inconsistency, missing documentation..."
-                className="rounded-xl border-border text-base leading-relaxed px-4 py-3 resize-none min-h-[7rem]"
+                placeholder="e.g. Awaiting full-body video re-upload, invalid ID…"
+                className="min-h-[4.5rem] w-full resize-none rounded-xl border-border px-3 py-2.5 text-sm leading-relaxed"
               />
-            </div>
+            </section>
+          </DialogBody>
 
-            <div className="rounded-2xl border border-border bg-muted/40/60 p-5">
-              <p className="text-base font-bold text-foreground">
-                Request resubmission from patient
-              </p>
-              <p className="text-sm text-muted-foreground mt-1.5 mb-4 leading-relaxed">
-                Tick documents the patient needs to re-upload. A single email is
-                sent listing only the ticked items.
-              </p>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {(
-                  [
-                    ["id", "ID Card"],
-                    ["video", "Full Body Video"],
-                    ["scale", "Weight Scale Video"],
-                    ["prescription", "Previous Prescription"],
-                  ] as const
-                ).map(([key, label]) => (
-                  <label
-                    key={key}
-                    className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3.5 cursor-pointer hover:border-primary/30 hover:bg-muted/50 transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={resubDocs[key]}
-                      onChange={(e) =>
-                        setResubDocs((cur) => ({
-                          ...cur,
-                          [key]: e.target.checked,
-                        }))
-                      }
-                      className="h-5 w-5 rounded border-border accent-amber-600"
-                    />
-                    <span className="text-base font-medium text-foreground">
-                      {label}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="px-8 py-5 gap-3 border-t border-border bg-muted/40/80 sticky bottom-0">
+          <DialogFooter className="shrink-0 flex-row items-center justify-between gap-2 border-t border-border bg-muted/30 px-5 py-3">
             <Button
               variant="outline"
-              size="lg"
               onClick={() => setOpen(null)}
-              className="h-12 px-6 text-base border-rx-decline-border text-rose-600 hover:bg-rx-decline-surface"
+              disabled={review.isPending || holdSaving}
+              className="h-10 border-rx-decline-border px-4 text-sm text-rose-600 hover:bg-rx-decline-surface"
             >
               Cancel
             </Button>
-            <Button
-              size="lg"
-              onClick={submit}
-              disabled={review.isPending || !reason.trim()}
-              className="h-12 px-8 text-base bg-rx-cs hover:bg-rx-cs/90 text-white font-semibold gap-2"
-            >
-              <Clock className="h-5 w-5 shrink-0" />
-              {review.isPending ? "Placing..." : "Place on hold"}
-            </Button>
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => void saveHoldChanges()}
+                disabled={review.isPending || holdSaving || !holdSubmitReady}
+                className="h-10 px-4 text-sm"
+              >
+                {holdSaving ? "Saving..." : "Save"}
+              </Button>
+              <Button
+                onClick={submit}
+                disabled={review.isPending || holdSaving || !holdSubmitReady}
+                className="h-10 gap-1.5 bg-rx-cs px-5 text-sm font-semibold text-white hover:bg-rx-cs/90"
+              >
+                <Clock className="h-4 w-4 shrink-0" />
+                {review.isPending ? "Placing..." : "Place on hold"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* -- Decline & Refund - right drawer (above patient chat z-70) -- */}
-      {open === "reject" ? (
+      {/* -- Decline & Refund - portaled drawer -- */}
+      {open === "reject"
+        ? renderRxPortal(
         <>
           <div
-            className="rx-overlay z-[78]"
+            className={cn("rx-overlay", RX_MODAL_OVERLAY_Z)}
             onClick={() => !review.isPending && setOpen(null)}
             aria-hidden
           />
@@ -5282,7 +5737,10 @@ function DecisionPanel({
             role="dialog"
             aria-modal="true"
             aria-label="Decline and refund order"
-            className="fixed inset-y-0 right-0 z-[80] flex w-full max-w-[min(100vw,40rem)] flex-col bg-card shadow-[-12px_0_48px_rgba(0,0,0,0.18)] border-l border-border"
+            className={cn(
+              "fixed inset-y-0 right-0 flex w-full max-w-[min(100vw,40rem)] flex-col bg-card shadow-[-12px_0_48px_rgba(0,0,0,0.18)] border-l border-border",
+              RX_MODAL_CONTENT_Z,
+            )}
           >
             <div className="flex items-center justify-between px-8 py-5 border-b border-border shrink-0 bg-linear-to-r from-rx-decline-surface/80 to-card">
               <div className="flex items-center gap-4 min-w-0">
@@ -5388,8 +5846,9 @@ function DecisionPanel({
               </Button>
             </div>
           </div>
-        </>
-      ) : null}
+        </>,
+        )
+        : null}
 
       {/* -- Urgent dialog -- */}
       <Dialog

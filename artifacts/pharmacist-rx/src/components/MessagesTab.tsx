@@ -2,12 +2,18 @@ import { useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
   Clock,
+  FileText,
   MessageSquare,
   Paperclip,
   Send,
   User,
+  X,
 } from "lucide-react";
-import { PRESCRIPTION_EVIDENCE_SLOTS } from "@/lib/prescriptionEvidenceSlots";
+import { EvidenceSlotPicker } from "@/components/EvidenceSlotPicker";
+import {
+  PRESCRIPTION_EVIDENCE_SLOTS,
+  type EvidenceSlotId,
+} from "@/lib/prescriptionEvidenceSlots";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -21,7 +27,8 @@ import { cn } from "@/lib/utils";
 import {
   ACTIVITY_KIND_STYLES,
   activityEventBorderClass,
-  formatActivityTime,
+  formatActivityDateTime,
+  isPatientReplyCommunication,
   type PatientCommunication,
 } from "@/lib/orderActivity";
 
@@ -49,6 +56,13 @@ function formatDateGroup(iso: string): string {
     .toUpperCase();
 }
 
+type PendingAttachment = {
+  docId: EvidenceSlotId;
+  dataUrl: string;
+  filename: string;
+  slotTitle: string;
+};
+
 function previewText(text: string): string {
   const t = text.trim();
   if (t.length <= PREVIEW_CHARS) return t;
@@ -74,33 +88,93 @@ export function MessagesTab({
   patientName,
   communications,
   onCompose,
+  onRefreshMessages,
   unreadCount = 0,
 }: {
   consultationId: string;
   patientName: string;
   communications: PatientCommunication[];
   onCompose?: (message: string) => void;
+  /** Refetch thread after a document upload (no separate text message). */
+  onRefreshMessages?: () => void | Promise<void>;
   unreadCount?: number;
 }) {
   const { toast } = useToast();
   const [threadOpen, setThreadOpen] = useState(false);
   const [focusId, setFocusId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
-  const [attachSlot, setAttachSlot] = useState(PRESCRIPTION_EVIDENCE_SLOTS[2]!.id);
-  const [uploading, setUploading] = useState(false);
+  const [attachSlot, setAttachSlot] = useState<EvidenceSlotId>(
+    PRESCRIPTION_EVIDENCE_SLOTS[2]!.id,
+  );
+  const [pendingAttachment, setPendingAttachment] =
+    useState<PendingAttachment | null>(null);
+  const [sending, setSending] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const orderedAsc = useMemo(
-    () =>
-      [...communications].sort(
-        (a, b) => new Date(a.at).getTime() - new Date(b.at).getTime(),
-      ),
+  const slotTitle = (id: EvidenceSlotId) =>
+    PRESCRIPTION_EVIDENCE_SLOTS.find((s) => s.id === id)?.title ?? "Document";
+
+  const canSend = Boolean(draft.trim() || pendingAttachment) && !sending;
+
+  const handleSend = async () => {
+    if (!canSend) return;
+    const text = draft.trim();
+    setSending(true);
+    try {
+      if (pendingAttachment) {
+        const messageBody =
+          text ||
+          `Uploaded ${pendingAttachment.slotTitle}${pendingAttachment.filename ? ` (${pendingAttachment.filename})` : ""}.`;
+        await apiFetch(
+          `/api/consultations/${consultationId}/patient-documents`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              docId: pendingAttachment.docId,
+              dataUrl: pendingAttachment.dataUrl,
+              messageBody,
+            }),
+          },
+        );
+        setPendingAttachment(null);
+        setDraft("");
+        await onRefreshMessages?.();
+        toast({
+          title: text ? "Message and document sent" : "Document sent",
+        });
+        return;
+      }
+      if (text) {
+        onCompose?.(text);
+        setDraft("");
+      }
+    } catch (err) {
+      toast({
+        title: "Could not send",
+        description: err instanceof Error ? err.message : "Try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const replyCommunications = useMemo(
+    () => communications.filter(isPatientReplyCommunication),
     [communications],
   );
 
+  const orderedAsc = useMemo(
+    () =>
+      [...replyCommunications].sort(
+        (a, b) => new Date(a.at).getTime() - new Date(b.at).getTime(),
+      ),
+    [replyCommunications],
+  );
+
   const dayGroups = useMemo(
-    () => groupByDate(communications),
-    [communications],
+    () => groupByDate(replyCommunications),
+    [replyCommunications],
   );
 
   const focusComm = orderedAsc.find((c) => c.id === focusId) ?? null;
@@ -220,7 +294,7 @@ export function MessagesTab({
                               <p className="text-[13px] font-semibold text-foreground">
                                 {isOut
                                   ? `Message sent to ${patientName}`
-                                  : `${patientName} replied`}
+                                  : comm.title}
                               </p>
                             </div>
                             <span
@@ -229,7 +303,7 @@ export function MessagesTab({
                                 style.time,
                               )}
                             >
-                              {formatActivityTime(comm.at)}
+                              {formatActivityDateTime(comm.at)}
                             </span>
                           </div>
                           <p className="mt-2 break-words text-[12px] leading-relaxed text-muted-foreground">
@@ -276,12 +350,39 @@ export function MessagesTab({
           <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Compose message
           </label>
-          <textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder={`Message ${patientName}…`}
-            className="mt-2 min-h-[5rem] w-full resize-none rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-          />
+          <div className="mt-2 rounded-xl border border-border bg-card focus-within:ring-2 focus-within:ring-primary/25">
+            {pendingAttachment ? (
+              <div className="flex items-center gap-2 border-b border-border/80 px-3 py-2">
+                <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-1.5">
+                  <FileText className="h-3.5 w-3.5 shrink-0 text-primary" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-semibold text-foreground">
+                      {pendingAttachment.slotTitle}
+                    </p>
+                    <p className="truncate text-[10px] text-muted-foreground">
+                      {pendingAttachment.filename}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Remove attachment"
+                    disabled={sending}
+                    onClick={() => setPendingAttachment(null)}
+                    className="shrink-0 rounded-md p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder={`Message ${patientName}…`}
+              disabled={sending}
+              className="min-h-[5rem] w-full resize-none rounded-xl bg-transparent px-3.5 py-2.5 text-sm focus-visible:outline-none disabled:opacity-60"
+            />
+          </div>
           <input
             ref={fileRef}
             type="file"
@@ -303,81 +404,54 @@ export function MessagesTab({
               reader.onload = () => {
                 const dataUrl = reader.result;
                 if (typeof dataUrl !== "string") return;
-                setUploading(true);
-                void apiFetch(
-                  `/api/consultations/${consultationId}/patient-documents`,
-                  {
-                    method: "POST",
-                    body: JSON.stringify({
-                      docId: attachSlot,
-                      dataUrl,
-                      messageBody:
-                        draft.trim() ||
-                        `Uploaded ${PRESCRIPTION_EVIDENCE_SLOTS.find((s) => s.id === attachSlot)?.title ?? "document"}.`,
-                    }),
-                  },
-                )
-                  .then(() => {
-                    const msg =
-                      draft.trim() ||
-                      `Uploaded ${PRESCRIPTION_EVIDENCE_SLOTS.find((s) => s.id === attachSlot)?.title ?? "a document"} for your review.`;
-                    onCompose(msg);
-                    setDraft("");
-                    toast({ title: "Document attached in thread" });
-                  })
-                  .catch((err) => {
-                    toast({
-                      title: "Upload failed",
-                      description:
-                        err instanceof Error ? err.message : "Try again.",
-                      variant: "destructive",
-                    });
-                  })
-                  .finally(() => setUploading(false));
+                const title = slotTitle(attachSlot);
+                setPendingAttachment({
+                  docId: attachSlot,
+                  dataUrl,
+                  filename: file.name,
+                  slotTitle: title,
+                });
               };
               reader.readAsDataURL(file);
             }}
           />
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <select
-              value={attachSlot}
-              onChange={(e) =>
-                setAttachSlot(e.target.value as typeof attachSlot)
-              }
-              className="rounded-lg border border-border bg-card px-2 py-1.5 text-xs font-medium text-foreground"
-            >
-              {PRESCRIPTION_EVIDENCE_SLOTS.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.title}
-                </option>
-              ))}
-            </select>
+            <EvidenceSlotPicker
+              value={pendingAttachment?.docId ?? attachSlot}
+              onChange={(id) => {
+                setAttachSlot(id);
+                if (pendingAttachment) {
+                  setPendingAttachment({
+                    ...pendingAttachment,
+                    docId: id,
+                    slotTitle: slotTitle(id),
+                  });
+                }
+              }}
+              disabled={sending}
+            />
             <button
               type="button"
-              disabled={uploading}
+              disabled={sending || Boolean(pendingAttachment)}
               onClick={() => fileRef.current?.click()}
               className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted/50 disabled:opacity-50"
             >
               <Paperclip className="h-3.5 w-3.5" />
-              {uploading ? "Uploading…" : "Attach document"}
+              Attach document
             </button>
             <button
               type="button"
-              disabled={!draft.trim() || uploading}
-              onClick={() => {
-                if (draft.trim()) {
-                  onCompose(draft.trim());
-                  setDraft("");
-                }
-              }}
+              disabled={!canSend}
+              onClick={() => void handleSend()}
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
             >
-              <Send className="h-4 w-4" /> Send message
+              <Send className="h-4 w-4" />
+              {sending ? "Sending…" : "Send message"}
             </button>
           </div>
           <p className="mt-2 text-[11px] text-muted-foreground">
-            Attach uploads a file into the patient record and logs it in this
-            thread. Patients can attach files when they reply in their portal.
+            Attach adds a file to this message — it is not sent until you press
+            Send. You can add text with the attachment or send the file alone.
           </p>
         </div>
       ) : null}

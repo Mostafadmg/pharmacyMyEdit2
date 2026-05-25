@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Bell, CheckCheck, MessageSquare, FileText, Package, Sparkles, X, Upload } from "lucide-react";
 import { Link } from "wouter";
 import { apiFetch } from "@/lib/api";
+import { normalizePatientDocumentLink } from "@/lib/consultationDocumentFocus";
 import { formatDistanceToNow } from "date-fns";
 
 type Notification = {
@@ -178,6 +179,7 @@ export default function NotificationBell({ audience = "patient", variant = "ligh
               </div>
             )}
             {notifications.map((n) => {
+              const href = normalizePatientDocumentLink(n.link) ?? n.link;
               const inner = (
                 <div className={`flex items-start gap-3 px-4 py-3 border-b border-border/40 hover:bg-muted/10 transition-colors ${n.read ? "" : "bg-primary/[0.03]"}`}>
                   <div className="w-8 h-8 rounded-full bg-muted/30 flex items-center justify-center shrink-0 mt-0.5">
@@ -193,8 +195,8 @@ export default function NotificationBell({ audience = "patient", variant = "ligh
                   </div>
                 </div>
               );
-              return n.link ? (
-                <Link key={n.id} href={n.link} onClick={() => { handleMarkRead(n); setOpen(false); }}>
+              return href ? (
+                <Link key={n.id} href={href} onClick={() => { handleMarkRead(n); setOpen(false); }}>
                   <a className="block">{inner}</a>
                 </Link>
               ) : (

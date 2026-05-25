@@ -69,7 +69,6 @@ export default function Header() {
   const navLinks = [
     { name: "Shop", href: "/shop" },
     { name: "Health Hub", href: "/health-hub" },
-    { name: "Track", href: "/track" },
     { name: "Pharmacist Portal", href: "/dashboard" },
   ];
 

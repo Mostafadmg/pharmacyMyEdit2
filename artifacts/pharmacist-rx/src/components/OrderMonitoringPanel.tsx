@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type { Consultation } from "@workspace/api-client-react";
 import { useListConsultations } from "@workspace/api-client-react";
+import { RxOptionPicker } from "@/components/RxOptionPicker";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -39,9 +40,6 @@ const CURRENT_PHARMACIST_NAME =
 
 const MONITORING_PANEL =
   "overflow-hidden rounded-2xl border border-border border-l-4 border-l-secondary bg-card shadow-sm";
-
-const FIELD_SELECT =
-  "h-10 w-full rounded-xl border border-border bg-card px-3 text-sm text-foreground shadow-sm outline-none transition-colors focus:border-primary/40 focus:ring-2 focus:ring-primary/15";
 
 function formatWeightChange(change: number | null, isBaseline: boolean): string {
   if (isBaseline) return "Starting weight";
@@ -163,45 +161,29 @@ function OrderMonitoringLogForm({
             <span className="text-xs font-medium text-foreground">
               Side effects level
             </span>
-            <select
+            <RxOptionPicker
               value={draft.sideEffectsLevel}
-              onChange={(e) =>
-                setDraft((d) => ({
-                  ...d,
-                  sideEffectsLevel: e.target.value as OrderMonitoringLog["sideEffectsLevel"],
-                }))
+              onChange={(sideEffectsLevel) =>
+                setDraft((d) => ({ ...d, sideEffectsLevel }))
               }
-              className={FIELD_SELECT}
-            >
-              <option value="">Select level…</option>
-              {SIDE_EFFECTS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              options={SIDE_EFFECTS_OPTIONS}
+              placeholder="Select level…"
+              menuLabel="Side effects level"
+              allowEmpty
+            />
           </label>
           <label className="block space-y-2">
             <span className="text-xs font-medium text-foreground">
               Adherence
             </span>
-            <select
+            <RxOptionPicker
               value={draft.adherence}
-              onChange={(e) =>
-                setDraft((d) => ({
-                  ...d,
-                  adherence: e.target.value as OrderMonitoringLog["adherence"],
-                }))
-              }
-              className={FIELD_SELECT}
-            >
-              <option value="">Select…</option>
-              {ADHERENCE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              onChange={(adherence) => setDraft((d) => ({ ...d, adherence }))}
+              options={ADHERENCE_OPTIONS}
+              placeholder="Select…"
+              menuLabel="Adherence"
+              allowEmpty
+            />
           </label>
         </div>
 
@@ -483,6 +465,13 @@ export function OrderMonitoringPanel({
     if (repeatSafety.changesSinceLast) {
       parts.push(`Changes: ${repeatSafety.changesSinceLast}`);
     }
+    const scr = repeatSafety.screening;
+    const scrParts = [
+      scr.newMedicines ? `New meds: ${scr.newMedicines}` : null,
+      scr.healthChanges ? `Health change: ${scr.healthChanges}` : null,
+      scr.newSideEffects ? `New SE: ${scr.newSideEffects}` : null,
+    ].filter(Boolean);
+    if (scrParts.length) parts.push(scrParts.join(" · "));
     const se = repeatSafety.sideEffects;
     const seParts = [
       se.any ? `Any SE: ${se.any}` : null,
@@ -491,6 +480,9 @@ export function OrderMonitoringPanel({
       se.injectionSite ? `Injection site: ${se.injectionSite}` : null,
     ].filter(Boolean);
     if (seParts.length) parts.push(seParts.join(" · "));
+    if (repeatSafety.monitoring.highRiskMedsYes.length) {
+      parts.push(`High-risk: ${repeatSafety.monitoring.highRiskMedsYes.join(", ")}`);
+    }
     return parts.join(" — ") || null;
   }, [repeatSafety]);
 
@@ -509,9 +501,11 @@ export function OrderMonitoringPanel({
           role="alert"
           className={cn(
             "rounded-2xl border px-4 py-3 text-sm shadow-sm",
-            weightAlert.kind === "gain_7"
-              ? "border-rx-decline-border bg-rx-decline-surface text-foreground"
-              : "border-rx-cs-border bg-rx-cs-surface text-foreground",
+            weightAlert.kind === "medication_switch"
+              ? "border-violet-500/40 bg-violet-500/10 text-foreground"
+              : weightAlert.pctChange != null && weightAlert.pctChange > 0
+                ? "border-rx-decline-border bg-rx-decline-surface text-foreground"
+                : "border-rx-cs-border bg-rx-cs-surface text-foreground",
           )}
         >
           <p className="flex items-center gap-2 rx-label-caps">

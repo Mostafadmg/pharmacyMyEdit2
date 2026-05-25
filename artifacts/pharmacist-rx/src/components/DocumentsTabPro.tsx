@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { CheckCircle2, Lock } from "lucide-react";
 import { useGetConsultation } from "@workspace/api-client-react";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
@@ -13,9 +14,24 @@ import {
 } from "@/components/PrescriptionEvidenceGrid";
 import { RX_DOCUMENT as DOC } from "@/lib/orderTheme";
 
-type VerificationRecord = { done: boolean; at?: string };
+type VerificationRecord = {
+  verifiedBy: string;
+  verifiedAt: string;
+};
 
 const PRESCRIPTION_SLOT_COUNT = 4;
+
+function formatVerifiedAt(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 function VerificationAction({
   actionLabel,
@@ -30,41 +46,44 @@ function VerificationAction({
   onVerify: () => void;
   verification?: VerificationRecord;
 }) {
-  return (
-    <div className="od2-tab-completion-footer flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <div className="text-sm font-semibold text-foreground">{label}</div>
-        <div className="text-xs text-muted-foreground mt-0.5">
-          {verification?.done
-            ? `Marked done ${verification.at ? new Date(verification.at).toLocaleString("en-GB") : ""}`
-            : "Complete this section when finished reviewing."}
-        </div>
-      </div>
-      <div className="flex gap-2">
-        {verification?.done && (
-          <button
+  if (verification) {
+    return (
+      <div className="rx-verified-banner">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 flex items-start gap-3">
+            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-foreground">
+                {label} verified
+              </div>
+              <div className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                Verified by {verification.verifiedBy}{" "}
+                {formatVerifiedAt(verification.verifiedAt)}
+              </div>
+            </div>
+          </div>
+          <Button
             type="button"
-            className={cn(
-              "inline-flex h-9 items-center rounded-md px-3 text-sm font-medium",
-              DOC.btnOutline,
-            )}
+            variant="outline"
             onClick={onUndo}
+            className="h-9 shrink-0 rounded-full border-border bg-card px-4 text-primary hover:bg-muted"
           >
             Undo
-          </button>
-        )}
-        <button
-          type="button"
-          className={cn(
-            "inline-flex h-9 items-center rounded-md px-4 text-sm font-semibold",
-            DOC.btnVerify,
-          )}
-          onClick={onVerify}
-        >
-          {verification?.done ? "Update completion" : actionLabel}
-        </button>
+          </Button>
+        </div>
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <Button
+      onClick={onVerify}
+      className="w-full min-h-12 whitespace-normal break-words bg-primary px-4 py-3 text-primary-foreground hover:bg-primary/90 rounded-2xl shadow-sm text-base"
+    >
+      <CheckCircle2 className="h-4 w-4 mr-2 shrink-0" /> {actionLabel}
+    </Button>
   );
 }
 
@@ -97,6 +116,7 @@ export function DocumentsTabPro({
     docId: string;
     docTitle: string;
     emailSent?: boolean;
+    note?: string;
   }) => void;
 }) {
   const { toast } = useToast();
@@ -214,13 +234,15 @@ export function DocumentsTabPro({
         </div>
       </div>
 
-      <VerificationAction
-        actionLabel="Mark Documents as done"
-        label="Documents"
-        onUndo={onUndo}
-        onVerify={markDocumentsDone}
-        verification={verification}
-      />
+      <div className="od2-tab-completion-footer pt-2">
+        <VerificationAction
+          actionLabel="Mark Documents as done"
+          label="Documents"
+          onUndo={onUndo}
+          onVerify={markDocumentsDone}
+          verification={verification}
+        />
+      </div>
     </div>
   );
 }

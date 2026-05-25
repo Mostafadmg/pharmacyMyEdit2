@@ -16,7 +16,7 @@ router.get("/products", async (req, res): Promise<void> => {
   const search = paramAsString(req.query.search as string | string[] | undefined);
   const includeInactive = paramAsString(req.query.includeInactive as string | string[] | undefined) === "true";
   const limitRaw = paramAsString(req.query.limit as string | string[] | undefined);
-  const limit = Math.min(Math.max(parseInt(limitRaw ?? "100", 10) || 100, 1), 200);
+  const limit = Math.min(Math.max(parseInt(limitRaw ?? "500", 10) || 500, 1), 1500);
 
   const conditions = [];
   if (!includeInactive) conditions.push(eq(productsTable.active, true));

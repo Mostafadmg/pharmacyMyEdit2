@@ -7,11 +7,18 @@ import {
   Lock,
   Loader2,
   AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
+import { InlineDocumentUploadButton } from "@/components/consultation/InlineDocumentUpload";
+import PatientDocumentViewer from "@/components/PatientDocumentViewer";
+import { getSlotMeta, isEvidenceSlotId } from "@workspace/evidence-slots";
 import { toast } from "sonner";
 import { format, isSameDay, isToday, isYesterday } from "date-fns";
+import { OptionPicker } from "@/components/OptionPicker";
 import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
+import { PICKER } from "@/lib/pickerTheme";
+import { buildConsultationDocumentFocusPath } from "@/lib/consultationDocumentFocus";
 import {
   medicationLabelFromOrder,
   orderRefFromConsultationId,
@@ -41,6 +48,7 @@ const SYSTEM_LABELS: Record<string, string> = {
   document_upload: "Document uploaded",
   document_rejected: "Document rejected",
   document_verified: "Document verified",
+  document_upload_requested: "Upload requested",
   approve: "Consultation approved",
   reject: "Consultation declined",
   more_info: "More information requested",
@@ -72,6 +80,30 @@ function orderCaption(order: PatientOrderMeta): string {
   return `Re: ${orderRefFromConsultationId(order.id, order.consultationNumber)} · ${medicationLabelFromOrder(order)}`;
 }
 
+const HIDDEN_DOC_ACTIONS = new Set(["document_rejected", "document_verified"]);
+
+function parseMessageMeta(meta: string | null | undefined): {
+  docId?: string;
+  docTitle?: string;
+} {
+  if (!meta) return {};
+  try {
+    const m = JSON.parse(meta) as Record<string, unknown>;
+    return {
+      docId: typeof m.docId === "string" ? m.docId : undefined,
+      docTitle: typeof m.docTitle === "string" ? m.docTitle : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function slotTitle(docId: string, docTitle?: string): string {
+  if (docTitle?.trim()) return docTitle.trim();
+  if (isEvidenceSlotId(docId)) return getSlotMeta(docId).title;
+  return docId;
+}
+
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -101,6 +133,11 @@ export default function PatientMessageInbox({
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [viewingDoc, setViewingDoc] = useState<{
+    consultationId: string;
+    docId: string;
+    docTitle: string;
+  } | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -115,6 +152,16 @@ export default function PatientMessageInbox({
   );
 
   const showOrderSelect = activeOrders.length > 1;
+
+  const messageAboutOptions = useMemo(
+    () =>
+      activeOrders.map((o) => ({
+        value: o.id,
+        label: `${orderRefFromConsultationId(o.id, o.consultationNumber)} — ${medicationLabelFromOrder(o)}`,
+        hint: o.conditionName.split("—")[0]?.trim() || "Treatment",
+      })),
+    [activeOrders],
+  );
 
   const load = useCallback(async () => {
     try {
@@ -172,7 +219,7 @@ export default function PatientMessageInbox({
       items.push({ type: "msg", at: m.createdAt, key: `m-${m.id}`, msg: m });
     }
     for (const a of actions) {
-      if (a.action === "patient_reply") continue;
+      if (a.action === "patient_reply" || HIDDEN_DOC_ACTIONS.has(a.action)) continue;
       items.push({
         type: "sys",
         at: a.createdAt,
@@ -311,6 +358,12 @@ export default function PatientMessageInbox({
               const fromTeam = m.senderRole === "pharmacist";
               const order = orderById[m.consultationId];
               const isDocReject = m.kind === "document_rejected";
+              const isDocUploadRequested = m.kind === "document_upload_requested";
+              const isDocVerified = m.kind === "document_verified";
+              const isDocUpload = m.kind === "document_upload";
+              const meta = parseMessageMeta(m.meta);
+              const docId = meta.docId;
+              const docTitle = docId ? slotTitle(docId, meta.docTitle) : undefined;
               const kindLabel =
                 m.kind !== "message" ? SYSTEM_LABELS[m.kind] ?? m.kind : null;
 
@@ -349,42 +402,77 @@ export default function PatientMessageInbox({
                           "rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap",
                           isDocReject && fromTeam
                             ? "border border-amber-200 bg-amber-50 text-foreground"
-                            : mine
-                              ? "bg-primary text-primary-foreground"
-                              : "border border-border bg-card text-foreground shadow-sm",
+                            : isDocUploadRequested && fromTeam
+                              ? "border border-amber-200 bg-amber-50 text-foreground"
+                              : isDocVerified && fromTeam
+                              ? "border border-border bg-card text-foreground shadow-sm"
+                              : mine
+                                ? "bg-primary text-primary-foreground"
+                                : "border border-border bg-card text-foreground shadow-sm",
                         )}
                       >
                         {kindLabel && (
                           <p
                             className={cn(
                               "mb-1.5 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide",
-                              isDocReject ? "text-amber-800" : mine ? "text-primary-foreground/90" : "text-primary",
+                              isDocReject || isDocUploadRequested
+                                ? "text-amber-800"
+                                : isDocVerified
+                                  ? "text-primary"
+                                  : mine
+                                    ? "text-primary-foreground/90"
+                                    : "text-primary",
                             )}
                           >
-                            {isDocReject && <AlertCircle className="h-3.5 w-3.5" />}
+                            {(isDocReject || isDocUploadRequested) && (
+                              <AlertCircle className="h-3.5 w-3.5" />
+                            )}
+                            {isDocVerified && <CheckCircle2 className="h-3.5 w-3.5" />}
                             {kindLabel}
                           </p>
                         )}
                         <p>{m.body}</p>
-                        {isDocReject && (() => {
-                          let docId: string | undefined;
-                          try {
-                            const meta = m.meta ? JSON.parse(m.meta) : {};
-                            docId = typeof meta.docId === "string" ? meta.docId : undefined;
-                          } catch {
-                            docId = undefined;
-                          }
-                          if (!docId) return null;
-                          return (
+                        {isDocUpload && docId && isEvidenceSlotId(docId) ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setViewingDoc({
+                                consultationId: m.consultationId,
+                                docId,
+                                docTitle: docTitle!,
+                              })
+                            }
+                            className={cn(
+                              "mt-3 inline-flex items-center gap-1.5 text-xs font-semibold hover:underline",
+                              mine ? "text-primary-foreground" : "text-primary",
+                            )}
+                          >
+                            <Paperclip className="h-3.5 w-3.5" />
+                            View upload
+                          </button>
+                        ) : null}
+                        {(isDocReject || isDocUploadRequested) &&
+                        fromTeam &&
+                        docId &&
+                        isEvidenceSlotId(docId) ? (
+                          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                            <InlineDocumentUploadButton
+                              consultationId={m.consultationId}
+                              docId={docId}
+                              label="Upload again"
+                              onSuccess={() => void load()}
+                            />
                             <Link
-                              href={`/upload-documents/${m.consultationId}?slot=${encodeURIComponent(docId)}`}
-                              className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                              href={buildConsultationDocumentFocusPath(
+                                m.consultationId,
+                                docId,
+                              )}
+                              className="text-xs font-medium text-primary hover:underline"
                             >
-                              <Paperclip className="h-3.5 w-3.5" />
-                              Upload again
+                              Or upload under your order
                             </Link>
-                          );
-                        })()}
+                          </div>
+                        ) : null}
                       </div>
                       <p
                         className={cn(
@@ -407,25 +495,21 @@ export default function PatientMessageInbox({
       <div className="border-t border-border bg-card px-4 py-4 sm:px-5">
         {showOrderSelect && (
           <div className="mb-3">
-            <label
-              htmlFor="message-order-select"
-              className="mb-1.5 block text-xs font-medium text-muted-foreground"
+            <p
+              id="message-order-select-label"
+              className={cn("mb-1.5", PICKER.pickerLabel)}
             >
               This message is about
-            </label>
-            <select
+            </p>
+            <OptionPicker
               id="message-order-select"
+              aria-labelledby="message-order-select-label"
               value={activeConsultationId ?? ""}
-              onChange={(e) => setActiveConsultationId(e.target.value || null)}
-              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-medium text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-            >
-              {activeOrders.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {orderRefFromConsultationId(o.id, o.consultationNumber)} — {medicationLabelFromOrder(o)} (
-                  {o.conditionName.split("—")[0]?.trim() || "Treatment"})
-                </option>
-              ))}
-            </select>
+              onChange={(id) => setActiveConsultationId(id || null)}
+              options={messageAboutOptions}
+              placeholder="Select consultation"
+              menuLabel="Your consultations"
+            />
           </div>
         )}
 
@@ -502,6 +586,18 @@ export default function PatientMessageInbox({
           Enter to send · Shift+Enter for new line · Max 4 MB attachments
         </p>
       </div>
+
+      {viewingDoc ? (
+        <PatientDocumentViewer
+          consultationId={viewingDoc.consultationId}
+          docId={viewingDoc.docId}
+          docTitle={viewingDoc.docTitle}
+          open={!!viewingDoc}
+          onOpenChange={(next) => {
+            if (!next) setViewingDoc(null);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

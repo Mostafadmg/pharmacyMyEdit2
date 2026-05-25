@@ -182,7 +182,7 @@ function OrderTimelineCard({
       {/* ── Action row ── */}
       <div className="px-5 md:px-7 pb-6 pt-2 flex flex-wrap gap-2 border-t border-border/40 mt-2 pt-5">
         <Button asChild variant="outline" className="rounded-full border-2 border-primary text-primary hover:bg-primary/5 font-semibold">
-          <Link href={isRx ? `/track-order/${order.id}` : `/order-confirmation/${order.id}`} data-testid={`button-track-${order.orderNumber}`}>
+          <Link href={`/order-confirmation/${order.id}`} data-testid={`button-track-${order.orderNumber}`}>
             <Truck className="w-4 h-4 mr-2" /> Track delivery
           </Link>
         </Button>
@@ -255,7 +255,7 @@ export default function MyOrders() {
       const consultPath =
         consult.conditionId === "weight-loss"
           ? "/consultation/weight-loss-injectable"
-          : `/consultation/${consult.conditionId}`;
+          : `/consult/${consult.conditionId}`;
       navigate(
         `${consultPath}?repeatOf=${encodeURIComponent(consult.id)}`,
       );

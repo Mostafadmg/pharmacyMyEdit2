@@ -29,7 +29,79 @@ type Analytics = {
   byProduct: ProductSale[];
 };
 
-const CATEGORIES = ["all", "pain-relief", "cold-flu", "allergy", "digestive", "skin", "eye-care", "first-aid", "vitamins", "sleep", "oral", "foot-care", "womens-health"];
+const CATEGORY_LABELS: Record<string, string> = {
+  "pain-relief": "Pain Relief",
+  "cold-flu": "Cold & Flu",
+  allergy: "Allergy",
+  digestive: "Digestive",
+  skin: "Skin",
+  "eye-care": "Eye & Ear",
+  "first-aid": "First Aid",
+  vitamins: "Vitamins",
+  sleep: "Sleep",
+  oral: "Oral",
+  "foot-care": "Foot Care",
+  "womens-health": "Women's Health",
+  "weight-loss": "Weight Loss",
+  "erectile-dysfunction": "Men's Health",
+  migraine: "Migraine",
+  asthma: "Asthma",
+  acne: "Acne",
+  "hair-loss": "Hair Loss",
+  "travel-health": "Travel",
+  "sexual-health": "Sexual Health",
+  "stop-smoking": "Stop Smoking",
+  "general-health": "General Health",
+};
+
+function productInitials(name: string): string {
+  return name
+    .split(/\s+/)
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+function ProductThumb({
+  product,
+  onClick,
+  size = "md",
+}: {
+  product: Product;
+  onClick: () => void;
+  size?: "sm" | "md";
+}) {
+  const dim = size === "sm" ? "w-14 h-14" : "w-12 h-12";
+  const [broken, setBroken] = useState(false);
+  const showImg = product.imageUrl && !broken;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title="Click to replace image"
+      className={`${dim} rounded-xl border border-border/60 bg-white overflow-hidden flex-shrink-0 group relative shadow-sm`}
+    >
+      {showImg ? (
+        <img
+          src={product.imageUrl}
+          alt=""
+          className="w-full h-full object-contain p-1.5"
+          onError={() => setBroken(true)}
+        />
+      ) : (
+        <span className="w-full h-full flex items-center justify-center bg-muted/40 text-[11px] font-bold text-muted-foreground tracking-tight">
+          {productInitials(product.name)}
+        </span>
+      )}
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
+        <ImageIcon className="w-4 h-4 text-white" />
+      </div>
+    </button>
+  );
+}
 
 export default function AdminProducts() {
   const [products, setProducts] = useState<Product[] | null>(null);
@@ -47,7 +119,7 @@ export default function AdminProducts() {
   const reload = () => {
     setLoading(true);
     Promise.all([
-      apiFetch<{ products: Product[] }>("/api/products?includeInactive=true&limit=200", { auth: "pharmacist" }),
+      apiFetch<{ products: Product[] }>("/api/products?includeInactive=true&limit=1500", { auth: "pharmacist" }),
       apiFetch<Analytics>("/api/admin/analytics/sales", { auth: "pharmacist" }),
     ])
       .then(([p, a]) => { setProducts(p.products); setAnalytics(a); })
@@ -74,6 +146,14 @@ export default function AdminProducts() {
       return p.name.toLowerCase().includes(q) || (p.brand?.toLowerCase().includes(q) ?? false);
     });
   }, [products, search, categoryFilter]);
+
+  const categoryOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of products ?? []) {
+      counts.set(p.category, (counts.get(p.category) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  }, [products]);
 
   const totalRevenue = analytics ? Number(analytics.totals.revenue) : 0;
   const totalOrders = analytics?.totals.orders ?? 0;
@@ -260,18 +340,61 @@ export default function AdminProducts() {
           );
         })()}
 
-        <div className="flex gap-3 mb-4 flex-wrap">
-          <div className="relative flex-1 min-w-[200px] max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Search products..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" data-testid="input-products-search" />
+        <div className="rounded-2xl border bg-white shadow-sm p-4 mb-5 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search products…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 rounded-full border-border/80"
+                data-testid="input-products-search"
+              />
+            </div>
+            <p className="text-sm text-muted-foreground shrink-0">
+              <span className="font-semibold text-foreground tabular-nums">{filtered.length}</span>
+              {products ? ` of ${products.length}` : ""} products
+            </p>
           </div>
-          <div className="flex gap-1 overflow-x-auto -mx-1 px-1">
-            {CATEGORIES.map(c => (
-              <Button key={c} size="sm" variant={categoryFilter === c ? "default" : "outline"}
-                onClick={() => setCategoryFilter(c)} className="rounded-full capitalize whitespace-nowrap"
-                data-testid={`btn-cat-${c}`}>
-                {c.replace(/-/g, " ")}
-              </Button>
+          <div
+            className="flex items-center gap-2 overflow-x-auto overflow-y-hidden scrollbar-none py-0.5 -mx-1 px-1 touch-pan-x"
+            role="tablist"
+            aria-label="Filter by category"
+          >
+            <button
+              type="button"
+              onClick={() => setCategoryFilter("all")}
+              className={`shrink-0 px-3.5 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${
+                categoryFilter === "all"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background border-border text-foreground hover:border-primary/40"
+              }`}
+              data-testid="btn-cat-all"
+            >
+              All
+            </button>
+            {categoryOptions.map(([cat, count]) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setCategoryFilter(cat)}
+                className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${
+                  categoryFilter === cat
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background border-border text-foreground hover:border-primary/40"
+                }`}
+                data-testid={`btn-cat-${cat}`}
+              >
+                {CATEGORY_LABELS[cat] ?? cat.replace(/-/g, " ")}
+                <span
+                  className={`text-[10px] rounded-full px-1.5 py-0.5 tabular-nums ${
+                    categoryFilter === cat ? "bg-white/20" : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
             ))}
           </div>
         </div>
@@ -289,27 +412,29 @@ export default function AdminProducts() {
                 const isEditingStock = editingField?.id === p.id && editingField.field === "stock";
                 return (
                   <Card key={p.id} data-testid={`product-card-${p.slug}`} className={!p.active ? "opacity-60" : ""}>
-                    <CardContent className="p-3">
+                    <CardContent className="p-4">
                       <div className="flex gap-3">
-                        <button
+                        <ProductThumb
+                          product={p}
                           onClick={() => setImageDialog(p)}
-                          className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0"
-                          data-testid={`img-edit-${p.slug}`}
-                        >
-                          {p.imageUrl ? (
-                            <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <ImageIcon className="w-5 h-5 m-auto text-muted-foreground" />
-                          )}
-                        </button>
+                          size="sm"
+                        />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0 flex-1">
-                              <p className="font-semibold text-sm truncate">{p.name}</p>
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
-                                {p.brand && <span>{p.brand}</span>}
-                                <Badge variant="outline" className="h-4 text-[10px] px-1">{p.classification}</Badge>
-                                <span className="capitalize">· {p.category.replace(/-/g, " ")}</span>
+                              <p className="font-semibold text-sm leading-snug line-clamp-2">{p.name}</p>
+                              <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                {p.brand && (
+                                  <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+                                    {p.brand}
+                                  </span>
+                                )}
+                                <Badge variant="outline" className="h-5 text-[10px] px-1.5 shrink-0">
+                                  {p.classification}
+                                </Badge>
+                                <Badge variant="secondary" className="h-5 text-[10px] px-1.5 shrink-0 font-normal">
+                                  {CATEGORY_LABELS[p.category] ?? p.category.replace(/-/g, " ")}
+                                </Badge>
                               </div>
                             </div>
                             {isSaving ? <Loader2 className="w-4 h-4 animate-spin text-muted-foreground flex-shrink-0" /> : renderRowActions(p)}
@@ -376,116 +501,161 @@ export default function AdminProducts() {
             </div>
 
             {/* Desktop: table */}
-            <div className="hidden md:block bg-white rounded-2xl overflow-hidden border">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/30 text-left text-xs uppercase tracking-wider text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-3">Product</th>
-                    <th className="px-4 py-3">Category</th>
-                    <th className="px-4 py-3 text-right">Price (£)</th>
-                    <th className="px-4 py-3 text-right">Stock</th>
-                    <th className="px-4 py-3 text-right">Sold</th>
-                    <th className="px-4 py-3 text-right">Revenue</th>
-                    <th className="px-4 py-3 text-center">Active</th>
-                    <th className="px-4 py-3 w-12"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {filtered.map(p => {
-                    const sales = salesByProduct.get(p.id);
-                    const isSaving = savingIds.has(p.id);
-                    const isEditingPrice = editingField?.id === p.id && editingField.field === "price";
-                    const isEditingStock = editingField?.id === p.id && editingField.field === "stock";
-                    return (
-                      <tr key={p.id} className={`hover:bg-muted/20 ${!p.active ? "opacity-60" : ""}`} data-testid={`product-row-${p.slug}`}>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <button
-                              onClick={() => setImageDialog(p)}
-                              className="relative w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0 group"
-                              data-testid={`img-edit-desktop-${p.slug}`}
-                              title="Click to replace image"
-                            >
-                              {p.imageUrl ? (
-                                <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
-                              ) : (
-                                <ImageIcon className="w-5 h-5 m-auto text-muted-foreground" />
-                              )}
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center">
-                                <ImageIcon className="w-4 h-4 text-white opacity-0 group-hover:opacity-100" />
-                              </div>
-                            </button>
-                            <div className="min-w-0">
-                              <p className="font-medium truncate">{p.name}</p>
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                {p.brand && <span>{p.brand}</span>}
-                                <Badge variant="outline" className="h-4 text-[10px] px-1">{p.classification}</Badge>
+            <div className="hidden md:block rounded-2xl border bg-white shadow-sm overflow-hidden">
+              <div className="overflow-x-auto scrollbar-none">
+                <table className="w-full text-sm min-w-[920px]">
+                  <thead>
+                    <tr className="border-b bg-muted/40 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      <th className="px-5 py-3.5 w-[38%] min-w-[260px]">Product</th>
+                      <th className="px-4 py-3.5 w-[14%]">Category</th>
+                      <th className="px-4 py-3.5 text-right w-[10%]">Price</th>
+                      <th className="px-4 py-3.5 text-right w-[8%]">Stock</th>
+                      <th className="px-4 py-3.5 text-right w-[8%]">Sold</th>
+                      <th className="px-4 py-3.5 text-right w-[10%]">Revenue</th>
+                      <th className="px-4 py-3.5 text-center w-[8%]">Active</th>
+                      <th className="px-3 py-3.5 w-10" aria-label="Actions" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {filtered.map((p, rowIdx) => {
+                      const sales = salesByProduct.get(p.id);
+                      const isSaving = savingIds.has(p.id);
+                      const isEditingPrice = editingField?.id === p.id && editingField.field === "price";
+                      const isEditingStock = editingField?.id === p.id && editingField.field === "stock";
+                      return (
+                        <tr
+                          key={p.id}
+                          className={`transition-colors hover:bg-accent/30 ${rowIdx % 2 === 1 ? "bg-muted/15" : ""} ${!p.active ? "opacity-55" : ""}`}
+                          data-testid={`product-row-${p.slug}`}
+                        >
+                          <td className="px-5 py-3.5 align-middle">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <ProductThumb
+                                product={p}
+                                onClick={() => setImageDialog(p)}
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium text-foreground leading-snug line-clamp-2">
+                                  {p.name}
+                                </p>
+                                <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                  {p.brand && (
+                                    <span className="text-xs text-muted-foreground truncate max-w-[140px]">
+                                      {p.brand}
+                                    </span>
+                                  )}
+                                  <Badge
+                                    variant="outline"
+                                    className="h-5 text-[10px] px-1.5 shrink-0 font-medium"
+                                  >
+                                    {p.classification}
+                                  </Badge>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 capitalize text-muted-foreground text-xs">{p.category.replace(/-/g, " ")}</td>
-                        <td className="px-4 py-3 text-right">
-                          {isEditingPrice ? (
-                            <Input
-                              autoFocus type="number" step="0.01" value={editValue}
-                              onChange={e => setEditValue(e.target.value)}
-                              onBlur={commitEdit}
-                              onKeyDown={e => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") cancelEdit(); }}
-                              className="h-8 w-20 text-right inline-block"
-                              data-testid={`input-price-desktop-${p.slug}`}
-                            />
-                          ) : (
-                            <button
-                              onClick={() => startEdit(p.id, "price", p.priceGbp)}
-                              className="font-semibold hover:bg-primary/10 rounded px-2 py-1 -mx-2 -my-1 transition"
-                              data-testid={`btn-edit-price-desktop-${p.slug}`}
+                          </td>
+                          <td className="px-4 py-3.5 align-middle">
+                            <Badge
+                              variant="secondary"
+                              className="font-normal text-xs whitespace-nowrap max-w-[160px] truncate"
+                              title={CATEGORY_LABELS[p.category] ?? p.category}
                             >
-                              {formatGbp(p.priceGbp)}
-                            </button>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          {isEditingStock ? (
-                            <Input
-                              autoFocus type="number" value={editValue}
-                              onChange={e => setEditValue(e.target.value)}
-                              onBlur={commitEdit}
-                              onKeyDown={e => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") cancelEdit(); }}
-                              className="h-8 w-20 text-right inline-block"
-                              data-testid={`input-stock-desktop-${p.slug}`}
+                              {CATEGORY_LABELS[p.category] ?? p.category.replace(/-/g, " ")}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3.5 text-right align-middle tabular-nums">
+                            {isEditingPrice ? (
+                              <Input
+                                autoFocus
+                                type="number"
+                                step="0.01"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={commitEdit}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") commitEdit();
+                                  if (e.key === "Escape") cancelEdit();
+                                }}
+                                className="h-8 w-24 text-right ml-auto"
+                                data-testid={`input-price-desktop-${p.slug}`}
+                              />
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => startEdit(p.id, "price", p.priceGbp)}
+                                className="font-semibold text-foreground hover:bg-primary/10 rounded-md px-2 py-1 transition"
+                                data-testid={`btn-edit-price-desktop-${p.slug}`}
+                              >
+                                {formatGbp(p.priceGbp)}
+                              </button>
+                            )}
+                          </td>
+                          <td className="px-4 py-3.5 text-right align-middle tabular-nums">
+                            {isEditingStock ? (
+                              <Input
+                                autoFocus
+                                type="number"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={commitEdit}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") commitEdit();
+                                  if (e.key === "Escape") cancelEdit();
+                                }}
+                                className="h-8 w-20 text-right ml-auto"
+                                data-testid={`input-stock-desktop-${p.slug}`}
+                              />
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => startEdit(p.id, "stock", p.stock)}
+                                className={`rounded-md px-2 py-1 transition hover:bg-primary/10 ${
+                                  p.stock <= 0
+                                    ? "text-destructive font-semibold"
+                                    : p.stock < 20
+                                      ? "text-amber-700 font-medium"
+                                      : "text-foreground"
+                                }`}
+                                data-testid={`btn-edit-stock-desktop-${p.slug}`}
+                              >
+                                {p.stock}
+                              </button>
+                            )}
+                          </td>
+                          <td className="px-4 py-3.5 text-right align-middle tabular-nums text-muted-foreground">
+                            {sales?.units ?? 0}
+                          </td>
+                          <td className="px-4 py-3.5 text-right align-middle tabular-nums text-muted-foreground">
+                            {sales ? formatGbp(sales.revenue) : "—"}
+                          </td>
+                          <td className="px-4 py-3.5 text-center align-middle">
+                            <Switch
+                              checked={p.active}
+                              onCheckedChange={(v) => patchProduct(p.id, { active: v })}
+                              disabled={isSaving}
+                              data-testid={`switch-active-desktop-${p.slug}`}
                             />
-                          ) : (
-                            <button
-                              onClick={() => startEdit(p.id, "stock", p.stock)}
-                              className={`hover:bg-primary/10 rounded px-2 py-1 -mx-2 -my-1 transition ${p.stock < 20 ? "text-amber-600 font-medium" : ""}`}
-                              data-testid={`btn-edit-stock-desktop-${p.slug}`}
-                            >
-                              {p.stock}
-                            </button>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-right text-muted-foreground">{sales?.units ?? 0}</td>
-                        <td className="px-4 py-3 text-right text-muted-foreground">{sales ? formatGbp(sales.revenue) : "—"}</td>
-                        <td className="px-4 py-3 text-center">
-                          <Switch
-                            checked={p.active}
-                            onCheckedChange={v => patchProduct(p.id, { active: v })}
-                            disabled={isSaving}
-                            data-testid={`switch-active-desktop-${p.slug}`}
-                          />
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          {isSaving ? <Loader2 className="w-4 h-4 animate-spin inline text-muted-foreground" /> : renderRowActions(p)}
+                          </td>
+                          <td className="px-3 py-3.5 text-right align-middle">
+                            {isSaving ? (
+                              <Loader2 className="w-4 h-4 animate-spin inline text-muted-foreground" />
+                            ) : (
+                              renderRowActions(p)
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {filtered.length === 0 && (
+                      <tr>
+                        <td colSpan={8} className="px-5 py-16 text-center text-muted-foreground">
+                          No products match your filters.
                         </td>
                       </tr>
-                    );
-                  })}
-                  {filtered.length === 0 && (
-                    <tr><td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">No products match your filters.</td></tr>
-                  )}
-                </tbody>
-              </table>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </>
         )}

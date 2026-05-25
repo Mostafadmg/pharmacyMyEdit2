@@ -10,6 +10,7 @@ import {
 import { toast } from "sonner";
 import { PRESCRIPTION_EVIDENCE_SLOTS } from "@/lib/prescriptionEvidenceSlots";
 import { apiFetch } from "@/lib/api";
+import { buildConsultationDocumentFocusPath } from "@/lib/consultationDocumentFocus";
 import ClinicalReplyPicker from "@/components/pharmacist/ClinicalReplyPicker";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -46,6 +47,7 @@ const KIND_LABELS: Record<string, string> = {
   document_upload: "Document uploaded",
   document_rejected: "Document rejected",
   document_verified: "Document verified",
+  document_upload_requested: "Upload requested",
   approve: "Approved",
   reject: "Decision: not suitable",
   more_info: "Information requested",
@@ -363,7 +365,9 @@ export default function ConsultationChat({ consultationId, audience, className, 
                     ) : null}
                     <p>{m.body}</p>
                     {audience === "patient" &&
-                      (m.kind === "document_rejected" || m.kind === "more_info_request") && (
+                      (m.kind === "document_rejected" ||
+                        m.kind === "document_upload_requested" ||
+                        m.kind === "more_info_request") && (
                         <div className="mt-2">
                           {(() => {
                             let docId: string | undefined;
@@ -374,10 +378,14 @@ export default function ConsultationChat({ consultationId, audience, className, 
                             } catch {
                               docId = undefined;
                             }
-                            if (m.kind === "document_rejected" && docId) {
+                            if (
+                              (m.kind === "document_rejected" ||
+                                m.kind === "document_upload_requested") &&
+                              docId
+                            ) {
                               return (
                                 <Link
-                                  href={`/upload-documents/${consultationId}?slot=${encodeURIComponent(docId)}`}
+                                  href={buildConsultationDocumentFocusPath(consultationId, docId)}
                                   className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-1.5"
                                 >
                                   <Paperclip className="w-3.5 h-3.5" />

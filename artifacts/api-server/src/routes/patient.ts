@@ -9,10 +9,15 @@ import {
 } from "@workspace/db";
 import { eq, desc, asc, and, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { validatePatientDocumentDataUrl } from "@workspace/evidence-slots";
+import { reconcileAutoOrderTags } from "../utils/orderTags";
 import {
   applyPatientDocumentUpload,
+  consultationHasPharmacistUploadRequest,
   documentActionsRequired,
+  EVIDENCE_SLOT_TITLES,
   getPatientDocumentDataUrl,
+  listPatientDocumentUploads,
   isEvidenceSlotId,
   patientDocumentSlotStatuses,
 } from "../utils/patientDocuments";
@@ -124,6 +129,7 @@ router.get("/patient/consultations", async (req, res): Promise<void> => {
       documentsNeedAttention: documentSlots.some(
         (s) => s.status === "required" || s.status === "rejected",
       ),
+      pharmacistUploadRequested: consultationHasPharmacistUploadRequest(answers),
     };
   });
 
@@ -166,17 +172,20 @@ router.get(
     }
 
     const answers = (row.answers ?? {}) as Record<string, unknown>;
-    const file = getPatientDocumentDataUrl(answers, docId);
-    if (!file) {
+    const uploads = listPatientDocumentUploads(answers, docId);
+    if (uploads.length === 0) {
       res.status(404).json({ error: "No upload found for this document" });
       return;
     }
+    const latest = uploads[uploads.length - 1]!;
+    const file = getPatientDocumentDataUrl(answers, docId);
 
     res.json({
       docId,
-      dataUrl: file.dataUrl,
-      uploadedAt: file.uploadedAt,
-      reviewStatus: file.status ?? "pending",
+      uploads,
+      dataUrl: latest.dataUrl,
+      uploadedAt: latest.uploadedAt,
+      reviewStatus: file?.status ?? "pending",
     });
   },
 );
@@ -347,11 +356,21 @@ router.post("/patient/messages", async (req, res): Promise<void> => {
       return;
     }
 
-    const answers = applyPatientDocumentUpload(
+    const mimeCheck = validatePatientDocumentDataUrl(attachment!.dataUrl!, docId);
+    if (!mimeCheck.ok) {
+      res.status(400).json({ error: mimeCheck.message });
+      return;
+    }
+
+    let answers = applyPatientDocumentUpload(
       { ...((consultation.answers ?? {}) as Record<string, unknown>) },
       docId,
       attachment!.dataUrl!,
     );
+    answers = reconcileAutoOrderTags(answers, {
+      actor: patientName,
+      photoUrls: (consultation.photoUrls ?? []) as string[],
+    });
     const docTitle = EVIDENCE_SLOT_TITLES[docId];
     const messageText =
       text ||
@@ -362,7 +381,8 @@ router.post("/patient/messages", async (req, res): Promise<void> => {
       .set({
         answers,
         status:
-          consultation.status === "more_info_needed"
+          consultation.status === "more_info_needed" ||
+          consultation.status === "pending"
             ? "patient_responded"
             : consultation.status,
       })

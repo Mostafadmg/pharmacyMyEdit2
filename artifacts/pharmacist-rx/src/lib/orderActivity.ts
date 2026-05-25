@@ -11,6 +11,12 @@ import {
   deriveWaitTagsFromConsultation,
   type CustomerWaitTag,
 } from "@/lib/orderWaitingTags";
+import {
+  formatOrderTagActivityCopy,
+  formatOrderTagsBatchAddActivityCopy,
+  formatOrderTagsBatchRemoveActivityCopy,
+  orderTagActivityEvents,
+} from "@/lib/orderTags";
 
 /** Semantic activity type — each maps to a unique colour in the Activity tab. */
 export type ActivityKind =
@@ -29,7 +35,9 @@ export type ActivityKind =
   | "profile_edit"
   | "medication_change"
   | "pending_customer_response"
-  | "pending_document_upload";
+  | "pending_document_upload"
+  | "tag_added"
+  | "tag_removed";
 
 export type ActivityEvent = {
   atIso: string;
@@ -39,6 +47,8 @@ export type ActivityEvent = {
   expandableBody?: string;
   actor?: string;
   kind: ActivityKind;
+  /** Order tag display label — tag_added / tag_removed cards only. */
+  tagLabel?: string;
   /** Links the event to a specific consultation / order episode. */
   consultationId?: string;
 };
@@ -211,6 +221,22 @@ export const ACTIVITY_KIND_STYLES: Record<ActivityKind, ActivityKindStyle> = {
     badge: "bg-rx-cs text-white",
     legendDot: "bg-card ring-1 ring-card/40",
   },
+  tag_added: {
+    label: "Tag added",
+    icon: "bg-violet-600 ring-violet-300",
+    card: "border-violet-200 bg-violet-50",
+    time: "bg-violet-50 text-violet-900 border-violet-200",
+    badge: "bg-violet-700 text-white",
+    legendDot: "bg-card ring-1 ring-card/40",
+  },
+  tag_removed: {
+    label: "Tag removed",
+    icon: "bg-muted-foreground ring-border",
+    card: "border-border bg-muted/60",
+    time: "bg-muted text-muted-foreground border-border",
+    badge: "bg-muted text-foreground border border-border",
+    legendDot: "bg-muted-foreground",
+  },
 };
 
 /** Left accent stripe — darker shade of each activity theme colour. */
@@ -230,6 +256,8 @@ export function activityEventBorderClass(kind: ActivityKind): string {
     document_rejected: "border-l-rx-decline-stripe",
     pending_customer_response: "border-l-rx-hold-stripe",
     pending_document_upload: "border-l-rx-cs-stripe",
+    tag_added: "border-l-violet-500",
+    tag_removed: "border-l-muted-foreground",
     profile_edit: "border-l-secondary",
     medication_change: "border-l-rx-approve-stripe",
   };
@@ -264,7 +292,17 @@ export type PatientCommunication = {
   message: string;
   at: string;
   actor: string;
+  /** consultation_messages.kind — used to separate uploads from real replies */
+  messageKind?: string;
 };
+
+/** Uploads / document actions are logged as system activity, not patient replies. */
+export function isPatientReplyCommunication(
+  comm: PatientCommunication,
+): boolean {
+  if (comm.messageKind === "document_upload") return false;
+  return true;
+}
 
 const TAB_LABELS: Record<string, string> = {
   clinical: "Clinical Review",
@@ -324,6 +362,7 @@ function normalizeActivityEvent(raw: Record<string, unknown>): ActivityEvent {
     expandableBody:
       typeof raw.expandableBody === "string" ? raw.expandableBody : undefined,
     actor: typeof raw.actor === "string" ? raw.actor : undefined,
+    tagLabel: typeof raw.tagLabel === "string" ? raw.tagLabel : undefined,
     kind,
     consultationId:
       typeof raw.consultationId === "string" ? raw.consultationId : undefined,
@@ -450,6 +489,7 @@ export function communicationsFromConsultationMessages(
     "document_rejected",
     "document_verified",
     "document_upload",
+    "document_upload_requested",
   ]);
 
   return messages
@@ -465,6 +505,8 @@ export function communicationsFromConsultationMessages(
           : `${m.senderName} - document rejected`;
       } else if (m.kind === "document_verified") {
         title = `${m.senderName} - document verified`;
+      } else if (m.kind === "document_upload_requested") {
+        title = `${m.senderName} - upload requested`;
       } else if (m.kind === "document_upload") {
         title = fromPatient
           ? `${patientName} uploaded a document`
@@ -480,6 +522,7 @@ export function communicationsFromConsultationMessages(
         message: m.body,
         at: m.createdAt,
         actor: fromPatient ? patientName : m.senderName,
+        messageKind: m.kind,
       } satisfies PatientCommunication;
     });
 }
@@ -527,6 +570,19 @@ export function formatActivityTime(iso: string): string {
   });
 }
 
+/** Date and time for activity / message cards (en-GB). */
+export function formatActivityDateTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return EMPTY_VALUE;
+  return d.toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function formatActivityDateGroup(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "UNKNOWN DATE";
@@ -546,8 +602,40 @@ export function createActivityEvent(
   return {
     ...partial,
     atIso,
-    time: formatActivityTime(atIso),
+    time: formatActivityDateTime(atIso),
   };
+}
+
+function normalizeActivityBodyForDedup(body: string): string {
+  return body
+    .replace(/\|/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+/** Collapse duplicate hold / wait-state rows (session log + DB-backed seed). */
+function activityDedupKey(ev: ActivityEvent): string {
+  const t = new Date(ev.atIso).getTime();
+  const minuteBucket = Number.isNaN(t)
+    ? ev.atIso
+    : String(Math.floor(t / 60_000));
+
+  const oncePerMinuteKinds: ActivityKind[] = [
+    "cs_hold",
+    "prescriber_hold",
+    "declined",
+    "approved",
+    "pending_customer_response",
+    "pending_document_upload",
+  ];
+
+  if (oncePerMinuteKinds.includes(ev.kind)) {
+    const bodyKey = normalizeActivityBodyForDedup(ev.body).slice(0, 96);
+    return `${ev.consultationId ?? ""}|${minuteBucket}|${ev.kind}|${ev.title}|${bodyKey}`;
+  }
+
+  return `${ev.consultationId ?? ""}|${ev.atIso}|${ev.kind}|${ev.title}|${ev.body.slice(0, 40)}`;
 }
 
 export function mergeActivityEvents(
@@ -558,7 +646,7 @@ export function mergeActivityEvents(
   const all = [...session, ...seed];
   const out: ActivityEvent[] = [];
   for (const ev of all) {
-    const key = `${ev.consultationId ?? ""}|${ev.atIso}|${ev.kind}|${ev.title}|${ev.body.slice(0, 40)}`;
+    const key = activityDedupKey(ev);
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(ev);
@@ -609,7 +697,7 @@ function eventsForConsultation(
     );
 }
 
-/** Groups activity by order (newest order first), each with a “new order” separator. */
+/** Groups activity by order (newest placed first). Viewed order is flagged isCurrent but not reordered. */
 export function buildMultiOrderActivityTimeline(opts: {
   currentConsultationId: string;
   consultations: Consultation[];
@@ -628,12 +716,7 @@ export function buildMultiOrderActivityTimeline(opts: {
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
-  const current = byNewest.find((c) => c.id === currentConsultationId);
-  const ordered = current
-    ? [current, ...byNewest.filter((c) => c.id !== currentConsultationId)]
-    : byNewest;
-
-  return ordered.map((c) => {
+  return byNewest.map((c) => {
     const comms = communicationsByConsultationId[c.id] ?? [];
     const session = sessionByConsultationId[c.id] ?? [];
     const summary = buildOrderActivitySummary(c);
@@ -705,11 +788,20 @@ export function buildConsultationActivitySeed(
   const requirementHistory = (answers.document_requirement_history ??
     []) as DocumentRequirementChange[];
   for (const change of requirementHistory) {
-    if (change.slotId !== "previous-prescription") continue;
+    if (
+      change.slotId !== "previous-prescription" &&
+      change.slotId !== "previous-bmi-verification"
+    ) {
+      continue;
+    }
+    const slotLabel =
+      change.slotId === "previous-bmi-verification"
+        ? "Previous BMI verification"
+        : "Previous prescription";
     const title =
       change.to === "required"
-        ? "Previous prescription requirement changed to required"
-        : "Previous prescription requirement changed to not required";
+        ? `${slotLabel} requirement changed to required`
+        : `${slotLabel} requirement changed to not required`;
     events.push(
       createActivityEvent({
         atIso: change.at,
@@ -779,7 +871,7 @@ export function buildConsultationActivitySeed(
         ? ` (${rev.rejectionTemplateTitle})`
         : "";
       const emailLine = rev.uploadEmailSentAt
-        ? "Upload link emailed to patient."
+        ? "Document upload requested (email sent)."
         : "Awaiting patient re-upload.";
       events.push(
         createActivityEvent({
@@ -855,15 +947,15 @@ export function buildConsultationActivitySeed(
   }
 
   for (const comm of communications) {
+    if (!isPatientReplyCommunication(comm)) continue;
+
     const isOut = comm.direction === "outgoing";
     events.push(
       createActivityEvent({
         atIso: comm.at,
         kind: isOut ? "message_out" : "message_in",
         consultationId: c.id,
-        title: isOut
-          ? `Message sent to ${c.patientName}`
-          : `${c.patientName} replied`,
+        title: isOut ? `Message sent to ${c.patientName}` : comm.title,
         body: comm.preview,
         expandableBody: comm.message,
         actor: comm.actor,
@@ -874,6 +966,20 @@ export function buildConsultationActivitySeed(
   for (const tag of deriveWaitTagsFromConsultation(c)) {
     if (tag.source === "message") continue;
     events.push(activityForWaitTag(tag, c.reviewedBy ?? "Staff"));
+  }
+
+  for (const te of orderTagActivityEvents(c)) {
+    events.push(
+      createActivityEvent({
+        atIso: te.atIso,
+        kind: te.kind,
+        consultationId: c.id,
+        title: te.title,
+        body: te.body,
+        tagLabel: te.tagLabel,
+        expandableBody: te.note,
+      }),
+    );
   }
 
   return events;
@@ -1006,7 +1112,7 @@ export function activityForDocumentReview(
   }
   const reason = opts?.templateTitle ? ` (${opts.templateTitle})` : "";
   const emailLine = opts?.emailSent
-    ? "Upload link emailed to patient."
+    ? "Document upload requested (email sent)."
     : "Awaiting patient re-upload.";
   return createActivityEvent({
     kind: "document_rejected",
@@ -1035,18 +1141,16 @@ export function activityForUploadLinkSent(
   docTitle: string,
   pharmacistName: string,
   emailSent?: boolean,
+  note?: string,
 ): ActivityEvent {
-  return activityForWaitTag(
-    {
-      id: `upload-link-${docTitle}`,
-      kind: "pending_document_upload",
-      label: "Pending document upload",
-      detail: `${docTitle} — ${emailSent ? "upload link emailed to patient" : "upload request recorded, awaiting patient upload"}.`,
-      createdAt: new Date().toISOString(),
-      source: "upload_link",
-    },
-    pharmacistName,
-  );
+  const detail = `${docTitle} — ${emailSent ? "document upload requested (email sent)" : "document upload requested, awaiting patient upload"}.`;
+  return createActivityEvent({
+    kind: "pending_document_upload",
+    title: "Pending document upload",
+    body: detail,
+    expandableBody: note?.trim() || detail,
+    actor: pharmacistName,
+  });
 }
 
 export function activityForPrescriptionApproved(
@@ -1059,6 +1163,116 @@ export function activityForPrescriptionApproved(
     body: note?.trim() || "Approved after completing the full clinical checklist.",
     expandableBody: note?.trim() || undefined,
     actor: pharmacistName,
+  });
+}
+
+/** Readable one-line copy for tag_added / tag_removed activity cards. */
+export function resolveTagActivitySentence(ev: ActivityEvent): {
+  label: string;
+  actionPhrase: "tag removed" | "tag added";
+  actorPhrase: string;
+  note?: string;
+} | null {
+  if (ev.kind !== "tag_added" && ev.kind !== "tag_removed") return null;
+
+  const actionPhrase =
+    ev.kind === "tag_removed" ? ("tag removed" as const) : ("tag added" as const);
+
+  const note =
+    ev.expandableBody?.trim() ||
+    ev.body.match(/(?:^|\s·\s*)Note:\s*(.+)$/i)?.[1]?.trim() ||
+    undefined;
+
+  if (ev.tagLabel) {
+    const actorFromBody = ev.body.match(
+      /\btag (?:removed|added) by (.+?)(?:\s*·\s*Note:|$)/i,
+    );
+    const actor = actorFromBody?.[1]?.trim() || ev.actor || "Staff";
+    return {
+      label: ev.tagLabel,
+      actionPhrase,
+      actorPhrase: `by ${actor}`,
+      note,
+    };
+  }
+
+  if (ev.kind === "tag_removed") {
+    const label =
+      ev.title.replace(/\s+tag was removed\s*$/i, "").trim() || ev.title;
+    const actor =
+      ev.body
+        .replace(/^by\s+/i, "")
+        .split(/\s*·\s*/)[0]
+        ?.trim() ||
+      ev.actor ||
+      "Staff";
+    return { label, actionPhrase, actorPhrase: `by ${actor}`, note };
+  }
+
+  const label = ev.title.replace(/^Tag added:\s*/i, "").trim() || ev.title;
+  const actor =
+    ev.body
+      .replace(/^Added by\s+/i, "")
+      .split(/\s*·\s*/)[0]
+      ?.trim() ||
+    ev.actor ||
+    "Staff";
+  return { label, actionPhrase, actorPhrase: `by ${actor}`, note };
+}
+
+export function activityForOrderTagsBatchAdd(
+  labels: string[],
+  pharmacistName: string,
+  note?: string,
+): ActivityEvent {
+  const copy = formatOrderTagsBatchAddActivityCopy(
+    labels,
+    pharmacistName,
+    note,
+  );
+  return createActivityEvent({
+    kind: "tag_added",
+    title: copy.title,
+    body: copy.body,
+    tagLabel: copy.tagLabel,
+    expandableBody: copy.note,
+    actor: pharmacistName,
+  });
+}
+
+export function activityForOrderTagsBatchRemove(
+  labels: string[],
+  pharmacistName: string,
+  note?: string,
+): ActivityEvent {
+  const copy = formatOrderTagsBatchRemoveActivityCopy(
+    labels,
+    pharmacistName,
+    note,
+  );
+  return createActivityEvent({
+    kind: "tag_removed",
+    title: copy.title,
+    body: copy.body,
+    tagLabel: copy.tagLabel,
+    expandableBody: copy.note,
+    actor: pharmacistName,
+  });
+}
+
+export function activityForOrderTagChange(
+  action: "add" | "remove",
+  label: string,
+  pharmacistName: string,
+  note?: string,
+): ActivityEvent {
+  const copy = formatOrderTagActivityCopy(action, label, pharmacistName, note);
+  return createActivityEvent({
+    kind: action === "remove" ? "tag_removed" : "tag_added",
+    title: copy.title,
+    body: copy.body,
+    tagLabel: copy.tagLabel,
+    expandableBody: copy.note,
   });
 }
 

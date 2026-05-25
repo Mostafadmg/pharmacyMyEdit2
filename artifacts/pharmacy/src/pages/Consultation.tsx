@@ -30,6 +30,15 @@ import {
   type EligibilityQuestion,
 } from "@/data/conditionQuestions";
 import { newConditionDbSeeds } from "@/data/newConditionsData";
+import { SimpleRepeatQuestionnaire } from "@/components/consultation/SimpleRepeatQuestionnaire";
+import {
+  emptySimpleRepeatFormState,
+  isSimpleRepeatDeclarationComplete,
+  isSimpleRepeatMonitoringComplete,
+  isSimpleRepeatScreeningComplete,
+  simpleRepeatToAnswers,
+  type SimpleRepeatFormState,
+} from "@/lib/simpleRepeatQuestionnaire";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PHARMACIST_TEL = "08001234567";
@@ -49,6 +58,8 @@ type Step =
   | "ELIGIBILITY"
   | "CLINICAL"
   | "MEDICAL"
+  | "REPEAT_SCREENING"
+  | "REPEAT_MONITORING"
   | "PHOTO"
   | "ACCOUNT"
   | "GP"
@@ -307,8 +318,18 @@ export default function Consultation() {
     };
   }, [repeatOfId]);
 
+  const isSimpleRepeat = Boolean(repeatOfId);
+
   // ── Flow state ────────────────────────────────────────────────────────────
-  const [step, setStep] = useState<Step>("ELIGIBILITY");
+  const [step, setStep] = useState<Step>(() =>
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("repeatOf")?.trim()
+      ? "REPEAT_SCREENING"
+      : "ELIGIBILITY",
+  );
+  const [repeatForm, setRepeatForm] = useState<SimpleRepeatFormState>(
+    emptySimpleRepeatFormState,
+  );
   const [eligibilityIndex, setEligibilityIndex] = useState(0);
   const [clinicalIndex, setClinicalIndex] = useState(0);
 
@@ -417,12 +438,19 @@ export default function Consultation() {
 
   // ── Step ordering helpers ────────────────────────────────────────────────
   const stepOrder = useMemo<Step[]>(() => {
+    if (isSimpleRepeat) {
+      const list: Step[] = ["REPEAT_SCREENING", "REPEAT_MONITORING"];
+      if (requiresPhoto) list.push("PHOTO");
+      if (!isLoggedIn) list.push("ACCOUNT");
+      list.push("GP", "REVIEW");
+      return list;
+    }
     const list: Step[] = ["ELIGIBILITY", "CLINICAL", "MEDICAL"];
     if (requiresPhoto) list.push("PHOTO");
     if (!isLoggedIn) list.push("ACCOUNT");
     list.push("GP", "REVIEW");
     return list;
-  }, [requiresPhoto, isLoggedIn]);
+  }, [isSimpleRepeat, requiresPhoto, isLoggedIn]);
 
   const stepNumber = stepOrder.indexOf(step) + 1;
   const totalSteps = stepOrder.length;
@@ -430,6 +458,8 @@ export default function Consultation() {
     ELIGIBILITY: "Safety check",
     CLINICAL: "Your symptoms",
     MEDICAL: "Medical background",
+    REPEAT_SCREENING: "Repeat screening",
+    REPEAT_MONITORING: "Monitoring",
     PHOTO: "Upload a photo",
     ACCOUNT: "Your account",
     GP: "Your GP",
@@ -445,6 +475,10 @@ export default function Consultation() {
   }
 
   function goBack() {
+    if (step === "REPEAT_SCREENING") {
+      setLocation(`/conditions/${conditionId}`);
+      return;
+    }
     if (step === "ELIGIBILITY") {
       if (eligibilityIndex > 0) {
         setEligibilityIndex((i) => i - 1);
@@ -667,6 +701,10 @@ export default function Consultation() {
   // ── Submit ───────────────────────────────────────────────────────────────
   async function submitConsultation() {
     if (!conditionId || !questions) return;
+    if (isSimpleRepeat && !isSimpleRepeatDeclarationComplete(repeatForm)) {
+      toast.error("Please confirm the patient declaration before submitting.");
+      return;
+    }
     // Sex sanity check
     if (patientSex !== "male" && patientSex !== "female" && patientSex !== "other") {
       toast.error("Please tell us your sex so the pharmacist can prescribe safely.");
@@ -676,26 +714,31 @@ export default function Consultation() {
     try {
       const age = patientDob ? calculateAge(patientDob) : 0;
 
-      const answersPayload: Record<string, unknown> = {};
-      for (const q of questions.clinicalQuestions) {
-        const v = clinicalAnswers[q.id];
-        if (v === undefined || v === "") continue;
-        if (Array.isArray(v)) {
-          if (v.length === 0) continue;
-          answersPayload[q.id] = v.join(", ");
-        } else {
-          answersPayload[q.id] = v;
-        }
-        if (q.kind === "number" && q.unitToggle) {
-          const unit = clinicalAnswers[`${q.id}__unit`];
-          if (typeof unit === "string" && unit) {
-            answersPayload[`${q.id}__unit`] = unit;
+      const answersPayload: Record<string, unknown> = isSimpleRepeat
+        ? { ...simpleRepeatToAnswers(repeatForm) }
+        : {};
+
+      if (!isSimpleRepeat) {
+        for (const q of questions.clinicalQuestions) {
+          const v = clinicalAnswers[q.id];
+          if (v === undefined || v === "") continue;
+          if (Array.isArray(v)) {
+            if (v.length === 0) continue;
+            answersPayload[q.id] = v.join(", ");
+          } else {
+            answersPayload[q.id] = v;
+          }
+          if (q.kind === "number" && q.unitToggle) {
+            const unit = clinicalAnswers[`${q.id}__unit`];
+            if (typeof unit === "string" && unit) {
+              answersPayload[`${q.id}__unit`] = unit;
+            }
           }
         }
       }
 
       // Pharmacist-review flags
-      const flags = [...softFlags];
+      const flags = isSimpleRepeat ? [] : [...softFlags];
       if (patientSex === "other") flags.push("sex_prefer_to_discuss");
       answersPayload._softFlags = flags;
       answersPayload._needsPharmacistReview = flags.length > 0;
@@ -730,9 +773,13 @@ export default function Consultation() {
         allergies: noAllergies ? "None" : allergies.trim(),
         currentMedications: noMedications ? "None" : medications.trim(),
         medicalHistory: noMedicalHistory ? "None" : medicalHistory.trim(),
-        answers: answersPayload,
+        answers: {
+          ...answersPayload,
+          ...(photoDataUrls.length > 0
+            ? { patient_documents: { consultation_photo: photoDataUrls[0] } }
+            : {}),
+        },
         hasPhoto: requiresPhoto && photoDataUrls.length > 0,
-        photoUrls: photoDataUrls,
       };
 
       const data = await apiFetch<{ id: string; consultationNumber?: string }>(
@@ -845,6 +892,44 @@ export default function Consultation() {
         />
       )}
 
+      {step === "REPEAT_SCREENING" && (
+        <div className="flex flex-col gap-5">
+          <StepCard
+            title="Repeat order screening"
+            subtitle="Answer each question about changes since your last supply."
+          >
+            <SimpleRepeatQuestionnaire
+              section="screening"
+              state={repeatForm}
+              onChange={setRepeatForm}
+            />
+          </StepCard>
+          <ContinueButton
+            onClick={goNext}
+            disabled={!isSimpleRepeatScreeningComplete(repeatForm)}
+          />
+        </div>
+      )}
+
+      {step === "REPEAT_MONITORING" && (
+        <div className="flex flex-col gap-5">
+          <StepCard
+            title="Clinical monitoring"
+            subtitle="Lifestyle and high-risk medicine checks for your pharmacist."
+          >
+            <SimpleRepeatQuestionnaire
+              section="monitoring"
+              state={repeatForm}
+              onChange={setRepeatForm}
+            />
+          </StepCard>
+          <ContinueButton
+            onClick={goNext}
+            disabled={!isSimpleRepeatMonitoringComplete(repeatForm)}
+          />
+        </div>
+      )}
+
       {step === "MEDICAL" && (
         <MedicalStep
           allergies={allergies}
@@ -937,6 +1022,9 @@ export default function Consultation() {
           questions={questions.clinicalQuestions}
           answers={clinicalAnswers}
           softFlags={softFlags}
+          isSimpleRepeat={isSimpleRepeat}
+          repeatForm={repeatForm}
+          onRepeatFormChange={setRepeatForm}
           submitting={submitting}
           onSubmit={submitConsultation}
         />
@@ -1487,6 +1575,9 @@ function ReviewStep({
   questions,
   answers,
   softFlags,
+  isSimpleRepeat,
+  repeatForm,
+  onRepeatFormChange,
   submitting,
   onSubmit,
 }: {
@@ -1495,20 +1586,25 @@ function ReviewStep({
   questions: ClinicalQuestion[];
   answers: ClinicalAnswers;
   softFlags: string[];
+  isSimpleRepeat: boolean;
+  repeatForm: SimpleRepeatFormState;
+  onRepeatFormChange: (s: SimpleRepeatFormState) => void;
   submitting: boolean;
   onSubmit: () => void;
 }) {
-  const summarised = questions
-    .filter((q) => {
-      const v = answers[q.id];
-      return !(v === undefined || v === "" || (Array.isArray(v) && v.length === 0));
-    })
-    .slice(0, 8);
+  const summarised = isSimpleRepeat
+    ? []
+    : questions
+        .filter((q) => {
+          const v = answers[q.id];
+          return !(v === undefined || v === "" || (Array.isArray(v) && v.length === 0));
+        })
+        .slice(0, 8);
 
   return (
     <div className="flex flex-col gap-5">
       <StepCard
-        title="Review your consultation"
+        title={isSimpleRepeat ? "Review your repeat order" : "Review your consultation"}
         subtitle="Please check everything looks right before submitting."
       >
         <dl className="divide-y divide-border text-sm">
@@ -1516,6 +1612,12 @@ function ReviewStep({
             <dt className="text-muted-foreground">Condition</dt>
             <dd className="text-right font-medium text-foreground">{conditionName}</dd>
           </div>
+          {isSimpleRepeat && (
+            <div className="flex items-baseline justify-between gap-4 py-3">
+              <dt className="text-muted-foreground">Order type</dt>
+              <dd className="text-right font-medium text-foreground">Repeat customer</dd>
+            </div>
+          )}
           {age > 0 && (
             <div className="flex items-baseline justify-between gap-4 py-3">
               <dt className="text-muted-foreground">Age</dt>
@@ -1532,6 +1634,16 @@ function ReviewStep({
           ))}
         </dl>
       </StepCard>
+
+      {isSimpleRepeat && (
+        <StepCard title="Patient declaration" subtitle="Required before we can submit your repeat order.">
+          <SimpleRepeatQuestionnaire
+            section="declaration"
+            state={repeatForm}
+            onChange={onRepeatFormChange}
+          />
+        </StepCard>
+      )}
 
       {softFlags.length > 0 && (
         <EligibilityNotice
@@ -1550,6 +1662,7 @@ function ReviewStep({
       <ContinueButton
         onClick={onSubmit}
         loading={submitting}
+        disabled={isSimpleRepeat && !isSimpleRepeatDeclarationComplete(repeatForm)}
         label="Submit consultation"
       />
     </div>

@@ -144,3 +144,22 @@
     color: hsl(var(--accent-foreground));
   }
 }
+
+@layer utilities {
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .shop-category-track {
+    @apply relative z-10 flex min-w-0 items-center gap-2 overflow-visible py-1;
+  }
+  .shop-category-scroll {
+    @apply flex min-h-0 min-w-0 flex-1 items-center gap-2 overflow-x-auto overflow-y-visible scroll-smooth touch-pan-x pb-1 pt-1 [scroll-padding-inline-start:1.5rem] [scroll-padding-inline-end:1.5rem] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden;
+  }
+}

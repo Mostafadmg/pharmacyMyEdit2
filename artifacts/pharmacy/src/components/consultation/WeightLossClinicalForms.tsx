@@ -3,8 +3,28 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { DateField } from "@/components/consultation/DateField";
+import { GatedChecklistSection } from "@/components/consultation/GatedChecklistSection";
+import {
+  WL_BTN_DASHED,
+  WL_CHIP_INFO,
+  WL_CHECKLIST_SELECTED,
+  WL_DETAIL_PANEL,
+  WL_OPTION_SELECTED,
+  WL_OPTION_UNSELECTED,
+  WL_SECTION_TITLE,
+  WL_YESNO_SELECTED,
+  WL_YESNO_UNSELECTED,
+} from "@/lib/consultationTheme";
 import { cn } from "@/lib/utils";
+import {
+  TRANSFER_HIGH_RISK_MED_IDS,
+  TRANSFER_HIGH_RISK_MED_LABELS,
+  TRANSFER_HIGH_RISK_QUESTION,
+  type HighRiskMedDetail,
+  type TransferHighRiskMedId,
+} from "@/lib/weightLossHighRiskMeds";
 
 export type YesNo = "yes" | "no";
 
@@ -80,6 +100,94 @@ export function emptyHealthEntry(): OtherHealthEntry {
   return { id: newEntryId(), condition: "", howLongAgo: "", outcome: "" };
 }
 
+/** Transfer / continuation dose — medication name + strength (legacy rows may include dosage/frequency). */
+export type TransferMedicationEntry = {
+  id: string;
+  medication: string;
+  strength: string;
+  dosage?: string;
+  frequency?: string;
+};
+
+export function emptyTransferMedicationEntry(): TransferMedicationEntry {
+  return {
+    id: newEntryId(),
+    medication: "",
+    strength: "",
+  };
+}
+
+export function isTransferMedicationEntryComplete(
+  e: TransferMedicationEntry,
+): boolean {
+  return Boolean(e.medication.trim() && e.strength.trim());
+}
+
+/** Injectable WL products for transfer / continuation dose (matches plan pen catalog). */
+export type TransferWlProduct = "wegovy" | "mounjaro";
+
+export type TransferWlPenOption = {
+  id: string;
+  medicine: TransferWlProduct;
+  label: string;
+  dose: string;
+};
+
+export const TRANSFER_WL_PEN_OPTIONS: TransferWlPenOption[] = [
+  { id: "mounjaro-2_5", medicine: "mounjaro", label: "Mounjaro 2.5 mg", dose: "2.5 mg" },
+  { id: "mounjaro-5", medicine: "mounjaro", label: "Mounjaro 5 mg", dose: "5 mg" },
+  { id: "mounjaro-7_5", medicine: "mounjaro", label: "Mounjaro 7.5 mg", dose: "7.5 mg" },
+  { id: "mounjaro-10", medicine: "mounjaro", label: "Mounjaro 10 mg", dose: "10 mg" },
+  { id: "mounjaro-12_5", medicine: "mounjaro", label: "Mounjaro 12.5 mg", dose: "12.5 mg" },
+  { id: "mounjaro-15", medicine: "mounjaro", label: "Mounjaro 15 mg", dose: "15 mg" },
+  { id: "wegovy-0_25", medicine: "wegovy", label: "Wegovy 0.25 mg", dose: "0.25 mg" },
+  { id: "wegovy-0_5", medicine: "wegovy", label: "Wegovy 0.5 mg", dose: "0.5 mg" },
+  { id: "wegovy-1_0", medicine: "wegovy", label: "Wegovy 1 mg", dose: "1 mg" },
+  { id: "wegovy-1_7", medicine: "wegovy", label: "Wegovy 1.7 mg", dose: "1.7 mg" },
+  { id: "wegovy-2_4", medicine: "wegovy", label: "Wegovy 2.4 mg", dose: "2.4 mg" },
+  { id: "wegovy-7_2", medicine: "wegovy", label: "Wegovy 7.2 mg", dose: "7.2 mg" },
+];
+
+const TRANSFER_WL_PRODUCT_LABELS: Record<TransferWlProduct, string> = {
+  mounjaro: "Mounjaro",
+  wegovy: "Wegovy",
+};
+
+export type TransferWeightLossMedicationValue = {
+  product: TransferWlProduct | null;
+  strengthPenId: string;
+  lastInjectionDate: string;
+};
+
+export function emptyTransferWeightLossMedication(): TransferWeightLossMedicationValue {
+  return { product: null, strengthPenId: "", lastInjectionDate: "" };
+}
+
+export function isTransferWeightLossMedicationComplete(
+  v: TransferWeightLossMedicationValue,
+): boolean {
+  if (!v.product || !v.strengthPenId || !v.lastInjectionDate.trim()) {
+    return false;
+  }
+  return TRANSFER_WL_PEN_OPTIONS.some(
+    (p) => p.id === v.strengthPenId && p.medicine === v.product,
+  );
+}
+
+export function transferWlMedicationToDetailsRow(
+  v: TransferWeightLossMedicationValue,
+): TransferMedicationEntry | null {
+  if (!isTransferWeightLossMedicationComplete(v)) return null;
+  const pen = TRANSFER_WL_PEN_OPTIONS.find((p) => p.id === v.strengthPenId);
+  if (!pen || !v.product) return null;
+  return {
+    id: newEntryId(),
+    medication: TRANSFER_WL_PRODUCT_LABELS[v.product],
+    strength: pen.dose,
+    dosage: v.lastInjectionDate.trim(),
+  };
+}
+
 const durationInputClass = "h-12 mt-1.5 rounded-xl";
 
 type YesNoChoiceProps = {
@@ -104,8 +212,8 @@ export function YesNoChoiceInline({
           className={cn(
             "h-12 rounded-xl font-semibold text-sm border transition-colors",
             value === v
-              ? "bg-[#D4EFE2] border-[#0E3D2D] text-[#0E3D2D]"
-              : "bg-white border-stone-200 text-stone-700 hover:border-stone-300",
+              ? WL_YESNO_SELECTED
+              : WL_YESNO_UNSELECTED,
           )}
         >
           {v === "yes" ? "Yes" : "No"}
@@ -121,7 +229,7 @@ function AddAnotherButton({ onClick, label }: { onClick: () => void; label: stri
       type="button"
       variant="outline"
       onClick={onClick}
-      className="w-full h-11 rounded-xl border-dashed border-[#0E3D2D]/35 text-[#0E3D2D] hover:bg-[#D4EFE2]/40"
+      className={cn("w-full h-11 rounded-xl", WL_BTN_DASHED)}
     >
       <Plus className="w-4 h-4 mr-1.5" />
       {label}
@@ -142,13 +250,13 @@ export function DiagnosedConditionsFollowUp({
 
   return (
     <div className="mt-5 space-y-5 border-t border-stone-100 pt-5">
-      <p className="text-sm font-semibold text-[#0E3D2D]">
+      <p className="text-sm font-semibold text-secondary">
         Tell us about each condition
       </p>
       {entries.map((entry, index) => (
         <div
           key={entry.id}
-          className="rounded-xl border border-stone-200 bg-[#FCFAF6] p-4 space-y-4"
+          className={WL_DETAIL_PANEL}
         >
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs font-bold uppercase tracking-wide text-stone-500">
@@ -259,7 +367,7 @@ export function DiagnosedConditionsFollowUp({
                     ],
                   })
                 }
-                className="h-10 rounded-xl border-dashed border-[#0E3D2D]/35 text-[#0E3D2D] hover:bg-[#D4EFE2]/40 text-sm"
+                className={cn("h-10 rounded-xl text-sm", WL_BTN_DASHED)}
               >
                 <Plus className="w-4 h-4 mr-1" />
                 Add another medication
@@ -289,13 +397,13 @@ export function CurrentMedicationsFollowUp({
 
   return (
     <div className="mt-5 space-y-5 border-t border-stone-100 pt-5">
-      <p className="text-sm font-semibold text-[#0E3D2D]">
+      <p className="text-sm font-semibold text-secondary">
         List each medication you take
       </p>
       {entries.map((entry, index) => (
         <div
           key={entry.id}
-          className="rounded-xl border border-stone-200 bg-[#FCFAF6] p-4 space-y-4"
+          className={WL_DETAIL_PANEL}
         >
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs font-bold uppercase tracking-wide text-stone-500">
@@ -367,13 +475,13 @@ export function OtherHealthHistoryFollowUp({
 
   return (
     <div className="mt-5 space-y-5 border-t border-stone-100 pt-5">
-      <p className="text-sm font-semibold text-[#0E3D2D]">
+      <p className="text-sm font-semibold text-secondary">
         Tell us about each health condition
       </p>
       {entries.map((entry, index) => (
         <div
           key={entry.id}
-          className="rounded-xl border border-stone-200 bg-[#FCFAF6] p-4 space-y-4"
+          className={WL_DETAIL_PANEL}
         >
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs font-bold uppercase tracking-wide text-stone-500">
@@ -450,15 +558,15 @@ function RadioRow({ selected, onSelect, title, testId }: RadioRowProps) {
       className={cn(
         "w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl border text-left transition-colors",
         selected
-          ? "bg-[#D4EFE2] border-[#0E3D2D] text-[#0E3D2D]"
-          : "bg-white border-stone-200 text-stone-800 hover:border-stone-300",
+          ? WL_OPTION_SELECTED
+          : WL_OPTION_UNSELECTED,
       )}
     >
       <span className="font-semibold text-sm">{title}</span>
       <span
         className={cn(
           "w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center",
-          selected ? "border-[#0E3D2D] bg-[#0E3D2D]" : "border-stone-300",
+          selected ? "border-primary bg-primary" : "border-stone-300",
         )}
       >
         {selected && <span className="w-2 h-2 rounded-full bg-white" />}
@@ -474,6 +582,7 @@ export function InjectablesFollowUp({
   onLastInjectionTiming,
   lastInjectionDate,
   onLastInjectionDate,
+  showLastInjection = true,
 }: {
   changingProvider: YesNo | null;
   onChangingProvider: (v: YesNo) => void;
@@ -481,12 +590,20 @@ export function InjectablesFollowUp({
   onLastInjectionTiming: (v: LastInjectionTiming) => void;
   lastInjectionDate: string;
   onLastInjectionDate: (v: string) => void;
+  /** Transfer flow collects last injection on the WL medication picker instead. */
+  showLastInjection?: boolean;
 }) {
   return (
     <div className="mt-5 space-y-5 border-t border-stone-100 pt-5">
       <div>
-        <p className="font-semibold text-secondary mb-3">
+        <p className="font-semibold text-secondary mb-2">
           Are you changing from a different provider? *
+        </p>
+        <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
+          This means you have already been receiving weight-loss injections (for
+          example Mounjaro or Wegovy) from another clinic or pharmacy, and you want
+          to continue treatment with us. Choose Yes if that applies — even if this
+          is your first order here.
         </p>
         <YesNoChoiceInline
           value={changingProvider}
@@ -494,41 +611,43 @@ export function InjectablesFollowUp({
           testIdPrefix="changingProvider"
         />
         {changingProvider === "yes" && (
-          <p className="text-xs text-[#0E3D2D] mt-2 bg-[#D4EFE2]/60 rounded-lg px-3 py-2">
-            We&apos;ll treat this as a transfer from another provider. You may be
-            asked for your previous prescription later.
+          <p className="text-xs text-secondary mt-2 bg-muted/60 rounded-lg px-3 py-2">
+            We&apos;ll treat you as a transfer patient. You may be asked for your
+            previous prescription or pen label later.
           </p>
         )}
       </div>
 
-      <div>
-        <p className="font-semibold text-secondary mb-3">
-          When was your last injection? *
-        </p>
-        <div className="space-y-2">
-          {LAST_INJECTION_OPTIONS.map((opt) => (
-            <RadioRow
-              key={opt.id}
-              selected={lastInjectionTiming === opt.id}
-              onSelect={() => onLastInjectionTiming(opt.id)}
-              title={opt.label}
-              testId={`last-injection-${opt.id}`}
-            />
-          ))}
-        </div>
-        {lastInjectionTiming === "exact_date" && (
-          <div className="mt-4">
-            <DateField
-              label="Date of last injection *"
-              value={lastInjectionDate}
-              onChange={onLastInjectionDate}
-              max={new Date().toISOString().slice(0, 10)}
-              min="2020-01-01"
-              placeholder="Select date"
-            />
+      {showLastInjection && (
+        <div>
+          <p className="font-semibold text-secondary mb-3">
+            When was your last injection? *
+          </p>
+          <div className="space-y-2">
+            {LAST_INJECTION_OPTIONS.map((opt) => (
+              <RadioRow
+                key={opt.id}
+                selected={lastInjectionTiming === opt.id}
+                onSelect={() => onLastInjectionTiming(opt.id)}
+                title={opt.label}
+                testId={`last-injection-${opt.id}`}
+              />
+            ))}
           </div>
-        )}
-      </div>
+          {lastInjectionTiming === "exact_date" && (
+            <div className="mt-4">
+              <DateField
+                label="Date of last injection *"
+                value={lastInjectionDate}
+                onChange={onLastInjectionDate}
+                max={new Date().toISOString().slice(0, 10)}
+                min="2020-01-01"
+                placeholder="Select date"
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -564,4 +683,647 @@ export function isLastInjectionComplete(
   if (!timing) return false;
   if (timing === "exact_date") return Boolean(exactDate);
   return true;
+}
+
+export const EXCLUDING_CONDITIONS_ITEMS = [
+  "Pancreatitis",
+  "Gallstones or gallbladder problems",
+  "Inflammatory bowel disease (Crohn's, ulcerative colitis)",
+  "Gastroparesis or delayed stomach emptying",
+  "Chronic malabsorption",
+  "Bariatric or gastric surgery",
+  "Liver disease",
+  "Kidney disease",
+  "Type 1 Diabetes",
+  "Diabetic eye disease (retinopathy)",
+  "Heart disease or rhythm issues",
+  "Cancer",
+  "Serious condition needing hospitalisation",
+  "Other condition not listed above",
+] as const;
+
+export function ExcludingConditionsSection({
+  excludingConditions,
+  onExcludingConditionsChange,
+  diagnosedConditions,
+  onDiagnosedConditionsChange,
+  diabetesMedsOther,
+  onDiabetesMedsOtherChange,
+  showDiabetesQuestion = true,
+}: {
+  excludingConditions: YesNo | null;
+  onExcludingConditionsChange: (v: YesNo) => void;
+  diagnosedConditions: DiagnosedConditionEntry[];
+  onDiagnosedConditionsChange: (entries: DiagnosedConditionEntry[]) => void;
+  diabetesMedsOther: YesNo | null;
+  onDiabetesMedsOtherChange: (v: YesNo) => void;
+  showDiabetesQuestion?: boolean;
+}) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="font-semibold text-secondary mb-2">
+          Have you been diagnosed with or had surgery for any of the following? *
+        </p>
+        <ul className="text-sm text-foreground/80 space-y-1.5 mb-4 bg-muted/40 rounded-xl p-4">
+          {EXCLUDING_CONDITIONS_ITEMS.map((c) => (
+            <li key={c} className="flex items-start gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
+              <span>{c}</span>
+            </li>
+          ))}
+        </ul>
+        <YesNoChoiceInline
+          value={excludingConditions}
+          onChange={(v) => {
+            onExcludingConditionsChange(v);
+            if (
+              v === "yes" &&
+              diagnosedConditions.length === 0
+            ) {
+              onDiagnosedConditionsChange([emptyDiagnosedEntry()]);
+            }
+          }}
+          testIdPrefix="excludingConditions"
+        />
+        {excludingConditions === "yes" && (
+          <DiagnosedConditionsFollowUp
+            entries={diagnosedConditions}
+            onChange={onDiagnosedConditionsChange}
+          />
+        )}
+      </div>
+      {showDiabetesQuestion && (
+        <div>
+          <p className="font-semibold text-secondary mb-3">
+            If you have type 2 diabetes, are you taking any medications other than metformin? *
+          </p>
+          <YesNoChoiceInline
+            value={diabetesMedsOther}
+            onChange={onDiabetesMedsOtherChange}
+            testIdPrefix="diabetesMedsOther"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function isExcludingConditionsStepComplete(
+  excludingConditions: YesNo | null,
+  diagnosedConditions: DiagnosedConditionEntry[],
+  diabetesMedsOther: YesNo | null,
+): boolean {
+  if (excludingConditions === null || diabetesMedsOther === null) {
+    return false;
+  }
+  if (excludingConditions === "yes") {
+    return (
+      diagnosedConditions.length > 0 &&
+      diagnosedConditions.every(isDiagnosedEntryComplete)
+    );
+  }
+  return true;
+}
+
+export function TransferOtherMedicalConditionsSection({
+  hasConditions,
+  onHasConditionsChange,
+  conditionsDetails,
+  onConditionsDetailsChange,
+  takesMedications,
+  onTakesMedicationsChange,
+  medicationNames,
+  onMedicationNamesChange,
+}: {
+  hasConditions: YesNo | null;
+  onHasConditionsChange: (v: YesNo) => void;
+  conditionsDetails: string;
+  onConditionsDetailsChange: (v: string) => void;
+  takesMedications: YesNo | null;
+  onTakesMedicationsChange: (v: YesNo) => void;
+  medicationNames: string;
+  onMedicationNamesChange: (v: string) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <p className="font-semibold text-secondary">
+        Do you have any other medical conditions? *
+      </p>
+      <YesNoChoiceInline
+        value={hasConditions}
+        onChange={onHasConditionsChange}
+        testIdPrefix="transferOtherConditions"
+      />
+      {hasConditions === "yes" && (
+        <div className="space-y-4 pt-1">
+          <div>
+            <Label className="font-semibold text-secondary">
+              What conditions? *
+            </Label>
+            <Textarea
+              value={conditionsDetails}
+              onChange={(e) => onConditionsDetailsChange(e.target.value)}
+              placeholder="e.g. Hypothyroidism, high blood pressure"
+              rows={3}
+              className="mt-1.5 rounded-xl resize-y min-h-[88px]"
+              data-testid="transferOtherConditions-detail"
+            />
+          </div>
+          <div>
+            <p className="font-semibold text-secondary mb-2">
+              Do you take any medications for this condition? *
+            </p>
+            <YesNoChoiceInline
+              value={takesMedications}
+              onChange={(v) => {
+                onTakesMedicationsChange(v);
+                if (v === "no") onMedicationNamesChange("");
+              }}
+              testIdPrefix="transferOtherConditionsMeds"
+            />
+          </div>
+          {takesMedications === "yes" && (
+            <div>
+              <Label className="font-semibold text-secondary">
+                Medication names (no strength, dose, or frequency) *
+              </Label>
+              <Input
+                value={medicationNames}
+                onChange={(e) => onMedicationNamesChange(e.target.value)}
+                placeholder="e.g. Levothyroxine, amlodipine"
+                className="h-12 mt-1.5 rounded-xl"
+                data-testid="transferOtherConditionsMeds-detail"
+              />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function isTransferOtherMedicalConditionsComplete(
+  hasConditions: YesNo | null,
+  conditionsDetails: string,
+  takesMedications: YesNo | null,
+  medicationNames: string,
+): boolean {
+  if (hasConditions === null) return false;
+  if (hasConditions === "no") return true;
+  if (!conditionsDetails.trim()) return false;
+  if (takesMedications === null) return false;
+  if (takesMedications === "no") return true;
+  return medicationNames.trim().length > 0;
+}
+
+export function TransferWeightLossMedicationPicker({
+  value,
+  onChange,
+}: {
+  value: TransferWeightLossMedicationValue;
+  onChange: (value: TransferWeightLossMedicationValue) => void;
+}) {
+  const strengthOptions = value.product
+    ? TRANSFER_WL_PEN_OPTIONS.filter((p) => p.medicine === value.product)
+    : [];
+
+  const selectProduct = (product: TransferWlProduct) => {
+    onChange({
+      product,
+      strengthPenId: "",
+      lastInjectionDate: value.lastInjectionDate,
+    });
+  };
+
+  return (
+    <div className="space-y-5" data-testid="transfer-wl-medication-picker">
+      <div>
+        <p className="font-semibold text-secondary mb-3">Choose your product *</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {(["mounjaro", "wegovy"] as TransferWlProduct[]).map((product) => {
+            const selected = value.product === product;
+            const subtitle =
+              product === "mounjaro"
+                ? "Tirzepatide · weekly injection"
+                : "Semaglutide · weekly injection";
+            return (
+              <button
+                key={product}
+                type="button"
+                onClick={() => selectProduct(product)}
+                data-testid={`transfer-wl-product-${product}`}
+                className={cn(
+                  "rounded-xl border p-4 text-left transition-colors",
+                  selected
+                    ? WL_CHECKLIST_SELECTED
+                    : "bg-white border-stone-200 text-stone-800 hover:border-stone-300",
+                )}
+              >
+                <p className="font-bold text-base">
+                  {TRANSFER_WL_PRODUCT_LABELS[product]}
+                </p>
+                <p className="text-sm mt-1 opacity-80">{subtitle}</p>
+                <span
+                  className={cn(
+                    "mt-3 inline-flex w-5 h-5 rounded-full border-2 items-center justify-center",
+                    selected ? "border-primary bg-primary" : "border-stone-300",
+                  )}
+                >
+                  {selected && (
+                    <span className="w-2 h-2 rounded-full bg-white" />
+                  )}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {value.product && (
+        <div className={cn(WL_DETAIL_PANEL, "space-y-5")}>
+          <div>
+            <p className="font-semibold text-secondary mb-3">Which strength? *</p>
+            <div className="flex flex-wrap gap-2">
+              {strengthOptions.map((pen) => {
+                const selected = value.strengthPenId === pen.id;
+                return (
+                  <button
+                    key={pen.id}
+                    type="button"
+                    onClick={() =>
+                      onChange({ ...value, strengthPenId: pen.id })
+                    }
+                    data-testid={`transfer-wl-strength-${pen.id}`}
+                    className={cn(
+                      "px-4 py-2.5 rounded-xl border text-sm font-semibold transition-colors",
+                      selected
+                        ? "bg-primary border-primary text-primary-foreground"
+                        : "bg-white border-stone-200 text-stone-800 hover:border-stone-300",
+                    )}
+                  >
+                    {pen.dose}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <DateField
+            label="When was (or would be) your last injection of this strength? *"
+            value={value.lastInjectionDate}
+            onChange={(lastInjectionDate) =>
+              onChange({ ...value, lastInjectionDate })
+            }
+            max={new Date().toISOString().slice(0, 10)}
+            min="2020-01-01"
+            placeholder="Select last injection date"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** @deprecated Use TransferWeightLossMedicationPicker for transfer WL medication. */
+export function TransferCurrentMedicationsTable({
+  entries,
+  onChange,
+}: {
+  entries: TransferMedicationEntry[];
+  onChange: (entries: TransferMedicationEntry[]) => void;
+}) {
+  const update = (id: string, patch: Partial<TransferMedicationEntry>) => {
+    onChange(entries.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+  };
+
+  return (
+    <div className="space-y-5">
+      {entries.map((entry, index) => (
+        <div
+          key={entry.id}
+          className={WL_DETAIL_PANEL}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-bold uppercase tracking-wide text-stone-500">
+              Medication {index + 1}
+            </p>
+            {entries.length > 1 && (
+              <button
+                type="button"
+                onClick={() => onChange(entries.filter((e) => e.id !== entry.id))}
+                className="text-xs font-semibold text-rose-600 flex items-center gap-1"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Remove
+              </button>
+            )}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label className="font-semibold text-secondary">Medication name *</Label>
+              <Input
+                value={entry.medication}
+                onChange={(e) => update(entry.id, { medication: e.target.value })}
+                placeholder="e.g. Mounjaro, Wegovy"
+                className="h-12 mt-1.5 rounded-xl"
+                data-testid={`transfer-med-medication-${index}`}
+              />
+            </div>
+            <div>
+              <Label className="font-semibold text-secondary">Strength *</Label>
+              <Input
+                value={entry.strength}
+                onChange={(e) => update(entry.id, { strength: e.target.value })}
+                placeholder="e.g. 2.5 mg"
+                className="h-12 mt-1.5 rounded-xl"
+                data-testid={`transfer-med-strength-${index}`}
+              />
+            </div>
+          </div>
+        </div>
+      ))}
+      <AddAnotherButton
+        label="Add another medication"
+        onClick={() => onChange([...entries, emptyTransferMedicationEntry()])}
+      />
+    </div>
+  );
+}
+
+function HighRiskMedicationsInfoList() {
+  return (
+    <ul
+      className="grid gap-2 sm:grid-cols-2 list-none p-0 m-0"
+      data-testid="high-risk-meds-info-list"
+    >
+      {TRANSFER_HIGH_RISK_MED_IDS.map((id) => (
+        <li
+          key={id}
+          className={WL_CHIP_INFO}
+        >
+          {TRANSFER_HIGH_RISK_MED_LABELS[id]}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function HighRiskMedicationsSection({
+  taken,
+  onTakenChange,
+  selected,
+  onSelectedChange,
+  details,
+  onDetailsChange,
+}: {
+  taken: YesNo | null;
+  onTakenChange: (v: YesNo) => void;
+  selected: TransferHighRiskMedId[];
+  onSelectedChange: (ids: TransferHighRiskMedId[]) => void;
+  details: HighRiskMedDetail[];
+  onDetailsChange: (details: HighRiskMedDetail[]) => void;
+}) {
+  const toggle = (id: TransferHighRiskMedId) => {
+    const next = selected.includes(id)
+      ? selected.filter((x) => x !== id)
+      : [...selected, id];
+    onSelectedChange(next);
+    const detailById = new Map(details.map((d) => [d.medId, d]));
+    onDetailsChange(
+      next.map(
+        (medId) =>
+          detailById.get(medId) ?? {
+            medId,
+            name: "",
+            condition: "",
+            duration: "",
+          },
+      ),
+    );
+  };
+
+  const updateDetail = (
+    medId: TransferHighRiskMedId,
+    patch: Partial<HighRiskMedDetail>,
+  ) => {
+    onDetailsChange(
+      details.map((d) => (d.medId === medId ? { ...d, ...patch } : d)),
+    );
+  };
+
+  const checklistItems = TRANSFER_HIGH_RISK_MED_IDS.map((id) => ({
+    id,
+    label: TRANSFER_HIGH_RISK_MED_LABELS[id],
+  }));
+
+  return (
+    <div className="space-y-4">
+      <GatedChecklistSection
+        gateQuestion={`${TRANSFER_HIGH_RISK_QUESTION} *`}
+        gateValue={taken}
+        onGateChange={onTakenChange}
+        items={checklistItems}
+        isSelected={(id) => selected.includes(id as TransferHighRiskMedId)}
+        onToggle={(id) => toggle(id as TransferHighRiskMedId)}
+        infoHeading="These are the high-risk medicines we ask about:"
+        infoHeadingWhenNo="For your information, these are the high-risk medicines we ask about:"
+        selectHint="Select any that apply. For each one selected, we will ask for a few more details."
+        testIdPrefix="high-risk-meds-taken"
+        renderInfoList={() => <HighRiskMedicationsInfoList />}
+      />
+
+      {taken === "yes" && selected.length > 0 && (
+        <div className="space-y-4 border-t border-stone-200/90 pt-4">
+          {selected.map((medId) => {
+            const row =
+              details.find((d) => d.medId === medId) ?? {
+                medId,
+                name: "",
+                condition: "",
+                duration: "",
+              };
+            return (
+              <div
+                key={medId}
+                className={WL_DETAIL_PANEL}
+              >
+                <p className="text-sm font-bold text-secondary">
+                  {TRANSFER_HIGH_RISK_MED_LABELS[medId]}
+                </p>
+                {medId === "other" && (
+                  <div>
+                    <Label className="font-semibold text-secondary">
+                      Name of medication *
+                    </Label>
+                    <Input
+                      value={row.name}
+                      onChange={(e) =>
+                        updateDetail(medId, { name: e.target.value })
+                      }
+                      placeholder="Medication name"
+                      className="h-12 mt-1.5 rounded-xl"
+                      data-testid="high-risk-other-name"
+                    />
+                  </div>
+                )}
+                <div>
+                  <Label className="font-semibold text-secondary">
+                    What condition do you take it for? *
+                  </Label>
+                  <Input
+                    value={row.condition}
+                    onChange={(e) =>
+                      updateDetail(medId, { condition: e.target.value })
+                    }
+                    placeholder="e.g. Atrial fibrillation"
+                    className="h-12 mt-1.5 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <Label className="font-semibold text-secondary">
+                    How long have you been taking it? *
+                  </Label>
+                  <Input
+                    value={row.duration}
+                    onChange={(e) =>
+                      updateDetail(medId, { duration: e.target.value })
+                    }
+                    placeholder="e.g. About 2 years"
+                    className={durationInputClass}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+type TransferYesNoDetailProps = {
+  question: string;
+  value: YesNo | null;
+  onChange: (v: YesNo) => void;
+  detailValue: string;
+  onDetailChange: (v: string) => void;
+  detailLabel: string;
+  detailPlaceholder: string;
+  testIdPrefix: string;
+};
+
+export function TransferYesNoWithDetail({
+  question,
+  value,
+  onChange,
+  detailValue,
+  onDetailChange,
+  detailLabel,
+  detailPlaceholder,
+  testIdPrefix,
+}: TransferYesNoDetailProps) {
+  return (
+    <div className="space-y-3">
+      <p className="font-semibold text-secondary">{question}</p>
+      <YesNoChoiceInline
+        value={value}
+        onChange={onChange}
+        testIdPrefix={testIdPrefix}
+      />
+      {value === "yes" && (
+        <div>
+          <Label className="font-semibold text-secondary">{detailLabel} *</Label>
+          <Textarea
+            value={detailValue}
+            onChange={(e) => onDetailChange(e.target.value)}
+            placeholder={detailPlaceholder}
+            rows={3}
+            className="mt-1.5 rounded-xl resize-y min-h-[88px]"
+            data-testid={`${testIdPrefix}-detail`}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Side effects, hospitalisation, and changes since last review — transfer + repeat continuation. */
+export function WlContinuationSafetySection({
+  sideEffects,
+  onSideEffectsChange,
+  sideEffectsDetails,
+  onSideEffectsDetailsChange,
+  hospitalised,
+  onHospitalisedChange,
+  hospitalisationDetails,
+  onHospitalisationDetailsChange,
+  changesSinceReview,
+  onChangesSinceReviewChange,
+  changesSinceReviewDetails,
+  onChangesSinceReviewDetailsChange,
+  showSideEffects = true,
+  showChangesSinceReview = true,
+}: {
+  sideEffects: YesNo | null;
+  onSideEffectsChange: (v: YesNo) => void;
+  sideEffectsDetails: string;
+  onSideEffectsDetailsChange: (v: string) => void;
+  hospitalised: YesNo | null;
+  onHospitalisedChange: (v: YesNo) => void;
+  hospitalisationDetails: string;
+  onHospitalisationDetailsChange: (v: string) => void;
+  changesSinceReview: YesNo | null;
+  onChangesSinceReviewChange: (v: YesNo) => void;
+  changesSinceReviewDetails: string;
+  onChangesSinceReviewDetailsChange: (v: string) => void;
+  showSideEffects?: boolean;
+  showChangesSinceReview?: boolean;
+}) {
+  return (
+    <div className="space-y-5" data-testid="wl-continuation-safety">
+      {showChangesSinceReview && (
+        <TransferYesNoWithDetail
+          question="Has anything changed since your last review or treatment? *"
+          value={changesSinceReview}
+          onChange={(v) => {
+            onChangesSinceReviewChange(v);
+            if (v === "no") onChangesSinceReviewDetailsChange("");
+          }}
+          detailValue={changesSinceReviewDetails}
+          onDetailChange={onChangesSinceReviewDetailsChange}
+          detailLabel="Please describe what has changed"
+          detailPlaceholder="e.g. New diagnosis, stopped a medicine, change in dose"
+          testIdPrefix="continuationChangesSinceReview"
+        />
+      )}
+      {showSideEffects && (
+        <TransferYesNoWithDetail
+          question="Have you experienced any side effects from your weight-loss medication? *"
+          value={sideEffects}
+          onChange={(v) => {
+            onSideEffectsChange(v);
+            if (v === "no") onSideEffectsDetailsChange("");
+          }}
+          detailValue={sideEffectsDetails}
+          onDetailChange={onSideEffectsDetailsChange}
+          detailLabel="Please describe your side effects"
+          detailPlaceholder="e.g. Nausea for the first few days after each injection"
+          testIdPrefix="continuationSideEffects"
+        />
+      )}
+      <TransferYesNoWithDetail
+        question="Have you been hospitalised due to weight loss medication? *"
+        value={hospitalised}
+        onChange={(v) => {
+          onHospitalisedChange(v);
+          if (v === "no") onHospitalisationDetailsChange("");
+        }}
+        detailValue={hospitalisationDetails}
+        onDetailChange={onHospitalisationDetailsChange}
+        detailLabel="What happened and what was the outcome?"
+        detailPlaceholder="e.g. Admitted for severe vomiting — discharged after 2 days, no ongoing issues"
+        testIdPrefix="continuationHospitalisation"
+      />
+    </div>
+  );
 }

@@ -45,10 +45,28 @@ export async function apiFetch<T = unknown>(
           : "Network error",
     );
   }
-  const json = await res.json().catch(() => ({}));
+  const rawText = await res.text().catch(() => "");
+  let json: Record<string, unknown> = {};
+  if (rawText) {
+    try {
+      json = JSON.parse(rawText) as Record<string, unknown>;
+    } catch {
+      /* non-JSON body (e.g. Express HTML 404 page) */
+    }
+  }
   if (!res.ok) {
-    const message =
-      (json as { error?: string }).error ?? `Request failed: ${res.status}`;
+    const apiError =
+      typeof json.error === "string" ? json.error : undefined;
+    let message = apiError ?? `Request failed: ${res.status}`;
+    if (
+      !apiError &&
+      res.status === 404 &&
+      import.meta.env.DEV &&
+      rawText.includes("Cannot ")
+    ) {
+      message +=
+        " The API on port 5000 may be out of date — rebuild and restart api-server (pnpm run build && pnpm run start in artifacts/api-server).";
+    }
     throw new Error(message);
   }
   return json as T;

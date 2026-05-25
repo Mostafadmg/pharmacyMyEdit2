@@ -211,7 +211,7 @@ function buildEmailHtml(data: ConsultationEmailData): string {
               <!-- CTA -->
               <div style="text-align:center;margin:36px 0 8px;">
                 <a href="${appUrl}/my-consultations" style="display:inline-block;background:linear-gradient(135deg,#0F3460 0%,#0A7EA4 100%);color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:999px;font-size:15px;font-weight:700;letter-spacing:0.3px;">View Your Consultation Portal →</a>
-                <p style="margin:16px 0 0;font-size:13px;color:#A0AEC0;">You can also track your order at <a href="${appUrl}/track" style="color:#0A7EA4;">pharmacare.co.uk/track</a></p>
+                <p style="margin:16px 0 0;font-size:13px;color:#A0AEC0;">Sign in to <a href="${appUrl}/my-orders" style="color:#0A7EA4;">My orders</a> to track delivery and message your pharmacist.</p>
               </div>
             </td>
           </tr>
@@ -274,7 +274,7 @@ function buildDispatchHtml(d: DispatchEmailData): string {
   const fullTrackingUrl = d.trackingUrl.startsWith("http")
     ? d.trackingUrl
     : `${appUrl}${d.trackingUrl}`;
-  const internalUrl = `${appUrl}/track-order/${d.orderId}`;
+  const internalUrl = `${appUrl}/order-confirmation/${d.orderId}`;
 
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><title>Your PharmaCare order is on its way</title></head>
@@ -327,7 +327,7 @@ export async function sendDispatchEmail(d: DispatchEmailData): Promise<void> {
   const html = buildDispatchHtml(d);
   const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@pharmacare.co.uk";
   const subject = `📦 Your PharmaCare order ${d.orderNumber} has been dispatched`;
-  const text = `Hi ${d.patientName},\n\nYour PharmaCare order ${d.orderNumber} has been dispatched.\n\nCarrier: ${d.carrier}\nTracking number: ${d.trackingNumber}\nTrack your delivery: ${fullTrackingUrl}\n\nFull order details: ${appUrl}/track-order/${d.orderId}\n\nPharmaCare Team`;
+  const text = `Hi ${d.patientName},\n\nYour PharmaCare order ${d.orderNumber} has been dispatched.\n\nCarrier: ${d.carrier}\nTracking number: ${d.trackingNumber}\nTrack your delivery: ${fullTrackingUrl}\n\nOrder details (sign in to your portal): ${appUrl}/order-confirmation/${d.orderId}\n\nPharmaCare Team`;
 
   if (process.env.RESEND_API_KEY) {
     await sendViaResend({

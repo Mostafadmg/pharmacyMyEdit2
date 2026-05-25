@@ -1,21 +1,34 @@
+import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { RxPageTitle, RxShell } from "@/components/rx";
-import { ShieldCheck, Award, Mail, Phone, MapPin } from "lucide-react";
+import { ShieldCheck, Award, Mail, Phone, MapPin, LogOut } from "lucide-react";
+import { clearPharmacistSession, getPharmacistName } from "@/lib/pharmacistSession";
 
 export function Profile() {
-  const name =
-    (typeof window !== "undefined" && localStorage.getItem("pharmacist_name")) ||
-    "Pharmacist";
+  const [, navigate] = useLocation();
+  const name = getPharmacistName();
   const role =
     (typeof window !== "undefined" && localStorage.getItem("pharmacist_role")) ||
     "Pharmacist Prescriber";
+
+  function signOut() {
+    clearPharmacistSession();
+    navigate("/login");
+  }
 
   return (
     <RxShell className="max-w-[900px]">
       <RxPageTitle
         title="My Profile"
         subtitle="Your prescriber identity, registrations, and contact details."
+        action={
+          <Button variant="outline" size="sm" onClick={signOut} className="gap-2">
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </Button>
+        }
       />
       <Card className="p-6">
         <div className="flex items-center gap-5">

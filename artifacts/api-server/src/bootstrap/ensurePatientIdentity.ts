@@ -12,18 +12,6 @@ async function ensureColumns(): Promise<void> {
     ALTER TABLE patient_accounts
     ADD COLUMN IF NOT EXISTS pmr_number text UNIQUE
   `);
-  await db.execute(sql`
-    ALTER TABLE consultations
-    ADD COLUMN IF NOT EXISTS consultation_number text UNIQUE
-  `);
-  await db.execute(sql`
-    ALTER TABLE consultations
-    ADD COLUMN IF NOT EXISTS patient_date_of_birth text
-  `);
-  await db.execute(sql`
-    ALTER TABLE consultations
-    ADD COLUMN IF NOT EXISTS duplicate_patient_matches jsonb NOT NULL DEFAULT '[]'::jsonb
-  `);
 }
 
 async function backfillPmrNumbers(): Promise<void> {
@@ -56,19 +44,36 @@ async function backfillConsultationNumbers(): Promise<void> {
     .where(sql`${consultationsTable.consultationNumber} IS NULL`);
 
   for (const row of withoutNumber) {
-    const consultationNumber = await nextConsultationNumber();
     const dob =
       row.patientDateOfBirth ??
       extractDateOfBirthFromAnswers(row.answers as Record<string, unknown>);
-    await db
-      .update(consultationsTable)
-      .set({
-        consultationNumber,
-        ...(dob && !row.patientDateOfBirth
-          ? { patientDateOfBirth: dob }
-          : {}),
-      })
-      .where(eq(consultationsTable.id, row.id));
+    let saved = false;
+    for (let attempt = 0; attempt < 12 && !saved; attempt++) {
+      const consultationNumber = await nextConsultationNumber(attempt);
+      try {
+        await db
+          .update(consultationsTable)
+          .set({
+            consultationNumber,
+            ...(dob && !row.patientDateOfBirth
+              ? { patientDateOfBirth: dob }
+              : {}),
+          })
+          .where(eq(consultationsTable.id, row.id));
+        saved = true;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (
+          !msg.includes("unique constraint") &&
+          !msg.includes("duplicate key")
+        ) {
+          throw err;
+        }
+      }
+    }
+    if (!saved) {
+      logger.warn({ consultationId: row.id }, "Skipped consultation number backfill");
+    }
   }
 
   if (withoutNumber.length > 0) {
@@ -82,5 +87,9 @@ async function backfillConsultationNumbers(): Promise<void> {
 export async function ensurePatientIdentity(): Promise<void> {
   await ensureColumns();
   await backfillPmrNumbers();
-  await backfillConsultationNumbers();
+  try {
+    await backfillConsultationNumbers();
+  } catch (err) {
+    logger.warn({ err }, "Consultation number backfill had errors");
+  }
 }

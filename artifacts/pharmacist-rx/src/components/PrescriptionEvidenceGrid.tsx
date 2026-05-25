@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Eye,
   FileText,
   Mail,
   Upload,
   XCircle,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import type { Consultation } from "@workspace/api-client-react";
 import {
@@ -23,11 +27,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 import {
   EVIDENCE_SLOT_META,
+  type PharmacistDocumentRequirementSlotId,
   requirementLabel,
 } from "@workspace/evidence-slots";
 import {
@@ -48,6 +60,12 @@ const CURRENT_PHARMACIST_NAME =
   (typeof localStorage !== "undefined" &&
     localStorage.getItem("pharmacist_name")) ||
   "Pharmacist";
+
+/** Outline Button variant has no hover — card actions share pointer + transition */
+const EVIDENCE_CARD_BTN =
+  "h-10 w-full cursor-pointer text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-45";
+/** Amber email actions: theme hover on same surface is invisible; match Resend link */
+const EVIDENCE_EMAIL_BTN_HOVER = "hover:opacity-90 hover:bg-rx-cs/15";
 
 function FilterPill({
   color,
@@ -79,6 +97,11 @@ type ConfirmAction = {
   status: "verified" | "rejected";
 };
 
+type UploadRequestAction = {
+  doc: EvidenceSlot;
+  mode: "request" | "resend";
+};
+
 function isVideoDataUrl(url: string): boolean {
   return (
     url.startsWith("data:video/") || /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(url)
@@ -89,10 +112,12 @@ function MediaPreview({
   url,
   title,
   className,
+  style,
 }: {
   url: string;
   title: string;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   if (isVideoDataUrl(url)) {
     return (
@@ -100,6 +125,7 @@ function MediaPreview({
         src={url}
         controls
         playsInline
+        style={style}
         className={cn("h-full w-full object-contain bg-foreground/90", className)}
         aria-label={title}
       />
@@ -109,8 +135,183 @@ function MediaPreview({
     <img
       src={url}
       alt={title}
+      style={style}
       className={cn("h-full w-full object-cover", className)}
     />
+  );
+}
+
+function EvidenceViewerModal({
+  slot,
+  allowReview,
+  docTheme,
+  onClose,
+  onReject,
+  onUnverify,
+  onVerify,
+  onRequestUpload,
+}: {
+  slot: EvidenceSlot;
+  allowReview: boolean;
+  docTheme: typeof DOC;
+  onClose: () => void;
+  onReject: () => void;
+  onUnverify: () => void;
+  onVerify: () => void;
+  onRequestUpload: () => void;
+}) {
+  const urls =
+    slot.imageUrls.length > 0
+      ? slot.imageUrls
+      : slot.imageUrl
+        ? [slot.imageUrl]
+        : [];
+  const [index, setIndex] = useState(0);
+  const [zoom, setZoom] = useState(1);
+
+  useEffect(() => {
+    setIndex(0);
+    setZoom(1);
+  }, [slot.id]);
+
+  const currentUrl = urls[index];
+  const canPrev = index > 0;
+  const canNext = index < urls.length - 1;
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[92vh] w-[min(96vw,72rem)] max-w-none flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="shrink-0 border-b border-border px-5 py-4">
+          <DialogTitle className="pr-8">{slot.title}</DialogTitle>
+          <DialogDescription>
+            {slot.sub}
+            {urls.length > 1 ? (
+              <span className="mt-1 block text-foreground/80">
+                Document {index + 1} of {urls.length}
+              </span>
+            ) : null}
+          </DialogDescription>
+        </DialogHeader>
+        {currentUrl ? (
+          <div className="relative flex min-h-0 flex-1 flex-col">
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-2">
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9"
+                  disabled={!canPrev}
+                  aria-label="Previous document"
+                  onClick={() => setIndex((i) => Math.max(0, i - 1))}
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9"
+                  disabled={!canNext}
+                  aria-label="Next document"
+                  onClick={() =>
+                    setIndex((i) => Math.min(urls.length - 1, i + 1))
+                  }
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+                {urls.length > 1 ? (
+                  <span className="ml-2 text-xs font-medium text-muted-foreground">
+                    {index + 1} / {urls.length}
+                  </span>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9"
+                  aria-label="Zoom out"
+                  disabled={zoom <= 0.5}
+                  onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
+                >
+                  <ZoomOut className="h-4 w-4" />
+                </Button>
+                <span className="min-w-[3rem] text-center text-xs font-semibold tabular-nums">
+                  {Math.round(zoom * 100)}%
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9"
+                  aria-label="Zoom in"
+                  disabled={zoom >= 3}
+                  onClick={() => setZoom((z) => Math.min(3, z + 0.25))}
+                >
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="min-h-0 flex-1 overflow-auto bg-muted/40 p-4 touch-pan-x touch-pan-y">
+              <div
+                className="mx-auto flex min-h-[min(60vh,32rem)] min-w-full items-center justify-center"
+                style={{
+                  transform: `scale(${zoom})`,
+                  transformOrigin: "top center",
+                }}
+              >
+                <MediaPreview
+                  url={currentUrl}
+                  title={`${slot.title} (${index + 1})`}
+                  className="max-h-[min(72vh,40rem)] w-full max-w-full rounded-2xl object-contain shadow-sm"
+                />
+              </div>
+            </div>
+          </div>
+        ) : null}
+        <DialogFooter className="shrink-0 gap-2 border-t border-border p-5 sm:gap-0">
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+          {allowReview && slot.status !== "not_uploaded" ? (
+            <>
+              {slot.status === "verified" ? (
+                <>
+                  <Button
+                    variant="outline"
+                    className={docTheme.btnReject}
+                    onClick={onReject}
+                  >
+                    Reject
+                  </Button>
+                  <Button variant="outline" onClick={onRequestUpload}>
+                    Request re-upload
+                  </Button>
+                  <Button variant="outline" onClick={onUnverify}>
+                    Unverify
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    className={docTheme.btnReject}
+                    onClick={onReject}
+                  >
+                    Reject
+                  </Button>
+                  <Button className={docTheme.btnVerify} onClick={onVerify}>
+                    Verify
+                  </Button>
+                </>
+              )}
+            </>
+          ) : null}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -146,6 +347,7 @@ export function PrescriptionEvidenceGrid({
     docId: string;
     docTitle: string;
     emailSent?: boolean;
+    note?: string;
   }) => void;
 }) {
   const { toast } = useToast();
@@ -161,6 +363,9 @@ export function PrescriptionEvidenceGrid({
 
   const [viewing, setViewing] = useState<EvidenceSlot | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const [uploadRequestAction, setUploadRequestAction] =
+    useState<UploadRequestAction | null>(null);
+  const [uploadRequestNote, setUploadRequestNote] = useState("");
   const [rejectionNote, setRejectionNote] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [templates, setTemplates] = useState<DocumentRejectionTemplate[]>([]);
@@ -243,7 +448,7 @@ export function PrescriptionEvidenceGrid({
     });
   }, [consultationId, c?.id, queryClient]);
 
-  const resendUploadEmail = async (doc: EvidenceSlot) => {
+  const resendUploadEmail = async (doc: EvidenceSlot, note?: string) => {
     const id = consultationId ?? c?.id;
     if (!id) return;
     setSaving(true);
@@ -253,20 +458,22 @@ export function PrescriptionEvidenceGrid({
       const result = await persistReview(doc.id, reviewStatus, {
         sendUploadEmail: true,
         rejectionNote:
+          note?.trim() ||
           doc.rejectionNote?.trim() ||
           "Please upload this document when you can using the secure link in your patient portal.",
       });
       await invalidateConsultation();
       toast({
-        title: result?.emailSent ? "Upload link emailed" : "Upload request saved",
+        title: result?.emailSent ? "Upload request sent" : "Upload request saved",
         description: result?.emailSent
-          ? `${doc.title} — patient can upload via the link or My consultations.`
-          : `${doc.title} — in-app notification sent (configure email to also mail the patient).`,
+          ? `${doc.title} — patient can upload under My consultations (email sent).`
+          : `${doc.title} — shown under My consultations (configure email to also mail the patient).`,
       });
       onUploadLinkSent?.({
         docId: doc.id,
         docTitle: doc.title,
         emailSent: result?.emailSent,
+        note: note?.trim() || undefined,
       });
     } catch (err) {
       toast({
@@ -277,6 +484,44 @@ export function PrescriptionEvidenceGrid({
     } finally {
       setSaving(false);
     }
+  };
+
+  const unverifyDocument = async (doc: EvidenceSlot) => {
+    setSaving(true);
+    try {
+      await persistReview(doc.id, "pending");
+      await invalidateConsultation();
+      toast({
+        title: "Verification removed",
+        description: `${doc.title} is pending review again. You can reject or request a new upload.`,
+      });
+      setViewing(null);
+    } catch (err) {
+      toast({
+        title: "Could not unverify",
+        description: err instanceof Error ? err.message : "Try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openUploadRequestDialog = (
+    doc: EvidenceSlot,
+    mode: UploadRequestAction["mode"],
+  ) => {
+    setUploadRequestNote("");
+    setUploadRequestAction({ doc, mode });
+  };
+
+  const submitUploadRequest = async () => {
+    if (!uploadRequestAction) return;
+    const { doc } = uploadRequestAction;
+    const note = uploadRequestNote.trim() || undefined;
+    await resendUploadEmail(doc, note);
+    setUploadRequestAction(null);
+    setUploadRequestNote("");
   };
 
   const uploadDocumentForPatient = async (
@@ -309,7 +554,8 @@ export function PrescriptionEvidenceGrid({
     }
   };
 
-  const patchPreviousPrescriptionRequirement = async (
+  const patchDocumentRequirement = async (
+    slotId: PharmacistDocumentRequirementSlotId,
     requirement: "required" | "not_required",
     sendUploadEmail: boolean,
   ) => {
@@ -323,19 +569,20 @@ export function PrescriptionEvidenceGrid({
       }>(`/api/consultations/${id}/document-requirements`, {
         method: "PATCH",
         body: JSON.stringify({
-          slotId: "previous-prescription",
+          slotId,
           requirement,
           sendUploadEmail,
         }),
       });
       await invalidateConsultation();
+      const title = EVIDENCE_SLOT_META[slotId].title;
       toast({
         title:
           requirement === "required"
-            ? "Previous prescription now required"
-            : "Previous prescription not required",
+            ? `${title} now required`
+            : `${title} not required`,
         description: result?.emailSent
-          ? "Upload link emailed to the patient."
+          ? "Patient notified — document upload requested (email sent)."
           : result?.requirementChange?.note,
       });
       onDocumentRequirementChange?.({
@@ -398,7 +645,7 @@ export function PrescriptionEvidenceGrid({
         description:
           status === "rejected"
             ? result?.emailSent
-              ? "Upload link emailed to patient."
+              ? "Upload requested — patient notified by email."
               : "Rejection saved (configure RESEND_API_KEY or SMTP to email patients)."
             : undefined,
       });
@@ -621,21 +868,38 @@ export function PrescriptionEvidenceGrid({
                     notUploaded && "italic",
                   )}
                 >
-                  {d.uploaded}
+                  {d.uploadCount > 1 ? (
+                    <span className="font-semibold text-foreground">
+                      {d.uploadCount} documents
+                    </span>
+                  ) : null}
+                  {d.uploadCount > 1 ? (
+                    <span className="block">{d.uploaded}</span>
+                  ) : (
+                    d.uploaded
+                  )}
                 </div>
-                <ul className="mt-2 list-disc space-y-0.5 pl-4 text-[11px] leading-relaxed text-muted-foreground">
+                <ul
+                  className={cn(
+                    "mt-2 list-disc pl-4 text-[11px] leading-relaxed text-muted-foreground",
+                    compact ? "space-y-1" : "space-y-1.5",
+                  )}
+                >
                   {EVIDENCE_SLOT_META[d.id].criteria.slice(0, 3).map((line) => (
                     <li key={line}>{line}</li>
                   ))}
                 </ul>
-                <div
-                  className={cn(
-                    "mt-auto flex flex-col gap-2",
-                    DOC.sectionDivider,
-                    compact ? "pt-3" : "pt-4",
-                  )}
-                >
-                  {allowReview && d.id === "previous-prescription" && (
+                <div className={cn("mt-auto shrink-0", compact ? "pt-3" : "pt-4")}>
+                  <div
+                    className={cn(
+                      "flex flex-col gap-2",
+                      DOC.sectionDivider,
+                      compact ? "pt-4" : "pt-5",
+                    )}
+                  >
+                  {allowReview &&
+                    (d.id === "previous-prescription" ||
+                      d.id === "previous-bmi-verification") && (
                     <div className="flex flex-col gap-2">
                       {d.requirement !== "required" ? (
                         <Button
@@ -644,14 +908,19 @@ export function PrescriptionEvidenceGrid({
                           size="sm"
                           disabled={saving}
                           onClick={() =>
-                            void patchPreviousPrescriptionRequirement(
+                            void patchDocumentRequirement(
+                              d.id as PharmacistDocumentRequirementSlotId,
                               "required",
                               true,
                             )
                           }
-                          className={cn("h-10 w-full text-xs font-semibold", DOC.btnEmail)}
+                          className={cn(
+                            EVIDENCE_CARD_BTN,
+                            EVIDENCE_EMAIL_BTN_HOVER,
+                            DOC.btnEmail,
+                          )}
                         >
-                          Mark as required &amp; email upload link
+                          Mark as required &amp; request upload
                         </Button>
                       ) : (
                         <Button
@@ -660,12 +929,13 @@ export function PrescriptionEvidenceGrid({
                           size="sm"
                           disabled={saving}
                           onClick={() =>
-                            void patchPreviousPrescriptionRequirement(
+                            void patchDocumentRequirement(
+                              d.id as PharmacistDocumentRequirementSlotId,
                               "not_required",
                               false,
                             )
                           }
-                          className={cn("h-10 w-full text-xs font-semibold", DOC.btnOutline)}
+                          className={cn(EVIDENCE_CARD_BTN, DOC.btnOutline)}
                         >
                           Mark as not required
                         </Button>
@@ -676,12 +946,9 @@ export function PrescriptionEvidenceGrid({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className={cn(
-                      "h-10 w-full text-xs font-semibold cursor-pointer disabled:opacity-45",
-                      DOC.btnOutline,
-                    )}
-                    disabled={!d.imageUrl}
-                    onClick={() => d.imageUrl && setViewing(d)}
+                    className={cn(EVIDENCE_CARD_BTN, DOC.btnOutline)}
+                    disabled={d.uploadCount === 0}
+                    onClick={() => d.uploadCount > 0 && setViewing(d)}
                   >
                     <Eye className="mr-1.5 h-4 w-4 text-muted-foreground" />
                     View
@@ -692,21 +959,67 @@ export function PrescriptionEvidenceGrid({
                       variant="outline"
                       size="sm"
                       disabled={saving}
-                      onClick={() => void resendUploadEmail(d)}
-                      className={cn("h-10 w-full text-xs font-semibold", DOC.btnEmail)}
+                      onClick={() => openUploadRequestDialog(d, "request")}
+                      className={cn(
+                        EVIDENCE_CARD_BTN,
+                        EVIDENCE_EMAIL_BTN_HOVER,
+                        DOC.btnEmail,
+                      )}
                     >
                       <Mail className="mr-1.5 h-4 w-4" />
-                      Email upload link
+                      Request document upload
                     </Button>
                   )}
                   {allowReview && !notUploaded && (
                     <>
                       {verified ? (
-                        <div className={cn("flex h-10 w-full items-center justify-center gap-2 rounded-xl border px-3 text-xs font-semibold", DOC.verifiedBanner)}>
-                          <CheckCircle2 className="h-4 w-4 shrink-0" />
-                          {d.reviewedBy
-                            ? `Verified by ${d.reviewedBy}`
-                            : "Verified"}
+                        <div className="flex flex-col gap-2">
+                          <div className={cn("flex h-10 w-full items-center justify-center gap-2 rounded-xl border px-3 text-xs font-semibold", DOC.verifiedBanner)}>
+                            <CheckCircle2 className="h-4 w-4 shrink-0" />
+                            {d.reviewedBy
+                              ? `Verified by ${d.reviewedBy}`
+                              : "Verified"}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={saving}
+                            onClick={() => void unverifyDocument(d)}
+                            className={cn(EVIDENCE_CARD_BTN, DOC.btnOutline)}
+                          >
+                            Unverify
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={saving}
+                            onClick={() => {
+                              setRejectionNote("");
+                              setSelectedTemplateId("");
+                              setConfirmAction({ doc: d, status: "rejected" });
+                            }}
+                            className={cn(EVIDENCE_CARD_BTN, DOC.btnReject)}
+                          >
+                            <XCircle className="mr-1.5 h-4 w-4" />
+                            Reject
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={saving}
+                            onClick={() => openUploadRequestDialog(d, "request")}
+                            className={cn(
+                              EVIDENCE_CARD_BTN,
+                              EVIDENCE_EMAIL_BTN_HOVER,
+                              DOC.btnEmail,
+                            )}
+                          >
+                            <Mail className="mr-1.5 h-4 w-4" />
+                            Request re-upload
+                          </Button>
                         </div>
                       ) : rejected ? (
                         <div className="flex flex-col gap-2">
@@ -717,7 +1030,7 @@ export function PrescriptionEvidenceGrid({
                             </div>
                             {d.uploadEmailSentAt ? (
                               <p className="mt-1.5 text-[11px] font-medium leading-relaxed opacity-90">
-                                Upload link emailed
+                                Upload requested
                                 {formatEmailSent(d.uploadEmailSentAt)
                                   ? ` · ${formatEmailSent(d.uploadEmailSentAt)}`
                                   : ""}
@@ -727,7 +1040,7 @@ export function PrescriptionEvidenceGrid({
                               </p>
                             ) : (
                               <p className="mt-1.5 text-[11px] opacity-90">
-                                Email not sent yet — resend link below.
+                                Email not sent yet — request upload again below.
                               </p>
                             )}
                             {d.rejectionTemplateTitle ? (
@@ -746,11 +1059,15 @@ export function PrescriptionEvidenceGrid({
                             variant="outline"
                             size="sm"
                             disabled={saving}
-                            onClick={() => void resendUploadEmail(d)}
-                            className={cn("h-10 w-full text-xs font-semibold hover:opacity-90", DOC.btnEmail)}
+                            onClick={() => openUploadRequestDialog(d, "resend")}
+                            className={cn(
+                              EVIDENCE_CARD_BTN,
+                              EVIDENCE_EMAIL_BTN_HOVER,
+                              DOC.btnEmail,
+                            )}
                           >
                             <Mail className="mr-1.5 h-4 w-4" />
-                            Resend upload link
+                            Resend upload request
                           </Button>
                           <Button
                             type="button"
@@ -761,7 +1078,7 @@ export function PrescriptionEvidenceGrid({
                               setUploadTargetId(d.id);
                               fileInputRef.current?.click();
                             }}
-                            className={cn("h-10 w-full text-xs font-semibold", DOC.btnOutline)}
+                            className={cn(EVIDENCE_CARD_BTN, DOC.btnOutline)}
                           >
                             <Upload className="mr-1.5 h-4 w-4" />
                             Upload for patient
@@ -771,12 +1088,31 @@ export function PrescriptionEvidenceGrid({
                         <>
                           <Button
                             type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={saving}
+                            onClick={() => openUploadRequestDialog(d, "request")}
+                            className={cn(
+                              EVIDENCE_CARD_BTN,
+                              EVIDENCE_EMAIL_BTN_HOVER,
+                              DOC.btnEmail,
+                            )}
+                          >
+                            <Mail className="mr-1.5 h-4 w-4" />
+                            Request re-upload
+                          </Button>
+                          <Button
+                            type="button"
                             size="sm"
                             disabled={saving}
                             onClick={() =>
                               setConfirmAction({ doc: d, status: "verified" })
                             }
-                            className={cn("h-10 w-full text-xs font-semibold shadow-sm cursor-pointer disabled:opacity-50", DOC.btnVerify)}
+                            className={cn(
+                              EVIDENCE_CARD_BTN,
+                              "shadow-sm",
+                              DOC.btnVerify,
+                            )}
                           >
                             <CheckCircle2 className="mr-1.5 h-4 w-4" />
                             Verify
@@ -791,7 +1127,7 @@ export function PrescriptionEvidenceGrid({
                               setSelectedTemplateId("");
                               setConfirmAction({ doc: d, status: "rejected" });
                             }}
-                            className={cn("h-10 w-full text-xs font-semibold cursor-pointer disabled:opacity-50", DOC.btnReject)}
+                            className={cn(EVIDENCE_CARD_BTN, DOC.btnReject)}
                           >
                             <XCircle className="mr-1.5 h-4 w-4" />
                             Reject
@@ -800,6 +1136,7 @@ export function PrescriptionEvidenceGrid({
                       )}
                     </>
                   )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -807,54 +1144,77 @@ export function PrescriptionEvidenceGrid({
         })}
       </div>
 
-      <Dialog
-        open={viewing !== null}
-        onOpenChange={(open) => {
-          if (!open) setViewing(null);
-        }}
-      >
-        <DialogContent className="max-w-3xl p-0 overflow-hidden">
-          <DialogHeader className="p-5 pb-0">
-            <DialogTitle>{viewing?.title}</DialogTitle>
-            <DialogDescription>{viewing?.sub}</DialogDescription>
-          </DialogHeader>
-          {viewing?.imageUrl && (
-            <div className="px-5 pb-2">
-              <MediaPreview
-                url={viewing.imageUrl}
-                title={viewing.title}
-                className="max-h-[70vh] w-full rounded-2xl object-contain bg-muted"
+      {viewing ? (
+        <EvidenceViewerModal
+          slot={viewing}
+          allowReview={allowReview}
+          docTheme={DOC}
+          onClose={() => setViewing(null)}
+          onReject={() => {
+            setRejectionNote("");
+            setSelectedTemplateId("");
+            setConfirmAction({ doc: viewing, status: "rejected" });
+          }}
+          onUnverify={() => void unverifyDocument(viewing)}
+          onVerify={() =>
+            setConfirmAction({ doc: viewing, status: "verified" })
+          }
+          onRequestUpload={() => openUploadRequestDialog(viewing, "request")}
+        />
+      ) : null}
+
+      {allowReview && (
+        <Dialog
+          open={uploadRequestAction !== null}
+          onOpenChange={(open) =>
+            !open && !saving && setUploadRequestAction(null)
+          }
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {uploadRequestAction?.mode === "resend"
+                  ? "Resend upload request?"
+                  : "Request document upload?"}
+              </DialogTitle>
+              <DialogDescription>
+                {uploadRequestAction
+                  ? `Ask the patient to upload "${uploadRequestAction.doc.title}". They will see your message in Messages and can upload from My consultations.`
+                  : null}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Message to patient{" "}
+                <span className="font-normal normal-case">(optional)</span>
+              </span>
+              <textarea
+                value={uploadRequestNote}
+                onChange={(e) => setUploadRequestNote(e.target.value)}
+                placeholder="e.g. Please upload a clearer full-body video in good lighting…"
+                maxLength={2000}
+                className="min-h-[5.5rem] w-full resize-y rounded-xl border border-border bg-card px-3 py-2 text-sm leading-relaxed"
               />
             </div>
-          )}
-          <DialogFooter className="p-5 pt-2 gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setViewing(null)}>
-              Close
-            </Button>
-            {allowReview && viewing && viewing.status !== "not_uploaded" && (
-              <>
-                <Button
-                  variant="outline"
-                  className={DOC.btnReject}
-                  onClick={() =>
-                    setConfirmAction({ doc: viewing, status: "rejected" })
-                  }
-                >
-                  Reject
-                </Button>
-                <Button
-                  className={DOC.btnVerify}
-                  onClick={() =>
-                    setConfirmAction({ doc: viewing, status: "verified" })
-                  }
-                >
-                  Verify
-                </Button>
-              </>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                variant="outline"
+                disabled={saving}
+                onClick={() => setUploadRequestAction(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={saving}
+                className={cn(DOC.btnEmail, "text-white hover:opacity-90")}
+                onClick={() => void submitUploadRequest()}
+              >
+                {saving ? "Sending…" : "Send request"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {allowReview && (
         <Dialog
@@ -875,31 +1235,45 @@ export function PrescriptionEvidenceGrid({
               </DialogDescription>
             </DialogHeader>
             {confirmAction?.status === "rejected" ? (
-              <div className="px-6 pb-2 space-y-3">
-                <label className="block">
+              <div className="space-y-3">
+                <div className="space-y-1.5">
                   <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Rejection reason
                   </span>
-                  <select
-                    value={selectedTemplateId}
-                    onChange={(e) => {
-                      if (e.target.value) applyTemplate(e.target.value);
-                      else {
+                  <Select
+                    value={selectedTemplateId || "__custom__"}
+                    onValueChange={(value) => {
+                      if (value === "__custom__") {
                         setSelectedTemplateId("");
                         setRejectionNote("");
+                        return;
                       }
+                      applyTemplate(value);
                     }}
-                    className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium"
                   >
-                    <option value="">Custom message…</option>
-                    {slotTemplates.map((tpl) => (
-                      <option key={tpl.id} value={tpl.id}>
-                        {tpl.title}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block">
+                    <SelectTrigger
+                      aria-label="Rejection reason"
+                      className="h-10 w-full font-medium"
+                    >
+                      <SelectValue placeholder="Custom message…" />
+                    </SelectTrigger>
+                    <SelectContent
+                      position="popper"
+                      sideOffset={6}
+                      align="start"
+                    >
+                      <SelectItem value="__custom__">Custom message…</SelectItem>
+                      {slotTemplates.map((tpl) => (
+                        <SelectItem key={tpl.id} value={tpl.id}>
+                          <span className="block whitespace-normal leading-snug">
+                            {tpl.title}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
                   <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Email &amp; message to patient
                   </span>
@@ -907,9 +1281,9 @@ export function PrescriptionEvidenceGrid({
                     value={rejectionNote}
                     onChange={(e) => setRejectionNote(e.target.value)}
                     placeholder="Select a reason above or type your own message…"
-                    className="mt-1 min-h-[5.5rem] w-full resize-none rounded-xl border border-border bg-card px-3 py-2 text-sm leading-relaxed"
+                    className="min-h-[5.5rem] w-full resize-y rounded-xl border border-border bg-card px-3 py-2 text-sm leading-relaxed"
                   />
-                </label>
+                </div>
                 <p className="text-[11px] text-muted-foreground">
                   Manage templates in Settings → Document emails.
                 </p>

@@ -1,0 +1,6629 @@
+[
+  {
+    "name": "Fucibet Cream",
+    "priceGbpPence": 1249,
+    "reviewCount": 399,
+    "slug": "fucibet-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Naprosyn 250mg Pain Relief Tablets",
+    "priceGbpPence": 695,
+    "slug": "naprosyn-250mg-pain-relief-tablets",
+    "category": "pain-relief",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Naproxen Gastro-Resistant Tablets",
+    "priceGbpPence": 1849,
+    "reviewCount": 512,
+    "slug": "naproxen-gastro-resistant-tablets",
+    "category": "pain-relief",
+    "classification": "P",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Enstilar Foam",
+    "priceGbpPence": 6999,
+    "reviewCount": 72,
+    "slug": "enstilar-foam",
+    "category": "skin",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Mounjaro 2.5mg - 15mg Injections",
+    "priceGbpPence": 17999,
+    "reviewCount": 894,
+    "slug": "mounjaro-2-5mg-15mg-injections",
+    "category": "weight-loss",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Orlistat 120mg Capsules",
+    "priceGbpPence": 2989,
+    "reviewCount": 1094,
+    "slug": "orlistat-120mg-capsules",
+    "category": "weight-loss",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Wegovy 0.25mg - 7.2mg Injections",
+    "priceGbpPence": 10499,
+    "reviewCount": 106,
+    "slug": "wegovy-0-25mg-7-2mg-injections",
+    "category": "weight-loss",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sildenafil Tablets",
+    "priceGbpPence": 599,
+    "reviewCount": 915,
+    "slug": "sildenafil-tablets",
+    "category": "erectile-dysfunction",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Tadalafil Once Daily Tablets",
+    "priceGbpPence": 1939,
+    "reviewCount": 434,
+    "slug": "tadalafil-once-daily-tablets",
+    "category": "erectile-dysfunction",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Solpadeine Max (Tablets & Soluble Tablets)",
+    "priceGbpPence": 899,
+    "reviewCount": 915,
+    "slug": "solpadeine-max-tablets-soluble-tablets",
+    "category": "pain-relief",
+    "classification": "P",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Tadalafil Tablets",
+    "priceGbpPence": 879,
+    "reviewCount": 465,
+    "slug": "tadalafil-tablets",
+    "category": "erectile-dysfunction",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Permethrin 5% Cream",
+    "priceGbpPence": 1069,
+    "reviewCount": 161,
+    "slug": "permethrin-5-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Ear Infection Treatment Spray (Formerly Otomize)",
+    "priceGbpPence": 1799,
+    "reviewCount": 468,
+    "slug": "ear-infection-treatment-spray-formerly-otomize",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Fucidin Cream",
+    "priceGbpPence": 999,
+    "reviewCount": 318,
+    "slug": "fucidin-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Duac Gel",
+    "priceGbpPence": 2299,
+    "reviewCount": 182,
+    "slug": "duac-gel",
+    "category": "acne",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Betnovate Cream & Ointment",
+    "priceGbpPence": 1599,
+    "reviewCount": 677,
+    "slug": "betnovate-cream-ointment",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Pen Needles (32G 4mm)",
+    "priceGbpPence": 599,
+    "reviewCount": 68,
+    "slug": "pen-needles-32g-4mm",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sharps Bin",
+    "priceGbpPence": 280,
+    "reviewCount": 164,
+    "slug": "sharps-bin",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Finasteride 1mg Tablets For Hair Loss",
+    "priceGbpPence": 1389,
+    "reviewCount": 138,
+    "slug": "finasteride-1mg-tablets-for-hair-loss",
+    "category": "hair-loss",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nurofen Plus Tablets - Fast Relief for Moderate Pain",
+    "priceGbpPence": 1099,
+    "reviewCount": 297,
+    "slug": "nurofen-plus-tablets-fast-relief-for-moderate-pain",
+    "category": "pain-relief",
+    "classification": "P",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Sumatriptan Tablets",
+    "priceGbpPence": 1299,
+    "reviewCount": 487,
+    "slug": "sumatriptan-tablets",
+    "category": "migraine",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Finacea Gel",
+    "priceGbpPence": 1999,
+    "reviewCount": 150,
+    "slug": "finacea-gel",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Naproxen 250mg & 500mg Tablets",
+    "priceGbpPence": 999,
+    "reviewCount": 134,
+    "slug": "naproxen-250mg-500mg-tablets",
+    "category": "pain-relief",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Amorolfine Nail Lacquer",
+    "priceGbpPence": 1399,
+    "reviewCount": 149,
+    "slug": "amorolfine-nail-lacquer",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Daktarin 2% Cream",
+    "priceGbpPence": 899,
+    "reviewCount": 190,
+    "slug": "daktarin-2-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Betnovate Scalp Application 100ml",
+    "priceGbpPence": 1599,
+    "reviewCount": 391,
+    "slug": "betnovate-scalp-application-100ml",
+    "category": "skin",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Ibuprofen & Codeine 200mg/12.8mg Tablets",
+    "priceGbpPence": 799,
+    "reviewCount": 57,
+    "slug": "ibuprofen-codeine-200mg-12-8mg-tablets",
+    "category": "pain-relief",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Metronidazole Tablets",
+    "priceGbpPence": 1799,
+    "reviewCount": 261,
+    "slug": "metronidazole-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Paramol Tablets",
+    "priceGbpPence": 1099,
+    "reviewCount": 300,
+    "slug": "paramol-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Daktacort Hydrocortisone Cream - Fast-Acting Fungal Treatment",
+    "priceGbpPence": 799,
+    "reviewCount": 245,
+    "slug": "daktacort-hydrocortisone-cream-fast-acting-fungal-treatment",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Tetralysal Capsules",
+    "priceGbpPence": 1749,
+    "reviewCount": 241,
+    "slug": "tetralysal-capsules",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Gina Vaginal Tablets",
+    "priceGbpPence": 2699,
+    "reviewCount": 140,
+    "slug": "gina-vaginal-tablets",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nystatin (Unbranded Nystan)",
+    "priceGbpPence": 2299,
+    "reviewCount": 236,
+    "slug": "nystatin-unbranded-nystan",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Solpadeine Plus Soluble Tablets (24)",
+    "priceGbpPence": 799,
+    "reviewCount": 436,
+    "slug": "solpadeine-plus-soluble-tablets-24",
+    "category": "pain-relief",
+    "classification": "P",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Ovex Tablets & Suspension",
+    "priceGbpPence": 899,
+    "reviewCount": 57,
+    "slug": "ovex-tablets-suspension",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Lymecycline Capsules",
+    "priceGbpPence": 1699,
+    "reviewCount": 33,
+    "slug": "lymecycline-capsules",
+    "category": "acne",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Differin",
+    "priceGbpPence": 2995,
+    "reviewCount": 60,
+    "slug": "differin",
+    "category": "acne",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Doxycycline For Acne",
+    "priceGbpPence": 2499,
+    "reviewCount": 53,
+    "slug": "doxycycline-for-acne",
+    "category": "acne",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Cetraxal Plus Ear Drops - Dual-Action Treatment for Bacterial Ear Infections",
+    "priceGbpPence": 1899,
+    "reviewCount": 78,
+    "slug": "cetraxal-plus-ear-drops-dual-action-treatment-for-bacterial-ear-infections",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Ibuprofen 400mg Tablets",
+    "priceGbpPence": 699,
+    "reviewCount": 239,
+    "slug": "ibuprofen-400mg-tablets",
+    "category": "pain-relief",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Scheriproct Ointment For Haemorrhoids",
+    "priceGbpPence": 2495,
+    "reviewCount": 78,
+    "slug": "scheriproct-ointment-for-haemorrhoids",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nitrofurantoin Capsules",
+    "priceGbpPence": 1749,
+    "reviewCount": 119,
+    "slug": "nitrofurantoin-capsules",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Doxycycline For Rosacea",
+    "priceGbpPence": 2499,
+    "reviewCount": 63,
+    "slug": "doxycycline-for-rosacea",
+    "category": "travel-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Paracetamol",
+    "priceGbpPence": 149,
+    "reviewCount": 408,
+    "slug": "paracetamol",
+    "category": "pain-relief",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Eumovate Cream & Ointment",
+    "priceGbpPence": 1599,
+    "reviewCount": 208,
+    "slug": "eumovate-cream-ointment",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Elocon Cream & Ointment",
+    "priceGbpPence": 1449,
+    "reviewCount": 45,
+    "slug": "elocon-cream-ointment",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Syndol Tablets",
+    "priceGbpPence": 629,
+    "reviewCount": 300,
+    "slug": "syndol-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Laxido Orange Sachets",
+    "priceGbpPence": 899,
+    "reviewCount": 228,
+    "slug": "laxido-orange-sachets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Fybogel Sachets",
+    "priceGbpPence": 1798,
+    "reviewCount": 338,
+    "slug": "fybogel-sachets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Betamethasone 0.1% Cream & Ointment",
+    "priceGbpPence": 1599,
+    "reviewCount": 173,
+    "slug": "betamethasone-0-1-cream-ointment",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Movicol Sachets",
+    "priceGbpPence": 1549,
+    "reviewCount": 175,
+    "slug": "movicol-sachets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Fluconazole Thrush Capsule",
+    "priceGbpPence": 559,
+    "reviewCount": 85,
+    "slug": "fluconazole-thrush-capsule",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Omeprazole 20mg",
+    "priceGbpPence": 1699,
+    "reviewCount": 81,
+    "slug": "omeprazole-20mg",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Trimethoprim Tablets",
+    "priceGbpPence": 1749,
+    "reviewCount": 133,
+    "slug": "trimethoprim-tablets",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Evorel Patches",
+    "priceGbpPence": 1500,
+    "reviewCount": 235,
+    "slug": "evorel-patches",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Rozex Gel",
+    "priceGbpPence": 2599,
+    "reviewCount": 109,
+    "slug": "rozex-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Utrogestan 100mg Capsules",
+    "priceGbpPence": 3199,
+    "reviewCount": 99,
+    "slug": "utrogestan-100mg-capsules",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Piriton Tablets & Syrup",
+    "priceGbpPence": 499,
+    "reviewCount": 118,
+    "slug": "piriton-tablets-syrup",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Estriol Cream",
+    "priceGbpPence": 2499,
+    "reviewCount": 36,
+    "slug": "estriol-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Soolantra (Ivermectin) Cream",
+    "priceGbpPence": 5299,
+    "reviewCount": 159,
+    "slug": "soolantra-ivermectin-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Chlorphenamine Tablets & Solution",
+    "priceGbpPence": 199,
+    "reviewCount": 190,
+    "slug": "chlorphenamine-tablets-solution",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nytol Tablets",
+    "priceGbpPence": 559,
+    "reviewCount": 223,
+    "slug": "nytol-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Flixonase Nasal Spray Online - Hay Fever Relief",
+    "priceGbpPence": 2000,
+    "reviewCount": 83,
+    "slug": "flixonase-nasal-spray-online-hay-fever-relief",
+    "category": "allergy",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Naseptin Nasal Cream",
+    "priceGbpPence": 1999,
+    "reviewCount": 48,
+    "slug": "naseptin-nasal-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Clotrimazole Cream",
+    "priceGbpPence": 599,
+    "reviewCount": 81,
+    "slug": "clotrimazole-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Doxycline - Antibiotics For Chlamydia",
+    "priceGbpPence": 1899,
+    "reviewCount": 60,
+    "slug": "doxycline-antibiotics-for-chlamydia",
+    "category": "skin",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "CosmoCol Sachets",
+    "priceGbpPence": 1099,
+    "reviewCount": 127,
+    "slug": "cosmocol-sachets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Fucidin H Cream",
+    "priceGbpPence": 1599,
+    "reviewCount": 112,
+    "slug": "fucidin-h-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Avamys (27.5 micrograms) Nasal Spray",
+    "priceGbpPence": 1899,
+    "reviewCount": 174,
+    "slug": "avamys-27-5-micrograms-nasal-spray",
+    "category": "allergy",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Daktarin Powder Original",
+    "priceGbpPence": 549,
+    "reviewCount": 104,
+    "slug": "daktarin-powder-original",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Famotidine Tablets",
+    "priceGbpPence": 2799,
+    "reviewCount": 40,
+    "slug": "famotidine-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Oestrogel",
+    "priceGbpPence": 2799,
+    "reviewCount": 82,
+    "slug": "oestrogel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Lactulose Solution",
+    "priceGbpPence": 1099,
+    "reviewCount": 137,
+    "slug": "lactulose-solution",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dermol 500 Lotion",
+    "priceGbpPence": 999,
+    "reviewCount": 46,
+    "slug": "dermol-500-lotion",
+    "category": "skin",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Betacap 0.1% Solution",
+    "priceGbpPence": 1799,
+    "reviewCount": 81,
+    "slug": "betacap-0-1-solution",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vagifem Vaginal Tablets",
+    "priceGbpPence": 3999,
+    "reviewCount": 74,
+    "slug": "vagifem-vaginal-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Migraleve Pink Tablets",
+    "priceGbpPence": 1249,
+    "reviewCount": 201,
+    "slug": "migraleve-pink-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Codasolve Effervescent Tablets",
+    "priceGbpPence": 699,
+    "reviewCount": 59,
+    "slug": "codasolve-effervescent-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Viagra Connect",
+    "priceGbpPence": 2199,
+    "reviewCount": 60,
+    "slug": "viagra-connect",
+    "category": "erectile-dysfunction",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Micralax Enema",
+    "priceGbpPence": 1449,
+    "reviewCount": 66,
+    "slug": "micralax-enema",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Tranexamic Acid 500mg Tablets",
+    "priceGbpPence": 2499,
+    "reviewCount": 42,
+    "slug": "tranexamic-acid-500mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Lyclear 5% Cream - Scabies & Crab Lice Treatment",
+    "priceGbpPence": 1299,
+    "reviewCount": 40,
+    "slug": "lyclear-5-cream-scabies-crab-lice-treatment",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Epiduo",
+    "priceGbpPence": 3999,
+    "reviewCount": 24,
+    "slug": "epiduo",
+    "category": "acne",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Hydrocortisone",
+    "priceGbpPence": 1599,
+    "reviewCount": 57,
+    "slug": "hydrocortisone",
+    "category": "skin",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dulcolax Tablets",
+    "priceGbpPence": 1299,
+    "reviewCount": 81,
+    "slug": "dulcolax-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Night Nurse Liquid & Capsules",
+    "priceGbpPence": 599,
+    "reviewCount": 160,
+    "slug": "night-nurse-liquid-capsules",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Oxytetracycline 250mg Tablets For Acne & Rosacea Treatment",
+    "priceGbpPence": 17999,
+    "reviewCount": 155,
+    "slug": "oxytetracycline-250mg-tablets-for-acne-rosacea-treatment",
+    "category": "acne",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Canesten Thrush Cream",
+    "priceGbpPence": 899,
+    "reviewCount": 90,
+    "slug": "canesten-thrush-cream",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Desogestrel Tablets",
+    "priceGbpPence": 1999,
+    "reviewCount": 29,
+    "slug": "desogestrel-tablets",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Lotriderm Cream",
+    "priceGbpPence": 1949,
+    "reviewCount": 27,
+    "slug": "lotriderm-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Cetirizine Tablets & Solution",
+    "priceGbpPence": 199,
+    "reviewCount": 101,
+    "slug": "cetirizine-tablets-solution",
+    "category": "allergy",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Canesten Pessaries",
+    "priceGbpPence": 749,
+    "reviewCount": 91,
+    "slug": "canesten-pessaries",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Viagra Tablets",
+    "priceGbpPence": 2699,
+    "reviewCount": 42,
+    "slug": "viagra-tablets",
+    "category": "erectile-dysfunction",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Treclin Gel For Effective Moderate Acne Treatment",
+    "priceGbpPence": 3699,
+    "reviewCount": 37,
+    "slug": "treclin-gel-for-effective-moderate-acne-treatment",
+    "category": "acne",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Flucloxacillin 500mg Capsules",
+    "priceGbpPence": 2899,
+    "reviewCount": 26,
+    "slug": "flucloxacillin-500mg-capsules",
+    "category": "cold-flu",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Warticon",
+    "priceGbpPence": 3499,
+    "reviewCount": 55,
+    "slug": "warticon",
+    "category": "sexual-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Canesten Hydrocortisone Cream",
+    "priceGbpPence": 599,
+    "reviewCount": 112,
+    "slug": "canesten-hydrocortisone-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Aciclovir Tablets",
+    "priceGbpPence": 1999,
+    "reviewCount": 14,
+    "slug": "aciclovir-tablets",
+    "category": "sexual-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Loratadine Tablets",
+    "priceGbpPence": 199,
+    "reviewCount": 154,
+    "slug": "loratadine-tablets",
+    "category": "allergy",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Tamiflu Antiviral Flu Treatment 75mg",
+    "priceGbpPence": 2999,
+    "reviewCount": 24,
+    "slug": "tamiflu-antiviral-flu-treatment-75mg",
+    "category": "cold-flu",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Bactroban 2% Nasal Ointment",
+    "priceGbpPence": 1699,
+    "reviewCount": 16,
+    "slug": "bactroban-2-nasal-ointment",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Bactroban 2% Cream",
+    "priceGbpPence": 1499,
+    "reviewCount": 20,
+    "slug": "bactroban-2-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Azithromycin Tablets & Suspension",
+    "priceGbpPence": 1999,
+    "reviewCount": 35,
+    "slug": "azithromycin-tablets-suspension",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Penicillin V 250mg Tablets",
+    "priceGbpPence": 2499,
+    "reviewCount": 33,
+    "slug": "penicillin-v-250mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Stugeron Tablets",
+    "priceGbpPence": 499,
+    "reviewCount": 73,
+    "slug": "stugeron-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Estradot Patches (25, 50, 75 & 100)",
+    "priceGbpPence": 2999,
+    "reviewCount": 66,
+    "slug": "estradot-patches-25-50-75-100",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Beclometasone Nasal Spray",
+    "priceGbpPence": 899,
+    "reviewCount": 35,
+    "slug": "beclometasone-nasal-spray",
+    "category": "asthma",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dymista (137 micrograms) Nasal Spray",
+    "priceGbpPence": 3080,
+    "reviewCount": 34,
+    "slug": "dymista-137-micrograms-nasal-spray",
+    "category": "allergy",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Canesten Solution",
+    "priceGbpPence": 649,
+    "reviewCount": 69,
+    "slug": "canesten-solution",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Terbinafine 1% Cream",
+    "priceGbpPence": 1949,
+    "reviewCount": 9,
+    "slug": "terbinafine-1-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Trimovate Cream",
+    "priceGbpPence": 3099,
+    "reviewCount": 29,
+    "slug": "trimovate-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Atovaquone/Proguanil",
+    "priceGbpPence": 2199,
+    "reviewCount": 63,
+    "slug": "atovaquone-proguanil",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Aciclovir Tablets",
+    "priceGbpPence": 1999,
+    "reviewCount": 6,
+    "slug": "aciclovir-tablets-2",
+    "category": "sexual-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nasonex Nasal Spray",
+    "priceGbpPence": 2000,
+    "reviewCount": 33,
+    "slug": "nasonex-nasal-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Mebeverine 135mg Tablets",
+    "priceGbpPence": 1999,
+    "reviewCount": 61,
+    "slug": "mebeverine-135mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Uniroid HC Ointment",
+    "priceGbpPence": 1999,
+    "reviewCount": 19,
+    "slug": "uniroid-hc-ointment",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Proctosedyl Ointment",
+    "priceGbpPence": 2999,
+    "reviewCount": 48,
+    "slug": "proctosedyl-ointment",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Metronidazole Tablets",
+    "priceGbpPence": 1799,
+    "reviewCount": 13,
+    "slug": "metronidazole-tablets-2",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Phenoxymethylpenicillin (Pen V)",
+    "priceGbpPence": 2499,
+    "reviewCount": 14,
+    "slug": "phenoxymethylpenicillin-pen-v",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "EarCalm Spray For Ear Infections",
+    "priceGbpPence": 799,
+    "reviewCount": 30,
+    "slug": "earcalm-spray-for-ear-infections",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Melatonin 3mg tablets (Pharma Nord)",
+    "priceGbpPence": 2999,
+    "reviewCount": 4,
+    "slug": "melatonin-3mg-tablets-pharma-nord",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Hirudoid Cream & Gel",
+    "priceGbpPence": 699,
+    "reviewCount": 75,
+    "slug": "hirudoid-cream-gel",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Cleen (Fleet) Enema",
+    "priceGbpPence": 629,
+    "reviewCount": 30,
+    "slug": "cleen-fleet-enema",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Desloratadine 5mg Tablets",
+    "priceGbpPence": 1199,
+    "reviewCount": 61,
+    "slug": "desloratadine-5mg-tablets",
+    "category": "allergy",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Ibuprofen Gel",
+    "priceGbpPence": 799,
+    "reviewCount": 70,
+    "slug": "ibuprofen-gel",
+    "category": "pain-relief",
+    "classification": "P",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Dulcolax 10mg Suppositories",
+    "priceGbpPence": 449,
+    "reviewCount": 79,
+    "slug": "dulcolax-10mg-suppositories",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Anadin Extra Tablets",
+    "priceGbpPence": 449,
+    "reviewCount": 106,
+    "slug": "anadin-extra-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Docusate (Dioctyl) 100mg Capsules",
+    "priceGbpPence": 1699,
+    "reviewCount": 67,
+    "slug": "docusate-dioctyl-100mg-capsules",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Aldara Cream",
+    "priceGbpPence": 6999,
+    "reviewCount": 33,
+    "slug": "aldara-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vimovo",
+    "priceGbpPence": 2499,
+    "reviewCount": 64,
+    "slug": "vimovo",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Anusol Plus HC",
+    "priceGbpPence": 669,
+    "reviewCount": 28,
+    "slug": "anusol-plus-hc",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vaniqa 11.5% Cream For Unwanted Facial Hair",
+    "priceGbpPence": 6899,
+    "reviewCount": 41,
+    "slug": "vaniqa-11-5-cream-for-unwanted-facial-hair",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Xyzal 5mg Tablets",
+    "priceGbpPence": 1399,
+    "reviewCount": 50,
+    "slug": "xyzal-5mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Acetazolamide 250mg Tablets",
+    "priceGbpPence": 2899,
+    "reviewCount": 29,
+    "slug": "acetazolamide-250mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Prochlorperazine 3mg Buccal Tablets",
+    "priceGbpPence": 2399,
+    "reviewCount": 12,
+    "slug": "prochlorperazine-3mg-buccal-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vardenafil Tablets",
+    "priceGbpPence": 1999,
+    "reviewCount": 27,
+    "slug": "vardenafil-tablets",
+    "category": "erectile-dysfunction",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Cetraben Cream & Ointment",
+    "priceGbpPence": 979,
+    "reviewCount": 11,
+    "slug": "cetraben-cream-ointment",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Fexofenadine Tablets",
+    "priceGbpPence": 929,
+    "reviewCount": 10,
+    "slug": "fexofenadine-tablets",
+    "category": "allergy",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Efracea",
+    "priceGbpPence": 2499,
+    "reviewCount": 42,
+    "slug": "efracea",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Zindaclin",
+    "priceGbpPence": 1999,
+    "reviewCount": 14,
+    "slug": "zindaclin",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Difflam Rinse & Spray",
+    "priceGbpPence": 699,
+    "reviewCount": 61,
+    "slug": "difflam-rinse-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Acnecide",
+    "priceGbpPence": 999,
+    "reviewCount": 24,
+    "slug": "acnecide",
+    "category": "acne",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Evorel Conti Patches For Menopause Symptom Relief",
+    "priceGbpPence": 3500,
+    "reviewCount": 150,
+    "slug": "evorel-conti-patches-for-menopause-symptom-relief",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sudafed Decongestant Tablets",
+    "priceGbpPence": 459,
+    "reviewCount": 35,
+    "slug": "sudafed-decongestant-tablets",
+    "category": "cold-flu",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Chloramphenicol Eye Ointment",
+    "priceGbpPence": 799,
+    "reviewCount": 56,
+    "slug": "chloramphenicol-eye-ointment",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Clindamycin and Benzoyl Peroxide Gel (generic Duac)",
+    "priceGbpPence": 2199,
+    "reviewCount": 5,
+    "slug": "clindamycin-and-benzoyl-peroxide-gel-generic-duac",
+    "category": "acne",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Atorvastatin Tablets (10mg, 20mg, & 40mg)",
+    "priceGbpPence": 1900,
+    "reviewCount": 56,
+    "slug": "atorvastatin-tablets-10mg-20mg-40mg",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dutasteride 0.5mg Capsules",
+    "priceGbpPence": 2279,
+    "reviewCount": 5,
+    "slug": "dutasteride-0-5mg-capsules",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Lansoprazole 15mg Capsules",
+    "priceGbpPence": 1799,
+    "reviewCount": 29,
+    "slug": "lansoprazole-15mg-capsules",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Rhinolast",
+    "priceGbpPence": 1995,
+    "reviewCount": 41,
+    "slug": "rhinolast",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Mometasone Cream & Ointment",
+    "priceGbpPence": 1399,
+    "reviewCount": 22,
+    "slug": "mometasone-cream-ointment",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Brolene Eye Drops",
+    "priceGbpPence": 699,
+    "reviewCount": 56,
+    "slug": "brolene-eye-drops",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Zidoval Vaginal Gel",
+    "priceGbpPence": 2199,
+    "reviewCount": 27,
+    "slug": "zidoval-vaginal-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Telfast Tablets",
+    "priceGbpPence": 799,
+    "reviewCount": 41,
+    "slug": "telfast-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Winlevi 1% Cream",
+    "priceGbpPence": 3499,
+    "reviewCount": 4,
+    "slug": "winlevi-1-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Daktarin Gold 2% Cream",
+    "priceGbpPence": 899,
+    "reviewCount": 9,
+    "slug": "daktarin-gold-2-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Avodart (Dutasteride)",
+    "priceGbpPence": 4299,
+    "reviewCount": 24,
+    "slug": "avodart-dutasteride",
+    "category": "hair-loss",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Duraphat Fluoride Toothpaste",
+    "priceGbpPence": 1499,
+    "reviewCount": 13,
+    "slug": "duraphat-fluoride-toothpaste",
+    "category": "cold-flu",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Elocon Scalp Lotion",
+    "priceGbpPence": 2249,
+    "reviewCount": 35,
+    "slug": "elocon-scalp-lotion",
+    "category": "skin",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Gaviscon Double Action Tablets",
+    "priceGbpPence": 499,
+    "reviewCount": 29,
+    "slug": "gaviscon-double-action-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Gaviscon Infant Sachets",
+    "priceGbpPence": 849,
+    "reviewCount": 12,
+    "slug": "gaviscon-infant-sachets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Fusidic Acid Cream",
+    "priceGbpPence": 899,
+    "reviewCount": 9,
+    "slug": "fusidic-acid-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Minoxidil 2.5mg Tablets",
+    "priceGbpPence": 4499,
+    "reviewCount": 4,
+    "slug": "minoxidil-2-5mg-tablets",
+    "category": "hair-loss",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Corsodyl (Chlorhexidine) Dental Gel",
+    "priceGbpPence": 479,
+    "reviewCount": 61,
+    "slug": "corsodyl-chlorhexidine-dental-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dalacin 2% Vaginal Cream",
+    "priceGbpPence": 2199,
+    "reviewCount": 11,
+    "slug": "dalacin-2-vaginal-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Movelat Gel",
+    "priceGbpPence": 1229,
+    "reviewCount": 39,
+    "slug": "movelat-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dermol 200 Shower Emollient",
+    "priceGbpPence": 599,
+    "reviewCount": 28,
+    "slug": "dermol-200-shower-emollient",
+    "category": "skin",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Xenical",
+    "priceGbpPence": 5999,
+    "reviewCount": 59,
+    "slug": "xenical",
+    "category": "weight-loss",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Lovima 75mcg Tablets",
+    "priceGbpPence": 995,
+    "reviewCount": 19,
+    "slug": "lovima-75mcg-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dovonex Ointment",
+    "priceGbpPence": 2599,
+    "reviewCount": 13,
+    "slug": "dovonex-ointment",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Xifaxanta (Rifaximin) 200mg Tablets",
+    "priceGbpPence": 2945,
+    "reviewCount": 9,
+    "slug": "xifaxanta-rifaximin-200mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Adcal D3 Chewable Tablets",
+    "priceGbpPence": 849,
+    "reviewCount": 59,
+    "slug": "adcal-d3-chewable-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Duofilm",
+    "priceGbpPence": 549,
+    "reviewCount": 35,
+    "slug": "duofilm",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Avoca Wart & Verruca Treatment",
+    "priceGbpPence": 799,
+    "reviewCount": 9,
+    "slug": "avoca-wart-verruca-treatment",
+    "category": "sexual-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Clarithromycin for Sinusitis",
+    "priceGbpPence": 2499,
+    "reviewCount": 23,
+    "slug": "clarithromycin-for-sinusitis",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Doxycycline 100mg Capsules",
+    "priceGbpPence": 1899,
+    "reviewCount": 20,
+    "slug": "doxycycline-100mg-capsules",
+    "category": "travel-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Levocetirizine",
+    "priceGbpPence": 1199,
+    "reviewCount": 26,
+    "slug": "levocetirizine",
+    "category": "allergy",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Zolmitriptan Tablets",
+    "priceGbpPence": 2499,
+    "reviewCount": 71,
+    "slug": "zolmitriptan-tablets",
+    "category": "migraine",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Azithromycin 500mg Tablets",
+    "priceGbpPence": 1999,
+    "reviewCount": 6,
+    "slug": "azithromycin-500mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Opatanol Eye Drops",
+    "priceGbpPence": 1699,
+    "reviewCount": 10,
+    "slug": "opatanol-eye-drops",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nizoral 2% Cream",
+    "priceGbpPence": 1599,
+    "reviewCount": 6,
+    "slug": "nizoral-2-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dermol Cream",
+    "priceGbpPence": 1099,
+    "reviewCount": 36,
+    "slug": "dermol-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Cialis Together",
+    "priceGbpPence": 1949,
+    "reviewCount": 11,
+    "slug": "cialis-together",
+    "category": "erectile-dysfunction",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Senna Tablets",
+    "priceGbpPence": 299,
+    "reviewCount": 38,
+    "slug": "senna-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Benacort Nasal Spray",
+    "priceGbpPence": 899,
+    "reviewCount": 15,
+    "slug": "benacort-nasal-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Levest",
+    "priceGbpPence": 1999,
+    "reviewCount": 13,
+    "slug": "levest",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nizoral Anti-Dandruff Shampoo",
+    "priceGbpPence": 1229,
+    "reviewCount": 18,
+    "slug": "nizoral-anti-dandruff-shampoo",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Diprosalic Scalp Application",
+    "priceGbpPence": 2999,
+    "reviewCount": 7,
+    "slug": "diprosalic-scalp-application",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nitrolingual (GTN) Spray",
+    "priceGbpPence": 699,
+    "reviewCount": 94,
+    "slug": "nitrolingual-gtn-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Lenzetto Spray",
+    "priceGbpPence": 2499,
+    "reviewCount": 43,
+    "slug": "lenzetto-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Ivermectin Tablets",
+    "priceGbpPence": 16650,
+    "reviewCount": 5,
+    "slug": "ivermectin-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Instillagel Pre-filled Syringes",
+    "priceGbpPence": 1999,
+    "reviewCount": 6,
+    "slug": "instillagel-pre-filled-syringes",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Orlos",
+    "priceGbpPence": 2499,
+    "reviewCount": 13,
+    "slug": "orlos",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Regaine",
+    "priceGbpPence": 3599,
+    "reviewCount": 7,
+    "slug": "regaine",
+    "category": "hair-loss",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Evorel Sequi Patches",
+    "priceGbpPence": 3599,
+    "reviewCount": 56,
+    "slug": "evorel-sequi-patches",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Doxycycline",
+    "priceGbpPence": 1995,
+    "reviewCount": 33,
+    "slug": "doxycycline",
+    "category": "travel-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Glycerin 4g Suppositories",
+    "priceGbpPence": 459,
+    "reviewCount": 20,
+    "slug": "glycerin-4g-suppositories",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Ondansetron 8mg Tablets",
+    "priceGbpPence": 1499,
+    "reviewCount": 4,
+    "slug": "ondansetron-8mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Doublebase Gel",
+    "priceGbpPence": 999,
+    "reviewCount": 22,
+    "slug": "doublebase-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "DulcoEase Capsules",
+    "priceGbpPence": 599,
+    "reviewCount": 29,
+    "slug": "dulcoease-capsules",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Imigran Nasal Spray",
+    "priceGbpPence": 2499,
+    "reviewCount": 14,
+    "slug": "imigran-nasal-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Epimax Cream",
+    "priceGbpPence": 439,
+    "reviewCount": 27,
+    "slug": "epimax-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Xyloproct Ointment",
+    "priceGbpPence": 2495,
+    "reviewCount": 20,
+    "slug": "xyloproct-ointment",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Diprosalic Ointment",
+    "priceGbpPence": 1849,
+    "reviewCount": 15,
+    "slug": "diprosalic-ointment",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Desorex Pill",
+    "priceGbpPence": 1999,
+    "reviewCount": 5,
+    "slug": "desorex-pill",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Canesten Oral Capsule",
+    "priceGbpPence": 1249,
+    "reviewCount": 11,
+    "slug": "canesten-oral-capsule",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Eumovate",
+    "priceGbpPence": 999,
+    "reviewCount": 12,
+    "slug": "eumovate",
+    "category": "skin",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Cialis Tablets",
+    "priceGbpPence": 4460,
+    "reviewCount": 19,
+    "slug": "cialis-tablets",
+    "category": "erectile-dysfunction",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "CanesOasis Cystitis Relief Oral Solution 6 Sachets",
+    "priceGbpPence": 649,
+    "reviewCount": 3,
+    "slug": "canesoasis-cystitis-relief-oral-solution-6-sachets",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dulcolax Pico 5mg/5ml Liquid",
+    "priceGbpPence": 1099,
+    "reviewCount": 34,
+    "slug": "dulcolax-pico-5mg-5ml-liquid",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Gaviscon Advance Mint Chewable Tablets (60)",
+    "priceGbpPence": 949,
+    "reviewCount": 8,
+    "slug": "gaviscon-advance-mint-chewable-tablets-60",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "HC45 Hydrocortisone Cream",
+    "priceGbpPence": 669,
+    "reviewCount": 44,
+    "slug": "hc45-hydrocortisone-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Loperamide 2mg Capsules",
+    "priceGbpPence": 119,
+    "reviewCount": 8,
+    "slug": "loperamide-2mg-capsules",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Noriday Tablets",
+    "priceGbpPence": 1999,
+    "reviewCount": 6,
+    "slug": "noriday-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Rizatriptan",
+    "priceGbpPence": 1999,
+    "reviewCount": 26,
+    "slug": "rizatriptan",
+    "category": "migraine",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Varenicline Tablets (Generic Champix)",
+    "priceGbpPence": 3599,
+    "reviewCount": 6,
+    "slug": "varenicline-tablets-generic-champix",
+    "category": "stop-smoking",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Priligy Tablets (30mg & 60mg)",
+    "priceGbpPence": 2650,
+    "reviewCount": 9,
+    "slug": "priligy-tablets-30mg-60mg",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Voltarol Emulgel",
+    "priceGbpPence": 1299,
+    "reviewCount": 41,
+    "slug": "voltarol-emulgel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vitaros Cream",
+    "priceGbpPence": 6499,
+    "reviewCount": 11,
+    "slug": "vitaros-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "E45 Itch Relief Cream",
+    "priceGbpPence": 999,
+    "reviewCount": 53,
+    "slug": "e45-itch-relief-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Malarone",
+    "priceGbpPence": 3249,
+    "reviewCount": 29,
+    "slug": "malarone",
+    "category": "travel-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Viscotears Gel",
+    "priceGbpPence": 499,
+    "reviewCount": 56,
+    "slug": "viscotears-gel",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Trosyl Nail Solution",
+    "priceGbpPence": 3999,
+    "reviewCount": 5,
+    "slug": "trosyl-nail-solution",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Cerelle",
+    "priceGbpPence": 1999,
+    "reviewCount": 4,
+    "slug": "cerelle",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Epaderm",
+    "priceGbpPence": 1149,
+    "reviewCount": 10,
+    "slug": "epaderm",
+    "category": "skin",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Minocycline",
+    "priceGbpPence": 4299,
+    "reviewCount": 36,
+    "slug": "minocycline",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sebco Ointment",
+    "priceGbpPence": 2399,
+    "reviewCount": 11,
+    "slug": "sebco-ointment",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Treathay",
+    "priceGbpPence": 599,
+    "reviewCount": 2,
+    "slug": "treathay",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Golden Eye Drops",
+    "priceGbpPence": 799,
+    "reviewCount": 33,
+    "slug": "golden-eye-drops",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Blissel Vaginal Gel",
+    "priceGbpPence": 3399,
+    "reviewCount": 7,
+    "slug": "blissel-vaginal-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Stud 100 Desensitising Spray",
+    "priceGbpPence": 599,
+    "reviewCount": 5,
+    "slug": "stud-100-desensitising-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Etoricoxib 60mg Tablets",
+    "priceGbpPence": 3499,
+    "reviewCount": 7,
+    "slug": "etoricoxib-60mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Rigevidon Tablets",
+    "priceGbpPence": 2099,
+    "reviewCount": 2,
+    "slug": "rigevidon-tablets",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Valaciclovir 500mg Tablets",
+    "priceGbpPence": 2499,
+    "reviewCount": 4,
+    "slug": "valaciclovir-500mg-tablets",
+    "category": "sexual-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Capasal Therapeutic Shampoo",
+    "priceGbpPence": 899,
+    "reviewCount": 13,
+    "slug": "capasal-therapeutic-shampoo",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Blephaclean Eyelid Hygiene Wipes",
+    "priceGbpPence": 949,
+    "reviewCount": 13,
+    "slug": "blephaclean-eyelid-hygiene-wipes",
+    "category": "eye-care",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Orajel Extra Strength Toothache Gel",
+    "priceGbpPence": 549,
+    "reviewCount": 13,
+    "slug": "orajel-extra-strength-toothache-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Canesten Cream",
+    "priceGbpPence": 797,
+    "reviewCount": 41,
+    "slug": "canesten-cream",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Benadryl Allergy Relief",
+    "priceGbpPence": 879,
+    "reviewCount": 6,
+    "slug": "benadryl-allergy-relief",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dovobet Gel & Ointment",
+    "priceGbpPence": 7499,
+    "reviewCount": 14,
+    "slug": "dovobet-gel-ointment",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Aspirin",
+    "priceGbpPence": 299,
+    "reviewCount": 46,
+    "slug": "aspirin",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Zoely Tablets",
+    "priceGbpPence": 3599,
+    "reviewCount": 5,
+    "slug": "zoely-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Otrivine Nasal Spray",
+    "priceGbpPence": 599,
+    "reviewCount": 4,
+    "slug": "otrivine-nasal-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Adex Gel",
+    "priceGbpPence": 999,
+    "reviewCount": 11,
+    "slug": "adex-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Emla 5% Cream",
+    "priceGbpPence": 599,
+    "reviewCount": 9,
+    "slug": "emla-5-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sandrena Gel",
+    "priceGbpPence": 2999,
+    "reviewCount": 32,
+    "slug": "sandrena-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Alka-Seltzer XS",
+    "priceGbpPence": 579,
+    "reviewCount": 18,
+    "slug": "alka-seltzer-xs",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Movelat Cream",
+    "priceGbpPence": 1329,
+    "reviewCount": 25,
+    "slug": "movelat-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Evra Patches",
+    "priceGbpPence": 3199,
+    "slug": "evra-patches",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Imodium Instant Melts",
+    "priceGbpPence": 689,
+    "reviewCount": 15,
+    "slug": "imodium-instant-melts",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "NHS Prescription Charge",
+    "priceGbpPence": 990,
+    "reviewCount": 29,
+    "slug": "nhs-prescription-charge",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Microgynon & Microgynon ED",
+    "priceGbpPence": 135,
+    "reviewCount": 3,
+    "slug": "microgynon-microgynon-ed",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Diprobase Cream",
+    "priceGbpPence": 1199,
+    "reviewCount": 15,
+    "slug": "diprobase-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Cerazette Tablets",
+    "priceGbpPence": 2699,
+    "reviewCount": 10,
+    "slug": "cerazette-tablets",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Flexitol 10% Urea Cream",
+    "priceGbpPence": 1999,
+    "reviewCount": 9,
+    "slug": "flexitol-10-urea-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Forceval Capsules",
+    "priceGbpPence": 1849,
+    "reviewCount": 10,
+    "slug": "forceval-capsules",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Lizinna Tablets",
+    "priceGbpPence": 1999,
+    "slug": "lizinna-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vagirux Pessaries",
+    "priceGbpPence": 3699,
+    "reviewCount": 4,
+    "slug": "vagirux-pessaries",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Lamisil AT 1% Gel",
+    "priceGbpPence": 599,
+    "reviewCount": 9,
+    "slug": "lamisil-at-1-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Beconase Nasal Spray",
+    "priceGbpPence": 999,
+    "reviewCount": 2,
+    "slug": "beconase-nasal-spray",
+    "category": "allergy",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sudafed Blocked Nose Spray",
+    "priceGbpPence": 419,
+    "reviewCount": 18,
+    "slug": "sudafed-blocked-nose-spray",
+    "category": "cold-flu",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Cialis Once Daily Tablets (2.5mg & 5mg)",
+    "priceGbpPence": 8799,
+    "reviewCount": 7,
+    "slug": "cialis-once-daily-tablets-2-5mg-5mg",
+    "category": "erectile-dysfunction",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dermol 600 Bath Emollient",
+    "priceGbpPence": 1299,
+    "slug": "dermol-600-bath-emollient",
+    "category": "skin",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Yasmin Tablets",
+    "priceGbpPence": 3399,
+    "reviewCount": 4,
+    "slug": "yasmin-tablets",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sudafed Sinus Pressure & Pain Tablets",
+    "priceGbpPence": 749,
+    "reviewCount": 14,
+    "slug": "sudafed-sinus-pressure-pain-tablets",
+    "category": "pain-relief",
+    "classification": "P",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Norethisterone 5mg Tablets",
+    "priceGbpPence": 1799,
+    "reviewCount": 9,
+    "slug": "norethisterone-5mg-tablets",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Mometasone Furoate 50mcg Nasal Spray",
+    "priceGbpPence": 1699,
+    "reviewCount": 9,
+    "slug": "mometasone-furoate-50mcg-nasal-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Piroxicam Gel",
+    "priceGbpPence": 1499,
+    "reviewCount": 12,
+    "slug": "piroxicam-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Lucette",
+    "priceGbpPence": 2499,
+    "reviewCount": 2,
+    "slug": "lucette",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Ibuleve Gel",
+    "priceGbpPence": 699,
+    "reviewCount": 33,
+    "slug": "ibuleve-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Fybogel Mebeverine Sachets",
+    "priceGbpPence": 1449,
+    "reviewCount": 31,
+    "slug": "fybogel-mebeverine-sachets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Opticrom Eye Drops",
+    "priceGbpPence": 599,
+    "reviewCount": 6,
+    "slug": "opticrom-eye-drops",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Cyclogest 200mg Pessaries",
+    "priceGbpPence": 2999,
+    "reviewCount": 5,
+    "slug": "cyclogest-200mg-pessaries",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Zelleta",
+    "priceGbpPence": 1999,
+    "reviewCount": 5,
+    "slug": "zelleta",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Mirvaso Gel",
+    "priceGbpPence": 5200,
+    "reviewCount": 10,
+    "slug": "mirvaso-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Hezkue",
+    "priceGbpPence": 4799,
+    "reviewCount": 4,
+    "slug": "hezkue",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Hylo-Tear Eye Drops",
+    "priceGbpPence": 1299,
+    "reviewCount": 10,
+    "slug": "hylo-tear-eye-drops",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Imodium Dual Action Relief Tablets",
+    "priceGbpPence": 759,
+    "reviewCount": 6,
+    "slug": "imodium-dual-action-relief-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Polytar Shampoo",
+    "priceGbpPence": 1099,
+    "reviewCount": 8,
+    "slug": "polytar-shampoo",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Minocin",
+    "priceGbpPence": 3799,
+    "reviewCount": 25,
+    "slug": "minocin",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Acnecide Face Wash",
+    "priceGbpPence": 759,
+    "slug": "acnecide-face-wash",
+    "category": "acne",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Peptac Liquid Peppermint 500ml",
+    "priceGbpPence": 749,
+    "reviewCount": 10,
+    "slug": "peptac-liquid-peppermint-500ml",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Hycosan Extra Eye Drops",
+    "priceGbpPence": 1049,
+    "reviewCount": 5,
+    "slug": "hycosan-extra-eye-drops",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Actifed Multi Action Tablets",
+    "priceGbpPence": 499,
+    "reviewCount": 24,
+    "slug": "actifed-multi-action-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Propecia 1mg Tablets",
+    "priceGbpPence": 5199,
+    "reviewCount": 8,
+    "slug": "propecia-1mg-tablets",
+    "category": "hair-loss",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Imvaggis 0.03mg Pessaries",
+    "priceGbpPence": 2599,
+    "reviewCount": 3,
+    "slug": "imvaggis-0-03mg-pessaries",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Ovesse 1 mg/g Vaginal Cream",
+    "priceGbpPence": 1969,
+    "slug": "ovesse-1-mg-g-vaginal-cream",
+    "category": "skin",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Amoxicillin 500mg Capsules",
+    "priceGbpPence": 2495,
+    "reviewCount": 8,
+    "slug": "amoxicillin-500mg-capsules",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Metrogel",
+    "priceGbpPence": 3999,
+    "reviewCount": 8,
+    "slug": "metrogel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Maxalt",
+    "priceGbpPence": 2999,
+    "reviewCount": 16,
+    "slug": "maxalt",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Estradiol 10mcg Vaginal Tablets",
+    "priceGbpPence": 2499,
+    "reviewCount": 5,
+    "slug": "estradiol-10mcg-vaginal-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Clarinaze Allergy Control Nasal Spray",
+    "priceGbpPence": 1125,
+    "reviewCount": 3,
+    "slug": "clarinaze-allergy-control-nasal-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Migraleve Yellow",
+    "priceGbpPence": 999,
+    "reviewCount": 4,
+    "slug": "migraleve-yellow",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Systane Ultra Eye Drops",
+    "priceGbpPence": 1049,
+    "reviewCount": 13,
+    "slug": "systane-ultra-eye-drops",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dr. Wolff's V-San (Previously Vagisan Moist Cream)",
+    "priceGbpPence": 1499,
+    "reviewCount": 4,
+    "slug": "dr-wolff-s-v-san-previously-vagisan-moist-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Daktarin Aktiv Powder Spray",
+    "priceGbpPence": 699,
+    "reviewCount": 5,
+    "slug": "daktarin-aktiv-powder-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vicks Sinex Nasal Sprays",
+    "priceGbpPence": 369,
+    "reviewCount": 9,
+    "slug": "vicks-sinex-nasal-sprays",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Colpermin Capsules",
+    "priceGbpPence": 2599,
+    "reviewCount": 9,
+    "slug": "colpermin-capsules",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Pirinase Nasal Spray",
+    "priceGbpPence": 749,
+    "reviewCount": 3,
+    "slug": "pirinase-nasal-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Almotriptan",
+    "priceGbpPence": 2899,
+    "reviewCount": 22,
+    "slug": "almotriptan",
+    "category": "migraine",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nurofen for Children 100mg Chewable Capsules Orange",
+    "priceGbpPence": 529,
+    "slug": "nurofen-for-children-100mg-chewable-capsules-orange",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Alka-Seltzer",
+    "priceGbpPence": 529,
+    "reviewCount": 24,
+    "slug": "alka-seltzer",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Wind-eze Gel Capsules",
+    "priceGbpPence": 529,
+    "reviewCount": 6,
+    "slug": "wind-eze-gel-capsules",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Kwells Travel Sickness Tablets",
+    "priceGbpPence": 389,
+    "reviewCount": 2,
+    "slug": "kwells-travel-sickness-tablets",
+    "category": "travel-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Maloff Protect",
+    "priceGbpPence": 4399,
+    "reviewCount": 3,
+    "slug": "maloff-protect",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Cytisine",
+    "priceGbpPence": 15999,
+    "reviewCount": 3,
+    "slug": "cytisine",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Fybogel Fibre Chews",
+    "priceGbpPence": 1499,
+    "reviewCount": 5,
+    "slug": "fybogel-fibre-chews",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Spedra Tablets",
+    "priceGbpPence": 2750,
+    "reviewCount": 4,
+    "slug": "spedra-tablets",
+    "category": "erectile-dysfunction",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vydura 75mg Tablets",
+    "priceGbpPence": 17500,
+    "reviewCount": 5,
+    "slug": "vydura-75mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Hylo-Forte Eye Drops",
+    "priceGbpPence": 1299,
+    "reviewCount": 5,
+    "slug": "hylo-forte-eye-drops",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Aklief Cream",
+    "priceGbpPence": 4899,
+    "slug": "aklief-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Gedarel Tablets (20 & 30)",
+    "priceGbpPence": 135,
+    "slug": "gedarel-tablets-20-30",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Tamsulosin MR Capsules",
+    "priceGbpPence": 2299,
+    "reviewCount": 4,
+    "slug": "tamsulosin-mr-capsules",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Eurax Cream",
+    "priceGbpPence": 899,
+    "reviewCount": 16,
+    "slug": "eurax-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Alverine Citrate 60mg Capsules",
+    "priceGbpPence": 1999,
+    "reviewCount": 10,
+    "slug": "alverine-citrate-60mg-capsules",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Alpecin Caffeine Shampoo",
+    "priceGbpPence": 649,
+    "slug": "alpecin-caffeine-shampoo",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Otrivine Sinusitis Spray",
+    "priceGbpPence": 550,
+    "reviewCount": 3,
+    "slug": "otrivine-sinusitis-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Panadol ActiFast",
+    "priceGbpPence": 249,
+    "reviewCount": 2,
+    "slug": "panadol-actifast",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Imodium Capsules",
+    "priceGbpPence": 619,
+    "reviewCount": 28,
+    "slug": "imodium-capsules",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Anhydrol Forte Roll-On",
+    "priceGbpPence": 519,
+    "reviewCount": 13,
+    "slug": "anhydrol-forte-roll-on",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Champix Tablets",
+    "priceGbpPence": 4999,
+    "reviewCount": 34,
+    "slug": "champix-tablets",
+    "category": "stop-smoking",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Otigo Ear Drops",
+    "priceGbpPence": 1899,
+    "reviewCount": 2,
+    "slug": "otigo-ear-drops",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Bettamousse 0.1% Foam",
+    "priceGbpPence": 2799,
+    "reviewCount": 8,
+    "slug": "bettamousse-0-1-foam",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Purifide Daily Cleanser",
+    "priceGbpPence": 799,
+    "reviewCount": 2,
+    "slug": "purifide-daily-cleanser",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Optilast Eye Drops",
+    "priceGbpPence": 1580,
+    "reviewCount": 2,
+    "slug": "optilast-eye-drops",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Daktarin Oral Gel",
+    "priceGbpPence": 669,
+    "reviewCount": 103,
+    "slug": "daktarin-oral-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Lansoprazole 15mg Orodispersible Tablets",
+    "priceGbpPence": 2399,
+    "reviewCount": 11,
+    "slug": "lansoprazole-15mg-orodispersible-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "EllaOne 30mg Tablet",
+    "priceGbpPence": 2999,
+    "reviewCount": 3,
+    "slug": "ellaone-30mg-tablet",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Balance Activ BV Treatment Gel",
+    "priceGbpPence": 919,
+    "reviewCount": 2,
+    "slug": "balance-activ-bv-treatment-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "E45 Cream",
+    "priceGbpPence": 1499,
+    "reviewCount": 7,
+    "slug": "e45-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Buscopan IBS Relief Tablets",
+    "priceGbpPence": 699,
+    "reviewCount": 22,
+    "slug": "buscopan-ibs-relief-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Anusol Cream 43g",
+    "priceGbpPence": 649,
+    "slug": "anusol-cream-43g",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Germoloids Suppositories",
+    "priceGbpPence": 799,
+    "slug": "germoloids-suppositories",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Benadryl Allergy Plus Decongestant",
+    "priceGbpPence": 599,
+    "reviewCount": 5,
+    "slug": "benadryl-allergy-plus-decongestant",
+    "category": "cold-flu",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Betnovate Lotion",
+    "priceGbpPence": 1599,
+    "reviewCount": 5,
+    "slug": "betnovate-lotion",
+    "category": "skin",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Replens MD",
+    "priceGbpPence": 869,
+    "reviewCount": 6,
+    "slug": "replens-md",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Thealoz Duo Eye Drops",
+    "priceGbpPence": 1299,
+    "reviewCount": 2,
+    "slug": "thealoz-duo-eye-drops",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Otrivine Nasal Spray",
+    "priceGbpPence": 449,
+    "reviewCount": 3,
+    "slug": "otrivine-nasal-spray-2",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Curanail 5% Nail Lacquer",
+    "priceGbpPence": 2049,
+    "reviewCount": 10,
+    "slug": "curanail-5-nail-lacquer",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Lamisil Once",
+    "priceGbpPence": 899,
+    "reviewCount": 3,
+    "slug": "lamisil-once",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Eloine Tablets",
+    "priceGbpPence": 3299,
+    "reviewCount": 10,
+    "slug": "eloine-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Accrete D3 One-A-Day Chewable Tablets",
+    "priceGbpPence": 499,
+    "reviewCount": 5,
+    "slug": "accrete-d3-one-a-day-chewable-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nurofen Meltlets Lemon",
+    "priceGbpPence": 399,
+    "reviewCount": 4,
+    "slug": "nurofen-meltlets-lemon",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Aciclovir 5% Cream",
+    "priceGbpPence": 1795,
+    "reviewCount": 8,
+    "slug": "aciclovir-5-cream",
+    "category": "sexual-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nystaform HC",
+    "priceGbpPence": 1999,
+    "reviewCount": 2,
+    "slug": "nystaform-hc",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Canesbalance BV Vaginal Gel",
+    "priceGbpPence": 1349,
+    "reviewCount": 2,
+    "slug": "canesbalance-bv-vaginal-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Yacella Tablets",
+    "priceGbpPence": 2399,
+    "slug": "yacella-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Loceryl 5% Nail Lacquer",
+    "priceGbpPence": 2399,
+    "reviewCount": 2,
+    "slug": "loceryl-5-nail-lacquer",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vagisil Medicated Creme",
+    "priceGbpPence": 699,
+    "reviewCount": 3,
+    "slug": "vagisil-medicated-creme",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Waxsol Ear Drops",
+    "priceGbpPence": 599,
+    "reviewCount": 10,
+    "slug": "waxsol-ear-drops",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Catephen",
+    "priceGbpPence": 5999,
+    "slug": "catephen",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Balneum Intensiv Cream",
+    "priceGbpPence": 1400,
+    "reviewCount": 6,
+    "slug": "balneum-intensiv-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Beechams Powders Sachets",
+    "priceGbpPence": 469,
+    "reviewCount": 4,
+    "slug": "beechams-powders-sachets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Azyter 15 mg/g Eye Drops",
+    "priceGbpPence": 1699,
+    "reviewCount": 4,
+    "slug": "azyter-15-mg-g-eye-drops",
+    "category": "eye-care",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Blephasol Eyelid Cleansing Lotion",
+    "priceGbpPence": 1149,
+    "reviewCount": 7,
+    "slug": "blephasol-eyelid-cleansing-lotion",
+    "category": "eye-care",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Testosterone Test For Low Testosterone",
+    "priceGbpPence": 3449,
+    "reviewCount": 18,
+    "slug": "testosterone-test-for-low-testosterone",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Simvastatin Tablets (10mg, 20mg, & 40mg)",
+    "priceGbpPence": 1999,
+    "reviewCount": 7,
+    "slug": "simvastatin-tablets-10mg-20mg-40mg",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Canestest",
+    "priceGbpPence": 1049,
+    "reviewCount": 7,
+    "slug": "canestest",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Eurax HC Cream",
+    "priceGbpPence": 599,
+    "reviewCount": 29,
+    "slug": "eurax-hc-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Mefenamic Acid 500mg Tablets",
+    "priceGbpPence": 5499,
+    "reviewCount": 2,
+    "slug": "mefenamic-acid-500mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Earol Olive Oil Spray",
+    "priceGbpPence": 649,
+    "reviewCount": 4,
+    "slug": "earol-olive-oil-spray",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vitabiotics Ultra Magnesium Tablets (60)",
+    "priceGbpPence": 579,
+    "slug": "vitabiotics-ultra-magnesium-tablets-60",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Utrogestan 200mg Vaginal Capsules",
+    "priceGbpPence": 3499,
+    "reviewCount": 6,
+    "slug": "utrogestan-200mg-vaginal-capsules",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "CeraVe Blemish Control Cleanser",
+    "priceGbpPence": 1799,
+    "slug": "cerave-blemish-control-cleanser",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Canesten Combi (Pessary & Cream)",
+    "priceGbpPence": 1549,
+    "reviewCount": 12,
+    "slug": "canesten-combi-pessary-cream",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Flexiseq Osteo Gel",
+    "priceGbpPence": 1549,
+    "reviewCount": 7,
+    "slug": "flexiseq-osteo-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Allevia Tablets",
+    "priceGbpPence": 999,
+    "reviewCount": 2,
+    "slug": "allevia-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Cocois Ointment",
+    "priceGbpPence": 2299,
+    "reviewCount": 4,
+    "slug": "cocois-ointment",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Doublebase Dayleve Gel",
+    "priceGbpPence": 999,
+    "reviewCount": 7,
+    "slug": "doublebase-dayleve-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Optrex Hay Fever Eye Drops",
+    "priceGbpPence": 619,
+    "slug": "optrex-hay-fever-eye-drops",
+    "category": "allergy",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Pyrocalm Control 20mg Gastro-Resistant Tablets",
+    "priceGbpPence": 1049,
+    "reviewCount": 2,
+    "slug": "pyrocalm-control-20mg-gastro-resistant-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Rennie Deflatine",
+    "priceGbpPence": 849,
+    "reviewCount": 9,
+    "slug": "rennie-deflatine",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Levonorgestrel (Generic Levonelle) 1.5mg Tablet",
+    "priceGbpPence": 999,
+    "reviewCount": 2,
+    "slug": "levonorgestrel-generic-levonelle-1-5mg-tablet",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Daktarin Aktiv Cream 30g",
+    "priceGbpPence": 649,
+    "reviewCount": 3,
+    "slug": "daktarin-aktiv-cream-30g",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "FemSeven Conti Patches",
+    "priceGbpPence": 3499,
+    "reviewCount": 14,
+    "slug": "femseven-conti-patches",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Germolene Antiseptic Cream",
+    "priceGbpPence": 399,
+    "reviewCount": 2,
+    "slug": "germolene-antiseptic-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nexium Control",
+    "priceGbpPence": 1299,
+    "reviewCount": 2,
+    "slug": "nexium-control",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sons Minoxidil 5% Spray",
+    "priceGbpPence": 2899,
+    "slug": "sons-minoxidil-5-spray",
+    "category": "hair-loss",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Balneum Plus Cream",
+    "priceGbpPence": 2499,
+    "reviewCount": 7,
+    "slug": "balneum-plus-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Benylin Day & Night Tablets",
+    "priceGbpPence": 499,
+    "slug": "benylin-day-night-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Germoloids Cream 55g",
+    "priceGbpPence": 759,
+    "slug": "germoloids-cream-55g",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Flarin Capsules",
+    "priceGbpPence": 1089,
+    "slug": "flarin-capsules",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nurofen Maximum Strength Migraine Pain Caplets",
+    "priceGbpPence": 649,
+    "slug": "nurofen-maximum-strength-migraine-pain-caplets",
+    "category": "migraine",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nuromol Dual Action Pain Relief Tablets",
+    "priceGbpPence": 499,
+    "slug": "nuromol-dual-action-pain-relief-tablets",
+    "category": "pain-relief",
+    "classification": "P",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Eucerin Scalp Treatment",
+    "priceGbpPence": 1299,
+    "slug": "eucerin-scalp-treatment",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dexcom ONE+",
+    "priceGbpPence": 3699,
+    "reviewCount": 3,
+    "slug": "dexcom-one",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vitabiotics Ultra Vitamin D 2000IU Tablets (96)",
+    "priceGbpPence": 849,
+    "slug": "vitabiotics-ultra-vitamin-d-2000iu-tablets-96",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Colofac 135mg Tablets",
+    "priceGbpPence": 2199,
+    "reviewCount": 5,
+    "slug": "colofac-135mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Lemsip Max Cold and Flu Relief Sachets",
+    "priceGbpPence": 499,
+    "slug": "lemsip-max-cold-and-flu-relief-sachets",
+    "category": "cold-flu",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Hycosan Dual Eye Drops",
+    "priceGbpPence": 1295,
+    "slug": "hycosan-dual-eye-drops",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Aveeno Cream",
+    "priceGbpPence": 999,
+    "reviewCount": 11,
+    "slug": "aveeno-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Corsodyl Mouthwash Mint",
+    "priceGbpPence": 599,
+    "reviewCount": 7,
+    "slug": "corsodyl-mouthwash-mint",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Ketoprofen Gel",
+    "priceGbpPence": 1299,
+    "slug": "ketoprofen-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Driclor Roll-On",
+    "priceGbpPence": 1049,
+    "reviewCount": 4,
+    "slug": "driclor-roll-on",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Benylin 4flu Tablets",
+    "priceGbpPence": 599,
+    "slug": "benylin-4flu-tablets",
+    "category": "cold-flu",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "FemSeven Patches (50, 75, & 100)",
+    "priceGbpPence": 2299,
+    "reviewCount": 15,
+    "slug": "femseven-patches-50-75-100",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "GLP-1 Side Effects Treatment Pack",
+    "priceGbpPence": 799,
+    "slug": "glp-1-side-effects-treatment-pack",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Eroxon Stimgel Erectile Dysfunction Treatment (4)",
+    "priceGbpPence": 2499,
+    "reviewCount": 3,
+    "slug": "eroxon-stimgel-erectile-dysfunction-treatment-4",
+    "category": "erectile-dysfunction",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Hycosan Original Eye Drops",
+    "priceGbpPence": 799,
+    "slug": "hycosan-original-eye-drops",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vitabiotics Ultra Vitamin D 1000 IU Tablets (96)",
+    "priceGbpPence": 550,
+    "slug": "vitabiotics-ultra-vitamin-d-1000-iu-tablets-96",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Cilique Pill",
+    "priceGbpPence": 1999,
+    "slug": "cilique-pill",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Bonjela Adult",
+    "priceGbpPence": 499,
+    "slug": "bonjela-adult",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Lemsip Cough For Mucus Cough & Catarrh Oral Solution",
+    "priceGbpPence": 699,
+    "reviewCount": 3,
+    "slug": "lemsip-cough-for-mucus-cough-catarrh-oral-solution",
+    "category": "cold-flu",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dermacool 2% Menthol Aqueous Cream",
+    "priceGbpPence": 2499,
+    "reviewCount": 2,
+    "slug": "dermacool-2-menthol-aqueous-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Gepretix Soft Capsules",
+    "priceGbpPence": 1699,
+    "reviewCount": 2,
+    "slug": "gepretix-soft-capsules",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Chlamydia & Gonorrhoea Test Kit",
+    "priceGbpPence": 4299,
+    "reviewCount": 5,
+    "slug": "chlamydia-gonorrhoea-test-kit",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nurofen Pain Relief Max Strength Tablets",
+    "priceGbpPence": 999,
+    "slug": "nurofen-pain-relief-max-strength-tablets",
+    "category": "pain-relief",
+    "classification": "P",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Flexiseq Active Gel",
+    "priceGbpPence": 1279,
+    "reviewCount": 8,
+    "slug": "flexiseq-active-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Buscopan Cramps Tablets",
+    "priceGbpPence": 649,
+    "reviewCount": 22,
+    "slug": "buscopan-cramps-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Anbesol Liquid",
+    "priceGbpPence": 519,
+    "reviewCount": 5,
+    "slug": "anbesol-liquid",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vitabiotics Ultra Vitamin B-Complex Tablets (60)",
+    "priceGbpPence": 499,
+    "slug": "vitabiotics-ultra-vitamin-b-complex-tablets-60",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Clarityn 10mg Allergy Relief",
+    "priceGbpPence": 999,
+    "reviewCount": 2,
+    "slug": "clarityn-10mg-allergy-relief",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nevolat",
+    "priceGbpPence": 8499,
+    "reviewCount": 2,
+    "slug": "nevolat",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sterimar Isotonic Nasal Spray",
+    "priceGbpPence": 749,
+    "slug": "sterimar-isotonic-nasal-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Lamisil AT 1% Spray",
+    "priceGbpPence": 649,
+    "slug": "lamisil-at-1-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Otex Ear Drops",
+    "priceGbpPence": 549,
+    "reviewCount": 4,
+    "slug": "otex-ear-drops",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Calpol SixPlus Sugar Free Suspension Strawberry Flavour 6+ Years 200ml",
+    "priceGbpPence": 719,
+    "slug": "calpol-sixplus-sugar-free-suspension-strawberry-flavour-6-years-200ml",
+    "category": "eye-care",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Pen Needles (31G 8mm)",
+    "priceGbpPence": 599,
+    "slug": "pen-needles-31g-8mm",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Regaine For Women",
+    "priceGbpPence": 2199,
+    "reviewCount": 4,
+    "slug": "regaine-for-women",
+    "category": "hair-loss",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Anthisan Cream",
+    "priceGbpPence": 499,
+    "reviewCount": 6,
+    "slug": "anthisan-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Ryaltris Nasal Spray",
+    "priceGbpPence": 2799,
+    "slug": "ryaltris-nasal-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Calcipotriol/Betamethasone Gel & Ointment",
+    "priceGbpPence": 3499,
+    "reviewCount": 2,
+    "slug": "calcipotriol-betamethasone-gel-ointment",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "CCS Foot Care Cream",
+    "priceGbpPence": 849,
+    "reviewCount": 3,
+    "slug": "ccs-foot-care-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Intrarosa 6.5mg Pessaries",
+    "priceGbpPence": 4999,
+    "slug": "intrarosa-6-5mg-pessaries",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Valtrex 500mg Tablets",
+    "priceGbpPence": 4900,
+    "reviewCount": 2,
+    "slug": "valtrex-500mg-tablets",
+    "category": "sexual-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vitabiotics Ultra Iron Tablets (30)",
+    "priceGbpPence": 399,
+    "slug": "vitabiotics-ultra-iron-tablets-30",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Neoclarityn 5mg Tablets",
+    "priceGbpPence": 1999,
+    "slug": "neoclarityn-5mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Millinette Tablets (20 & 30)",
+    "priceGbpPence": 135,
+    "slug": "millinette-tablets-20-30",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "CeraVe Moisturising Cream",
+    "priceGbpPence": 999,
+    "slug": "cerave-moisturising-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Apercap Peppermint Oil Capsules",
+    "priceGbpPence": 1749,
+    "slug": "apercap-peppermint-oil-capsules",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Alli",
+    "priceGbpPence": 4999,
+    "reviewCount": 6,
+    "slug": "alli",
+    "category": "weight-loss",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Gaviscon Double Action Liquid Sachets",
+    "priceGbpPence": 599,
+    "reviewCount": 3,
+    "slug": "gaviscon-double-action-liquid-sachets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "4head Stick",
+    "priceGbpPence": 499,
+    "slug": "4head-stick",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Alpecin Double Effect",
+    "priceGbpPence": 799,
+    "slug": "alpecin-double-effect",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Piriteze",
+    "priceGbpPence": 999,
+    "reviewCount": 2,
+    "slug": "piriteze",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "SolpaOne 1000mg Effervescent Tablets",
+    "priceGbpPence": 649,
+    "reviewCount": 4,
+    "slug": "solpaone-1000mg-effervescent-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Bazuka Sub-Zero Freeze Treatment",
+    "priceGbpPence": 1249,
+    "slug": "bazuka-sub-zero-freeze-treatment",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Optrex Eye Drops",
+    "priceGbpPence": 499,
+    "slug": "optrex-eye-drops",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Effercitrate Tablets (12)",
+    "priceGbpPence": 1059,
+    "slug": "effercitrate-tablets-12",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sudocrem Nappy Rash Cream For Skin",
+    "priceGbpPence": 799,
+    "reviewCount": 2,
+    "slug": "sudocrem-nappy-rash-cream-for-skin",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Eucerin Shampoo",
+    "priceGbpPence": 1099,
+    "slug": "eucerin-shampoo",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Odaban Antiperspirant Deodorant",
+    "priceGbpPence": 1399,
+    "slug": "odaban-antiperspirant-deodorant",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sinutab Non-Drowsy Tablets",
+    "priceGbpPence": 679,
+    "slug": "sinutab-non-drowsy-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Neutrogena T/Gel Shampoo (Sensitive Scalp)",
+    "priceGbpPence": 699,
+    "slug": "neutrogena-t-gel-shampoo-sensitive-scalp",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Calpol SixPlus Fastmelts",
+    "priceGbpPence": 559,
+    "slug": "calpol-sixplus-fastmelts",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Kalms Day Stress Relief Tablets",
+    "priceGbpPence": 699,
+    "slug": "kalms-day-stress-relief-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nurofen Joint & Muscular Pain Relief Plaster",
+    "priceGbpPence": 1099,
+    "slug": "nurofen-joint-muscular-pain-relief-plaster",
+    "category": "pain-relief",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Cetaphil Moisturising Lotion",
+    "priceGbpPence": 1149,
+    "slug": "cetaphil-moisturising-lotion",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Losec MUPS 20mg Tablets",
+    "priceGbpPence": 2699,
+    "reviewCount": 8,
+    "slug": "losec-mups-20mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Zovirax Cold Sore Cream Pump 2g",
+    "priceGbpPence": 749,
+    "slug": "zovirax-cold-sore-cream-pump-2g",
+    "category": "cold-flu",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Aveeno Daily Moisturising Lotion",
+    "priceGbpPence": 849,
+    "reviewCount": 3,
+    "slug": "aveeno-daily-moisturising-lotion",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Calpol Infant Sugar Free Oral Suspension 2+ Months Strawberry Flavour 200ml",
+    "priceGbpPence": 659,
+    "slug": "calpol-infant-sugar-free-oral-suspension-2-months-strawberry-flavour-200ml",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Adapalene & Benzoyl Peroxide Gel",
+    "priceGbpPence": 2999,
+    "slug": "adapalene-benzoyl-peroxide-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Slynd 4mg",
+    "priceGbpPence": 2999,
+    "slug": "slynd-4mg",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Kalms Night Sleep Aid Tablets",
+    "priceGbpPence": 569,
+    "slug": "kalms-night-sleep-aid-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Trichomoniasis Test Kit",
+    "priceGbpPence": 3999,
+    "reviewCount": 2,
+    "slug": "trichomoniasis-test-kit",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nurofen Cold & Flu Tablets",
+    "priceGbpPence": 649,
+    "slug": "nurofen-cold-flu-tablets",
+    "category": "cold-flu",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Pantoprazole 20mg Tablets",
+    "priceGbpPence": 1699,
+    "slug": "pantoprazole-20mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "FreeStyle Libre 2 Plus Sensor",
+    "priceGbpPence": 5499,
+    "slug": "freestyle-libre-2-plus-sensor",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Hedrin 4% Lotion",
+    "priceGbpPence": 1349,
+    "slug": "hedrin-4-lotion",
+    "category": "skin",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Doxycycline For Skin Infections",
+    "priceGbpPence": 2899,
+    "slug": "doxycycline-for-skin-infections",
+    "category": "travel-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sons Strengthening Shampoo 200ml",
+    "priceGbpPence": 1299,
+    "slug": "sons-strengthening-shampoo-200ml",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Ultra Chloraseptic Spray",
+    "priceGbpPence": 509,
+    "reviewCount": 3,
+    "slug": "ultra-chloraseptic-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Beechams All In One Liquid",
+    "priceGbpPence": 549,
+    "slug": "beechams-all-in-one-liquid",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Zovirax Cold Sore Cream Tube 2g",
+    "priceGbpPence": 769,
+    "slug": "zovirax-cold-sore-cream-tube-2g",
+    "category": "cold-flu",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Perspirex",
+    "priceGbpPence": 799,
+    "reviewCount": 2,
+    "slug": "perspirex",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Cetaphil Gentle Skin Cleanser",
+    "priceGbpPence": 1499,
+    "slug": "cetaphil-gentle-skin-cleanser",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Cryotag Skin Tag Remover",
+    "priceGbpPence": 2299,
+    "reviewCount": 2,
+    "slug": "cryotag-skin-tag-remover",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Clarithromycin for Sore Throat",
+    "priceGbpPence": 2499,
+    "reviewCount": 2,
+    "slug": "clarithromycin-for-sore-throat",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "CeraVe Retinol Serum",
+    "priceGbpPence": 1999,
+    "slug": "cerave-retinol-serum",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Brevinor Tablets",
+    "priceGbpPence": 1999,
+    "slug": "brevinor-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Azelair Nasal Spray",
+    "priceGbpPence": 1799,
+    "slug": "azelair-nasal-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Utovlan 5mg Tablets",
+    "priceGbpPence": 1999,
+    "reviewCount": 3,
+    "slug": "utovlan-5mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Scholl Fungal Nail Treatment",
+    "priceGbpPence": 1799,
+    "reviewCount": 3,
+    "slug": "scholl-fungal-nail-treatment",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Clarithromycin for Skin Infections",
+    "priceGbpPence": 2899,
+    "slug": "clarithromycin-for-skin-infections",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Cold & Flu Nurse All in One Capsules",
+    "priceGbpPence": 599,
+    "slug": "cold-flu-nurse-all-in-one-capsules",
+    "category": "cold-flu",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Guardium Acid Reflux Control Tablets (14)",
+    "priceGbpPence": 1149,
+    "slug": "guardium-acid-reflux-control-tablets-14",
+    "category": "cold-flu",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Ulipristal 30mg Tablet",
+    "priceGbpPence": 1799,
+    "slug": "ulipristal-30mg-tablet",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Fludroxycortide Tape",
+    "priceGbpPence": 2999,
+    "slug": "fludroxycortide-tape",
+    "category": "cold-flu",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Biofreeze Gel",
+    "priceGbpPence": 949,
+    "slug": "biofreeze-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sudafed Decongestant Liquid",
+    "priceGbpPence": 359,
+    "slug": "sudafed-decongestant-liquid",
+    "category": "cold-flu",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Evana Heavy Period Relief 500mg Tablets",
+    "priceGbpPence": 995,
+    "slug": "evana-heavy-period-relief-500mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "E45 Psoriasis Cream",
+    "priceGbpPence": 1799,
+    "slug": "e45-psoriasis-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "FyboCalm Constipation Relief Capsules",
+    "priceGbpPence": 1399,
+    "slug": "fybocalm-constipation-relief-capsules",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Bazuka Extra Strength Gel",
+    "priceGbpPence": 649,
+    "slug": "bazuka-extra-strength-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Anadin Joint Pain 200mg Ibuprofen Tablets",
+    "priceGbpPence": 259,
+    "slug": "anadin-joint-pain-200mg-ibuprofen-tablets",
+    "category": "pain-relief",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Zolmitriptan 5mg Nasal Spray",
+    "priceGbpPence": 5499,
+    "slug": "zolmitriptan-5mg-nasal-spray",
+    "category": "migraine",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Strepsils Extra Strength Blackcurrant Lozenges",
+    "priceGbpPence": 499,
+    "slug": "strepsils-extra-strength-blackcurrant-lozenges",
+    "category": "cold-flu",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Panadol Extra Advance Tablets",
+    "priceGbpPence": 379,
+    "slug": "panadol-extra-advance-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Benadryl One-A-Day Tablets",
+    "priceGbpPence": 859,
+    "slug": "benadryl-one-a-day-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Axsain 0.075% Cream",
+    "priceGbpPence": 2999,
+    "slug": "axsain-0-075-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Beechams Max Strength All In One Capsules",
+    "priceGbpPence": 499,
+    "slug": "beechams-max-strength-all-in-one-capsules",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vicks VapoRub",
+    "priceGbpPence": 525,
+    "slug": "vicks-vaporub",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Centrum Advance Multivitamin & Mineral Tablets (60)",
+    "priceGbpPence": 950,
+    "slug": "centrum-advance-multivitamin-mineral-tablets-60",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Balance Activ Intimate Soothing Cream",
+    "priceGbpPence": 549,
+    "reviewCount": 4,
+    "slug": "balance-activ-intimate-soothing-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "CeraVe Reparative Hand Cream",
+    "priceGbpPence": 699,
+    "slug": "cerave-reparative-hand-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Clarityn Allergy Syrup",
+    "priceGbpPence": 599,
+    "slug": "clarityn-allergy-syrup",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Lemsip Max Day & Night Cold & Flu Relief Capsules",
+    "priceGbpPence": 649,
+    "slug": "lemsip-max-day-night-cold-flu-relief-capsules",
+    "category": "cold-flu",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Strepsils Honey & Lemon Lozenges",
+    "priceGbpPence": 499,
+    "slug": "strepsils-honey-lemon-lozenges",
+    "category": "cold-flu",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "CeraVe SA Smoothing Cleanser",
+    "priceGbpPence": 2249,
+    "slug": "cerave-sa-smoothing-cleanser",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vicks Inhaler Nasal Stick",
+    "priceGbpPence": 255,
+    "slug": "vicks-inhaler-nasal-stick",
+    "category": "asthma",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Canesbalance Vaginal Pessaries",
+    "priceGbpPence": 1599,
+    "slug": "canesbalance-vaginal-pessaries",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Ketoconazole 2% Shampoo",
+    "priceGbpPence": 1699,
+    "slug": "ketoconazole-2-shampoo",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "CeraVe Moisturising Lotion",
+    "priceGbpPence": 1749,
+    "slug": "cerave-moisturising-lotion",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Beechams All in One Cold and Flu Tablets",
+    "priceGbpPence": 419,
+    "slug": "beechams-all-in-one-cold-and-flu-tablets",
+    "category": "cold-flu",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Psoriderm Scalp Lotion Shampoo",
+    "priceGbpPence": 819,
+    "slug": "psoriderm-scalp-lotion-shampoo",
+    "category": "skin",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Metronidazole 400mg Tablets",
+    "priceGbpPence": 2495,
+    "slug": "metronidazole-400mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Bijuve Capsules",
+    "priceGbpPence": 2399,
+    "slug": "bijuve-capsules",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sudafed Congestion & Headache Relief Day & Night Capsules",
+    "priceGbpPence": 469,
+    "slug": "sudafed-congestion-headache-relief-day-night-capsules",
+    "category": "cold-flu",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "After Bite Classic - 14ml Pen",
+    "priceGbpPence": 459,
+    "slug": "after-bite-classic-14ml-pen",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sudafed Sinus-Ease 0.1% Nasal Spray 15ml",
+    "priceGbpPence": 550,
+    "slug": "sudafed-sinus-ease-0-1-nasal-spray-15ml",
+    "category": "cold-flu",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Doublebase Flare Relief",
+    "priceGbpPence": 1675,
+    "slug": "doublebase-flare-relief",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Benylin Mucus Cough Max Syrup (Honey & Lemon)",
+    "priceGbpPence": 499,
+    "slug": "benylin-mucus-cough-max-syrup-honey-lemon",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Deep Heat Max Strength - 35g",
+    "priceGbpPence": 519,
+    "slug": "deep-heat-max-strength-35g",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Piriteze Allergy & Hayfever Syrup Sugar Free Banana Flavour",
+    "priceGbpPence": 600,
+    "slug": "piriteze-allergy-hayfever-syrup-sugar-free-banana-flavour",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Germolene Wound Care Cream",
+    "priceGbpPence": 399,
+    "slug": "germolene-wound-care-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Oilatum Cream",
+    "priceGbpPence": 1099,
+    "slug": "oilatum-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "NuvaRing",
+    "priceGbpPence": 4699,
+    "slug": "nuvaring",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Azelastine & Fluticasone Nasal Spray",
+    "priceGbpPence": 2599,
+    "slug": "azelastine-fluticasone-nasal-spray",
+    "category": "cold-flu",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dermax Therapeutic Shampoo",
+    "priceGbpPence": 979,
+    "slug": "dermax-therapeutic-shampoo",
+    "category": "skin",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Zacin 0.025% Cream",
+    "priceGbpPence": 2999,
+    "reviewCount": 2,
+    "slug": "zacin-0-025-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Betamethasone with Clioquinol Cream",
+    "priceGbpPence": 6499,
+    "reviewCount": 3,
+    "slug": "betamethasone-with-clioquinol-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "CeraVe AM Lotion",
+    "priceGbpPence": 1499,
+    "slug": "cerave-am-lotion",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Strepsils Sore Throat & Cough Lozenges",
+    "priceGbpPence": 549,
+    "slug": "strepsils-sore-throat-cough-lozenges",
+    "category": "cold-flu",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Deep Heat Pain Relief Heat Patch",
+    "priceGbpPence": 649,
+    "slug": "deep-heat-pain-relief-heat-patch",
+    "category": "pain-relief",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Pepto-Bismol Liquid - Quick Relief for Digestive Discomfort",
+    "priceGbpPence": 899,
+    "slug": "pepto-bismol-liquid-quick-relief-for-digestive-discomfort",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Aveeno Dermexa Cream",
+    "priceGbpPence": 1099,
+    "slug": "aveeno-dermexa-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Benylin Chesty Coughs Non-Drowsy",
+    "priceGbpPence": 889,
+    "slug": "benylin-chesty-coughs-non-drowsy",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sons Biotin Capsules",
+    "priceGbpPence": 999,
+    "slug": "sons-biotin-capsules",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Femodene & Femodene ED",
+    "priceGbpPence": 135,
+    "slug": "femodene-femodene-ed",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Covonia Chesty Cough Sugar Free Syrup",
+    "priceGbpPence": 529,
+    "reviewCount": 3,
+    "slug": "covonia-chesty-cough-sugar-free-syrup",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nicorette Icy White Gum (2mg & 4mg)",
+    "priceGbpPence": 950,
+    "slug": "nicorette-icy-white-gum-2mg-4mg",
+    "category": "stop-smoking",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "LoviOne Emergency Contraception 1.5mg Levonorgestrel Tablet",
+    "priceGbpPence": 1299,
+    "slug": "lovione-emergency-contraception-1-5mg-levonorgestrel-tablet",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Migard",
+    "priceGbpPence": 2799,
+    "reviewCount": 4,
+    "slug": "migard",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "CeraVe PM Facial Moisturising Lotion",
+    "priceGbpPence": 1499,
+    "slug": "cerave-pm-facial-moisturising-lotion",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Compeed Cold Sore Patches",
+    "priceGbpPence": 599,
+    "slug": "compeed-cold-sore-patches",
+    "category": "cold-flu",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Tiger Balm White Ointment",
+    "priceGbpPence": 799,
+    "slug": "tiger-balm-white-ointment",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Femodette Tablets",
+    "priceGbpPence": 2299,
+    "slug": "femodette-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "FyboCalm Diarrhoea Relief Capsules",
+    "priceGbpPence": 1399,
+    "slug": "fybocalm-diarrhoea-relief-capsules",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Deep Heat Rub - 35g tube",
+    "priceGbpPence": 289,
+    "slug": "deep-heat-rub-35g-tube",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Esomeprazole 20mg Tablets",
+    "priceGbpPence": 1699,
+    "slug": "esomeprazole-20mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "E45 Dry Scalp Shampoo",
+    "priceGbpPence": 749,
+    "reviewCount": 2,
+    "slug": "e45-dry-scalp-shampoo",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Olbas Inhaler Nasal Stick",
+    "priceGbpPence": 309,
+    "slug": "olbas-inhaler-nasal-stick",
+    "category": "asthma",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Rizatriptan 10mg Tablets",
+    "priceGbpPence": 2499,
+    "slug": "rizatriptan-10mg-tablets",
+    "category": "migraine",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Progynova Tablets",
+    "priceGbpPence": 2999,
+    "slug": "progynova-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Strepsils Orange with Vitamin C (100mg) Lozenges",
+    "priceGbpPence": 599,
+    "slug": "strepsils-orange-with-vitamin-c-100mg-lozenges",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Panadol Period Pain Tablets",
+    "priceGbpPence": 349,
+    "slug": "panadol-period-pain-tablets",
+    "category": "pain-relief",
+    "classification": "P",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Norgeston Tablets",
+    "priceGbpPence": 1999,
+    "slug": "norgeston-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Psoriderm Cream",
+    "priceGbpPence": 1699,
+    "slug": "psoriderm-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "FyboCalm Wind & Bloating Relief Capsules",
+    "priceGbpPence": 1399,
+    "reviewCount": 2,
+    "slug": "fybocalm-wind-bloating-relief-capsules",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Betamethasone with Neomycin Cream",
+    "priceGbpPence": 6499,
+    "reviewCount": 3,
+    "slug": "betamethasone-with-neomycin-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sudafed Nose Spray",
+    "priceGbpPence": 549,
+    "reviewCount": 2,
+    "slug": "sudafed-nose-spray",
+    "category": "cold-flu",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Full Marks Head Lice Solution",
+    "priceGbpPence": 1099,
+    "slug": "full-marks-head-lice-solution",
+    "category": "skin",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Cerumol Olive Oil Ear Wax Drops",
+    "priceGbpPence": 489,
+    "reviewCount": 3,
+    "slug": "cerumol-olive-oil-ear-wax-drops",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Aveeno Skin Relief Soothing Shampoo",
+    "priceGbpPence": 979,
+    "slug": "aveeno-skin-relief-soothing-shampoo",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nurofen Day & Night Cold & Flu Tablets",
+    "priceGbpPence": 499,
+    "slug": "nurofen-day-night-cold-flu-tablets",
+    "category": "cold-flu",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Centrum Women 50+ Multivitamin & Minerals Tablets (30)",
+    "priceGbpPence": 799,
+    "reviewCount": 2,
+    "slug": "centrum-women-50-multivitamin-minerals-tablets-30",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Mercilon Tablets",
+    "priceGbpPence": 2299,
+    "slug": "mercilon-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Anabact Gel",
+    "priceGbpPence": 2599,
+    "slug": "anabact-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Freederm Gel (10g)",
+    "priceGbpPence": 499,
+    "slug": "freederm-gel-10g",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nystaform Cream",
+    "priceGbpPence": 1999,
+    "slug": "nystaform-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "CeraVe Eye Repair Cream",
+    "priceGbpPence": 1449,
+    "slug": "cerave-eye-repair-cream",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "CeraVe Hydrating Cleanser",
+    "priceGbpPence": 1699,
+    "slug": "cerave-hydrating-cleanser",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Benylin Cold & Flu Max Strength Capsules",
+    "priceGbpPence": 469,
+    "slug": "benylin-cold-flu-max-strength-capsules",
+    "category": "cold-flu",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "CeraVe Blemish Control Gel",
+    "priceGbpPence": 1349,
+    "slug": "cerave-blemish-control-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Zolmitriptan Orodispersible Tablets",
+    "priceGbpPence": 2499,
+    "slug": "zolmitriptan-orodispersible-tablets",
+    "category": "migraine",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Broncho Stop Cough Syrup",
+    "priceGbpPence": 999,
+    "slug": "broncho-stop-cough-syrup",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sons Hair Growth Complex Capsules",
+    "priceGbpPence": 2999,
+    "slug": "sons-hair-growth-complex-capsules",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "CeraVe SA Renewing Foot Cream",
+    "priceGbpPence": 899,
+    "slug": "cerave-sa-renewing-foot-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "CeraVe Foaming Cleanser",
+    "priceGbpPence": 1699,
+    "slug": "cerave-foaming-cleanser",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Tiger Balm Muscle Lotion",
+    "priceGbpPence": 890,
+    "slug": "tiger-balm-muscle-lotion",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Quviviq (Daridorexant) Tablets",
+    "priceGbpPence": 7999,
+    "slug": "quviviq-daridorexant-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Infacol Colic & Wind Relief Drops",
+    "priceGbpPence": 1099,
+    "slug": "infacol-colic-wind-relief-drops",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Qlaira Tablets",
+    "priceGbpPence": 3899,
+    "slug": "qlaira-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Fusion Allergy Eye Drops",
+    "priceGbpPence": 949,
+    "slug": "fusion-allergy-eye-drops",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Centrum Men 50+ Multivitamin & Mineral Tablets (30)",
+    "priceGbpPence": 799,
+    "slug": "centrum-men-50-multivitamin-mineral-tablets-30",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "CeraVe SA Smoothing Cream",
+    "priceGbpPence": 1499,
+    "slug": "cerave-sa-smoothing-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Covonia Chesty Cough Mixture",
+    "priceGbpPence": 899,
+    "slug": "covonia-chesty-cough-mixture",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Wynzora Cream",
+    "priceGbpPence": 4499,
+    "slug": "wynzora-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Bepanthen Nappy Care Ointment",
+    "priceGbpPence": 799,
+    "slug": "bepanthen-nappy-care-ointment",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nicorette Invisipatch (10mg, 15mg & 25mg)",
+    "priceGbpPence": 599,
+    "slug": "nicorette-invisipatch-10mg-15mg-25mg",
+    "category": "stop-smoking",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Olbas Nasal Spray",
+    "priceGbpPence": 599,
+    "slug": "olbas-nasal-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Logynon & Logynon ED",
+    "priceGbpPence": 1499,
+    "slug": "logynon-logynon-ed",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Calcipotriol 50mcg/g Ointment",
+    "priceGbpPence": 2399,
+    "slug": "calcipotriol-50mcg-g-ointment",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Regaine For Men: Extra Strength Scalp Foam",
+    "priceGbpPence": 3499,
+    "slug": "regaine-for-men-extra-strength-scalp-foam",
+    "category": "hair-loss",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Calpol Saline Nasal Spray",
+    "priceGbpPence": 449,
+    "slug": "calpol-saline-nasal-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Tiger Balm Red Ointment",
+    "priceGbpPence": 799,
+    "slug": "tiger-balm-red-ointment",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vitabiotics Wellman 50+ Tablets (30)",
+    "priceGbpPence": 1049,
+    "slug": "vitabiotics-wellman-50-tablets-30",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Ostoniq Joint Pain Relief Cream",
+    "priceGbpPence": 1699,
+    "slug": "ostoniq-joint-pain-relief-cream",
+    "category": "pain-relief",
+    "classification": "P",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Frovatriptan 2.5mg Tablets",
+    "priceGbpPence": 2499,
+    "slug": "frovatriptan-2-5mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nasacort 55mcg Nasal Spray",
+    "priceGbpPence": 2699,
+    "slug": "nasacort-55mcg-nasal-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Ovranette Tablets",
+    "priceGbpPence": 1999,
+    "slug": "ovranette-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Becodefence Allergy Defence",
+    "priceGbpPence": 649,
+    "slug": "becodefence-allergy-defence",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Berocca Energy Release Effervescent Tablets Mango Flavour (15)",
+    "priceGbpPence": 699,
+    "slug": "berocca-energy-release-effervescent-tablets-mango-flavour-15",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Berocca Energy Release Effervescent Tablets Orange Flavour (45)",
+    "priceGbpPence": 1575,
+    "slug": "berocca-energy-release-effervescent-tablets-orange-flavour-45",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Rabeprazole 10mg Tablets",
+    "priceGbpPence": 1699,
+    "slug": "rabeprazole-10mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "LMX4 Lidocaine 4% Cream For Genital Herpes",
+    "priceGbpPence": 2599,
+    "slug": "lmx4-lidocaine-4-cream-for-genital-herpes",
+    "category": "sexual-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sons Strengthening Conditioner 200ml",
+    "priceGbpPence": 1299,
+    "slug": "sons-strengthening-conditioner-200ml",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Zomig 2.5mg Tablets",
+    "priceGbpPence": 3499,
+    "slug": "zomig-2-5mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "CeraVe Hydrating Hyaluronic Acid Serum",
+    "priceGbpPence": 1999,
+    "slug": "cerave-hydrating-hyaluronic-acid-serum",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Calpol Vapour Plug Refill Pads",
+    "priceGbpPence": 599,
+    "slug": "calpol-vapour-plug-refill-pads",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Coldzyme Mouth Spray 20ml",
+    "priceGbpPence": 1399,
+    "slug": "coldzyme-mouth-spray-20ml",
+    "category": "cold-flu",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Ultravana Period Pain Relief 250mg Tablets",
+    "priceGbpPence": 645,
+    "slug": "ultravana-period-pain-relief-250mg-tablets",
+    "category": "pain-relief",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Covonia Dry & Tickly Cough Linctus",
+    "priceGbpPence": 559,
+    "slug": "covonia-dry-tickly-cough-linctus",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Flukitaz Nasal Spray",
+    "priceGbpPence": 1799,
+    "slug": "flukitaz-nasal-spray",
+    "category": "cold-flu",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Desomono 75mcg Tablets",
+    "priceGbpPence": 2199,
+    "slug": "desomono-75mcg-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Zomig Rapimelt Tablets (2.5mg & 5mg)",
+    "priceGbpPence": 3499,
+    "slug": "zomig-rapimelt-tablets-2-5mg-5mg",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Bonjela Junior Gel",
+    "priceGbpPence": 449,
+    "slug": "bonjela-junior-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Stomach Ulcer Test Kit (2San)",
+    "priceGbpPence": 999,
+    "slug": "stomach-ulcer-test-kit-2san",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sterimar Stop & Protect",
+    "priceGbpPence": 799,
+    "slug": "sterimar-stop-protect",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Benylin Infant’s Cough Syrup",
+    "priceGbpPence": 439,
+    "slug": "benylin-infant-s-cough-syrup",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vivesse Vaginal Cream",
+    "priceGbpPence": 1299,
+    "slug": "vivesse-vaginal-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Kalms Nights One-A-Night",
+    "priceGbpPence": 599,
+    "slug": "kalms-nights-one-a-night",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Prostate PSA Home Test Kit",
+    "priceGbpPence": 999,
+    "slug": "prostate-psa-home-test-kit",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Synphase Tablets",
+    "priceGbpPence": 2199,
+    "slug": "synphase-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Colief Infant Drops",
+    "priceGbpPence": 1399,
+    "slug": "colief-infant-drops",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dermatix Silicone Scar Gel",
+    "priceGbpPence": 2499,
+    "slug": "dermatix-silicone-scar-gel",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sons Derma Roller",
+    "priceGbpPence": 1499,
+    "slug": "sons-derma-roller",
+    "category": "skin",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Estradot Conti Transdermal Patches",
+    "priceGbpPence": 3999,
+    "slug": "estradot-conti-transdermal-patches",
+    "category": "skin",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Viridal Duo 10mcg Injections",
+    "priceGbpPence": 6489,
+    "slug": "viridal-duo-10mcg-injections",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Tiger Balm Red Ointment 19g",
+    "priceGbpPence": 629,
+    "slug": "tiger-balm-red-ointment-19g",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Branded ED Treatment Tablets",
+    "priceGbpPence": 2299,
+    "slug": "branded-ed-treatment-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "icesupp Food Supplements",
+    "priceGbpPence": 2775,
+    "slug": "icesupp-food-supplements",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "CeraVe Hydrating Cream-to-Foam Cleanser",
+    "priceGbpPence": 1349,
+    "slug": "cerave-hydrating-cream-to-foam-cleanser",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Woodwards Gripe Water Dual Action",
+    "priceGbpPence": 499,
+    "slug": "woodwards-gripe-water-dual-action",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dioralyte Relief Sachets Blackcurrant",
+    "priceGbpPence": 1499,
+    "slug": "dioralyte-relief-sachets-blackcurrant",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dentinox Cradle Cap Treatment Shampoo",
+    "priceGbpPence": 425,
+    "slug": "dentinox-cradle-cap-treatment-shampoo",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Olbas for Children Inhalant Decongestant Oil",
+    "priceGbpPence": 460,
+    "slug": "olbas-for-children-inhalant-decongestant-oil",
+    "category": "cold-flu",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Ashton & Parsons Teething Powders - 20 Sachets",
+    "priceGbpPence": 499,
+    "slug": "ashton-parsons-teething-powders-20-sachets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vitabiotics Osteocare Original Tablets (90)",
+    "priceGbpPence": 1349,
+    "slug": "vitabiotics-osteocare-original-tablets-90",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Regaine for Women Once a Day Scalp Foam",
+    "priceGbpPence": 3449,
+    "slug": "regaine-for-women-once-a-day-scalp-foam",
+    "category": "hair-loss",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nicorette Quickmist Fresh Mint 1mg/Spray Duo",
+    "priceGbpPence": 2999,
+    "slug": "nicorette-quickmist-fresh-mint-1mg-spray-duo",
+    "category": "stop-smoking",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Belnifrem Tablets",
+    "priceGbpPence": 15000,
+    "slug": "belnifrem-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Calpol Vapour Plug & Nightlight",
+    "priceGbpPence": 750,
+    "slug": "calpol-vapour-plug-nightlight",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nexium 20mg Tablets",
+    "priceGbpPence": 3999,
+    "slug": "nexium-20mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sons Thickening Hair Clay 75ml",
+    "priceGbpPence": 1299,
+    "slug": "sons-thickening-hair-clay-75ml",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "CeraVe Hydrating Foaming Oil Cleanser",
+    "priceGbpPence": 1299,
+    "slug": "cerave-hydrating-foaming-oil-cleanser",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Circadin (Melatonin) 2mg Tablets",
+    "priceGbpPence": 3999,
+    "reviewCount": 5,
+    "slug": "circadin-melatonin-2mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Imigran Injections (Sumatriptan)",
+    "priceGbpPence": 8499,
+    "slug": "imigran-injections-sumatriptan",
+    "category": "migraine",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Olbas Breathe Easy Patches",
+    "priceGbpPence": 699,
+    "slug": "olbas-breathe-easy-patches",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Maexeni Contraceptive Pill",
+    "priceGbpPence": 1999,
+    "slug": "maexeni-contraceptive-pill",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vitamin D Deficiency Test Kit",
+    "priceGbpPence": 799,
+    "slug": "vitamin-d-deficiency-test-kit",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "SyreniRing",
+    "priceGbpPence": 4299,
+    "slug": "syreniring",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Alevere Chocolate Flavoured Crunch Bar",
+    "priceGbpPence": 1500,
+    "slug": "alevere-chocolate-flavoured-crunch-bar",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Menopause (FSH) Home Test Kit",
+    "priceGbpPence": 899,
+    "slug": "menopause-fsh-home-test-kit",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Alevere Chocolate Praline Flavoured Fluffy Crisps Bar",
+    "priceGbpPence": 1500,
+    "slug": "alevere-chocolate-praline-flavoured-fluffy-crisps-bar",
+    "category": "cold-flu",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Bimizza Contraceptive Pill",
+    "priceGbpPence": 2899,
+    "slug": "bimizza-contraceptive-pill",
+    "category": "womens-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Thyroid TSH Home Testing Kit",
+    "priceGbpPence": 999,
+    "slug": "thyroid-tsh-home-testing-kit",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Zantac 75 Relief",
+    "priceGbpPence": 1159,
+    "reviewCount": 2,
+    "slug": "zantac-75-relief",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Purifide pH Control Cleansing Face Wash",
+    "priceGbpPence": 999,
+    "slug": "purifide-ph-control-cleansing-face-wash",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Alevere Butterscotch Flavoured Fortified Cold Drink",
+    "priceGbpPence": 1500,
+    "slug": "alevere-butterscotch-flavoured-fortified-cold-drink",
+    "category": "cold-flu",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Senokot Max Strength Tablets",
+    "priceGbpPence": 799,
+    "reviewCount": 9,
+    "slug": "senokot-max-strength-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Alevere Chocolate Protein Balls",
+    "priceGbpPence": 1500,
+    "slug": "alevere-chocolate-protein-balls",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Alevere Strawberry Flavoured Fortified Shake",
+    "priceGbpPence": 1500,
+    "slug": "alevere-strawberry-flavoured-fortified-shake",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Skinoren Cream",
+    "priceGbpPence": 1395,
+    "reviewCount": 151,
+    "slug": "skinoren-cream",
+    "category": "acne",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Cuprofen Maximum Strength Tablets for Fast-Acting Pain Relief",
+    "priceGbpPence": 899,
+    "reviewCount": 364,
+    "slug": "cuprofen-maximum-strength-tablets-for-fast-acting-pain-relief",
+    "category": "pain-relief",
+    "classification": "P",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Scopoderm Patches",
+    "priceGbpPence": 5598,
+    "reviewCount": 85,
+    "slug": "scopoderm-patches",
+    "category": "skin",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Clindamycin Lotion",
+    "priceGbpPence": 2699,
+    "reviewCount": 42,
+    "slug": "clindamycin-lotion",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Zineryt Lotion",
+    "priceGbpPence": 1799,
+    "reviewCount": 73,
+    "slug": "zineryt-lotion",
+    "category": "acne",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Erythromycin / Zinc Acetate Solution (Generic Zineryt)",
+    "priceGbpPence": 1999,
+    "reviewCount": 5,
+    "slug": "erythromycin-zinc-acetate-solution-generic-zineryt",
+    "category": "acne",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Lidocaine 5% Ointment",
+    "priceGbpPence": 2099,
+    "reviewCount": 44,
+    "slug": "lidocaine-5-ointment",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Betnovate RD Cream",
+    "priceGbpPence": 2199,
+    "reviewCount": 25,
+    "slug": "betnovate-rd-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Medroxyprogesterone Acetate 10mg Tablets (Formerly Provera)",
+    "priceGbpPence": 2999,
+    "reviewCount": 10,
+    "slug": "medroxyprogesterone-acetate-10mg-tablets-formerly-provera",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Clobetasone 0.05% Ointment",
+    "priceGbpPence": 1549,
+    "reviewCount": 15,
+    "slug": "clobetasone-0-05-ointment",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Migraleve Complete",
+    "priceGbpPence": 1199,
+    "reviewCount": 9,
+    "slug": "migraleve-complete",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dioralyte Sachets",
+    "priceGbpPence": 1049,
+    "reviewCount": 18,
+    "slug": "dioralyte-sachets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Buccastem M Tablets",
+    "priceGbpPence": 1799,
+    "reviewCount": 24,
+    "slug": "buccastem-m-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Veganin Tablets",
+    "priceGbpPence": 519,
+    "reviewCount": 57,
+    "slug": "veganin-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Erythromycin 250mg Tablets",
+    "priceGbpPence": 3299,
+    "reviewCount": 56,
+    "slug": "erythromycin-250mg-tablets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Ultramol Soluble Tablets",
+    "priceGbpPence": 549,
+    "slug": "ultramol-soluble-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Lariam",
+    "priceGbpPence": 2549,
+    "reviewCount": 11,
+    "slug": "lariam",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Robitussin Dry Cough Medicine",
+    "priceGbpPence": 759,
+    "reviewCount": 6,
+    "slug": "robitussin-dry-cough-medicine",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Hibiwash",
+    "priceGbpPence": 1099,
+    "slug": "hibiwash",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Purifide Moisturiser SPF30",
+    "priceGbpPence": 1199,
+    "reviewCount": 2,
+    "slug": "purifide-moisturiser-spf30",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Elleste Duet Tablets (1mg, 2mg & Conti)",
+    "priceGbpPence": 3099,
+    "reviewCount": 88,
+    "slug": "elleste-duet-tablets-1mg-2mg-conti",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Aknemycin Plus",
+    "priceGbpPence": 1799,
+    "reviewCount": 2,
+    "slug": "aknemycin-plus",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Silkis Ointment",
+    "priceGbpPence": 2999,
+    "slug": "silkis-ointment",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Estring Vaginal Ring",
+    "priceGbpPence": 6299,
+    "slug": "estring-vaginal-ring",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dermalex Rosacea Treatment",
+    "priceGbpPence": 1899,
+    "reviewCount": 7,
+    "slug": "dermalex-rosacea-treatment",
+    "category": "skin",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Elleste Solo Tablets (1mg & 2mg)",
+    "priceGbpPence": 2799,
+    "reviewCount": 106,
+    "slug": "elleste-solo-tablets-1mg-2mg",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Neutrogena T/Gel Shampoo",
+    "priceGbpPence": 659,
+    "reviewCount": 6,
+    "slug": "neutrogena-t-gel-shampoo",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Femoston",
+    "priceGbpPence": 1999,
+    "reviewCount": 19,
+    "slug": "femoston",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Solpadeine Plus Capsules (32)",
+    "priceGbpPence": 849,
+    "slug": "solpadeine-plus-capsules-32",
+    "category": "pain-relief",
+    "classification": "P",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Eucerin 10% Cream",
+    "priceGbpPence": 999,
+    "slug": "eucerin-10-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Otrivine Nasal Spray",
+    "priceGbpPence": 358,
+    "reviewCount": 3,
+    "slug": "otrivine-nasal-spray-3",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Robitussin Chesty Cough Medicine",
+    "priceGbpPence": 799,
+    "slug": "robitussin-chesty-cough-medicine",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Naprosyn",
+    "priceGbpPence": 2395,
+    "reviewCount": 9,
+    "slug": "naprosyn",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Difflam 3mg Lozenges Orange-Honey",
+    "priceGbpPence": 699,
+    "slug": "difflam-3mg-lozenges-orange-honey",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Feanolla",
+    "priceGbpPence": 999,
+    "slug": "feanolla",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "4head QuickStrip",
+    "priceGbpPence": 349,
+    "slug": "4head-quickstrip",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Zirtek Tablets",
+    "priceGbpPence": 1199,
+    "slug": "zirtek-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dermalex Scalp Psoriasis Gel",
+    "priceGbpPence": 1799,
+    "reviewCount": 2,
+    "slug": "dermalex-scalp-psoriasis-gel",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Kliofem Tablets",
+    "priceGbpPence": 1499,
+    "reviewCount": 71,
+    "slug": "kliofem-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Gaviscon Advance Liquid Heartburn Relief Peppermint",
+    "priceGbpPence": 649,
+    "slug": "gaviscon-advance-liquid-heartburn-relief-peppermint",
+    "category": "eye-care",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Metanium Nappy Rash Ointment",
+    "priceGbpPence": 465,
+    "slug": "metanium-nappy-rash-ointment",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Crystacide Cream",
+    "priceGbpPence": 1689,
+    "slug": "crystacide-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nurofen Express Caplets",
+    "priceGbpPence": 949,
+    "reviewCount": 4,
+    "slug": "nurofen-express-caplets",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "E45 Eczema Repair Cream",
+    "priceGbpPence": 1090,
+    "reviewCount": 3,
+    "slug": "e45-eczema-repair-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Xepin 5% Cream",
+    "priceGbpPence": 2699,
+    "reviewCount": 2,
+    "slug": "xepin-5-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Kliovance Tablets",
+    "priceGbpPence": 3500,
+    "reviewCount": 49,
+    "slug": "kliovance-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Mycota Cream",
+    "priceGbpPence": 519,
+    "slug": "mycota-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Indivina",
+    "priceGbpPence": 4999,
+    "reviewCount": 5,
+    "slug": "indivina",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "TCP Antiseptic Liquid",
+    "priceGbpPence": 749,
+    "slug": "tcp-antiseptic-liquid",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Dermalex Psoriasis Cream",
+    "priceGbpPence": 1899,
+    "slug": "dermalex-psoriasis-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Feminax Express",
+    "priceGbpPence": 499,
+    "slug": "feminax-express",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Zumenon",
+    "priceGbpPence": 2999,
+    "reviewCount": 2,
+    "slug": "zumenon",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Robitussin Mucus Cough and Congestion Relief",
+    "priceGbpPence": 419,
+    "reviewCount": 2,
+    "slug": "robitussin-mucus-cough-and-congestion-relief",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Clearblue Digital Pregnancy Test with Weeks Indicator",
+    "priceGbpPence": 999,
+    "slug": "clearblue-digital-pregnancy-test-with-weeks-indicator",
+    "category": "eye-care",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vitabiotics Wellman Max - 84 Tablets",
+    "priceGbpPence": 1899,
+    "slug": "vitabiotics-wellman-max-84-tablets",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "FreeStyle Libre 3 Plus Sensor",
+    "priceGbpPence": 6999,
+    "slug": "freestyle-libre-3-plus-sensor",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Lemsip Max All in One Cold & Flu Capsules",
+    "priceGbpPence": 559,
+    "slug": "lemsip-max-all-in-one-cold-flu-capsules",
+    "category": "cold-flu",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Solpadeine Headache Soluble Tablets (16)",
+    "priceGbpPence": 349,
+    "slug": "solpadeine-headache-soluble-tablets-16",
+    "category": "pain-relief",
+    "classification": "P",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Berocca Energy Vitamin Film Coated Tablets (30)",
+    "priceGbpPence": 900,
+    "slug": "berocca-energy-vitamin-film-coated-tablets-30",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Nicorette Original Gum (2mg & 4mg)",
+    "priceGbpPence": 2499,
+    "slug": "nicorette-original-gum-2mg-4mg",
+    "category": "stop-smoking",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vaginal Infection PH Test Kit",
+    "priceGbpPence": 799,
+    "slug": "vaginal-infection-ph-test-kit",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Premarin Tablets (0.3mg, 0.625mg, & 1.25mg)",
+    "priceGbpPence": 2699,
+    "reviewCount": 114,
+    "slug": "premarin-tablets-0-3mg-0-625mg-1-25mg",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Novofem",
+    "priceGbpPence": 3799,
+    "reviewCount": 2,
+    "slug": "novofem",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Arnicare Arnica Cream",
+    "priceGbpPence": 648,
+    "slug": "arnicare-arnica-cream",
+    "category": "skin",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vitabiotics Wellwoman Original Capsules (30)",
+    "priceGbpPence": 299,
+    "slug": "vitabiotics-wellwoman-original-capsules-30",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Haliborange Omega-3 Multivitamin Softies Orange Flavour (30)",
+    "priceGbpPence": 599,
+    "slug": "haliborange-omega-3-multivitamin-softies-orange-flavour-30",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Livial Tablets",
+    "priceGbpPence": 3200,
+    "reviewCount": 12,
+    "slug": "livial-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Optrex Double Action Eye Drops",
+    "priceGbpPence": 949,
+    "slug": "optrex-double-action-eye-drops",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Premique Low-Dose Tablets",
+    "priceGbpPence": 999,
+    "reviewCount": 48,
+    "slug": "premique-low-dose-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Strepsils Strawberry Sugar-Free Lozenges",
+    "priceGbpPence": 349,
+    "slug": "strepsils-strawberry-sugar-free-lozenges",
+    "category": "cold-flu",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vitabiotics Jointace Max (84 Tablets/Capsules)",
+    "priceGbpPence": 1599,
+    "slug": "vitabiotics-jointace-max-84-tablets-capsules",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Vitabiotics Menopace Original Tablets (90)",
+    "priceGbpPence": 1449,
+    "slug": "vitabiotics-menopace-original-tablets-90",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Vitabiotics Osteocare Plus Tablets (84)",
+    "priceGbpPence": 699,
+    "slug": "vitabiotics-osteocare-plus-tablets-84",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Viviscal Hair Growth Vitamins For Women Tablets (60)",
+    "priceGbpPence": 5199,
+    "slug": "viviscal-hair-growth-vitamins-for-women-tablets-60",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Clearblue Digital Ovulation Test Kit",
+    "priceGbpPence": 999,
+    "slug": "clearblue-digital-ovulation-test-kit",
+    "category": "eye-care",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vitabiotics Menopace Night Tablets (30)",
+    "priceGbpPence": 399,
+    "slug": "vitabiotics-menopace-night-tablets-30",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Vitabiotics Jointace Original Tablets (90)",
+    "priceGbpPence": 999,
+    "slug": "vitabiotics-jointace-original-tablets-90",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Vitabiotics Wellwoman Max - 84 Tablets",
+    "priceGbpPence": 999,
+    "slug": "vitabiotics-wellwoman-max-84-tablets",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Strepsils Soothing Throat Spray",
+    "priceGbpPence": 649,
+    "slug": "strepsils-soothing-throat-spray",
+    "category": "cold-flu",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vitabiotics Wellwoman 50+ Tablets (30)",
+    "priceGbpPence": 299,
+    "slug": "vitabiotics-wellwoman-50-tablets-30",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Haliborange Vitamin D 1000IU Strawberry Flavour Effervescent Tablets (20)",
+    "priceGbpPence": 210,
+    "slug": "haliborange-vitamin-d-1000iu-strawberry-flavour-effervescent-tablets-20",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Vitabiotics Jointace Omega-3 Capsules (30)",
+    "priceGbpPence": 699,
+    "slug": "vitabiotics-jointace-omega-3-capsules-30",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Haliborange Multivitamin Softies Strawberry Flavour (30)",
+    "priceGbpPence": 99,
+    "slug": "haliborange-multivitamin-softies-strawberry-flavour-30",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Katya Pill",
+    "priceGbpPence": 999,
+    "slug": "katya-pill",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Abidec Drops",
+    "priceGbpPence": 549,
+    "slug": "abidec-drops",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Pregnacare Breast-feeding Tablets (84)",
+    "priceGbpPence": 1599,
+    "slug": "pregnacare-breast-feeding-tablets-84",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vitabiotics Jointace Collagen Tablets (30)",
+    "priceGbpPence": 899,
+    "slug": "vitabiotics-jointace-collagen-tablets-30",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Spasmonal 60mg & 120mg Forte Capsules",
+    "priceGbpPence": 1999,
+    "slug": "spasmonal-60mg-120mg-forte-capsules",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Nasacort Allergy Spray",
+    "priceGbpPence": 589,
+    "slug": "nasacort-allergy-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Rennie Liquid Heartburn Relief 150ml",
+    "priceGbpPence": 149,
+    "slug": "rennie-liquid-heartburn-relief-150ml",
+    "category": "eye-care",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vitabiotics Perfectil Max Supplement for Skin, Hair & Nails (84 Tablets/Capsules)",
+    "priceGbpPence": 2299,
+    "slug": "vitabiotics-perfectil-max-supplement-for-skin-hair-nails-84-tablets-capsules",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Fluvastatin Capsules (20mg & 40mg)",
+    "priceGbpPence": 599,
+    "slug": "fluvastatin-capsules-20mg-40mg",
+    "category": "cold-flu",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "CeraVe Micellar Cleansing Water",
+    "priceGbpPence": 1099,
+    "slug": "cerave-micellar-cleansing-water",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Pregnacare Max Tablets (84)",
+    "priceGbpPence": 99,
+    "slug": "pregnacare-max-tablets-84",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Wellkid Multi-vitamin Chewable Tablets (30)",
+    "priceGbpPence": 99,
+    "slug": "wellkid-multi-vitamin-chewable-tablets-30",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Berocca Boost Effervescent Vitamin Energy Tablets (20)",
+    "priceGbpPence": 1200,
+    "slug": "berocca-boost-effervescent-vitamin-energy-tablets-20",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Vitabiotics Perfectil Platinum Skin Radiance Time Defy Tablets (60)",
+    "priceGbpPence": 999,
+    "slug": "vitabiotics-perfectil-platinum-skin-radiance-time-defy-tablets-60",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Fusion Allergy Lozenges",
+    "priceGbpPence": 399,
+    "slug": "fusion-allergy-lozenges",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Fusion Allergy Nasal Spray",
+    "priceGbpPence": 999,
+    "slug": "fusion-allergy-nasal-spray",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Fusion Allergy Eye Spray",
+    "priceGbpPence": 1049,
+    "slug": "fusion-allergy-eye-spray",
+    "category": "eye-care",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vitabiotics Pregnacare Before Conception (30)",
+    "priceGbpPence": 399,
+    "slug": "vitabiotics-pregnacare-before-conception-30",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Fusion Allergy Cooling Mask",
+    "priceGbpPence": 379,
+    "slug": "fusion-allergy-cooling-mask",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Wellkid Calcium Liquid 150ml",
+    "priceGbpPence": 99,
+    "slug": "wellkid-calcium-liquid-150ml",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Zarbee’s Children’s MultiVits and Immune Support 3+ Years (120ml)",
+    "priceGbpPence": 299,
+    "slug": "zarbee-s-children-s-multivits-and-immune-support-3-years-120ml",
+    "category": "eye-care",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vitabiotics Wellbaby Multi-Vitamin Liquid 150ml",
+    "priceGbpPence": 99,
+    "slug": "vitabiotics-wellbaby-multi-vitamin-liquid-150ml",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Trisequens",
+    "priceGbpPence": 2999,
+    "slug": "trisequens",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Suvexx Tablets",
+    "priceGbpPence": 3900,
+    "slug": "suvexx-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vitabiotics Wellman Sport Tablets (30)",
+    "priceGbpPence": 299,
+    "slug": "vitabiotics-wellman-sport-tablets-30",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Zarbee’s Immune Support (120ml)",
+    "priceGbpPence": 949,
+    "slug": "zarbee-s-immune-support-120ml",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vitabiotics Wellwoman Sport Tablets (30)",
+    "priceGbpPence": 849,
+    "slug": "vitabiotics-wellwoman-sport-tablets-30",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Solpadeine Plus Tablets (32)",
+    "priceGbpPence": 849,
+    "slug": "solpadeine-plus-tablets-32",
+    "category": "pain-relief",
+    "classification": "P",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Flexitol Heel Balm",
+    "priceGbpPence": 949,
+    "slug": "flexitol-heel-balm",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "PSA Test Kit",
+    "priceGbpPence": 2750,
+    "slug": "psa-test-kit",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Kelo-Cote Scar Gel",
+    "priceGbpPence": 2699,
+    "slug": "kelo-cote-scar-gel",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Female Testosterone Test",
+    "priceGbpPence": 3499,
+    "slug": "female-testosterone-test",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Vitabiotics Perfectil Hair Support Tablets (60)",
+    "priceGbpPence": 699,
+    "slug": "vitabiotics-perfectil-hair-support-tablets-60",
+    "category": "vitamins",
+    "classification": "GSL",
+    "requiresConsultation": false
+  },
+  {
+    "name": "Colchicine Tablets",
+    "priceGbpPence": 1999,
+    "reviewCount": 18,
+    "slug": "colchicine-tablets",
+    "category": "general-health",
+    "classification": "P",
+    "requiresConsultation": true
+  },
+  {
+    "name": "Sylk",
+    "priceGbpPence": 799,
+    "slug": "sylk",
+    "category": "general-health",
+    "classification": "POM",
+    "requiresConsultation": true
+  }
+]

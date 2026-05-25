@@ -451,7 +451,7 @@ router.patch("/admin/orders/:id/status", requirePharmacist, async (req, res): Pr
         category: "order",
         title: `Order ${order.orderNumber} dispatched`,
         body: `Your order is on its way with ${dispatchPayload.carrier}. Tap to track delivery.`,
-        link: `/track-order/${order.id}`,
+        link: `/order-confirmation/${order.id}`,
         orderId: order.id,
         read: false,
       });

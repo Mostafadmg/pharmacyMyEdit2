@@ -14,8 +14,10 @@ import { requirePharmacist, type AuthedRequest } from "../middlewares/auth";
 import { sendConsultationOutcomeEmail } from "../utils/email";
 import {
   buildPatientDuplicateSummaries,
+  ensureConsultationNumbersForConsultations,
   findDuplicatePatientMatches,
 } from "../utils/patientIdentity";
+import { jsonConsultation } from "../utils/apiResponse";
 
 const router: IRouter = Router();
 
@@ -130,6 +132,19 @@ router.get(
     const lastConsultation = consultations[0] ?? null;
     const firstConsultation = consultations[consultations.length - 1] ?? null;
 
+    const consultationNumbers = await ensureConsultationNumbersForConsultations(
+      consultations.map((row) => ({
+        id: row.id,
+        consultationNumber: row.consultationNumber,
+      })),
+    );
+
+    const consultationsForClient = consultations.map((row) => ({
+      ...jsonConsultation(row),
+      consultationNumber:
+        consultationNumbers.get(row.id) ?? row.consultationNumber,
+    }));
+
     res.json({
       account,
       profile: {
@@ -150,7 +165,7 @@ router.get(
         topConditions,
         registered: !!account,
       },
-      consultations,
+      consultations: consultationsForClient,
       orders: ordersWithDetails,
       recentMessages,
     });

@@ -23,6 +23,7 @@ import {
   X,
   Globe,
   ExternalLink,
+  Store,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { patientAppUrl, rxPortalUrl } from "@/lib/portalLinks";
@@ -35,7 +36,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { CustomOrderTagsSettings } from "@/components/CustomOrderTagsSettings";
 import { DocumentRejectionSettings } from "@/components/DocumentRejectionSettings";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useUiPreferences } from "@/context/UiPreferencesContext";
+import {
+  UI_PREFERENCE_META,
+  type UiPreferenceKey,
+} from "@/lib/uiPreferences";
 
 type NavItem = {
   path: string;
@@ -51,6 +60,7 @@ const NAV: NavItem[] = [
   { path: "/messages", label: "Patient Messages", icon: MessageSquare, badgeKey: "messages" },
   { path: "/patients", label: "Patients", icon: Users },
   { path: "/prescriptions", label: "Prescriptions", icon: FileText },
+  { path: "/shop", label: "Shop", icon: Store },
   { path: "/profile", label: "Profile", icon: UserCircle },
   { path: "/labels", label: "Dispensing Labels", icon: Tag },
 ];
@@ -74,6 +84,9 @@ export function RxLayout({ children }: { children: ReactNode }) {
   const searchRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { data: counts } = useGetPharmacistUnreadCounts();
+  const { preferences, setPreference, resetToDefaults } = useUiPreferences();
+
+  const visibilityKeys = Object.keys(UI_PREFERENCE_META) as UiPreferenceKey[];
 
   const pharmName =
     (typeof window !== "undefined" && localStorage.getItem("pharmacist_name")) ||
@@ -420,9 +433,14 @@ export function RxLayout({ children }: { children: ReactNode }) {
       )}
 
       <button
-        onClick={() => setSettingsOpen(true)}
-        className="fixed right-0 top-1/2 -translate-y-1/2 bg-card border border-border text-muted-foreground hover:text-primary hover:border-primary/30 rounded-l-lg p-2 z-40 shadow-sm transition-colors"
+        type="button"
+        onClick={() => setSettingsOpen((open) => !open)}
+        className={cn(
+          "fixed right-0 top-1/2 -translate-y-1/2 bg-card border border-border text-muted-foreground hover:text-primary hover:border-primary/30 rounded-l-lg p-2 z-40 shadow-sm transition-colors",
+          settingsOpen && "border-primary/40 text-primary bg-muted/80",
+        )}
         aria-label="Settings"
+        aria-expanded={settingsOpen}
         data-testid="button-settings-tab"
       >
         <Settings className="h-4 w-4" />
@@ -490,41 +508,94 @@ export function RxLayout({ children }: { children: ReactNode }) {
           </div>
           <div className="flex-1 overflow-y-auto py-4 min-h-0">
             {settingsTab === "workspace" ? (
-              <div className="space-y-3 text-sm">
-                <button
-                  type="button"
-                  onClick={() => setCollapsed((current) => !current)}
-                  className="flex w-full items-center justify-between rounded-2xl border border-border bg-muted/50 px-4 py-3 text-left hover:bg-muted"
-                >
-                  <span>
-                    <span className="block font-semibold text-foreground">
-                      Sidebar density
-                    </span>
-                    <span className="block text-xs text-muted-foreground">
-                      {collapsed ? "Collapsed navigation" : "Expanded navigation"}
-                    </span>
-                  </span>
-                  <CheckCircle2 className="h-4.5 w-4.5 text-primary" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setTheme((current) => (current === "dark" ? "light" : "dark"))
-                  }
-                  className="flex w-full items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-left hover:bg-muted"
-                >
-                  <span>
-                    <span className="block font-semibold text-foreground">Theme</span>
-                    <span className="block text-xs text-muted-foreground">
-                      Currently using {theme === "dark" ? "dark" : "light"} mode
-                    </span>
-                  </span>
-                  {theme === "dark" ? (
-                    <Moon className="h-4.5 w-4.5" />
-                  ) : (
-                    <Sun className="h-4.5 w-4.5" />
-                  )}
-                </button>
+              <div className="space-y-5 text-sm">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
+                    Layout visibility
+                  </p>
+                  <div className="space-y-2">
+                    {visibilityKeys.map((key) => {
+                      const meta = UI_PREFERENCE_META[key];
+                      const switchId = `ui-pref-${key}`;
+                      return (
+                        <div
+                          key={key}
+                          className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-card px-4 py-3"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <Label
+                              htmlFor={switchId}
+                              className="text-sm font-semibold text-foreground cursor-pointer"
+                            >
+                              {meta.label}
+                            </Label>
+                            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                              {meta.description}
+                            </p>
+                          </div>
+                          <Switch
+                            id={switchId}
+                            checked={preferences[key]}
+                            onCheckedChange={(checked) =>
+                              setPreference(key, checked)
+                            }
+                            data-testid={`switch-ui-${key}`}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={resetToDefaults}
+                    className="mt-3 text-xs font-semibold text-muted-foreground hover:text-primary transition-colors"
+                    data-testid="button-reset-ui-preferences"
+                  >
+                    Reset layout to defaults
+                  </button>
+                </div>
+                <CustomOrderTagsSettings />
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
+                    Workspace
+                  </p>
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => setCollapsed((current) => !current)}
+                      className="flex w-full items-center justify-between rounded-2xl border border-border bg-muted/50 px-4 py-3 text-left hover:bg-muted"
+                    >
+                      <span>
+                        <span className="block font-semibold text-foreground">
+                          Sidebar density
+                        </span>
+                        <span className="block text-xs text-muted-foreground">
+                          {collapsed ? "Collapsed navigation" : "Expanded navigation"}
+                        </span>
+                      </span>
+                      <CheckCircle2 className="h-4.5 w-4.5 text-primary" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setTheme((current) => (current === "dark" ? "light" : "dark"))
+                      }
+                      className="flex w-full items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-left hover:bg-muted"
+                    >
+                      <span>
+                        <span className="block font-semibold text-foreground">Theme</span>
+                        <span className="block text-xs text-muted-foreground">
+                          Currently using {theme === "dark" ? "dark" : "light"} mode
+                        </span>
+                      </span>
+                      {theme === "dark" ? (
+                        <Moon className="h-4.5 w-4.5" />
+                      ) : (
+                        <Sun className="h-4.5 w-4.5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
             ) : (
               <DocumentRejectionSettings />

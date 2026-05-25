@@ -72,6 +72,18 @@
         "panel": "shared",
         "reveal": "never"
       }
+    },
+    {
+      "label": "Open weight-loss consultation in VS Code browser",
+      "type": "shell",
+      "command": "echo ${input:openWeightLossConsultationBrowser}",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": false,
+        "focus": false,
+        "panel": "shared",
+        "reveal": "never"
+      }
     }
   ],
   "inputs": [
@@ -92,6 +104,12 @@
       "type": "command",
       "command": "simpleBrowser.api.open",
       "args": ["http://localhost:5174/orders/demo-007?tab=counselling"]
+    },
+    {
+      "id": "openWeightLossConsultationBrowser",
+      "type": "command",
+      "command": "simpleBrowser.api.open",
+      "args": ["http://localhost:5173/consultation/weight-loss-injectable"]
     }
   ]
 }

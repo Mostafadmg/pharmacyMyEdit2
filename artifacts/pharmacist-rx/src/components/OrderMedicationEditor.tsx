@@ -11,16 +11,10 @@ import { apiFetch } from "@/lib/api";
 import {
   diffPrescriptionItemChanges,
 } from "@/lib/orderActivity";
-
-type RxItem = {
-  name: string;
-  strength: string;
-  form: string;
-  quantity: string;
-  sig: string;
-  duration: string;
-  notes?: string;
-};
+import {
+  getConsultationRxItems,
+  type RxItem,
+} from "@/lib/consultationPrescriptionItems";
 
 const DEFAULT_ITEM: RxItem = {
   name: "",
@@ -30,35 +24,6 @@ const DEFAULT_ITEM: RxItem = {
   sig: "As directed",
   duration: "28 days",
 };
-
-function getConsultationRxItems(consultation: Consultation): RxItem[] {
-  const raw = (consultation.prescriptionItems ?? []) as RxItem[];
-  if (raw.length > 0) {
-    return raw.map((it) => ({
-      name: it.name ?? "",
-      strength: it.strength ?? "",
-      form: it.form ?? "Supply",
-      quantity: String(it.quantity ?? "1"),
-      sig: it.sig ?? "As directed",
-      duration: it.duration ?? "28 days",
-      notes: it.notes,
-    }));
-  }
-
-  const answers = (consultation.answers ?? {}) as Record<string, unknown>;
-  const plan =
-    typeof answers.selected_plan === "string"
-      ? answers.selected_plan
-      : consultation.conditionName;
-  return [
-    {
-      ...DEFAULT_ITEM,
-      name: plan.split("·")[0]?.trim() || consultation.conditionName,
-      strength:
-        typeof answers.current_dose === "string" ? answers.current_dose : "",
-    },
-  ];
-}
 
 export function OrderMedicationEditor({
   consultation,

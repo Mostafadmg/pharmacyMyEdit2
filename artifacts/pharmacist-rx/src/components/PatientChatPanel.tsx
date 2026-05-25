@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { RX_CHAT_PANEL_Z } from "@/lib/modalLayers";
 import type { PatientCommunication } from "@/lib/orderActivity";
 
 /** Clearance above the fixed “Message patient” FAB (bottom-4 + button height + gap). */
@@ -66,12 +67,15 @@ export function PatientChatPanel({
           } as CSSProperties
         }
         className={cn(
-          "fixed z-[70] flex flex-col p-0 gap-0 overflow-hidden",
+          "fixed flex flex-col p-0 gap-0 overflow-hidden",
+          RX_CHAT_PANEL_Z,
           "left-auto top-auto translate-x-0 translate-y-0",
           "right-4 sm:right-6",
           "bottom-[var(--rx-chat-fab-clearance)]",
-          "w-[min(calc(100vw-2rem),28rem)] sm:w-[min(calc(100vw-3rem),32rem)]",
-          "max-h-[min(72vh,calc(100dvh-var(--rx-chat-fab-clearance)-1.25rem))]",
+          "w-[min(calc(100vw-2rem),38rem)] sm:w-[min(calc(100vw-3rem),50rem)]",
+          "min-h-[min(28rem,calc(100dvh-var(--rx-chat-fab-clearance)-1.25rem))]",
+          "sm:min-h-[min(42rem,calc(100dvh-var(--rx-chat-fab-clearance)-1.25rem))]",
+          "max-h-[min(90vh,calc(100dvh-var(--rx-chat-fab-clearance)-1.25rem))]",
           "rounded-2xl border border-border/90 bg-card shadow-[0_20px_60px_-12px_rgba(0,0,0,0.35)]",
           "data-[state=open]:animate-in data-[state=closed]:animate-out",
           "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
@@ -198,7 +202,7 @@ export function PatientChatPanel({
                 value={messageDraft}
                 onChange={(event) => onMessageDraftChange(event.target.value)}
                 placeholder="Message the patient…"
-                className="min-h-[4rem] flex-1 resize-none rounded-xl border-border bg-muted/40 px-3.5 py-2.5 text-sm leading-relaxed focus-visible:ring-primary/30 sm:min-h-[4.5rem] sm:px-4 sm:py-3 sm:text-base"
+                className="min-h-[5rem] flex-1 resize-none rounded-xl border-border bg-muted/40 px-3.5 py-2.5 text-sm leading-relaxed focus-visible:ring-primary/30 sm:min-h-[5.5rem] sm:px-4 sm:py-3 sm:text-base"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                     e.preventDefault();
