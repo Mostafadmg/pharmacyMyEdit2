@@ -19,7 +19,6 @@ import {
   Search,
   Globe,
   ExternalLink,
-  Pill,
 } from "lucide-react";
 import CommandPalette from "@/components/pharmacist/CommandPalette";
 import { Button } from "@/components/ui/button";

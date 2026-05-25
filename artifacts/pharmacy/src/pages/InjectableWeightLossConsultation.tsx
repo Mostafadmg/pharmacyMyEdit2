@@ -1080,7 +1080,10 @@ export default function InjectableWeightLossConsultation() {
 
       const prescriptionItems = prescriptionItemsFromPlan(state.selectedPlan);
 
-      await apiFetch("/api/consultations", {
+      const created = await apiFetch<{
+        id: string;
+        consultationNumber?: string;
+      }>("/api/consultations", {
         method: "POST",
         auth: "patient",
         body: JSON.stringify({
@@ -1192,14 +1195,18 @@ export default function InjectableWeightLossConsultation() {
           "supporting evidence",
       ].filter(Boolean) as string[];
 
+      const orderNumber =
+        created.consultationNumber?.trim() ||
+        `#${created.id.replace(/-/g, "").toUpperCase().slice(-8)}`;
+
       toast({
         title: "Consultation submitted",
         description:
           pendingDocs.length > 0
-            ? `Submitted successfully. You can upload ${pendingDocs.join(", ")} anytime from My consultations.`
+            ? `Order ${orderNumber}. You can upload ${pendingDocs.join(", ")} anytime from My consultations.`
             : isLoggedIn
-              ? "Our pharmacist prescriber will review and email you within a few hours."
-              : "Your patient portal account is ready. Our pharmacist will review your consultation shortly.",
+              ? `Order ${orderNumber}. Our pharmacist prescriber will review and email you within a few hours.`
+              : `Order ${orderNumber}. Your patient portal account is ready — our pharmacist will review your consultation shortly.`,
       });
       navigate("/my-consultations");
     } catch (err) {

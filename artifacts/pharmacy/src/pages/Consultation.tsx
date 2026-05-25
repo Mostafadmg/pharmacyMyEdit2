@@ -242,7 +242,7 @@ function SuccessCard({
     <StepCard
       icon={<CheckCircle2 className="h-7 w-7" />}
       title="Consultation submitted"
-      subtitle={`Reference ${reference}. We've emailed a confirmation to ${email}.`}
+      subtitle={`Order number ${reference}. We've emailed a confirmation to ${email}.`}
     >
       <ol className="mt-2 space-y-3 text-sm text-foreground/80">
         <li>1. A pharmacist will review your answers — typically within 2 hours.</li>
@@ -735,12 +735,18 @@ export default function Consultation() {
         photoUrls: photoDataUrls,
       };
 
-      const data = await apiFetch<{ id: string }>("/api/consultations", {
+      const data = await apiFetch<{ id: string; consultationNumber?: string }>(
+        "/api/consultations",
+        {
         method: "POST",
         auth: "patient",
         body: JSON.stringify(body),
-      });
-      setSubmittedRef(String(data.id || "").toUpperCase().slice(0, 8));
+        },
+      );
+      setSubmittedRef(
+        data.consultationNumber?.trim() ||
+          `#${String(data.id || "").replace(/-/g, "").toUpperCase().slice(-8)}`,
+      );
       setIsSubmitted(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {

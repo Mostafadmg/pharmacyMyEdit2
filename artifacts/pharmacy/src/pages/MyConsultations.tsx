@@ -17,7 +17,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
-import { shortConditionName } from "@/lib/patientOrderContext";
+import { shortConditionName, displayConsultationNumber } from "@/lib/patientOrderContext";
 import { InlineDocumentUploadButton } from "@/components/consultation/InlineDocumentUpload";
 import { cn } from "@/lib/utils";
 import { EVIDENCE_SLOT_META, isEvidenceSlotId } from "@workspace/evidence-slots";
@@ -409,9 +409,10 @@ function ConsultationRow({
       (s) => s.status === "required" || s.status === "rejected",
     );
   const hasUpdate = !!(consultation.prescription || consultation.pharmacistNote || consultation.referralInfo);
-  const ref =
-    consultation.consultationNumber ??
-    consultation.id.toUpperCase().slice(0, 8);
+  const orderNumber = displayConsultationNumber(
+    consultation.consultationNumber,
+    consultation.id,
+  );
 
   const [open, setOpen] = useState(
     !!defaultOpen || documentsNeedAttention || needsReply,
@@ -429,7 +430,7 @@ function ConsultationRow({
       exit={{ opacity: 0, y: -6 }}
       transition={{ delay: index * 0.04, duration: 0.25 }}
       className="relative bg-white rounded-2xl border border-border/40 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
-      data-testid={`consult-card-${ref}`}
+      data-testid={`consult-card-${orderNumber}`}
     >
       {/* Notification-style header (always visible, click to expand) */}
       <button
@@ -437,7 +438,7 @@ function ConsultationRow({
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
         className="relative z-0 w-full text-left flex items-stretch gap-0 group"
-        data-testid={`consult-toggle-${ref}`}
+        data-testid={`consult-toggle-${orderNumber}`}
       >
         {/* Left status bar */}
         <span className={`w-1.5 ${accent.bar} flex-shrink-0`} aria-hidden="true" />
@@ -475,7 +476,12 @@ function ConsultationRow({
                 Order placed {placedAt}
               </span>
               <span className="hidden sm:inline text-border">·</span>
-              <span className="font-mono text-[11px]">REF {ref}</span>
+              <span
+                className="font-mono text-xs font-semibold text-primary"
+                title="Your order reference number"
+              >
+                Order {orderNumber}
+              </span>
             </div>
           </div>
 
@@ -649,7 +655,7 @@ function ConsultationRow({
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold transition-colors shadow-sm"
-                      data-testid={`button-download-pdf-${ref}`}
+                      data-testid={`button-download-pdf-${orderNumber}`}
                     >
                       <Download className="w-3.5 h-3.5" />
                       Download PDF
@@ -703,7 +709,7 @@ function ConsultationRow({
                         variant="ghost"
                         onClick={() => setShowCancelConfirm(true)}
                         className="rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive font-semibold"
-                        data-testid={`button-cancel-${ref}`}
+                        data-testid={`button-cancel-${orderNumber}`}
                       >
                         <Ban className="w-3.5 h-3.5 mr-1.5" /> Cancel
                       </Button>
@@ -712,7 +718,7 @@ function ConsultationRow({
                       asChild
                       size="sm"
                       className="rounded-full font-bold shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground"
-                      data-testid={`button-chat-${ref}`}
+                      data-testid={`button-chat-${orderNumber}`}
                     >
                       <Link
                         href={`/my-messages?consultation=${encodeURIComponent(consultation.id)}`}
@@ -755,7 +761,7 @@ function ConsultationRow({
                         className="rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground font-semibold shadow-sm"
                         disabled={cancelling === consultation.id}
                         onClick={() => onCancel(consultation.id)}
-                        data-testid={`button-confirm-cancel-${ref}`}
+                        data-testid={`button-confirm-cancel-${orderNumber}`}
                       >
                         {cancelling === consultation.id ? "Cancelling…" : "Yes, cancel consultation"}
                       </Button>

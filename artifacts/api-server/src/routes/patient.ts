@@ -16,6 +16,7 @@ import {
   isEvidenceSlotId,
   patientDocumentSlotStatuses,
 } from "../utils/patientDocuments";
+import { ensureConsultationNumbersForConsultations } from "../utils/patientIdentity";
 import { pushToAllPharmacists } from "../lib/expo-push";
 
 const router: IRouter = Router();
@@ -99,14 +100,24 @@ router.get("/patient/consultations", async (req, res): Promise<void> => {
     unreadPharmacistMessages.map((m) => m.consultationId),
   );
 
+  const consultationNumbers = await ensureConsultationNumbersForConsultations(
+    rows.map((row) => ({
+      id: row.id,
+      consultationNumber: row.consultationNumber,
+    })),
+  );
+
   const consultations = rows.map((row) => {
     const answers = (row.answers ?? {}) as Record<string, unknown>;
     const requiresPatientReply =
       row.status === "more_info_needed" ||
       unreadPharmacistByConsultation.has(row.id);
     const documentSlots = patientDocumentSlotStatuses(row.id, answers);
+    const consultationNumber =
+      consultationNumbers.get(row.id) ?? row.consultationNumber;
     return {
       ...row,
+      consultationNumber,
       documentSlots,
       documentActions: documentActionsRequired(row.id, answers),
       requiresPatientReply,
@@ -225,23 +236,34 @@ router.get("/patient/messages", async (req, res): Promise<void> => {
       ? req.query.consultationId.trim()
       : null;
 
-  const consultations = await db
-    .select({
-      id: consultationsTable.id,
-      conditionName: consultationsTable.conditionName,
-      status: consultationsTable.status,
-      createdAt: consultationsTable.createdAt,
-      prescriptionItems: consultationsTable.prescriptionItems,
-    })
+  const rows = await db
+    .select()
     .from(consultationsTable)
     .where(eq(consultationsTable.patientEmail, patient.email))
     .orderBy(desc(consultationsTable.createdAt));
 
-  const consultationIds = consultations.map((c) => c.id);
+  const consultationIds = rows.map((c) => c.id);
   if (consultationIds.length === 0) {
     res.json({ messages: [], actions: [], consultations: [], targetConsultationId: null });
     return;
   }
+
+  const consultationNumbers = await ensureConsultationNumbersForConsultations(
+    rows.map((row) => ({
+      id: row.id,
+      consultationNumber: row.consultationNumber,
+    })),
+  );
+
+  const consultations = rows.map((row) => ({
+    id: row.id,
+    conditionName: row.conditionName,
+    status: row.status,
+    createdAt: row.createdAt,
+    prescriptionItems: row.prescriptionItems,
+    consultationNumber:
+      consultationNumbers.get(row.id) ?? row.consultationNumber,
+  }));
 
   const [messages, actions] = await Promise.all([
     db
@@ -266,13 +288,7 @@ router.get("/patient/messages", async (req, res): Promise<void> => {
       ),
     );
 
-  const allRows = await db
-    .select()
-    .from(consultationsTable)
-    .where(eq(consultationsTable.patientEmail, patient.email))
-    .orderBy(desc(consultationsTable.createdAt));
-
-  const target = resolvePatientConsultation(allRows, requestedId);
+  const target = resolvePatientConsultation(rows, requestedId);
 
   res.json({
     messages,

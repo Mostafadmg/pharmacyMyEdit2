@@ -3,7 +3,7 @@ import {
   consultationsTable,
   patientAccountsTable,
 } from "@workspace/db";
-import { desc, sql } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 
 export type DuplicatePatientMatch = {
   patientId: string | null;
@@ -326,6 +326,26 @@ export async function nextConsultationNumber(): Promise<string> {
 
   const seq = (row?.count ?? 0) + 1;
   return `${prefix}${String(seq).padStart(4, "0")}`;
+}
+
+/** Assign CON-… numbers to legacy rows missing consultation_number. */
+export async function ensureConsultationNumbersForConsultations(
+  rows: Array<{ id: string; consultationNumber: string | null }>,
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  for (const row of rows) {
+    if (row.consultationNumber?.trim()) {
+      out.set(row.id, row.consultationNumber.trim());
+      continue;
+    }
+    const consultationNumber = await nextConsultationNumber();
+    await db
+      .update(consultationsTable)
+      .set({ consultationNumber })
+      .where(eq(consultationsTable.id, row.id));
+    out.set(row.id, consultationNumber);
+  }
+  return out;
 }
 
 export function formatConsultationRef(

@@ -5,6 +5,7 @@ export function shortConditionName(conditionName: string): string {
 
 export type PatientOrderMeta = {
   id: string;
+  consultationNumber?: string | null;
   conditionName: string;
   status: string;
   createdAt: string;
@@ -15,8 +16,20 @@ export type PatientOrderMeta = {
   }>;
 };
 
-export function orderRefFromConsultationId(id: string): string {
-  return `#${id.replace(/-/g, "").toUpperCase().slice(-5)}`;
+/** Patient-facing order reference (CON-YYYYMMDD-0001 when assigned). */
+export function displayConsultationNumber(
+  consultationNumber: string | null | undefined,
+  id: string,
+): string {
+  if (consultationNumber?.trim()) return consultationNumber.trim();
+  return `#${id.replace(/-/g, "").toUpperCase().slice(-8)}`;
+}
+
+export function orderRefFromConsultationId(
+  id: string,
+  consultationNumber?: string | null,
+): string {
+  return displayConsultationNumber(consultationNumber, id);
 }
 
 export function patientOrderStatusLabel(status: string): string {
@@ -81,7 +94,7 @@ export function formatOrderPlacedShort(iso: string): string {
 }
 
 export function buildOrderContextLine(c: PatientOrderMeta): string {
-  return `${orderRefFromConsultationId(c.id)} · ${medicationLabelFromOrder(c)}`;
+  return `${displayConsultationNumber(c.consultationNumber, c.id)} · ${medicationLabelFromOrder(c)}`;
 }
 
 export function patientMessagesHref(consultationId?: string | null): string {

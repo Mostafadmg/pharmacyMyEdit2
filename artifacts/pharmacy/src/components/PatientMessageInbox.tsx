@@ -69,7 +69,7 @@ function dayLabel(d: Date): string {
 }
 
 function orderCaption(order: PatientOrderMeta): string {
-  return `Re: ${orderRefFromConsultationId(order.id)} · ${medicationLabelFromOrder(order)}`;
+  return `Re: ${orderRefFromConsultationId(order.id, order.consultationNumber)} · ${medicationLabelFromOrder(order)}`;
 }
 
 function readFileAsDataUrl(file: File): Promise<string> {
@@ -421,7 +421,7 @@ export default function PatientMessageInbox({
             >
               {activeOrders.map((o) => (
                 <option key={o.id} value={o.id}>
-                  {orderRefFromConsultationId(o.id)} — {medicationLabelFromOrder(o)} (
+                  {orderRefFromConsultationId(o.id, o.consultationNumber)} — {medicationLabelFromOrder(o)} (
                   {o.conditionName.split("—")[0]?.trim() || "Treatment"})
                 </option>
               ))}

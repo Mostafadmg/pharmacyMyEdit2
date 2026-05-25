@@ -714,6 +714,23 @@ export function OrderDetail({ id }: { id: string }) {
   }, [location, tab]);
 
   const handleTabChange = (next: TabId) => {
+    // #region agent log
+    fetch("http://127.0.0.1:7633/ingest/75db917f-84df-454f-82c7-2e6c9a6aa114", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "00879a",
+      },
+      body: JSON.stringify({
+        sessionId: "00879a",
+        hypothesisId: "H6",
+        location: "OrderDetail.tsx:handleTabChange",
+        message: "tab click",
+        data: { from: tab, to: next },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
     setTab(next);
     const [path, search = ""] = location.split("?");
     const params = new URLSearchParams(search);
@@ -1339,6 +1356,7 @@ function TabsBar({
   const contRef = useRef<HTMLDivElement | null>(null);
   const innerRef = useRef<HTMLDivElement | null>(null);
   const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const prevTabRef = useRef<TabId>(current);
   const [showPrev, setShowPrev] = useState(false);
   const [showNext, setShowNext] = useState(false);
 
@@ -1366,57 +1384,161 @@ function TabsBar({
   }, [updateScrollAffordance, current, unreadCounts.messages, unreadCounts.notes]);
 
   const scrollTabIntoView = useCallback(
-    (tabId: TabId) => {
+    (tabId: TabId, previousTabId: TabId) => {
       const btn = btnRefs.current[tabId];
       const el = contRef.current;
-      if (!btn || !el) return;
+      if (!btn || !el) {
+        // #region agent log
+        fetch("http://127.0.0.1:7633/ingest/75db917f-84df-454f-82c7-2e6c9a6aa114", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Session-Id": "00879a",
+          },
+          body: JSON.stringify({
+            sessionId: "00879a",
+            hypothesisId: "H3",
+            location: "OrderDetail.tsx:scrollTabIntoView:earlyReturn",
+            message: "scroll skipped — missing btn or container",
+            data: { tabId, hasBtn: Boolean(btn), hasEl: Boolean(el) },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
+        return;
+      }
 
       const wrap = btn.parentElement as HTMLElement | null;
       const target = wrap ?? btn;
       const pad = 16;
       const maxLeft = Math.max(0, el.scrollWidth - el.clientWidth);
 
-      const containerRect = el.getBoundingClientRect();
-      const targetRect = target.getBoundingClientRect();
-      const tabLeft = targetRect.left - containerRect.left + el.scrollLeft;
-      const tabRight = tabLeft + targetRect.width;
+      const tabOffsetLeft = (id: TabId) => {
+        const node = btnRefs.current[id];
+        if (!node) return 0;
+        const outer = node.parentElement ?? node;
+        return outer.offsetLeft;
+      };
+
+      const tabOffsetRight = (id: TabId) => {
+        const node = btnRefs.current[id];
+        if (!node) return 0;
+        const outer = node.parentElement ?? node;
+        return outer.offsetLeft + outer.offsetWidth;
+      };
+
+      const tabLeft = target.offsetLeft;
+      const tabRight = tabLeft + target.offsetWidth;
       const viewLeft = el.scrollLeft;
       const viewRight = viewLeft + el.clientWidth;
 
       const tabIndex = TABS.findIndex((t) => t.id === tabId);
+      const prevIndex = TABS.findIndex((t) => t.id === previousTabId);
+      const movingRight = tabIndex > prevIndex;
+      const movingLeft = tabIndex < prevIndex;
+      const tabChanged = tabId !== previousTabId;
 
-      const tabEdgeRight = (id: TabId) => {
-        const node = btnRefs.current[id];
-        if (!node) return tabRight;
-        const outer = node.parentElement ?? node;
-        const rect = outer.getBoundingClientRect();
-        return rect.right - containerRect.left + el.scrollLeft;
-      };
+      const minScroll = Math.max(0, tabRight + pad - el.clientWidth);
+      const maxScroll = Math.max(0, tabLeft - pad);
 
-      // Default: don't move unless the active tab is clipped.
       let nextLeft = el.scrollLeft;
+      let branch = "noChange";
       if (tabLeft < viewLeft + pad) {
         nextLeft = tabLeft - pad;
+        branch = "clippedLeft";
       } else if (tabRight > viewRight - pad) {
         nextLeft = tabRight + pad - el.clientWidth;
+        branch = "clippedRight";
       }
 
-      // Last tabs only: nudge right so the next 1–2 labels peek in.
-      const revealFromIndex = TABS.length - 3;
-      if (tabIndex >= revealFromIndex && tabIndex < TABS.length - 1) {
+      let lookAheadApplied = false;
+      let lookBackApplied = false;
+      let peekRevealRight: number | null = null;
+      let peekRevealLeft: number | null = null;
+
+      if (tabChanged && movingRight && tabIndex < TABS.length - 1) {
         const lookAhead = Math.min(TABS.length - 1, tabIndex + 2);
-        const revealRight =
-          tabEdgeRight(TABS[lookAhead].id) + pad - el.clientWidth;
-        if (revealRight > nextLeft) {
-          nextLeft = revealRight;
+        peekRevealRight = tabOffsetRight(TABS[lookAhead].id) + pad - el.clientWidth;
+        if (peekRevealRight > nextLeft) {
+          nextLeft = Math.min(peekRevealRight, maxScroll);
+          lookAheadApplied = true;
+          branch = "peekRightCapped";
+        }
+      } else if (tabChanged && movingLeft && tabIndex > 0) {
+        const lookBack = Math.max(0, tabIndex - 2);
+        peekRevealLeft = tabOffsetLeft(TABS[lookBack].id) - pad;
+        if (peekRevealLeft < nextLeft) {
+          nextLeft = Math.max(peekRevealLeft, minScroll);
+          lookBackApplied = true;
+          branch = "peekLeftCapped";
         }
       }
 
-      if (tabIndex === 0) nextLeft = 0;
-      if (tabIndex === TABS.length - 1) nextLeft = maxLeft;
+      if (tabIndex === 0) {
+        nextLeft = 0;
+        branch = "snapFirst";
+      } else if (tabIndex === TABS.length - 1) {
+        nextLeft = maxLeft;
+        branch = "snapLast";
+      } else if (minScroll <= maxScroll) {
+        nextLeft = Math.max(minScroll, Math.min(nextLeft, maxScroll));
+      } else {
+        nextLeft = Math.max(
+          0,
+          Math.min((tabLeft + tabRight) / 2 - el.clientWidth / 2, maxLeft),
+        );
+        branch = "centerWideTab";
+      }
+
+      const clampedLeft = Math.max(0, Math.min(nextLeft, maxLeft));
+      const fullyVisible =
+        tabLeft >= viewLeft + pad - 1 && tabRight <= viewRight + pad + 1;
+
+      // #region agent log
+      fetch("http://127.0.0.1:7633/ingest/75db917f-84df-454f-82c7-2e6c9a6aa114", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Debug-Session-Id": "00879a",
+        },
+        body: JSON.stringify({
+          sessionId: "00879a",
+          runId: "post-fix-v2",
+          hypothesisId: "H7",
+          location: "OrderDetail.tsx:scrollTabIntoView",
+          message: "tab scroll computed",
+          data: {
+            tabId,
+            tabIndex,
+            previousTabId,
+            prevIndex,
+            movingRight,
+            movingLeft,
+            tabChanged,
+            scrollBefore: el.scrollLeft,
+            nextLeft: clampedLeft,
+            scrollDelta: clampedLeft - el.scrollLeft,
+            maxLeft,
+            minScroll,
+            maxScroll,
+            tabLeft,
+            tabRight,
+            viewLeft,
+            viewRight,
+            peekRevealRight,
+            peekRevealLeft,
+            fullyVisible,
+            branch,
+            lookAheadApplied,
+            lookBackApplied,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
 
       el.scrollTo({
-        left: Math.max(0, Math.min(nextLeft, maxLeft)),
+        left: clampedLeft,
         behavior: "smooth",
       });
       window.setTimeout(updateScrollAffordance, 320);
@@ -1425,9 +1547,16 @@ function TabsBar({
   );
 
   useEffect(() => {
-    scrollTabIntoView(current);
+    const previousTabId = prevTabRef.current;
+    prevTabRef.current = current;
+    const frame = requestAnimationFrame(() => {
+      scrollTabIntoView(current, previousTabId);
+    });
     const t = window.setTimeout(updateScrollAffordance, 80);
-    return () => window.clearTimeout(t);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(t);
+    };
   }, [current, scrollTabIntoView, updateScrollAffordance]);
 
   const scrollByPage = (direction: -1 | 1) => {
