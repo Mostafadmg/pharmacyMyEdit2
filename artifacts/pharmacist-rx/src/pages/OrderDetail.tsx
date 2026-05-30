@@ -140,7 +140,6 @@ import {
   OrderPatientHeader,
   ActionCard,
   ClinicalReviewOrderSummary,
-  ClinicalReviewOrderHistory,
   ClinicalReviewNhsScr,
 } from "@/components/rx";
 import { QueueOrderNav } from "@/components/QueueOrderNav";
@@ -986,7 +985,6 @@ export function OrderDetail({ id }: { id: string }) {
             {tab === "clinical" && (
               <ClinicalReviewTab
                 c={c}
-                orders={patientOrders.length > 0 ? patientOrders : [c]}
                 onUndo={() => undoSectionDone("clinical")}
                 onVerify={() => markSectionDoneWithLog("clinical")}
                 verification={verifications.clinical}
@@ -1911,13 +1909,11 @@ function TabsBar({
 // --- CLINICAL REVIEW TAB ---------------------------------------------------
 function ClinicalReviewTab({
   c,
-  orders,
   onUndo,
   onVerify,
   verification,
 }: {
   c: Consultation;
-  orders: Consultation[];
   onUndo: () => void;
   onVerify: () => void;
   verification?: VerificationRecord;
@@ -1931,11 +1927,6 @@ function ClinicalReviewTab({
   return (
     <div className="space-y-5">
       <ClinicalReviewOrderSummary c={c} />
-
-      <ClinicalReviewOrderHistory
-        currentConsultationId={c.id}
-        orders={orders}
-      />
 
       {weightLoss ? <ClinicalReviewBmiHistory consultation={c} /> : null}
 

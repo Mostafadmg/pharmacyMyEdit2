@@ -1,10 +1,7 @@
-import { useMemo } from "react";
 import { ShieldCheck } from "lucide-react";
 import type { Consultation } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
-import { OrderHistoryTable } from "@/components/OrderHistoryTable";
 import { parseOrderMedication } from "@/lib/orderPatientUi";
-import { sortOrdersForHistory } from "@/lib/orderHistory";
 
 export const CLINICAL_PANEL =
   "overflow-hidden rounded-2xl border border-border border-l-4 border-l-secondary bg-card shadow-sm";
@@ -36,33 +33,6 @@ function formatOrderPlaced(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-export function ClinicalReviewOrderHistory({
-  currentConsultationId,
-  orders,
-}: {
-  currentConsultationId: string;
-  orders: Consultation[];
-}) {
-  const sorted = useMemo(() => sortOrdersForHistory(orders), [orders]);
-  if (sorted.length === 0) return null;
-
-  return (
-    <section className={CLINICAL_PANEL} id="cr-order-history">
-      <PanelHeader
-        title="Patient orders"
-        description="Orders for this patient — the row you are reviewing is highlighted."
-      />
-      <div className="p-4 sm:p-5">
-        <OrderHistoryTable
-          orders={sorted}
-          currentConsultationId={currentConsultationId}
-          linkTab="clinical"
-        />
-      </div>
-    </section>
-  );
 }
 
 export function ClinicalReviewOrderSummary({ c }: { c: Consultation }) {

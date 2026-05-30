@@ -16,6 +16,7 @@ import {
   type EmailMacro,
   type MacroCategory,
 } from "@/components/tools/macroLibraryData";
+import { TOOL_MODAL_SHELL_CLASS } from "@/components/tools/toolsModalShell";
 
 /* ============================================================================
    Macro composer — a large modal that pairs a searchable macro library with
@@ -79,7 +80,7 @@ export function MacroComposerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[min(92dvh,52rem)] w-[min(96vw,68rem)] max-w-none flex-col gap-0 overflow-hidden p-0">
+      <DialogContent className={TOOL_MODAL_SHELL_CLASS}>
         <DialogHeader className="shrink-0 border-b border-border bg-primary/5 px-5 py-4 text-left">
           <DialogTitle className="flex items-center gap-2 text-foreground">
             <Mail className="h-5 w-5 text-violet-600" />

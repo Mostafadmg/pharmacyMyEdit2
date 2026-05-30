@@ -208,7 +208,7 @@ export function MacroLibrary({
   const constrained = embedded || collapsible;
 
   const body = constrained ? (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
       <div className="shrink-0 space-y-3 bg-muted/20 p-3.5 pb-2">{toolbar}</div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-muted/20 px-3.5 pb-3.5">
         {macroList}

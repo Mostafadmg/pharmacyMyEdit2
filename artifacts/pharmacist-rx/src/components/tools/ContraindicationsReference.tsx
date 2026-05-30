@@ -406,25 +406,25 @@ export function ContraindicationsReference({
     <div
       className={cn(
         "flex flex-col bg-card text-foreground",
-        constrained && "min-h-0 flex-1",
+        constrained && "h-full min-h-0 flex-1",
       )}
     >
-      {/* Top tabs — compact to leave more room for content */}
-      <div className="shrink-0 flex flex-wrap gap-1.5 border-b border-border bg-muted/30 px-2.5 pt-2 pb-1.5">
+      {/* Top tabs */}
+      <div className="shrink-0 flex flex-wrap gap-2 border-b border-border bg-muted/30 px-3 pt-3">
         {tabs.map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => selectTop(t)}
             className={cn(
-              "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold transition-colors",
+              "inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[12px] font-semibold transition-colors",
               t.id === topId
                 ? "border-transparent text-white shadow"
                 : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
             style={t.id === topId ? { backgroundColor: t.colorDark } : undefined}
           >
-            <span className="text-sm leading-none">{t.icon}</span>
+            <span>{t.icon}</span>
             <span>{t.label}</span>
           </button>
         ))}
@@ -449,7 +449,7 @@ export function ContraindicationsReference({
 
       {/* Sub tabs / category pills */}
       {!globalActive ? (
-        <div className="shrink-0 flex flex-wrap gap-1.5 border-b border-border bg-muted/20 px-2.5 pb-2 pt-1.5">
+        <div className="shrink-0 flex flex-wrap gap-2 border-b border-border bg-muted/20 px-3 pb-3 pt-2">
           {top.view === "list"
             ? ["All", ...(top.categories ?? [])].map((cat) => (
                 <button
@@ -457,7 +457,7 @@ export function ContraindicationsReference({
                   type="button"
                   onClick={() => setCategory(cat)}
                   className={cn(
-                    "rounded-md border px-2 py-0.5 text-[11px] font-semibold transition-colors",
+                    "rounded-lg border px-3 py-1.5 text-[12px] font-semibold transition-colors",
                     cat === category
                       ? "border-transparent text-white shadow"
                       : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -473,14 +473,14 @@ export function ContraindicationsReference({
                   type="button"
                   onClick={() => setSubId(s.id)}
                   className={cn(
-                    "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold transition-colors",
+                    "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-semibold transition-colors",
                     s.id === (activeSub?.id ?? subId)
                       ? "border-transparent text-white shadow"
                       : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                   style={s.id === (activeSub?.id ?? subId) ? { backgroundColor: top.colorDark } : undefined}
                 >
-                  <span className="text-sm leading-none">{s.icon}</span>
+                  <span>{s.icon}</span>
                   <span>{s.label}</span>
                 </button>
               ))}
