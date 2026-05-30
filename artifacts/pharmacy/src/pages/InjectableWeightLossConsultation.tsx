@@ -102,6 +102,22 @@ import {
   parsePriorWlMedication,
   wlMedicationLabel,
 } from "@/lib/wlConsultationRouting";
+import {
+  classifyNewStarterEligibility,
+  computeRestartDosing,
+  gapWeeksFromDate,
+  penIdDoseMg,
+  allowedPenIdsForDoses,
+  starterDoseFor,
+  offeredStarterDosesMg,
+  validateStarterBundle,
+  NEW_STARTER_MAX_BUNDLE_PENS,
+  NEW_STARTER_PREVIOUS_USE_PROMPT,
+  NOT_SUITABLE_MESSAGE,
+  type NewStarterEligibility,
+  type RestartDosingResult,
+  type WlProduct,
+} from "@/lib/wlEligibilityDosing";
 
 type UnitHeight = "cm" | "ftin";
 type UnitWeight = "kg" | "stlbs";
@@ -277,6 +293,15 @@ type AddOnId =
 
 type PlanType = "single" | "two-pen" | "three-pen";
 type MedicineId = "mounjaro" | "wegovy";
+
+/** Restart/gap-dosing restriction passed to the PlanSelector. */
+type PlanRestriction = {
+  product: MedicineId;
+  allowedPenIds: string[];
+  recommendedPenId: string | null;
+  note: string;
+  blockedReason: string | null;
+};
 
 interface AddOn {
   id: AddOnId;
@@ -734,6 +759,10 @@ export default function InjectableWeightLossConsultation() {
   const [submitting, setSubmitting] = useState(false);
   const [patientDocs, setPatientDocs] = useState(emptyPatientDocs);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  /** Custom rejection text shown on the ineligible screen (BMI band / restart). */
+  const [rejectionMessage, setRejectionMessage] = useState<string | null>(null);
+  /** Answer to the "have you taken Mounjaro/Wegovy before?" new-starter prompt. */
+  const [priorUseAnswer, setPriorUseAnswer] = useState<YesNo | null>(null);
 
   const isRepeatFlow =
     state.journey === "existing" || Boolean(repeatOfId);
@@ -797,7 +826,7 @@ export default function InjectableWeightLossConsultation() {
             profile.sex === "male" || profile.sex === "female"
               ? profile.sex
               : profile.sex === "other"
-                ? "other"
+                ? "prefer-not-to-say"
                 : s.assignedSex,
         }));
       })
@@ -884,8 +913,11 @@ export default function InjectableWeightLossConsultation() {
     return a;
   }, [state.dob]);
 
-  // Clinical hard-stop: any of these answers makes them ineligible for online prescribing.
-  const contraindicated = useMemo(() => {
+  /** Whether the patient reported a qualifying comorbidity (excluding-conditions question). */
+  const hasComorbidity = state.excludingConditions === "yes";
+
+  // Clinical hard-stops unrelated to BMI — these always block online prescribing.
+  const clinicalHardStops = useMemo(() => {
     const reasons: string[] = [];
     if (state.ageBracket === "no" || (ageYears !== null && (ageYears < 18 || ageYears > 75))) reasons.push("Outside the 18–75 age range for online prescribing.");
     if (
@@ -899,6 +931,22 @@ export default function InjectableWeightLossConsultation() {
     if (state.glp1Allergy === "yes") reasons.push("Previous allergic reaction to GLP-1 medicines.");
     if (state.thyroidHistory === "yes") reasons.push("Personal or family history of medullary thyroid cancer or MEN2.");
     if (state.eatingDisorder === "yes") reasons.push("History of an eating disorder — requires in-person specialist review.");
+    return reasons;
+  }, [state.ageBracket, ageYears, state.assignedSex, state.pregnant, state.glp1Allergy, state.thyroidHistory, state.eatingDisorder]);
+
+  // New-starter BMI band classification ("lowest threshold wins").
+  const newStarterEligibility: NewStarterEligibility = useMemo(
+    () =>
+      classifyNewStarterEligibility({
+        bmi,
+        ethnicity: state.ethnicity,
+        hasComorbidity,
+      }),
+    [bmi, state.ethnicity, hasComorbidity],
+  );
+
+  // BMI reason shown on the ineligible screen for a generic clinical stop.
+  const bmiReason = useMemo(() => {
     const thresholdPreview = getBmiEligibilityThreshold({
       ethnicity: state.ethnicity,
       excluding_conditions: state.excludingConditions,
@@ -909,22 +957,88 @@ export default function InjectableWeightLossConsultation() {
     });
     const minBmi = thresholdPreview ?? 27;
     if (bmi !== null && bmi < minBmi) {
-      reasons.push(
-        `Your BMI (${bmi.toFixed(1)}) is below the ${minBmi} threshold for treatment based on your answers.`,
-      );
+      return `Your BMI (${bmi.toFixed(1)}) is below the ${minBmi} threshold for treatment based on your answers.`;
     }
-    return reasons;
-  }, [state, ageYears, bmi]);
+    return null;
+  }, [state.ethnicity, state.excludingConditions, state.diagnosedConditions, bmi]);
+
+  // Combined list for the ineligible-screen fallback display.
+  const contraindicated = useMemo(
+    () => [...clinicalHardStops, ...(bmiReason ? [bmiReason] : [])],
+    [clinicalHardStops, bmiReason],
+  );
+
+  // Restart / gap dosing for transfer (restart) journeys — drives the plan picker.
+  const restartDosing: RestartDosingResult | null = useMemo(() => {
+    if (consultationType !== "transfer") return null;
+    const product = state.transferWlMedication.product;
+    if (!product) return null;
+    return computeRestartDosing({
+      product: product as WlProduct,
+      lastToleratedDoseMg: penIdDoseMg(state.transferWlMedication.strengthPenId),
+      gapWeeks: gapWeeksFromDate(state.transferWlMedication.lastInjectionDate),
+      bmi,
+    });
+  }, [
+    consultationType,
+    state.transferWlMedication.product,
+    state.transferWlMedication.strengthPenId,
+    state.transferWlMedication.lastInjectionDate,
+    bmi,
+  ]);
+
+  // Map restart dosing → purchasable pen restriction for the PlanSelector.
+  const planRestriction = useMemo((): PlanRestriction | null => {
+    if (!restartDosing) return null;
+    const product = restartDosing.product;
+    const catalogIds = PEN_OPTIONS.map((p) => p.id);
+    const allowedPenIds = allowedPenIdsForDoses(
+      product,
+      restartDosing.allowedDosesMg,
+      catalogIds,
+    );
+    // Recommended pen: closest purchasable strength at or below the recommendation.
+    let recommendedPenId: string | null = null;
+    if (restartDosing.recommendedDoseMg != null && allowedPenIds.length > 0) {
+      const target = restartDosing.recommendedDoseMg;
+      const ranked = allowedPenIds
+        .map((id) => ({ id, mg: penIdDoseMg(id) ?? -1 }))
+        .filter((p) => p.mg <= target)
+        .sort((a, b) => b.mg - a.mg);
+      recommendedPenId = (ranked[0] ?? null)?.id ?? allowedPenIds[allowedPenIds.length - 1] ?? null;
+    }
+    return {
+      product,
+      allowedPenIds,
+      recommendedPenId,
+      note: restartDosing.note,
+      blockedReason: restartDosing.blocked?.reason ?? null,
+    };
+  }, [restartDosing]);
 
   const go = (n: number) => {
     setStep(n);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const next = () => {
-    // Clinical hard-stop after the conditions step
-    if ((step === 7 || step === 8) && contraindicated.length > 0) {
+    // Clinical hard-stops (age, pregnancy, allergy, thyroid, eating disorder) —
+    // always block, regardless of journey.
+    if ((step === 7 || step === 8) && clinicalHardStops.length > 0) {
+      setRejectionMessage(null);
       go(99); // ineligible screen
       return;
+    }
+    // New-starter BMI band logic runs once comorbidity is known (after step 8).
+    if (step === 8 && consultationType === "new_start") {
+      if (newStarterEligibility.status === "reject_low_bmi") {
+        setRejectionMessage(newStarterEligibility.message);
+        go(99);
+        return;
+      }
+      if (newStarterEligibility.status === "prompt_previous_use") {
+        go(98); // "have you taken Mounjaro/Wegovy before?" prompt
+        return;
+      }
     }
     let n = stepAfter(step, isLoggedIn);
     // Repeat: medication/plan come from prior order — skip pen picker (step 13).
@@ -937,12 +1051,18 @@ export default function InjectableWeightLossConsultation() {
     }
     go(n);
   };
-  const back = () =>
-    step === 99
-      ? go(8)
-      : step > 1
-        ? go(stepBefore(step, isLoggedIn))
-        : navigate("/treatments/weight-loss");
+  const back = () => {
+    if (step === 99 || step === 98) {
+      setRejectionMessage(null);
+      go(8);
+      return;
+    }
+    if (step > 1) {
+      go(stepBefore(step, isLoggedIn));
+      return;
+    }
+    navigate("/treatments/weight-loss");
+  };
 
   const metrics = useMemo(() => {
     let heightCm = NaN;
@@ -2957,10 +3077,28 @@ export default function InjectableWeightLossConsultation() {
                     })}
                   </ul>
                 </SectionCard>
+              ) : planRestriction?.blockedReason ? (
+                <SectionCard>
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800">
+                      <ShieldCheck className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-secondary mb-1">
+                        We can&apos;t restart your treatment online right now
+                      </p>
+                      <p className="text-sm text-foreground/80">
+                        {planRestriction.blockedReason}
+                      </p>
+                    </div>
+                  </div>
+                </SectionCard>
               ) : (
                 <PlanSelector
                   value={state.selectedPlan}
                   onChange={(p) => update("selectedPlan", p)}
+                  starterOnly={consultationType === "new_start"}
+                  restriction={planRestriction}
                 />
               )}
             </StepShell>
@@ -3086,6 +3224,77 @@ export default function InjectableWeightLossConsultation() {
               )}
             </StepShell>
           )}
+          {/* ───── New-starter previous-use prompt (BMI below new-starter threshold) */}
+          {step === 98 && (
+            <motion.div
+              key="previous-use-prompt"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="max-w-xl mx-auto px-5 pt-8 pb-20"
+            >
+              <div className="mb-8">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-primary">
+                  <ClipboardCheck className="h-5 w-5" />
+                </div>
+                <h1 className="font-serif text-2xl font-bold leading-tight text-secondary md:text-3xl">
+                  A quick check before we continue
+                </h1>
+                <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground md:text-base">
+                  {NEW_STARTER_PREVIOUS_USE_PROMPT}
+                </p>
+              </div>
+              <SectionCard>
+                <p className="font-semibold text-secondary mb-3">
+                  Have you taken Mounjaro or Wegovy before? *
+                </p>
+                <div className="space-y-2.5">
+                  <RadioRow
+                    selected={priorUseAnswer === "yes"}
+                    onSelect={() => {
+                      setPriorUseAnswer("yes");
+                      setRejectionMessage(null);
+                      setState((s) => ({
+                        ...s,
+                        journey: "transferring",
+                        newToInjectables: "no",
+                        changingProvider: "yes",
+                        lastInjectionTiming: null,
+                        lastInjectionDate: "",
+                        ...emptyTransferQuestionnaireFields(),
+                      }));
+                      go(9);
+                    }}
+                    title="Yes — I have taken Mounjaro or Wegovy before"
+                    subtitle="We'll continue your treatment and ask for proof of your previous prescription and starting BMI."
+                    testId="prior-use-yes"
+                  />
+                  <RadioRow
+                    selected={priorUseAnswer === "no"}
+                    onSelect={() => {
+                      setPriorUseAnswer("no");
+                      setRejectionMessage(NOT_SUITABLE_MESSAGE);
+                      go(99);
+                    }}
+                    title="No — I have not taken either before"
+                    testId="prior-use-no"
+                  />
+                </div>
+              </SectionCard>
+              <div className="mt-8">
+                <Button
+                  variant="outline"
+                  onClick={back}
+                  size="lg"
+                  className="h-12 rounded-2xl"
+                  data-testid="button-prior-use-back"
+                >
+                  Back to my answers
+                </Button>
+              </div>
+            </motion.div>
+          )}
           {/* ───── Ineligible screen */}
           {step === 99 && (
             <motion.div
@@ -3111,7 +3320,7 @@ export default function InjectableWeightLossConsultation() {
               <SectionCard>
                 <p className="font-semibold text-secondary mb-3">Why we can't prescribe today</p>
                 <ul className="space-y-2 text-sm text-foreground/80">
-                  {contraindicated.map((r, i) => (
+                  {(rejectionMessage ? [rejectionMessage] : contraindicated).map((r, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-2 shrink-0" />
                       <span>{r}</span>
@@ -3142,30 +3351,266 @@ export default function InjectableWeightLossConsultation() {
 }
 
 // ── Plan selector ─────────────────────────────────────────────────────────
+/** Shared medicine (Mounjaro / Wegovy) toggle used by both plan pickers. */
+const MedicineToggle: React.FC<{
+  value: MedicineId;
+  onSelect: (m: MedicineId) => void;
+}> = ({ value, onSelect }) => (
+  <div className="flex gap-2 mb-4">
+    {(["mounjaro", "wegovy"] as MedicineId[]).map((m) => (
+      <button key={m} type="button"
+        onClick={() => onSelect(m)}
+        className={`flex-1 h-10 rounded-full text-sm font-semibold transition-colors ${
+          value === m
+            ? (m === "mounjaro" ? "bg-[#0E3D2D] text-white" : "bg-[#D4EFE2] text-[#0E3D2D]")
+            : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+        }`}
+        data-testid={`plan-med-${m}`}
+      >
+        {m === "mounjaro" ? "Mounjaro · Tirzepatide" : "Wegovy · Semaglutide"}
+      </button>
+    ))}
+  </div>
+);
+
+/**
+ * New-starter titration bundle builder.
+ *
+ * The patient is offered their eligible (lowest) starter dose plus the higher
+ * purchasable strengths, and may build a 1–3 pen (≈ 1–3 month) order. Doses
+ * must step up one strength at a time — see `validateStarterBundle`.
+ */
+const StarterBundlePicker: React.FC<{
+  medicine: MedicineId;
+  onMedChange: (m: MedicineId) => void;
+  value: FormState["selectedPlan"];
+  onChange: (p: FormState["selectedPlan"]) => void;
+}> = ({ medicine, onMedChange, value, onChange }) => {
+  const maxPens = NEW_STARTER_MAX_BUNDLE_PENS;
+  const eligibleDoseMg = starterDoseFor(medicine);
+
+  const catalogPens = PEN_OPTIONS.filter((p) => p.medicine === medicine)
+    .map((p) => ({ pen: p, mg: penIdDoseMg(p.id) ?? 0 }))
+    .sort((a, b) => a.mg - b.mg);
+
+  const offeredDosesMg = offeredStarterDosesMg(
+    catalogPens.map((c) => c.mg),
+    eligibleDoseMg,
+  );
+  const offeredPens = offeredDosesMg
+    .map((mg) => catalogPens.find((c) => Math.abs(c.mg - mg) < 1e-9))
+    .filter((c): c is { pen: PenOption; mg: number } => Boolean(c));
+
+  // One entry per pen — strengths may repeat (e.g. two months at 2.5 mg).
+  const penIds = value?.medicine === medicine ? value.penIds : [];
+  const qtyOf = (penId: string) => penIds.filter((id) => id === penId).length;
+  const dosesFor = (ids: string[]) => ids.map((id) => penIdDoseMg(id) ?? -1);
+  const isValid = (ids: string[]) =>
+    validateStarterBundle({
+      offeredDosesMg,
+      selectedDosesMg: dosesFor(ids),
+      maxPens,
+    }).ok;
+
+  const planTypeForCount = (n: number): PlanType =>
+    n >= 3 ? "three-pen" : n === 2 ? "two-pen" : "single";
+
+  const commit = (nextIds: string[]) => {
+    if (nextIds.length === 0) {
+      onChange(null);
+      return;
+    }
+    onChange({ type: planTypeForCount(nextIds.length), medicine, penIds: nextIds });
+  };
+
+  const canAdd = (penId: string) => isValid([...penIds, penId]);
+  const canRemove = (penId: string) => {
+    if (qtyOf(penId) === 0) return false;
+    const idx = penIds.indexOf(penId);
+    const next = penIds.filter((_, i) => i !== idx);
+    return next.length === 0 || isValid(next);
+  };
+  const add = (penId: string) => {
+    if (canAdd(penId)) commit([...penIds, penId]);
+  };
+  const remove = (penId: string) => {
+    if (!canRemove(penId)) return;
+    const idx = penIds.indexOf(penId);
+    commit(penIds.filter((_, i) => i !== idx));
+  };
+
+  const totalPens = penIds.length;
+  const bundleDiscount = totalPens >= 3 ? 0.1 : totalPens === 2 ? 0.05 : 0;
+  const subtotal = penIds.reduce(
+    (s, id) => s + (PEN_OPTIONS.find((p) => p.id === id)?.pricePerPen ?? 0),
+    0,
+  );
+  const total = subtotal * (1 - bundleDiscount);
+
+  return (
+    <>
+      <div
+        className="mb-4 rounded-xl bg-primary/5 border border-primary/15 px-4 py-3 text-sm text-foreground/80"
+        data-testid="starter-bundle-note"
+      >
+        New starters begin at the lowest starter dose. You can buy up to {maxPens}{" "}
+        months in one order and build a titration bundle — but doses must step up
+        one strength at a time, so a higher strength only unlocks once the one
+        below it is in your bundle.
+      </div>
+
+      <MedicineToggle value={medicine} onSelect={(m) => { if (m !== medicine) onMedChange(m); }} />
+
+      <p className="text-xs text-muted-foreground mb-3">
+        Choose 1–{maxPens} pens — each pen is a 4-week supply at the listed dose.
+      </p>
+
+      <div className="space-y-2.5">
+        {offeredPens.map(({ pen }, i) => {
+          const qty = qtyOf(pen.id);
+          const isEligible = i === 0;
+          const addDisabled = !canAdd(pen.id);
+          const lockedHint = addDisabled && qty === 0 && !isEligible && totalPens < maxPens;
+          return (
+            <div
+              key={pen.id}
+              className={`rounded-2xl border p-4 transition-all ${
+                qty > 0 ? "border-[#0E3D2D] bg-[#F3F9F1]" : "border-stone-200 bg-white"
+              }`}
+              data-testid={`bundle-strength-${pen.id}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-bold text-[#0E3D2D] flex items-center gap-2">
+                    {pen.label}
+                    {isEligible && (
+                      <span className="rounded-full bg-[#D4EFE2] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#0E3D2D]">
+                        Your starter dose
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{pen.dose} · 4-week supply</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground line-through">£{pen.originalPerPen.toFixed(2)}</p>
+                  <p className="text-lg font-extrabold text-[#0E3D2D]">£{pen.pricePerPen.toFixed(2)}</p>
+                </div>
+              </div>
+
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
+                  {qty} month{qty === 1 ? "" : "s"} selected
+                </span>
+                <div className="grid grid-cols-3 items-center gap-1 bg-[#D4EFE2] rounded-xl p-1 w-32">
+                  <button type="button" onClick={() => remove(pen.id)} disabled={!canRemove(pen.id)}
+                    className="h-9 rounded-lg bg-white text-[#0E3D2D] font-bold flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+                    data-testid={`bundle-dec-${pen.id}`}
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <span className="text-center font-bold text-[#0E3D2D] tabular-nums" data-testid={`bundle-qty-${pen.id}`}>{qty}</span>
+                  <button type="button" onClick={() => add(pen.id)} disabled={addDisabled}
+                    className="h-9 rounded-lg bg-white text-[#0E3D2D] font-bold flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+                    data-testid={`bundle-inc-${pen.id}`}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {lockedHint && (
+                <p className="mt-2 text-[11px] text-muted-foreground" data-testid={`bundle-locked-${pen.id}`}>
+                  Add {offeredPens[i - 1]?.pen.label} to your bundle first — strengths must be added in order.
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {totalPens > 0 && (
+        <div className="mt-5 rounded-xl bg-secondary/5 border border-secondary/20 p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-muted-foreground">Plan total</p>
+            <p className="text-2xl font-extrabold text-secondary">£{total.toFixed(2)}</p>
+            {bundleDiscount > 0 && (
+              <p className="text-xs text-emerald-600 font-semibold">
+                Includes {Math.round(bundleDiscount * 100)}% bundle saving
+              </p>
+            )}
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {totalPens} / {maxPens} pens selected
+          </span>
+        </div>
+      )}
+    </>
+  );
+};
+
 const PlanSelector: React.FC<{
   value: FormState["selectedPlan"];
   onChange: (p: FormState["selectedPlan"]) => void;
-}> = ({ value, onChange }) => {
+  /** New starters: titration bundle starting at the eligible starter dose. */
+  starterOnly?: boolean;
+  /** Restart / gap-dosing restriction (transfer journey). */
+  restriction?: PlanRestriction | null;
+}> = ({ value, onChange, starterOnly = false, restriction = null }) => {
+  // Restart restriction locks the medicine to the product being continued.
+  const lockedMed = restriction?.product ?? null;
   const [tab, setTab] = useState<PlanType>("single");
-  const [med, setMed] = useState<MedicineId>("mounjaro");
+  const [med, setMed] = useState<MedicineId>(lockedMed ?? "mounjaro");
 
-  const pens = PEN_OPTIONS.filter((p) => p.medicine === med);
-  const requiredCount = tab === "single" ? 1 : tab === "two-pen" ? 2 : 3;
+  const effectiveTab: PlanType = tab;
+  const effectiveMed: MedicineId = lockedMed ?? med;
+
+  // Allowed pen ids for the current restriction (null = no restriction).
+  const allowedIds: Set<string> | null = restriction
+    ? new Set(restriction.allowedPenIds)
+    : null;
+
+  const pens = PEN_OPTIONS.filter(
+    (p) =>
+      p.medicine === effectiveMed && (allowedIds ? allowedIds.has(p.id) : true),
+  );
+  const requiredCount =
+    effectiveTab === "single" ? 1 : effectiveTab === "two-pen" ? 2 : 3;
+
+  const availableTabs: [PlanType, string][] = [
+    ["single", "Single Pens"],
+    ["two-pen", "2-Pen Bundles"],
+    ["three-pen", "3-Pen Bundles"],
+  ];
 
   const togglePen = (id: string) => {
-    const current = value?.type === tab && value.medicine === med ? value.penIds : [];
+    const current =
+      value?.type === effectiveTab && value.medicine === effectiveMed
+        ? value.penIds
+        : [];
     if (current.includes(id)) {
-      onChange({ type: tab, medicine: med, penIds: current.filter((x) => x !== id) });
+      onChange({
+        type: effectiveTab,
+        medicine: effectiveMed,
+        penIds: current.filter((x) => x !== id),
+      });
     } else if (current.length < requiredCount) {
-      onChange({ type: tab, medicine: med, penIds: [...current, id] });
+      onChange({
+        type: effectiveTab,
+        medicine: effectiveMed,
+        penIds: [...current, id],
+      });
     }
   };
 
-  const bundleDiscount = tab === "two-pen" ? 0.05 : tab === "three-pen" ? 0.1 : 0;
-  const selectedPens = value?.type === tab && value.medicine === med
-    ? pens.filter((p) => value.penIds.includes(p.id))
-    : [];
+  const bundleDiscount =
+    effectiveTab === "two-pen" ? 0.05 : effectiveTab === "three-pen" ? 0.1 : 0;
+  const selectedPens =
+    value?.type === effectiveTab && value.medicine === effectiveMed
+      ? pens.filter((p) => value.penIds.includes(p.id))
+      : [];
   const total = selectedPens.reduce((s, p) => s + p.pricePerPen, 0) * (1 - bundleDiscount);
+
+  const restrictionNote = restriction?.note ?? null;
 
   return (
     <>
@@ -3194,86 +3639,99 @@ const PlanSelector: React.FC<{
 
       <SectionCard>
         <p className="font-semibold text-[#0E3D2D] mb-3">Select your plan</p>
-        <div className="flex gap-1.5 p-1 bg-stone-100 rounded-xl mb-4">
-          {([
-            ["single", "Single Pens"],
-            ["two-pen", "2-Pen Bundles"],
-            ["three-pen", "3-Pen Bundles"],
-          ] as [PlanType, string][]).map(([id, label]) => (
-            <button
-              key={id} type="button"
-              onClick={() => { setTab(id); onChange(null); }}
-              className={`flex-1 h-9 rounded-lg text-xs font-semibold transition-colors ${
-                tab === id ? "bg-[#0E3D2D] text-white" : "text-stone-600 hover:text-[#0E3D2D]"
-              }`}
-              data-testid={`plan-tab-${id}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
 
-        <div className="flex gap-2 mb-4">
-          {(["mounjaro", "wegovy"] as MedicineId[]).map((m) => (
-            <button key={m} type="button"
-              onClick={() => { setMed(m); onChange(null); }}
-              className={`flex-1 h-10 rounded-full text-sm font-semibold transition-colors ${
-                med === m
-                  ? (m === "mounjaro" ? "bg-[#0E3D2D] text-white" : "bg-[#D4EFE2] text-[#0E3D2D]")
-                  : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-              }`}
-              data-testid={`plan-med-${m}`}
-            >
-              {m === "mounjaro" ? "Mounjaro · Tirzepatide" : "Wegovy · Semaglutide"}
-            </button>
-          ))}
-        </div>
-
-        <p className="text-xs text-muted-foreground mb-3">
-          Select {requiredCount} pen{requiredCount > 1 ? "s" : ""} — each pen is a 4-week supply at the listed dose.
-        </p>
-
-        <div className="space-y-2.5">
-          {pens.map((p) => {
-            const selected = value?.type === tab && value.medicine === med && value.penIds.includes(p.id);
-            return (
-              <button key={p.id} type="button"
-                onClick={() => togglePen(p.id)}
-                className={`w-full text-left rounded-2xl border p-4 transition-all ${
-                  selected ? "border-[#0E3D2D] bg-[#F3F9F1]" : "border-stone-200 bg-white hover:border-stone-400"
-                }`}
-                data-testid={`plan-pen-${p.id}`}
+        {starterOnly ? (
+          <StarterBundlePicker
+            medicine={effectiveMed}
+            onMedChange={(m) => { setMed(m); onChange(null); }}
+            value={value}
+            onChange={onChange}
+          />
+        ) : (
+          <>
+            {restrictionNote && (
+              <div
+                className="mb-4 rounded-xl bg-primary/5 border border-primary/15 px-4 py-3 text-sm text-foreground/80"
+                data-testid="plan-restriction-note"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-bold text-[#0E3D2D]">{p.label}</p>
-                    <p className="text-xs text-muted-foreground">{p.weeks}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground line-through">£{p.originalPerPen.toFixed(2)}</p>
-                    <p className="text-lg font-extrabold text-[#0E3D2D]">£{p.pricePerPen.toFixed(2)}</p>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+                {restrictionNote}
+              </div>
+            )}
 
-        {selectedPens.length > 0 && (
-          <div className="mt-5 rounded-xl bg-secondary/5 border border-secondary/20 p-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">Plan total</p>
-              <p className="text-2xl font-extrabold text-secondary">£{total.toFixed(2)}</p>
-              {bundleDiscount > 0 && (
-                <p className="text-xs text-emerald-600 font-semibold">
-                  Includes {Math.round(bundleDiscount * 100)}% bundle saving
-                </p>
-              )}
+            <div className="flex gap-1.5 p-1 bg-stone-100 rounded-xl mb-4">
+              {availableTabs.map(([id, label]) => (
+                <button
+                  key={id} type="button"
+                  onClick={() => { setTab(id); onChange(null); }}
+                  className={`flex-1 h-9 rounded-lg text-xs font-semibold transition-colors ${
+                    effectiveTab === id ? "bg-[#0E3D2D] text-white" : "text-stone-600 hover:text-[#0E3D2D]"
+                  }`}
+                  data-testid={`plan-tab-${id}`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
-            <span className="text-xs text-muted-foreground">
-              {selectedPens.length} / {requiredCount} pens selected
-            </span>
-          </div>
+
+            {!lockedMed && (
+              <MedicineToggle value={effectiveMed} onSelect={(m) => { setMed(m); onChange(null); }} />
+            )}
+
+            <p className="text-xs text-muted-foreground mb-3">
+              Select {requiredCount} pen{requiredCount > 1 ? "s" : ""} — each pen is a 4-week supply at the listed dose.
+            </p>
+
+            <div className="space-y-2.5">
+              {pens.map((p) => {
+                const selected = value?.type === effectiveTab && value.medicine === effectiveMed && value.penIds.includes(p.id);
+                const isRecommended = restriction?.recommendedPenId === p.id;
+                return (
+                  <button key={p.id} type="button"
+                    onClick={() => togglePen(p.id)}
+                    className={`w-full text-left rounded-2xl border p-4 transition-all ${
+                      selected ? "border-[#0E3D2D] bg-[#F3F9F1]" : "border-stone-200 bg-white hover:border-stone-400"
+                    }`}
+                    data-testid={`plan-pen-${p.id}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-bold text-[#0E3D2D] flex items-center gap-2">
+                          {p.label}
+                          {isRecommended && (
+                            <span className="rounded-full bg-[#D4EFE2] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#0E3D2D]">
+                              Recommended
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{p.weeks}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground line-through">£{p.originalPerPen.toFixed(2)}</p>
+                        <p className="text-lg font-extrabold text-[#0E3D2D]">£{p.pricePerPen.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {selectedPens.length > 0 && (
+              <div className="mt-5 rounded-xl bg-secondary/5 border border-secondary/20 p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Plan total</p>
+                  <p className="text-2xl font-extrabold text-secondary">£{total.toFixed(2)}</p>
+                  {bundleDiscount > 0 && (
+                    <p className="text-xs text-emerald-600 font-semibold">
+                      Includes {Math.round(bundleDiscount * 100)}% bundle saving
+                    </p>
+                  )}
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {selectedPens.length} / {requiredCount} pens selected
+                </span>
+              </div>
+            )}
+          </>
         )}
       </SectionCard>
     </>

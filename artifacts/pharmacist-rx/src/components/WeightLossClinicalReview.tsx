@@ -855,7 +855,9 @@ export function buildWeightLossClinicalBundles(
 }
 
 const PMR_MEDICAL_HISTORY_GATE_QUESTION =
-  "Have you ever been diagnosed with any of the following?";
+  `Have you ever been diagnosed with any of the following? ${Object.values(
+    MED_HISTORY_LABELS,
+  ).join(", ")}`;
 
 type MedicalHistoryDetailAnswer = {
   id?: string;

@@ -31,8 +31,8 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json({ limit: "75mb" }));
-app.use(express.urlencoded({ extended: true, limit: "75mb" }));
+app.use(express.json({ limit: "220mb" }));
+app.use(express.urlencoded({ extended: true, limit: "220mb" }));
 
 app.use("/api", router);
 

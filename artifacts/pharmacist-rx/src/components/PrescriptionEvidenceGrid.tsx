@@ -45,6 +45,7 @@ import {
 import {
   buildPrescriptionEvidenceSlots,
   countEvidenceSlots,
+  formatEvidenceUploaded,
   type EvidenceSlot,
   type EvidenceSlotId,
 } from "@/lib/prescriptionEvidenceSlots";
@@ -175,6 +176,10 @@ function EvidenceViewerModal({
   }, [slot.id]);
 
   const currentUrl = urls[index];
+  const currentUploadedIso = slot.uploads[index]?.uploadedAt;
+  const currentUploadedLabel = currentUploadedIso
+    ? formatEvidenceUploaded(currentUploadedIso)
+    : null;
   const canPrev = index > 0;
   const canNext = index < urls.length - 1;
 
@@ -185,11 +190,11 @@ function EvidenceViewerModal({
           <DialogTitle className="pr-8">{slot.title}</DialogTitle>
           <DialogDescription>
             {slot.sub}
-            {urls.length > 1 ? (
-              <span className="mt-1 block text-foreground/80">
-                Document {index + 1} of {urls.length}
-              </span>
-            ) : null}
+            <span className="mt-1 block text-foreground/80">
+              {urls.length > 1 ? `Document ${index + 1} of ${urls.length}` : null}
+              {urls.length > 1 && currentUploadedLabel ? " · " : null}
+              {currentUploadedLabel}
+            </span>
           </DialogDescription>
         </DialogHeader>
         {currentUrl ? (
@@ -223,6 +228,11 @@ function EvidenceViewerModal({
                 {urls.length > 1 ? (
                   <span className="ml-2 text-xs font-medium text-muted-foreground">
                     {index + 1} / {urls.length}
+                  </span>
+                ) : null}
+                {currentUploadedLabel ? (
+                  <span className="ml-2 hidden text-xs text-muted-foreground sm:inline">
+                    {currentUploadedLabel}
                   </span>
                 ) : null}
               </div>
@@ -1206,7 +1216,7 @@ export function PrescriptionEvidenceGrid({
               </Button>
               <Button
                 disabled={saving}
-                className={cn(DOC.btnEmail, "text-white hover:opacity-90")}
+                className={cn("rounded-xl bg-rx-cs text-white hover:bg-rx-cs/90")}
                 onClick={() => void submitUploadRequest()}
               >
                 {saving ? "Sending…" : "Send request"}

@@ -64,6 +64,19 @@ function QaList({ rows }: { rows: ConsultationQaRow[] }) {
         >
           <dt className="flex-1 text-sm text-muted-foreground leading-relaxed">
             {row.question}
+            {row.items && row.items.length > 0 ? (
+              <ul className="mt-2 space-y-1">
+                {row.items.map((item) => (
+                  <li
+                    key={item}
+                    className="flex items-start gap-2 text-xs text-foreground/70"
+                  >
+                    <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/60" />
+                    <span className="leading-relaxed">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </dt>
           <dd className="shrink-0">
             <AnswerValue value={row.answer} />

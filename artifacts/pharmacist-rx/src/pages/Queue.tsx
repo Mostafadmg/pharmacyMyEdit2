@@ -12,17 +12,20 @@ import {
   getActiveWaitTags,
   hasWaitTagKind,
   WAIT_TAG_META,
+  type CustomerWaitTagKind,
 } from "@/lib/orderWaitingTags";
-import { getDisplayOrderTags } from "@/lib/orderTags";
+import { getActiveOrderTags, getDisplayOrderTags } from "@/lib/orderTags";
 import {
   buildOrderDetailHref,
   filterQueueConsultations,
   getQueueCategory,
   parseQueueContextFromSearch,
   QUEUE_CATEGORY_LABELS,
+  QUEUE_DOC_TAG_FILTERS,
   type CsWaitSubFilter,
   type QueueCategory,
   type QueueContext,
+  type QueueDocTagId,
   type TypeFilter,
 } from "@/lib/queueFilters";
 import { hasAutoComplexRiskFlags } from "@/lib/autoComplexPatient";
@@ -74,11 +77,6 @@ const TYPE_FILTERS: { id: TypeFilter; label: string; tint: string }[] = [
     id: "simple_repeat",
     label: "Simple Repeat",
     tint: "bg-sky-500/10 text-sky-700 dark:text-sky-200",
-  },
-  {
-    id: "complex",
-    label: "Complex",
-    tint: "bg-rose-500/10 text-rose-800 dark:text-rose-200",
   },
 ];
 
@@ -175,11 +173,6 @@ const CS_SUB_FILTERS: { id: CsWaitSubFilter; label: string }[] = [
   },
 ];
 
-function deriveDob(age: number): string {
-  const year = new Date().getFullYear() - age;
-  return `1 Jan ${year}`;
-}
-
 function daysSince(iso: string): number {
   const ms = Date.now() - new Date(iso).getTime();
   return Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)));
@@ -216,14 +209,35 @@ function queueContextFromFilters(
   categoryFilter: QueueCategory,
   typeFilter: TypeFilter,
   csSubFilter: CsWaitSubFilter,
+  tagFilters: QueueDocTagId[],
+  complexOnly: boolean,
   search: string,
 ): QueueContext {
   return {
     category: categoryFilter,
     typeFilter,
     csSubFilter,
+    tagFilters,
+    complexOnly,
     search,
   };
+}
+
+/** Count of CS-hold orders carrying each failed-document tag. */
+function computeDocTagCounts(
+  rows: Consultation[],
+): Record<QueueDocTagId, number> {
+  const counts = Object.fromEntries(
+    QUEUE_DOC_TAG_FILTERS.map((t) => [t.id, 0]),
+  ) as Record<QueueDocTagId, number>;
+  for (const row of rows) {
+    if (getQueueCategory(row) !== "cs_hold") continue;
+    const activeIds = new Set(getActiveOrderTags(row).map((t) => t.tagId));
+    for (const t of QUEUE_DOC_TAG_FILTERS) {
+      if (activeIds.has(t.id)) counts[t.id] += 1;
+    }
+  }
+  return counts;
 }
 
 export function Queue() {
@@ -242,6 +256,16 @@ export function Queue() {
     if (typeof window === "undefined") return "all";
     const ctx = parseQueueContextFromSearch(window.location.search);
     return ctx?.csSubFilter ?? "all";
+  });
+  const [tagFilters, setTagFilters] = useState<QueueDocTagId[]>(() => {
+    if (typeof window === "undefined") return [];
+    const ctx = parseQueueContextFromSearch(window.location.search);
+    return ctx?.tagFilters ?? [];
+  });
+  const [complexOnly, setComplexOnly] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    const ctx = parseQueueContextFromSearch(window.location.search);
+    return ctx?.complexOnly ?? false;
   });
   const [typeFilter, setTypeFilter] = useState<TypeFilter>(() => {
     if (typeof window === "undefined") return "all";
@@ -263,6 +287,8 @@ export function Queue() {
       setCategoryFilter(ctx.category);
       setTypeFilter(ctx.typeFilter);
       setCsSubFilter(ctx.csSubFilter);
+      setTagFilters(ctx.tagFilters);
+      setComplexOnly(ctx.complexOnly);
     }
   }, [location]);
 
@@ -270,6 +296,8 @@ export function Queue() {
     categoryFilter,
     typeFilter,
     csSubFilter,
+    tagFilters,
+    complexOnly,
     search,
   );
 
@@ -280,9 +308,19 @@ export function Queue() {
     () => computeCsSubFilterCounts(allRows),
     [allRows],
   );
+  const docTagCounts = useMemo(() => computeDocTagCounts(allRows), [allRows]);
+
+  const toggleTagFilter = (id: QueueDocTagId) => {
+    setTagFilters((prev) =>
+      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id],
+    );
+  };
 
   useEffect(() => {
-    if (categoryFilter !== "cs_hold") setCsSubFilter("all");
+    if (categoryFilter !== "cs_hold") {
+      setCsSubFilter("all");
+      setTagFilters([]);
+    }
   }, [categoryFilter]);
 
   return (
@@ -387,6 +425,44 @@ export function Queue() {
                 );
               })}
             </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
+              <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Filter by tag
+              </span>
+              {QUEUE_DOC_TAG_FILTERS.map((tag) => {
+                const active = tagFilters.includes(tag.id);
+                const count = docTagCounts[tag.id];
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => toggleTagFilter(tag.id)}
+                    aria-pressed={active}
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                      active
+                        ? "border-rose-300 bg-rose-50 text-rose-900 ring-2 ring-rose-200"
+                        : "border-border bg-background text-muted-foreground hover:bg-muted",
+                    )}
+                  >
+                    {tag.label}
+                    <span className="rounded-full bg-rose-200/70 px-1.5 py-0.5 text-[10px] font-bold text-rose-900">
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+              {tagFilters.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setTagFilters([])}
+                  className="ml-1 text-xs font-semibold text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  Clear
+                </button>
+              ) : null}
+            </div>
           </div>
         )}
 
@@ -410,6 +486,26 @@ export function Queue() {
                 {t.label}
               </button>
             ))}
+
+            <span className="mx-1 h-5 w-px bg-border" aria-hidden />
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mr-1">
+              Flag
+            </span>
+            <button
+              type="button"
+              onClick={() => setComplexOnly((v) => !v)}
+              aria-pressed={complexOnly}
+              data-testid="filter-complex"
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1 text-xs rounded-full font-medium border shadow-sm transition-colors",
+                complexOnly
+                  ? "border-rose-300 bg-rose-500/10 text-rose-800 ring-2 ring-rose-200 dark:text-rose-200"
+                  : "border-border bg-background text-muted-foreground hover:bg-muted",
+              )}
+            >
+              <AlertTriangle className="h-3 w-3" />
+              Complex
+            </button>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap mt-3">
@@ -472,20 +568,17 @@ export function Queue() {
       <div className="mt-2">
         <Card className="p-0 rounded-2xl border-border shadow-sm bg-card/95 overflow-hidden">
           <div className="overflow-x-auto">
-            <div className="min-w-295">
-              <div className="grid grid-cols-[40px_110px_90px_1.4fr_110px_1.8fr_140px_120px_120px_110px] gap-3 px-4 py-3 bg-linear-to-r from-muted/50 to-muted/30 border-b border-border text-[10px] uppercase tracking-wide font-semibold text-muted-foreground sticky top-0 z-10">
+            <div className="min-w-4xl">
+              <div className="grid grid-cols-[40px_110px_90px_1.4fr_1.7fr_140px_minmax(0,2.6fr)] gap-3 px-4 py-3 bg-linear-to-r from-muted/50 to-muted/30 border-b border-border text-[10px] uppercase tracking-wide font-semibold text-muted-foreground sticky top-0 z-10">
                 <div>
                   <input type="checkbox" className="rounded border-border text-emerald-600 focus:ring-emerald-500" />
                 </div>
                 <div>Type</div>
                 <div>Order</div>
                 <div>Patient</div>
-                <div>DOB</div>
                 <div>Medication</div>
                 <div>Order age</div>
-                <div>Waiting on</div>
-                <div>Chargeback</div>
-                <div>In-window</div>
+                <div>Tags</div>
               </div>
               {isLoading && (
                 <div className="px-5 py-10 text-center text-sm text-muted-foreground">
@@ -544,7 +637,6 @@ export function Queue() {
 
 function QueueRow({ c, onOpen }: { c: Consultation; onOpen: () => void }) {
   const type = getType(c);
-  const dob = deriveDob(c.patientAge);
   const days = daysSince(c.createdAt);
   const bucket = ageBucketPill(days);
   const med = medicationFor(c);
@@ -555,16 +647,12 @@ function QueueRow({ c, onOpen }: { c: Consultation; onOpen: () => void }) {
     .join("");
   const orderRef = "#" + c.id.slice(-5);
   const waitTags = getDisplayOrderTags(c);
-  const chargeback =
-    days >= 10
-      ? { label: "At risk", cls: "bg-red-100 text-red-700" }
-      : { label: "In-window", cls: "bg-[#E7F4D5] text-[#0E3D2D]" };
 
   return (
     <div
       onClick={onOpen}
       className={cn(
-        "grid grid-cols-[40px_110px_90px_1.4fr_110px_1.8fr_140px_120px_120px_110px] gap-3 px-4 py-3 items-center border-b border-border cursor-pointer hover:bg-muted/50/80",
+        "grid grid-cols-[40px_110px_90px_1.4fr_1.7fr_140px_minmax(0,2.6fr)] gap-3 px-4 py-3 items-center border-b border-border cursor-pointer hover:bg-muted/50/80",
         type.rowBg,
       )}
       data-testid={`row-consultation-${c.id}`}
@@ -604,7 +692,6 @@ function QueueRow({ c, onOpen }: { c: Consultation; onOpen: () => void }) {
           </div>
         </div>
       </div>
-      <div className="text-xs text-foreground">{dob}</div>
       <div className="min-w-0">
         <div className="text-xs text-foreground truncate">{med.primary}</div>
         <span
@@ -627,38 +714,30 @@ function QueueRow({ c, onOpen }: { c: Consultation; onOpen: () => void }) {
           {bucket.label}
         </span>
       </div>
-      <div className="min-w-0 space-y-1">
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
         {waitTags.length === 0 ? (
           <span className="text-[10px] text-muted-foreground">—</span>
         ) : (
-          waitTags.slice(0, 2).map((tag) => (
-            <span
-              key={tag.key}
-              title={tag.detail}
-              className={cn(
-                "inline-flex max-w-full truncate rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-                tag.pillCls,
-              )}
-            >
-              {tag.label}
-            </span>
-          ))
+          <>
+            {waitTags.slice(0, 4).map((tag) => (
+              <span
+                key={tag.key}
+                title={tag.detail}
+                className={cn(
+                  "inline-flex max-w-full items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                  tag.pillCls,
+                )}
+              >
+                {tag.label}
+              </span>
+            ))}
+            {waitTags.length > 4 ? (
+              <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                +{waitTags.length - 4}
+              </span>
+            ) : null}
+          </>
         )}
-      </div>
-      <div>
-        <span
-          className={cn(
-            "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold",
-            chargeback.cls,
-          )}
-        >
-          {chargeback.label}
-        </span>
-      </div>
-      <div>
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700">
-          Eligible
-        </span>
       </div>
     </div>
   );

@@ -247,7 +247,7 @@ export function OrderTagsManageDialog({
         }
       }}
     >
-      <DialogContent className="max-w-lg max-h-[min(88vh,640px)] flex flex-col gap-0 p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-2xl max-h-[min(92vh,820px)] flex flex-col gap-0 p-0 overflow-hidden">
         <DialogHeader className="shrink-0 border-b border-border px-5 py-4 text-left">
           <DialogTitle className="flex items-center gap-2 text-base font-semibold">
             <Tag className="h-4 w-4 text-primary" />

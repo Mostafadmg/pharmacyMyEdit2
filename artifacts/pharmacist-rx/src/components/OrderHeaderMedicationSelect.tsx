@@ -91,6 +91,11 @@ export function OrderHeaderMedicationSelect({
     [savedItems, options, defaultCatalogId],
   );
 
+  const savedTotalPence = useMemo(
+    () => bundleTotalPence(savedLines, options),
+    [savedLines, options],
+  );
+
   const draftDirty = !bundleLinesEqual(draftLines, savedLines, options);
 
   const persistItems = async (
@@ -229,6 +234,11 @@ export function OrderHeaderMedicationSelect({
                 {savedSummary.subtitle}
               </span>
             </span>
+            {savedTotalPence != null ? (
+              <span className="ml-auto shrink-0 text-sm font-semibold tabular-nums text-foreground">
+                {formatGbpFromPence(savedTotalPence)}
+              </span>
+            ) : null}
             {saving ? (
               <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
             ) : (

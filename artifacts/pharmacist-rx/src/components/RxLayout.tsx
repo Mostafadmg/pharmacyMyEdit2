@@ -24,6 +24,7 @@ import {
   Globe,
   ExternalLink,
   Store,
+  Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { patientAppUrl, rxPortalUrl } from "@/lib/portalLinks";
@@ -38,6 +39,15 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { CustomOrderTagsSettings } from "@/components/CustomOrderTagsSettings";
 import { DocumentRejectionSettings } from "@/components/DocumentRejectionSettings";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { ToolsPanel } from "@/components/tools/ToolsPanel";
+import { ContraindicationsFab } from "@/components/tools/ContraindicationsFab";
+import { MacroLibraryFab } from "@/components/tools/MacroLibraryFab";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useUiPreferences } from "@/context/UiPreferencesContext";
@@ -69,10 +79,10 @@ export function RxLayout({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<"workspace" | "documents">(
     "workspace",
   );
-  const [contraindicationsOpen, setContraindicationsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     if (typeof window === "undefined") return "light";
@@ -138,7 +148,7 @@ export function RxLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground relative">
+    <div className="h-screen overflow-hidden flex flex-col bg-background text-foreground relative">
       <header className="h-16 bg-card/95 border-b border-border flex items-center px-4 md:px-6 gap-4 sticky top-0 z-30 shadow-sm backdrop-blur">
         <Link href="/" className="flex items-center gap-2.5 shrink-0">
           <div className="h-9 w-9 rounded-full bg-accent text-primary flex items-center justify-center ring-1 ring-accent/30">
@@ -214,14 +224,14 @@ export function RxLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <div className="flex-1 min-w-0 flex">
+      <div className="flex-1 min-h-0 flex overflow-hidden">
         <aside
           className={cn(
             "hidden md:flex flex-col bg-sidebar text-sidebar-foreground transition-[width] duration-200 border-r border-sidebar-border",
             collapsed ? "w-17" : "w-57",
           )}
         >
-          <nav className="flex-1 py-4 px-2">
+          <nav className="flex-1 min-h-0 overflow-y-auto py-4 px-2">
             {NAV.map((item) => {
               const Icon = item.icon;
               const active =
@@ -327,8 +337,10 @@ export function RxLayout({ children }: { children: ReactNode }) {
           </button>
         </aside>
 
-        <main className="rx-page flex-1 min-w-0 overflow-x-hidden">
+        <main className="rx-page flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
           {children}
+          {preferences.showContraindicationsFab ? <ContraindicationsFab /> : null}
+          {preferences.showMacroLibraryFab ? <MacroLibraryFab /> : null}
         </main>
       </div>
 
@@ -434,6 +446,20 @@ export function RxLayout({ children }: { children: ReactNode }) {
 
       <button
         type="button"
+        onClick={() => setToolsOpen((open) => !open)}
+        className={cn(
+          "fixed right-0 top-1/2 -translate-y-[calc(50%+2.75rem)] bg-card border border-border text-muted-foreground hover:text-primary hover:border-primary/30 rounded-l-lg p-2 z-40 shadow-sm transition-colors",
+          toolsOpen && "border-primary/40 text-primary bg-muted/80",
+        )}
+        aria-label="Tools"
+        aria-expanded={toolsOpen}
+        data-testid="button-tools-tab"
+      >
+        <Wrench className="h-4 w-4" />
+      </button>
+
+      <button
+        type="button"
         onClick={() => setSettingsOpen((open) => !open)}
         className={cn(
           "fixed right-0 top-1/2 -translate-y-1/2 bg-card border border-border text-muted-foreground hover:text-primary hover:border-primary/30 rounded-l-lg p-2 z-40 shadow-sm transition-colors",
@@ -446,14 +472,22 @@ export function RxLayout({ children }: { children: ReactNode }) {
         <Settings className="h-4 w-4" />
       </button>
 
-      <button
-        onClick={() => setContraindicationsOpen(true)}
-        className="bg-card border border-rx-decline-border text-rose-700 hover:bg-rx-decline-surface rounded-full px-3.5 py-2 shadow-sm fixed bottom-4 left-4 z-50 flex items-center gap-1.5 text-xs font-semibold transition-colors"
-        data-testid="button-contraindications"
-      >
-        <Ban className="h-3.5 w-3.5" />
-        Contraindications
-      </button>
+      <Sheet open={toolsOpen} onOpenChange={setToolsOpen}>
+        <SheetContent
+          side="right"
+          className="w-[min(28rem,100vw)] overflow-y-auto sm:max-w-md"
+        >
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Wrench className="h-4 w-4 text-primary" />
+              Tools
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-4">
+            <ToolsPanel />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <button
         onClick={openMessages}
@@ -613,38 +647,6 @@ export function RxLayout({ children }: { children: ReactNode }) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={contraindicationsOpen} onOpenChange={setContraindicationsOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Contraindication checks</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            {[
-              "Pregnancy or active breastfeeding",
-              "Personal or family history of medullary thyroid carcinoma",
-              "MEN2 syndrome or previous pancreatitis",
-              "Severe gastrointestinal disease or red-flag symptoms",
-            ].map((item) => (
-              <div
-                key={item}
-                className="flex items-start gap-3 rounded-2xl border border-rose-100 bg-rx-decline-surface/50 p-3 text-sm text-rose-950"
-              >
-                <ShieldCheck className="mt-0.5 h-4.5 w-4.5 shrink-0 text-rose-600" />
-                <span>{item}</span>
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <button
-              type="button"
-              onClick={() => setContraindicationsOpen(false)}
-              className="rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700"
-            >
-              Close
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

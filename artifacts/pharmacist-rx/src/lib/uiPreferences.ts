@@ -3,7 +3,9 @@ export const UI_PREFERENCES_STORAGE_KEY = "pharmacare:rx-ui-preferences";
 export type UiPreferenceKey =
   | "showReviewChecklist"
   | "showPatientRail"
-  | "showQueueNav";
+  | "showQueueNav"
+  | "showContraindicationsFab"
+  | "showMacroLibraryFab";
 
 export type UiPreferences = Record<UiPreferenceKey, boolean>;
 
@@ -11,6 +13,8 @@ export const UI_PREFERENCE_DEFAULTS: UiPreferences = {
   showReviewChecklist: true,
   showPatientRail: true,
   showQueueNav: true,
+  showContraindicationsFab: true,
+  showMacroLibraryFab: true,
 };
 
 export const UI_PREFERENCE_META: Record<
@@ -28,6 +32,14 @@ export const UI_PREFERENCE_META: Record<
   showQueueNav: {
     label: "Queue navigation",
     description: "Back to queue and prev/next when reviewing from a queue",
+  },
+  showContraindicationsFab: {
+    label: "Contraindications popout",
+    description: "Sticky GLP-1 contraindications reference button on the page",
+  },
+  showMacroLibraryFab: {
+    label: "Email macros popout",
+    description: "Sticky email macros library button on the page",
   },
 };
 

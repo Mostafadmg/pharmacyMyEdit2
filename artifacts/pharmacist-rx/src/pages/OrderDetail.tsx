@@ -4,6 +4,7 @@
   useMemo,
   useRef,
   useState,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
@@ -36,6 +37,7 @@ import {
   Send,
   XCircle,
   X,
+  Sparkles,
 } from "lucide-react";
 import {
   getGetConsultationQueryKey,
@@ -3155,6 +3157,42 @@ const COUNSELLING_TEMPLATES = [
   },
 ];
 
+/** Reusable counselling snippets ("macros") that drop into the email composer. */
+const COUNSELLING_MACROS: { title: string; body: string }[] = [
+  {
+    title: "Nausea & GI side effects",
+    body: "Mild nausea is common when starting or stepping up your dose. Eat smaller, lower-fat meals, sip water through the day, and avoid lying down straight after eating. This usually settles within 1–2 weeks.",
+  },
+  {
+    title: "Injection technique",
+    body: "Inject once weekly into your stomach, thigh, or upper arm, rotating the site each time. Use a fresh needle for every injection and dispose of it in your sharps bin.",
+  },
+  {
+    title: "Missed dose",
+    body: "If you miss a dose and your next one is more than 3 days (72 hours) away, take it as soon as you remember. If it is less than 3 days away, skip it and take your next dose on your usual day. Never take two doses together.",
+  },
+  {
+    title: "Storage & handling",
+    body: "Keep your pen in the fridge (2–8°C) before first use. Once in use it can be kept below 30°C for the period stated in the leaflet. Do not freeze, and keep it out of direct sunlight.",
+  },
+  {
+    title: "Hydration & nutrition",
+    body: "Drink plenty of water and aim for a balanced diet with enough protein. Your appetite will be reduced, so focus on regular, nutritious meals to protect your energy and muscle.",
+  },
+  {
+    title: "Red flag — seek urgent care",
+    body: "Please seek urgent medical attention if you have severe or persistent tummy pain (which may spread to your back), persistent vomiting, signs of an allergic reaction, or symptoms of low blood sugar.",
+  },
+  {
+    title: "Dose review reminder",
+    body: "You are due a review before any dose change. Please complete your check-in and upload a recent weight so we can confirm the safest next step for you.",
+  },
+  {
+    title: "Contraception advice",
+    body: "If you take the oral contraceptive pill, remember that vomiting or reduced absorption can affect how well it works. Consider additional barrier contraception and let us know if you have any concerns.",
+  },
+];
+
 function CounsellingTab({
   onUndo,
   onVerify,
@@ -3191,6 +3229,39 @@ function CounsellingTab({
   const [createOpen, setCreateOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newBody, setNewBody] = useState("");
+  const [macrosOpen, setMacrosOpen] = useState(false);
+
+  // The composer is always framed with the patient's name at the top and the
+  // prescriber's name at the bottom.
+  const greetingLine = `Hi ${patientName?.trim() || "there"},`;
+  const signatureBlock = `Kind regards,\n${getPharmacistName()}`;
+  const seededRef = useRef(false);
+
+  const insertMacro = (body: string) => {
+    setDraft((prev) => {
+      if (!prev.trim()) {
+        return `${greetingLine}\n\n${body}\n\n${signatureBlock}`;
+      }
+      const idx = prev.lastIndexOf("Kind regards,");
+      if (idx >= 0) {
+        const before = prev.slice(0, idx).replace(/\s+$/, "");
+        return `${before}\n\n${body}\n\n${prev.slice(idx)}`;
+      }
+      return `${prev.trim()}\n\n${body}\n\n${signatureBlock}`;
+    });
+    setMacrosOpen(false);
+  };
+
+  // Seed an empty composer with the name framing so the pharmacist types in the
+  // middle. Template selection (below) overrides this with its own framed body.
+  useEffect(() => {
+    if (seededRef.current || selected) return;
+    seededRef.current = true;
+    setDraft((prev) =>
+      prev.trim() ? prev : `${greetingLine}\n\n\n\n${signatureBlock}`,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const allTemplates = useMemo(
     () => [...COUNSELLING_TEMPLATES, ...userTemplates],
@@ -3223,14 +3294,15 @@ function CounsellingTab({
       .replace(/{{\s*name\s*}}/gi, name)
       .replace(/{{\s*patient\s*}}/gi, name);
     setDraft(
-      `Hi ${name ? name + "," : ""} please read the following counselling information carefully:\n\n${bodyWithName}\n\nReply in the secure thread if you have any questions or symptoms to report.`,
+      `${greetingLine}\n\nPlease read the following counselling information carefully:\n\n${bodyWithName}\n\nReply in the secure thread if you have any questions or symptoms to report.\n\n${signatureBlock}`,
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTemplate]);
 
   const sendCounselling = () => {
-    if (!selectedTemplate || !draft.trim()) {
+    if (!draft.trim()) {
       toast({
-        title: "Select a counselling template first",
+        title: "Write a message or insert a macro first",
         variant: "destructive",
       });
       return;
@@ -3238,7 +3310,7 @@ function CounsellingTab({
     setSent((current) => [
       {
         id: String(Date.now()),
-        title: selectedTemplate.title,
+        title: selectedTemplate?.title ?? "Counselling message",
         body: draft.trim(),
         at: new Date().toISOString(),
       },
@@ -3404,22 +3476,30 @@ function CounsellingTab({
           Email / secure message
         </div>
         <div className={cn(RX.panel, "rounded-3xl p-4 shadow-sm sm:p-5")}>
-          {selectedTemplate ? (
-            <div className="space-y-4">
-              <div className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex min-w-0 items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <Mail className="h-5 w-5" />
+          <div className="space-y-4">
+            <div className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <Mail className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-semibold text-foreground [overflow-wrap:anywhere]">
+                    {selectedTemplate?.title ?? "Secure patient message"}
                   </div>
-                  <div className="min-w-0">
-                    <div className="font-semibold text-foreground [overflow-wrap:anywhere]">
-                      {selectedTemplate.title}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Secure patient thread
-                    </div>
+                  <div className="text-xs text-muted-foreground">
+                    Secure patient thread
                   </div>
                 </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setMacrosOpen(true)}
+                  className="h-10 rounded-full px-4"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" /> Macros
+                </Button>
                 <Button
                   type="button"
                   onClick={sendCounselling}
@@ -3428,18 +3508,14 @@ function CounsellingTab({
                   <Send className="h-4 w-4 mr-2" /> Send counselling
                 </Button>
               </div>
-              <Textarea
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                className="min-h-[min(50vh,24rem)] w-full resize-y rounded-2xl border-border bg-background p-4 text-[15px] leading-7 text-foreground focus-visible:ring-primary/20"
-              />
             </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-border bg-background/80 px-4 py-16 text-center text-sm text-muted-foreground">
-              <Mail className="h-7 w-7 mx-auto mb-3 text-muted-foreground/50" />
-              Select a template above to open the full-width email composer.
-            </div>
-          )}
+            <Textarea
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              placeholder="Pick a template, insert a macro, or write your message here…"
+              className="min-h-[min(50vh,24rem)] w-full resize-y rounded-2xl border-border bg-background p-4 text-[15px] leading-7 text-foreground focus-visible:ring-primary/20"
+            />
+          </div>
         </div>
       </div>
 
@@ -3539,6 +3615,49 @@ function CounsellingTab({
               className="rounded-full px-5"
             >
               Save template
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={macrosOpen} onOpenChange={setMacrosOpen}>
+        <DialogContent className="flex max-h-[min(90dvh,44rem)] w-[calc(100vw-1.5rem)] max-w-2xl flex-col gap-0 overflow-hidden rounded-2xl border-border bg-card p-0">
+          <DialogHeader className="shrink-0 border-b border-border px-6 py-5 text-left">
+            <DialogTitle className="flex items-center gap-2 font-serif text-lg font-semibold text-secondary">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Insert a macro
+            </DialogTitle>
+            <DialogDescription className="mt-1 text-sm">
+              Pick a snippet to drop into the message. It is added above your
+              sign-off — the patient&apos;s name stays at the top and your name
+              at the bottom. Edit freely after inserting.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto px-6 py-5 sm:grid-cols-2">
+            {COUNSELLING_MACROS.map((m) => (
+              <button
+                key={m.title}
+                type="button"
+                onClick={() => insertMacro(m.body)}
+                className="rounded-2xl border border-border bg-background p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
+              >
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <Plus className="h-3.5 w-3.5 shrink-0 text-primary" />
+                  {m.title}
+                </div>
+                <div className="mt-1.5 line-clamp-3 text-xs leading-relaxed text-muted-foreground">
+                  {m.body}
+                </div>
+              </button>
+            ))}
+          </div>
+          <DialogFooter className="shrink-0 gap-3 border-t border-border bg-muted/40 px-6 py-4">
+            <Button
+              variant="outline"
+              className="rounded-full border-border bg-card px-5 text-primary hover:bg-muted"
+              onClick={() => setMacrosOpen(false)}
+            >
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -3923,8 +4042,93 @@ function ActivityTab({ sections }: { sections: ActivityOrderSection[] }) {
   >({});
   const legendRef = useRef<HTMLDivElement | null>(null);
   const legendChipRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [legendCanScrollLeft, setLegendCanScrollLeft] = useState(false);
+  const [legendCanScrollRight, setLegendCanScrollRight] = useState(false);
+  const legendDrag = useRef({
+    active: false,
+    moved: false,
+    startX: 0,
+    startScroll: 0,
+    pointerId: 0,
+  });
+  /** Set true at the end of a drag so the trailing click on a chip is ignored. */
+  const legendDragged = useRef(false);
+
+  const updateLegendScrollState = useCallback(() => {
+    const el = legendRef.current;
+    if (!el) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    setLegendCanScrollLeft(el.scrollLeft > 1);
+    setLegendCanScrollRight(el.scrollLeft < maxScroll - 1);
+  }, []);
+
+  useEffect(() => {
+    const el = legendRef.current;
+    if (!el) return;
+    updateLegendScrollState();
+    const onScroll = () => updateLegendScrollState();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", updateLegendScrollState);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", updateLegendScrollState);
+    };
+  }, [updateLegendScrollState]);
+
+  const scrollLegendBy = (direction: -1 | 1) => {
+    const el = legendRef.current;
+    if (!el) return;
+    el.scrollBy({
+      left: direction * Math.max(160, el.clientWidth * 0.8),
+      behavior: "smooth",
+    });
+  };
+
+  const onLegendPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const el = legendRef.current;
+    if (!el) return;
+    legendDrag.current = {
+      active: true,
+      moved: false,
+      startX: e.clientX,
+      startScroll: el.scrollLeft,
+      pointerId: e.pointerId,
+    };
+  };
+
+  const onLegendPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const el = legendRef.current;
+    const drag = legendDrag.current;
+    if (!el || !drag.active) return;
+    const dx = e.clientX - drag.startX;
+    if (!drag.moved && Math.abs(dx) > 4) {
+      drag.moved = true;
+      try {
+        el.setPointerCapture(drag.pointerId);
+      } catch {
+        /* pointer capture is best-effort */
+      }
+    }
+    if (drag.moved) {
+      el.scrollLeft = drag.startScroll - dx;
+    }
+  };
+
+  const endLegendDrag = () => {
+    const drag = legendDrag.current;
+    // Record whether this gesture was a drag so the trailing chip click can be
+    // ignored; always (re)assign so a previous drag never suppresses a later tap.
+    if (drag.active) legendDragged.current = drag.moved;
+    drag.active = false;
+    drag.moved = false;
+  };
 
   const scrollLegendChipIntoView = (kind: string) => {
+    // Ignore the click that immediately follows a drag gesture.
+    if (legendDragged.current) {
+      legendDragged.current = false;
+      return;
+    }
     const chip = legendChipRefs.current[kind];
     const el = legendRef.current;
     if (!chip || !el) return;
@@ -4087,9 +4291,40 @@ function ActivityTab({ sections }: { sections: ActivityOrderSection[] }) {
           order, the most recent activity appears at the top.
         </p>
         <div className="relative mt-4 min-w-0">
+          {legendCanScrollLeft ? (
+            <>
+              <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-linear-to-r from-card to-transparent" />
+              <button
+                type="button"
+                aria-label="Scroll tags left"
+                onClick={() => scrollLegendBy(-1)}
+                className="absolute left-0 top-1/2 z-20 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-colors hover:bg-muted"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+            </>
+          ) : null}
+          {legendCanScrollRight ? (
+            <>
+              <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-linear-to-l from-card to-transparent" />
+              <button
+                type="button"
+                aria-label="Scroll tags right"
+                onClick={() => scrollLegendBy(1)}
+                className="absolute right-0 top-1/2 z-20 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-colors hover:bg-muted"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </>
+          ) : null}
           <div
             ref={legendRef}
-            className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            onPointerDown={onLegendPointerDown}
+            onPointerMove={onLegendPointerMove}
+            onPointerUp={endLegendDrag}
+            onPointerCancel={endLegendDrag}
+            onPointerLeave={endLegendDrag}
+            className="flex cursor-grab items-center gap-2 overflow-x-auto pb-1 select-none active:cursor-grabbing [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
           >
           {ACTIVITY_LEGEND_KINDS.map((kind) => {
             const meta = ACTIVITY_KIND_STYLES[kind];

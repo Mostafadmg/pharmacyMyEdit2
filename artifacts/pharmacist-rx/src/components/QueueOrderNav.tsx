@@ -26,6 +26,7 @@ export function QueueOrderNav({
   const queueLabel = QUEUE_CATEGORY_LABELS[ctx.category];
   const position =
     index >= 0 && total > 0 ? `${index + 1} of ${total}` : null;
+  const remaining = index >= 0 && total > 0 ? total - index - 1 : 0;
 
   return (
     <nav
@@ -78,6 +79,11 @@ export function QueueOrderNav({
             data-testid="link-queue-next"
           >
             Next
+            {remaining > 0 ? (
+              <span className="rounded-full bg-primary-foreground/20 px-1.5 py-0.5 text-[10px] font-bold tabular-nums">
+                {remaining} left
+              </span>
+            ) : null}
             <ChevronRight className="h-4 w-4" />
           </Link>
         ) : (

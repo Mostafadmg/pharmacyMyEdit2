@@ -1458,9 +1458,24 @@ router.patch(
         answers = result.answers;
       }
 
+      // Adding "Pending customer response" parks the order with the patient so
+      // their next reply auto-advances it to the "Replied – Needs Review" queue.
+      const addsPendingResponse =
+        (parsed.data.action === "add" &&
+          parsed.data.tagId === "pending_customer_response") ||
+        (parsed.data.action === "add_batch" &&
+          (parsed.data.tagIds ?? []).includes("pending_customer_response"));
+      const statusUpdate =
+        addsPendingResponse &&
+        (existing.status === "pending" ||
+          existing.status === "approved" ||
+          existing.status === "red_flag")
+          ? "more_info_needed"
+          : undefined;
+
       const [updated] = await db
         .update(consultationsTable)
-        .set({ answers })
+        .set({ answers, ...(statusUpdate ? { status: statusUpdate } : {}) })
         .where(eq(consultationsTable.id, params.data.id))
         .returning();
 

@@ -3,12 +3,14 @@ import {
   CheckCircle2,
   Clock,
   FileText,
+  Mail,
   MessageSquare,
   Paperclip,
   Send,
   User,
   X,
 } from "lucide-react";
+import { MacroComposerDialog } from "@/components/tools/MacroComposerDialog";
 import { EvidenceSlotPicker } from "@/components/EvidenceSlotPicker";
 import {
   PRESCRIPTION_EVIDENCE_SLOTS,
@@ -109,6 +111,7 @@ export function MessagesTab({
   const [pendingAttachment, setPendingAttachment] =
     useState<PendingAttachment | null>(null);
   const [sending, setSending] = useState(false);
+  const [macroOpen, setMacroOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const slotTitle = (id: EvidenceSlotId) =>
@@ -441,6 +444,15 @@ export function MessagesTab({
             </button>
             <button
               type="button"
+              disabled={sending}
+              onClick={() => setMacroOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-50"
+            >
+              <Mail className="h-3.5 w-3.5 text-violet-600" />
+              Macros
+            </button>
+            <button
+              type="button"
               disabled={!canSend}
               onClick={() => void handleSend()}
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
@@ -454,6 +466,18 @@ export function MessagesTab({
             Send. You can add text with the attachment or send the file alone.
           </p>
         </div>
+      ) : null}
+
+      {onCompose ? (
+        <MacroComposerDialog
+          open={macroOpen}
+          onOpenChange={setMacroOpen}
+          patientName={patientName}
+          onSend={(text) => {
+            onCompose(text);
+            toast({ title: "Message sent to patient" });
+          }}
+        />
       ) : null}
 
       <Dialog open={threadOpen} onOpenChange={setThreadOpen}>

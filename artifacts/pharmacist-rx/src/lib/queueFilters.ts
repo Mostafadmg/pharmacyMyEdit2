@@ -5,13 +5,41 @@ import {
   type CustomerWaitTagKind,
 } from "@/lib/orderWaitingTags";
 import { hasAutoComplexRiskFlags } from "@/lib/autoComplexPatient";
+import {
+  getActiveOrderTags,
+  ORDER_TAG_DEFS,
+  type CatalogOrderTagId,
+} from "@/lib/orderTags";
 
-export type TypeFilter =
-  | "all"
-  | "new_starter"
-  | "transfer"
-  | "simple_repeat"
-  | "complex";
+/**
+ * Order tags pharmacists can filter the queue by. Single source of truth —
+ * the SAME catalogue used by the "Manage order tags" modal (ORDER_TAG_DEFS),
+ * so the two never drift apart. Multi-select with OR semantics: a patient with
+ * any selected tag is shown.
+ */
+export const QUEUE_DOC_TAG_FILTERS: { id: CatalogOrderTagId; label: string }[] =
+  ORDER_TAG_DEFS.map((d) => ({ id: d.id, label: d.label }));
+
+export type QueueDocTagId = CatalogOrderTagId;
+
+const QUEUE_DOC_TAG_IDS = new Set<string>(
+  QUEUE_DOC_TAG_FILTERS.map((t) => t.id),
+);
+
+export function isQueueDocTagId(v: string): v is QueueDocTagId {
+  return QUEUE_DOC_TAG_IDS.has(v);
+}
+
+function hasActiveOrderTag(c: Consultation, tagId: string): boolean {
+  return getActiveOrderTags(c).some((t) => t.tagId === tagId);
+}
+
+/**
+ * An order has exactly ONE type: new starter, transfer, or repeat. "Complex"
+ * is NOT a type — it is an additional flag that can apply to any of them, so it
+ * is filtered separately via `complexOnly`.
+ */
+export type TypeFilter = "all" | "new_starter" | "transfer" | "simple_repeat";
 export type CsWaitSubFilter = "all" | CustomerWaitTagKind;
 
 export type QueueCategory =
@@ -29,7 +57,7 @@ export const QUEUE_CATEGORY_LABELS: Record<QueueCategory, string> = {
   needs_approval: "Needs Approval",
   cs_hold: "CS On Hold",
   prescriber_hold: "Prescriber Hold",
-  re_review: "Re-Review",
+  re_review: "Replied – Needs Review",
   clinical_check: "Clinical Check",
   urgent_approval: "Urgent Approval",
   urgent_dispatch: "Urgent Dispatch",
@@ -39,6 +67,10 @@ export type QueueContext = {
   category: QueueCategory;
   typeFilter: TypeFilter;
   csSubFilter: CsWaitSubFilter;
+  /** Failed-document tag ids to match (OR). Empty = no tag filtering. */
+  tagFilters: QueueDocTagId[];
+  /** Additional flag: show only complex patients (combines with `typeFilter`). */
+  complexOnly: boolean;
   search: string;
 };
 
@@ -48,7 +80,6 @@ const TYPE_FILTERS = new Set<string>([
   "new_starter",
   "transfer",
   "simple_repeat",
-  "complex",
 ]);
 const CS_SUB_FILTERS = new Set<string>([
   "all",
@@ -74,6 +105,10 @@ export function getQueueCategory(
   const note = (c.pharmacistNote ?? "").toUpperCase();
 
   if (c.status === "patient_responded") return "re_review";
+
+  // A manually-added "Pending customer response" tag parks the order in CS Hold
+  // until the patient replies (which flips it to "Replied – Needs Review").
+  if (hasActiveOrderTag(c, "pending_customer_response")) return "cs_hold";
 
   if (isWaitingOnPatient(c)) return "cs_hold";
 
@@ -110,7 +145,7 @@ export function getQueueTypeLabel(c: Consultation): string {
   return "New Starter";
 }
 
-function isComplexQueuePatient(c: Consultation): boolean {
+export function isComplexQueuePatient(c: Consultation): boolean {
   if (hasAutoComplexRiskFlags(c)) return true;
   const answers = (c.answers ?? {}) as Record<string, unknown>;
   return answers.patient_complexity === "complex";
@@ -118,7 +153,6 @@ function isComplexQueuePatient(c: Consultation): boolean {
 
 function matchesTypeFilter(c: Consultation, typeFilter: TypeFilter): boolean {
   if (typeFilter === "all") return true;
-  if (typeFilter === "complex") return isComplexQueuePatient(c);
   const t = getQueueTypeLabel(c).toLowerCase().replace(/\s+/g, "_");
   return t === typeFilter;
 }
@@ -139,9 +173,23 @@ export function filterQueueConsultations(
     if (ctx.category === "cs_hold" && ctx.csSubFilter !== "all") {
       if (!hasWaitTagKind(c, ctx.csSubFilter)) return false;
     }
+    if (ctx.tagFilters.length > 0) {
+      const activeIds = new Set(getActiveOrderTags(c).map((t) => t.tagId));
+      // OR: keep the order if it carries ANY of the selected failed-document tags.
+      if (!ctx.tagFilters.some((id) => activeIds.has(id))) return false;
+    }
     if (!matchesTypeFilter(c, ctx.typeFilter)) return false;
+    if (ctx.complexOnly && !isComplexQueuePatient(c)) return false;
     return true;
   });
+}
+
+function parseTagFilters(raw: string | null): QueueDocTagId[] {
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(isQueueDocTagId);
 }
 
 export function parseQueueContextFromSearch(
@@ -157,6 +205,8 @@ export function parseQueueContextFromSearch(
     category,
     typeFilter: isTypeFilter(typeRaw) ? typeRaw : "all",
     csSubFilter: isCsSubFilter(csRaw) ? csRaw : "all",
+    tagFilters: parseTagFilters(params.get("queueTags")),
+    complexOnly: params.get("queueComplex") === "1",
     search: params.get("queueSearch") ?? "",
   };
 }
@@ -166,6 +216,8 @@ export function queueContextToSearchParams(ctx: QueueContext): URLSearchParams {
   if (ctx.category !== "all") params.set("queue", ctx.category);
   if (ctx.typeFilter !== "all") params.set("queueType", ctx.typeFilter);
   if (ctx.csSubFilter !== "all") params.set("queueCs", ctx.csSubFilter);
+  if (ctx.tagFilters.length > 0) params.set("queueTags", ctx.tagFilters.join(","));
+  if (ctx.complexOnly) params.set("queueComplex", "1");
   if (ctx.search.trim()) params.set("queueSearch", ctx.search.trim());
   return params;
 }
@@ -189,6 +241,10 @@ export function buildOrderDetailHref(
   else params.delete("queueType");
   if (ctx.csSubFilter !== "all") params.set("queueCs", ctx.csSubFilter);
   else params.delete("queueCs");
+  if (ctx.tagFilters.length > 0) params.set("queueTags", ctx.tagFilters.join(","));
+  else params.delete("queueTags");
+  if (ctx.complexOnly) params.set("queueComplex", "1");
+  else params.delete("queueComplex");
   if (ctx.search.trim()) params.set("queueSearch", ctx.search.trim());
   else params.delete("queueSearch");
   const q = params.toString();

@@ -50,8 +50,8 @@ export type EvidenceSlotMeta = {
   criteria: string[];
 };
 
-/** Max base64 data URL length for the largest slot (50 MB raw → ~70 MB encoded). */
-export const PATIENT_DOCUMENT_DATA_URL_MAX = 72_000_000;
+/** Max base64 data URL length for the largest slot (150 MB raw → ~205 MB encoded). */
+export const PATIENT_DOCUMENT_DATA_URL_MAX = 210_000_000;
 
 export const PATIENT_IMAGE_ACCEPT =
   "image/jpeg,image/png,image/heic,image/webp,.jpg,.jpeg,.png,.heic,.webp";
@@ -185,7 +185,7 @@ export const EVIDENCE_SLOT_META: Record<EvidenceSlotId, EvidenceSlotMeta> = {
     accept: PATIENT_VIDEO_OR_IMAGE_ACCEPT,
     acceptMime: PATIENT_VIDEO_OR_IMAGE_ACCEPT,
     isVideo: true,
-    maxMb: 50,
+    maxMb: 150,
     criteria: [
       "Record live video (not a screenshot)",
       "Full body visible for BMI check",
@@ -198,7 +198,7 @@ export const EVIDENCE_SLOT_META: Record<EvidenceSlotId, EvidenceSlotMeta> = {
     accept: PATIENT_VIDEO_OR_IMAGE_ACCEPT,
     acceptMime: PATIENT_VIDEO_OR_IMAGE_ACCEPT,
     isVideo: true,
-    maxMb: 50,
+    maxMb: 150,
     criteria: [
       "Record live video while on the scale",
       "Face and weight reading clearly readable",

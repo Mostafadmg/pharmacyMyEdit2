@@ -4,10 +4,23 @@ import {
   type EligibilityQuestion,
 } from "@/data/conditionQuestions";
 import { SIMPLE_REPEAT_SCREENING_QUESTIONS } from "@/lib/simpleRepeatQuestionnaire";
+import { MEDICAL_HISTORY_CONDITIONS } from "@/lib/pmrHealthQuestionnaire";
+import { EXCLUDING_CONDITIONS_ITEMS } from "@/components/consultation/WeightLossClinicalForms";
 
 export type ConsultationQaRow = {
   question: string;
   answer: string;
+  /** Conditions/options the question refers to — rendered as a bullet list. */
+  items?: string[];
+};
+
+/**
+ * Questions that ask about a list ("any of the following…"). We surface the
+ * full list so the reader sees exactly what was being asked.
+ */
+const QUESTION_OPTION_LISTS: Record<string, readonly string[]> = {
+  excluding_conditions: EXCLUDING_CONDITIONS_ITEMS,
+  medical_history_any: MEDICAL_HISTORY_CONDITIONS.map((c) => c.label),
 };
 
 /** Keys stored on consultations but not shown as patient Q&A. */
@@ -43,7 +56,9 @@ const FULL_QUESTION_LABELS: Record<string, string> = {
   eating_disorder_history:
     "Have you ever had an eating disorder (e.g., anorexia, bulimia)?",
   excluding_conditions:
-    "Have you been diagnosed with or had surgery for any serious conditions listed in the questionnaire?",
+    "Have you been diagnosed with or had surgery for any of the following serious conditions?",
+  medical_history_any:
+    "Have you ever been diagnosed with any of the following?",
   diabetes_meds_beyond_metformin:
     "If you have Type 2 Diabetes, are you taking any medications other than metformin?",
   currently_taking_meds:
@@ -208,9 +223,11 @@ export function buildConsultationQaRows(
   for (const key of keys) {
     const formatted = formatAnswerValue(key, answers[key]);
     if (!formatted) continue;
+    const optionList = QUESTION_OPTION_LISTS[key];
     rows.push({
       question: questionLabelForKey(key, labelById),
       answer: formatted,
+      ...(optionList ? { items: [...optionList] } : {}),
     });
   }
 

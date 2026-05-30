@@ -4,9 +4,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Clock, CheckCircle2, XCircle, AlertTriangle, MessageSquare, ExternalLink,
   Plus, FileText, Pill, RefreshCw, Ban, ChevronDown, ChevronLeft, Download,
-  Stethoscope, CalendarDays, CircleAlert, ClipboardList,
+  Stethoscope, CalendarDays, CircleAlert, ClipboardList, HelpCircle,
 } from "lucide-react";
 import PatientDocumentViewer from "@/components/PatientDocumentViewer";
+import DocumentRequirementsModal from "@/components/DocumentRequirementsModal";
 import { ConsultationAnswersModal } from "@/components/consultation/ConsultationAnswersModal";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/layout/Header";
@@ -82,10 +83,16 @@ function resolveDocumentSlots(c: Consultation): DocumentSlot[] {
 
 /** Red alert on order row when any slot needs upload (required / rejected). */
 function needsDocumentAction(c: Consultation): boolean {
-  if (c.documentsNeedAttention) return true;
-  return resolveDocumentSlots(c).some(
-    (s) => s.status === "required" || s.status === "rejected",
-  );
+  const slots = resolveDocumentSlots(c);
+  // When we know the actual slots, trust them: the server `documentsNeedAttention`
+  // flag can lag behind a fresh upload, so it must not keep the alert sticky once
+  // everything has been uploaded.
+  if (slots.length > 0) {
+    return slots.some(
+      (s) => s.status === "required" || s.status === "rejected",
+    );
+  }
+  return Boolean(c.documentsNeedAttention);
 }
 
 /** Internal RX notes (holds, tag sync) — not shown to patients; they see Messages instead. */
@@ -314,18 +321,29 @@ function ConsultationRow({
   onDocumentsChanged: () => void;
   onDocumentUploaded: (consultationId: string, docId: string) => void;
 }) {
-  const cfg = STATUS_CONFIG[consultation.status] ?? STATUS_CONFIG.pending;
-  const accent = STATUS_ACCENT[consultation.status] ?? STATUS_ACCENT.pending;
   const placedAt = formatConsultationPlacedAt(consultation.createdAt);
-  const isPending = consultation.status === "pending" || consultation.status === "red_flag";
   const requiresPatientReply =
     consultation.requiresPatientReply ??
     consultation.status === "more_info_needed";
+  const documentSlots = resolveDocumentSlots(consultation);
+  const documentsNeedAttention = needsDocumentAction(consultation);
   const needsReply =
     requiresPatientReply ||
     (consultation.documentActions?.length ?? 0) > 0;
-  const documentSlots = resolveDocumentSlots(consultation);
-  const documentsNeedAttention = needsDocumentAction(consultation);
+  // Once the patient has uploaded everything and has no outstanding question,
+  // the order is back with the pharmacist — show it as "Under review" rather
+  // than "Update sent" / "More info needed".
+  const awaitingPatient = documentsNeedAttention || requiresPatientReply;
+  const effectiveStatus =
+    (consultation.status === "patient_responded" ||
+      consultation.status === "more_info_needed") &&
+    !awaitingPatient
+      ? "pending"
+      : consultation.status;
+  const cfg = STATUS_CONFIG[effectiveStatus] ?? STATUS_CONFIG.pending;
+  const accent = STATUS_ACCENT[effectiveStatus] ?? STATUS_ACCENT.pending;
+  const isPending =
+    effectiveStatus === "pending" || effectiveStatus === "red_flag";
   const patientPharmacistNote = isPatientVisiblePharmacistNote(
     consultation.pharmacistNote,
   )
@@ -356,6 +374,7 @@ function ConsultationRow({
     docId: string;
     docTitle: string;
   } | null>(null);
+  const [rulesDocId, setRulesDocId] = useState<string | null>(null);
   const [showAnswers, setShowAnswers] = useState(false);
 
   useEffect(() => {
@@ -449,7 +468,7 @@ function ConsultationRow({
             <ClipboardList className="mr-1.5 h-3.5 w-3.5" />
             View answers
           </Button>
-          <StatusPill status={consultation.status} />
+          <StatusPill status={effectiveStatus} />
           <button
             type="button"
             onClick={() => setOpen((o) => !o)}
@@ -553,6 +572,16 @@ function ConsultationRow({
                               <p className="text-xs text-muted-foreground">
                                 Required — please upload when you can.
                               </p>
+                            ) : null}
+                            {needsAction ? (
+                              <button
+                                type="button"
+                                onClick={() => setRulesDocId(doc.docId)}
+                                className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-700 hover:text-violet-900 hover:underline"
+                              >
+                                <HelpCircle className="h-3.5 w-3.5" />
+                                See eligible documents &amp; what&apos;s required
+                              </button>
                             ) : null}
                             {doc.status === "uploaded" ? (
                               <p className="text-xs text-muted-foreground">
@@ -784,6 +813,16 @@ function ConsultationRow({
           open={!!viewingDoc}
           onOpenChange={(next) => {
             if (!next) setViewingDoc(null);
+          }}
+        />
+      ) : null}
+
+      {rulesDocId ? (
+        <DocumentRequirementsModal
+          docId={rulesDocId}
+          open={!!rulesDocId}
+          onOpenChange={(next) => {
+            if (!next) setRulesDocId(null);
           }}
         />
       ) : null}
