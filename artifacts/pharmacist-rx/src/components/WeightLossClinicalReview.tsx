@@ -1,6 +1,8 @@
 import type { Consultation } from "@workspace/api-client-react";
 import {
   PMR_MEDICAL_HISTORY_GATE_QUESTION,
+  parseSideEffectSymptomsFromAnswers,
+  wlExcludingConditionsGateQuestionWithList,
   wlMedicalHistoryLabelById,
   wlMedicalHistoryLabelsIncludingLegacy,
 } from "@workspace/evidence-slots";
@@ -12,6 +14,7 @@ import {
   REPEAT_HIGH_RISK_QUESTION,
   SIMPLE_REPEAT_HIGH_RISK_MEDS,
   TRANSFER_HIGH_RISK_QUESTION,
+  WL_HIGH_RISK_STOPPED_PAST_THREE_MONTHS_QUESTION,
   labelForTransferHighRiskMed,
   pmrHighRiskCatalogueList,
   repeatHighRiskCatalogueList,
@@ -66,8 +69,7 @@ type HighRiskMedRow = {
   duration: string;
 };
 
-const EXCLUDING_CONDITIONS_Q =
-  "Have you been diagnosed with or had surgery for any of the following? Pancreatitis, Gallstones or gallbladder problems, Inflammatory bowel disease (Crohn's, ulcerative colitis), Gastroparesis or delayed stomach emptying, Chronic malabsorption, Bariatric or gastric surgery, Liver disease, Kidney disease, Type 1 Diabetes, Diabetic eye disease (retinopathy), Heart disease or rhythm issues, Cancer, Serious condition needing hospitalisation, Other condition not listed above";
+const EXCLUDING_CONDITIONS_Q = wlExcludingConditionsGateQuestionWithList();
 
 const DIABETES_MEDS_Q =
   "If you have Type 2 Diabetes, are you taking any medications other than metformin?";
@@ -184,11 +186,18 @@ function buildTransferHighRiskBundle(
   const groups: ClinicalQaGroupData[] = [{ rows: introRows }];
 
   if (taken === "no") {
+    const stopped = answers.high_risk_medications_stopped_past_three_months;
+    if (stopped != null) {
+      introRows.push({
+        question: WL_HIGH_RISK_STOPPED_PAST_THREE_MONTHS_QUESTION,
+        value: yesNo(stopped),
+      });
+    }
     groups.push({
       rows: [
         {
           question: "Medicines reported by patient",
-          value: "None reported",
+          value: "None currently taking",
         },
       ],
     });
@@ -200,14 +209,6 @@ function buildTransferHighRiskBundle(
           {
             question: `Selected high-risk medicine${prefix}`,
             value: labelForTransferHighRiskMed(row.med_id, row.medication),
-          },
-          {
-            question: `Condition treated${prefix}`,
-            value: row.condition?.trim() || "—",
-          },
-          {
-            question: `How long on treatment${prefix}`,
-            value: row.duration?.trim() || "—",
           },
         ],
       });
@@ -432,8 +433,15 @@ export const WEIGHT_LOSS_BUNDLED_ANSWER_KEYS = new Set([
   "transfer_wl_strength",
   "transfer_wl_strength_pen_id",
   "transfer_wl_last_injection",
+  "transfer_wl_first_treatment_weight_kg",
+  "transfer_wl_first_treatment_weight_unit",
+  "transfer_wl_first_treatment_weight_kg_input",
+  "transfer_wl_first_treatment_weight_st",
+  "transfer_wl_first_treatment_weight_lbs",
+  "transfer_wl_first_treatment_start_date",
   "transfer_current_medications_details",
   "high_risk_medications_taken",
+  "high_risk_medications_stopped_past_three_months",
   "transfer_side_effects",
   "transfer_side_effects_details",
   "transfer_hospitalised_wl_medication",
@@ -625,12 +633,29 @@ export function buildWeightLossClinicalBundles(
   const transferWlLastInjection = answers.transfer_wl_last_injection as
     | string
     | undefined;
+  const transferWlFirstWeightKg = answers.transfer_wl_first_treatment_weight_kg as
+    | number
+    | undefined;
+  const transferWlFirstWeightUnit = answers.transfer_wl_first_treatment_weight_unit as
+    | string
+    | undefined;
+  const transferWlFirstWeightSt = answers.transfer_wl_first_treatment_weight_st as
+    | string
+    | undefined;
+  const transferWlFirstWeightLbs = answers.transfer_wl_first_treatment_weight_lbs as
+    | string
+    | undefined;
+  const transferWlFirstStartDate = answers.transfer_wl_first_treatment_start_date as
+    | string
+    | undefined;
   const transferMeds = (answers.transfer_current_medications_details ??
     []) as TransferMedRow[];
   const hasStructuredTransferWl =
     transferWlProduct != null ||
     transferWlStrength != null ||
-    transferWlLastInjection != null;
+    transferWlLastInjection != null ||
+    transferWlFirstWeightKg != null ||
+    transferWlFirstStartDate != null;
   if (
     answers.transfer_continuation_questionnaire ||
     hasStructuredTransferWl ||
@@ -652,6 +677,23 @@ export function buildWeightLossClinicalBundles(
         rows.push({
           question: "Last injection date (this strength)",
           value: formatDate(transferWlLastInjection),
+        });
+      }
+      if (transferWlFirstWeightKg != null && transferWlFirstWeightKg > 0) {
+        const weightDisplay =
+          transferWlFirstWeightUnit === "stlbs" &&
+          (transferWlFirstWeightSt || transferWlFirstWeightLbs)
+            ? `${transferWlFirstWeightSt || "0"} st ${transferWlFirstWeightLbs || "0"} lbs (${transferWlFirstWeightKg} kg)`
+            : `${transferWlFirstWeightKg} kg`;
+        rows.push({
+          question: "Weight at first GLP-1 treatment start",
+          value: weightDisplay,
+        });
+      }
+      if (transferWlFirstStartDate) {
+        rows.push({
+          question: "First GLP-1 treatment start date",
+          value: formatDate(transferWlFirstStartDate),
         });
       }
       groups.push({ rows });
@@ -703,13 +745,30 @@ export function buildWeightLossClinicalBundles(
       question: "Side effects from weight-loss medication?",
       value: yesNo(answers.transfer_side_effects),
     });
-    if (
+    const transferSymptoms = parseSideEffectSymptomsFromAnswers(
+      answers,
+      "transfer_side_effects_symptoms",
+      "transfer_side_effects_details",
+    );
+    if (transferSymptoms.symptomsReported.length > 0) {
+      transferSafetyRows.push({
+        question: "Side effect symptoms reported",
+        value: transferSymptoms.symptomsReported.join(", "),
+      });
+    } else if (
       answers.transfer_side_effects === "yes" &&
-      typeof answers.transfer_side_effects_details === "string"
+      typeof answers.transfer_side_effects_details === "string" &&
+      answers.transfer_side_effects_details.trim()
     ) {
       transferSafetyRows.push({
         question: "Side effects — details",
         value: answers.transfer_side_effects_details.trim() || "—",
+      });
+    }
+    if (transferSymptoms.details) {
+      transferSafetyRows.push({
+        question: "Side effects — additional information",
+        value: transferSymptoms.details,
       });
     }
   }
@@ -860,6 +919,11 @@ type MedicalHistoryDetailAnswer = {
   label?: string;
   on_medication?: string;
   medications?: string[];
+  takes_listed_meds?: string;
+  listed_meds?: string[];
+  listed_medication_names?: string[];
+  on_other_medication?: string;
+  other_medications?: string[];
 };
 
 function buildPmrHealthBundles(
@@ -901,7 +965,25 @@ function buildPmrHealthBundles(
         for (const d of details) {
           const label = d.label ?? MED_HISTORY_LABELS[d.id ?? ""] ?? d.id ?? "Condition";
           const medRows: string[] = [];
-          if (d.on_medication === "yes" && (d.medications?.length ?? 0) > 0) {
+          if (d.id === "type2_diabetes") {
+            const listedNames = d.listed_medication_names ?? [];
+            if (d.takes_listed_meds === "yes" && listedNames.length > 0) {
+              medRows.push(`Listed: ${listedNames.join(", ")}`);
+            } else if (d.takes_listed_meds === "yes") {
+              medRows.push("Listed medications reported (not specified)");
+            } else if (d.takes_listed_meds === "no") {
+              medRows.push("None of the listed medications");
+            }
+            const otherMeds = d.other_medications ?? [];
+            const otherGate = d.on_other_medication ?? d.on_medication;
+            if (otherGate === "yes" && otherMeds.length > 0) {
+              medRows.push(`Other: ${otherMeds.join(", ")}`);
+            } else if (otherGate === "yes") {
+              medRows.push("Other medication reported (not specified)");
+            } else if (otherGate === "no") {
+              medRows.push("No other medication");
+            }
+          } else if (d.on_medication === "yes" && (d.medications?.length ?? 0) > 0) {
             medRows.push(...(d.medications ?? []));
           } else if (d.on_medication === "yes") {
             medRows.push("Medication reported (not specified)");

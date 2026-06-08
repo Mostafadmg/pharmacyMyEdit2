@@ -2,9 +2,9 @@
  * Injectable weight-loss consultation routing.
  *
  * Step order (all journeys): eligibility → contact → journey → ethnicity → BMI →
- * PMR basics (step 6) → GLP-1 safety (7) → comorbidity / allergies (8) →
- * journey-specific medication/continuation (9) → agreement → GP → uploads → plan → submit.
- *
+ * PMR medical history (step 6) → high-risk medications (7) → GLP-1 safety (8) →
+ * comorbidity / allergies (9) → journey-specific medication/continuation (10) →
+ * agreement → GP → uploads → plan → submit.
  * `journey_stage` (patient-facing step 3): new | existing | transferring
  * `consultation_type` (stored on answers): new_start | transfer | simple_repeat
  */
@@ -13,8 +13,12 @@ import type { TransferWeightLossMedicationValue } from "@/components/consultatio
 import {
   TRANSFER_WL_PEN_OPTIONS,
   emptyTransferWeightLossMedication,
-  isTransferWeightLossMedicationComplete,
+  isTransferWlMedicationCoreComplete,
 } from "@/components/consultation/WeightLossClinicalForms";
+import {
+  isRepeatSideEffectSymptomsComplete,
+  type RepeatSideEffectSymptomsMap,
+} from "@workspace/evidence-slots";
 
 export type JourneyStage = "new" | "existing" | "transferring";
 
@@ -42,7 +46,7 @@ export type JourneyRoutingInput = {
 export function resolveEffectiveJourney(input: JourneyRoutingInput): JourneyStage {
   if (input.journey === "transferring") return "transferring";
   if (input.journey === "existing") return "existing";
-  if (input.newToInjectables === "no" && input.changingProvider === "yes") {
+  if (input.journey === "new" && input.newToInjectables === "no") {
     return "transferring";
   }
   return input.journey ?? "new";
@@ -75,7 +79,6 @@ export const WL_CONSULTATION_ROUTING_TABLE = {
     "bmi",
     "pmr_medical_history",
     "high_risk_medications",
-    "pmr_lifestyle_smoking",
     "glp1_safety",
     "excluding_conditions_comorbidity",
     "allergies_otc",
@@ -87,11 +90,9 @@ export const WL_CONSULTATION_ROUTING_TABLE = {
   ],
   transfer_only: ["previous_provider_wl_medication_picker"],
   new_start_only: [
-    "current_medications",
-    "other_health_history",
     "new_to_injectables",
   ],
-  simple_repeat_only: ["simple_repeat_screening", "repeat_side_effects_follow_up"],
+  simple_repeat_only: ["repeat_side_effects_follow_up"],
 } as const;
 
 export function showsContinuationBlock(kind: ConsultationKind): boolean {
@@ -123,12 +124,11 @@ export function isContinuationHospitalisationComplete(
 
 export function isContinuationSideEffectsComplete(
   sideEffects: YesNo | null,
-  details: string,
+  symptoms: RepeatSideEffectSymptomsMap,
 ): boolean {
-  return (
-    sideEffects !== null &&
-    (sideEffects === "no" || details.trim().length > 0)
-  );
+  if (sideEffects === null) return false;
+  if (sideEffects === "no") return true;
+  return isRepeatSideEffectSymptomsComplete(symptoms);
 }
 
 export function isContinuationChangesComplete(
@@ -142,7 +142,7 @@ export function isContinuationChangesComplete(
 
 export function isWlContinuationSafetyComplete(args: {
   sideEffects: YesNo | null;
-  sideEffectsDetails: string;
+  sideEffectSymptoms: RepeatSideEffectSymptomsMap;
   hospitalised: YesNo | null;
   hospitalisationDetails: string;
   changesSinceReview: YesNo | null;
@@ -165,7 +165,7 @@ export function isWlContinuationSafetyComplete(args: {
       ? true
       : isContinuationSideEffectsComplete(
           args.sideEffects,
-          args.sideEffectsDetails,
+          args.sideEffectSymptoms,
         );
   return hospitalOk && changesOk && sideOk;
 }
@@ -232,13 +232,39 @@ export function parsePriorWlMedication(
         ? answers.last_injection_date
         : "";
 
+  const firstTreatmentWeightUnit =
+    answers.transfer_wl_first_treatment_weight_unit === "stlbs"
+      ? "stlbs"
+      : "kg";
+  const firstTreatmentWeightKg =
+    typeof answers.transfer_wl_first_treatment_weight_kg_input === "string"
+      ? answers.transfer_wl_first_treatment_weight_kg_input
+      : "";
+  const firstTreatmentWeightSt =
+    typeof answers.transfer_wl_first_treatment_weight_st === "string"
+      ? answers.transfer_wl_first_treatment_weight_st
+      : "";
+  const firstTreatmentWeightLbs =
+    typeof answers.transfer_wl_first_treatment_weight_lbs === "string"
+      ? answers.transfer_wl_first_treatment_weight_lbs
+      : "";
+  const firstTreatmentStartDate =
+    typeof answers.transfer_wl_first_treatment_start_date === "string"
+      ? answers.transfer_wl_first_treatment_start_date
+      : "";
+
   const resolved: TransferWeightLossMedicationValue = {
     product,
     strengthPenId,
     lastInjectionDate,
+    firstTreatmentWeightUnit,
+    firstTreatmentWeightKg,
+    firstTreatmentWeightSt,
+    firstTreatmentWeightLbs,
+    firstTreatmentStartDate,
   };
 
-  return isTransferWeightLossMedicationComplete(resolved)
+  return isTransferWlMedicationCoreComplete(resolved)
     ? resolved
     : emptyTransferWeightLossMedication();
 }
@@ -246,7 +272,7 @@ export function parsePriorWlMedication(
 export function wlMedicationLabel(
   v: TransferWeightLossMedicationValue,
 ): string | null {
-  if (!isTransferWeightLossMedicationComplete(v)) return null;
+  if (!isTransferWlMedicationCoreComplete(v)) return null;
   const pen = TRANSFER_WL_PEN_OPTIONS.find((p) => p.id === v.strengthPenId);
   if (!pen || !v.product) return null;
   const brand = v.product === "mounjaro" ? "Mounjaro" : "Wegovy";

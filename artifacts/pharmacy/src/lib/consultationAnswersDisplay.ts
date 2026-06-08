@@ -3,7 +3,6 @@ import {
   type ClinicalQuestion,
   type EligibilityQuestion,
 } from "@/data/conditionQuestions";
-import { SIMPLE_REPEAT_SCREENING_QUESTIONS } from "@/lib/simpleRepeatQuestionnaire";
 import { MEDICAL_HISTORY_CONDITIONS } from "@/lib/pmrHealthQuestionnaire";
 import { EXCLUDING_CONDITIONS_ITEMS } from "@/components/consultation/WeightLossClinicalForms";
 
@@ -63,9 +62,19 @@ const FULL_QUESTION_LABELS: Record<string, string> = {
     "If you have Type 2 Diabetes, are you taking any medications other than metformin?",
   currently_taking_meds:
     "Are you currently taking any prescribed, over-the-counter, or recreational drugs?",
+  oral_other_meds_not_listed:
+    "Are you currently taking any other prescription medication, over-the-counter medicine, supplement, or herbal remedy not listed above?",
+  oral_other_meds_not_listed_details:
+    "Other medicines, supplements, or remedies (not listed above)",
   other_health_conditions:
     "Do you have any previous or current health conditions?",
   oral_contraceptive: "Are you taking an oral contraceptive?",
+  orlistat_ocp_counselling_acknowledged:
+    "Orlistat and oral contraception — counselling acknowledged",
+  weight_gain_hormonal_or_medical:
+    "Has a doctor ever told you that your weight gain may be caused by a hormonal or medical condition or by a medication you are currently taking?",
+  cholecystectomy: "Have you had your gallbladder removed (cholecystectomy)?",
+  clinical_team_notes: "Additional information for the clinical team",
   new_to_injectables:
     "Are you new to using injectable weight loss medications?",
   changing_from_provider: "Are you changing from a different provider?",
@@ -78,6 +87,10 @@ const FULL_QUESTION_LABELS: Record<string, string> = {
     "Since your last order, have there been any changes in your medical history?",
   side_effects_since_last:
     "Have you had any side effects since your last order?",
+  side_effects_details: "Side effects — additional information",
+  side_effects_symptoms: "Side effect symptoms",
+  transfer_side_effects_symptoms: "Side effect symptoms",
+  transfer_side_effects_details: "Side effects — additional information",
   new_medicines_since_last:
     "Since your last supply, have you started any new medicines (including OTC or herbal remedies)?",
   stopped_medicines_since_last:
@@ -152,6 +165,23 @@ function formatAnswerValue(key: string, value: unknown): string | null {
   }
   if (Array.isArray(value)) {
     if (value.length === 0) return null;
+    if (key === "side_effects_symptoms" || key === "transfer_side_effects_symptoms") {
+      const lines = value
+        .map((item) => {
+          if (!item || typeof item !== "object") return "";
+          const row = item as { label?: string; present?: string };
+          if (!row.label) return "";
+          const ans =
+            row.present === "yes"
+              ? "Yes"
+              : row.present === "no"
+                ? "No"
+                : "—";
+          return `${row.label}: ${ans}`;
+        })
+        .filter(Boolean);
+      return lines.length ? lines.join("; ") : null;
+    }
     if (typeof value[0] === "object" && value[0] !== null) {
       return value
         .map((item) => {
@@ -199,10 +229,6 @@ function buildLabelMap(conditionId: string | undefined): Map<string, string> {
     const questionnaire = getConditionQuestions(conditionId);
     addQuestionLabels(map, questionnaire.eligibilityQuestions);
     addQuestionLabels(map, questionnaire.clinicalQuestions);
-  }
-  for (const q of SIMPLE_REPEAT_SCREENING_QUESTIONS) {
-    map.set(q.answerKey, q.text);
-    map.set(q.detailsAnswerKey, `${q.text} — details`);
   }
   return map;
 }

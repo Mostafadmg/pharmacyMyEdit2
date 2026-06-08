@@ -55,49 +55,21 @@ export type SimpleRepeatFormState = {
   patientDeclaration: boolean;
 };
 
-export const SIMPLE_REPEAT_SCREENING_QUESTIONS = [
-  {
-    yesNoKey: "newMedicinesSinceLast" as const,
-    detailsKey: "newMedicinesSinceLastDetails" as const,
-    text: "Since your last supply, have you started any new medicines (including OTC or herbal remedies)?",
-    answerKey: "new_medicines_since_last",
-    detailsAnswerKey: "new_medicines_since_last_details",
-  },
-  {
-    yesNoKey: "stoppedMedicinesSinceLast" as const,
-    detailsKey: "stoppedMedicinesSinceLastDetails" as const,
-    text: "Since your last supply, have you stopped any medicines?",
-    answerKey: "stopped_medicines_since_last",
-    detailsAnswerKey: "stopped_medicines_since_last_details",
-  },
-  {
-    yesNoKey: "healthChangesSinceLast" as const,
-    detailsKey: "healthChangesSinceLastDetails" as const,
-    text: "Since your last supply, have there been any changes to your health or have you seen a doctor or hospital specialist?",
-    answerKey: "health_changes_since_last",
-    detailsAnswerKey: "health_changes_since_last_details",
-  },
-  {
-    yesNoKey: "newSideEffectsSinceLast" as const,
-    detailsKey: "newSideEffectsSinceLastDetails" as const,
-    text: "Since your last supply, have you had any new side effects from your current medication?",
-    answerKey: "new_side_effects_since_last",
-    detailsAnswerKey: "new_side_effects_since_last_details",
-  },
-  {
-    yesNoKey: "adherenceProblemsSinceLast" as const,
-    detailsKey: "adherenceProblemsSinceLastDetails" as const,
-    text: "Since your last supply, have you had any problems taking your medicine as prescribed?",
-    answerKey: "adherence_problems_since_last",
-    detailsAnswerKey: "adherence_problems_since_last_details",
-  },
-  {
-    yesNoKey: "pharmacistQuestionsSinceLast" as const,
-    detailsKey: "pharmacistQuestionsSinceLastDetails" as const,
-    text: "Do you have any other questions or concerns you would like the pharmacist to know about?",
-    answerKey: "pharmacist_questions_since_last",
-    detailsAnswerKey: "pharmacist_questions_since_last_details",
-  },
+export const SIMPLE_REPEAT_SCREENING_QUESTIONS = [] as const;
+
+const REMOVED_SIMPLE_REPEAT_SCREENING_ANSWER_KEYS = [
+  "new_medicines_since_last",
+  "new_medicines_since_last_details",
+  "stopped_medicines_since_last",
+  "stopped_medicines_since_last_details",
+  "health_changes_since_last",
+  "health_changes_since_last_details",
+  "new_side_effects_since_last",
+  "new_side_effects_since_last_details",
+  "adherence_problems_since_last",
+  "adherence_problems_since_last_details",
+  "pharmacist_questions_since_last",
+  "pharmacist_questions_since_last_details",
 ] as const;
 
 export function emptyHighRiskMedEntry(): SimpleRepeatHighRiskMedEntry {
@@ -146,18 +118,7 @@ export function emptySimpleRepeatFormState(): SimpleRepeatFormState {
   };
 }
 
-function detailsRequired(yesNo: RepeatYesNo | null, details: string): boolean {
-  if (yesNo === null) return false;
-  if (yesNo === "no") return true;
-  return details.trim().length >= 2;
-}
-
-export function isSimpleRepeatScreeningComplete(state: SimpleRepeatFormState): boolean {
-  for (const q of SIMPLE_REPEAT_SCREENING_QUESTIONS) {
-    const yn = state[q.yesNoKey];
-    if (yn === null) return false;
-    if (!detailsRequired(yn, state[q.detailsKey])) return false;
-  }
+export function isSimpleRepeatScreeningComplete(_state: SimpleRepeatFormState): boolean {
   return true;
 }
 
@@ -203,16 +164,7 @@ export function isHighRiskMedEntryComplete(
 export function isSimpleRepeatMonitoringComplete(
   state: SimpleRepeatFormState,
 ): boolean {
-  if (state.smokingStatus === null) return false;
-  if (
-    state.smokingStatus === "current" &&
-    !state.smokingCigsPerDay.trim()
-  ) {
-    return false;
-  }
-  if (!state.alcoholUnitsPerWeek.trim()) return false;
-  if (!isRepeatHighRiskSectionComplete(state)) return false;
-  return true;
+  return isRepeatHighRiskSectionComplete(state);
 }
 
 export function isSimpleRepeatDeclarationComplete(
@@ -232,19 +184,13 @@ export function simpleRepeatToAnswers(
     consultation_type: "simple_repeat",
   };
 
-  for (const q of SIMPLE_REPEAT_SCREENING_QUESTIONS) {
-    out[q.answerKey] = state[q.yesNoKey];
-    const details = state[q.detailsKey].trim();
-    if (state[q.yesNoKey] === "yes" && details) {
-      out[q.detailsAnswerKey] = details;
-    }
+  for (const key of REMOVED_SIMPLE_REPEAT_SCREENING_ANSWER_KEYS) {
+    out[key] = null;
   }
 
-  out.smoking_status = state.smokingStatus;
-  if (state.smokingStatus === "current") {
-    out.smoking_cigs_per_day = state.smokingCigsPerDay.trim() || null;
-  }
-  out.alcohol_units_per_week = state.alcoholUnitsPerWeek.trim() || null;
+  out.smoking_status = null;
+  out.smoking_cigs_per_day = null;
+  out.alcohol_units_per_week = null;
   const bp = state.recentBloodPressure.trim();
   if (bp) out.recent_blood_pressure = bp;
   const wt = state.recentWeightKg.trim();
@@ -316,10 +262,7 @@ export function simpleRepeatToAnswers(
 /** Keys owned by simple repeat — omit duplicate flat keys when array is present. */
 export const SIMPLE_REPEAT_ANSWER_KEYS = new Set<string>([
   "consultation_type",
-  ...SIMPLE_REPEAT_SCREENING_QUESTIONS.flatMap((q) => [
-    q.answerKey,
-    q.detailsAnswerKey,
-  ]),
+  ...REMOVED_SIMPLE_REPEAT_SCREENING_ANSWER_KEYS,
   "smoking_status",
   "smoking_cigs_per_day",
   "alcohol_units_per_week",

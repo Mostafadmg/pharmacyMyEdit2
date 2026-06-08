@@ -13,6 +13,7 @@ interface RadioRowProps {
   icon?: ReactNode;
   tone?: RadioRowTone;
   className?: string;
+  testId?: string;
 }
 
 const toneStyles: Record<RadioRowTone, { selected: string; ring: string }> = {
@@ -38,6 +39,7 @@ export function RadioRow({
   icon,
   tone = "default",
   className,
+  testId,
 }: RadioRowProps) {
   const styles = toneStyles[tone];
   return (
@@ -57,6 +59,7 @@ export function RadioRow({
         className,
       )}
       aria-pressed={selected}
+      data-testid={testId}
     >
       {icon && (
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">

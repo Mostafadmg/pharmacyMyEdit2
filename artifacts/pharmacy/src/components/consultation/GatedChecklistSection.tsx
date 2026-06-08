@@ -30,6 +30,8 @@ type GatedChecklistSectionProps = {
   selectHint?: string;
   testIdPrefix: string;
   renderInfoList?: () => ReactNode;
+  /** Shown directly under the gate when the patient answers No (before the info list). */
+  renderAfterGateWhenNo?: () => ReactNode;
 };
 
 function SectionHeader({ title }: { title: string }) {
@@ -64,6 +66,7 @@ export function GatedChecklistSection({
   selectHint = "Select any that apply to you.",
   testIdPrefix,
   renderInfoList,
+  renderAfterGateWhenNo,
 }: GatedChecklistSectionProps) {
   const showReadOnlyList = gateValue !== "yes";
 
@@ -77,6 +80,8 @@ export function GatedChecklistSection({
           testIdPrefix={testIdPrefix}
         />
       </div>
+
+      {gateValue === "no" && renderAfterGateWhenNo?.()}
 
       {showReadOnlyList && (
         <div className="space-y-2">

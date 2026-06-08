@@ -48,6 +48,7 @@ import {
   type Consultation,
   type ConsultationReviewInputAction,
 } from "@workspace/api-client-react";
+import { wlExcludingConditionsGateQuestionWithList } from "@workspace/evidence-slots";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -2352,8 +2353,7 @@ const FULL_Q: Record<string, string> = {
     "Do you or a family member have a history of medullary thyroid cancer or MEN2?",
   eating_disorder_history:
     "Have you ever had an eating disorder (e.g., anorexia, bulimia)?",
-  excluding_conditions:
-    "Have you been diagnosed with or had surgery for any of the following? Pancreatitis, Gallstones or gallbladder problems, Inflammatory bowel disease (Crohn's, ulcerative colitis), Gastroparesis or delayed stomach emptying, Chronic malabsorption, Bariatric or gastric surgery, Liver disease, Kidney disease, Type 1 Diabetes, Diabetic eye disease (retinopathy), Heart disease or rhythm issues, Cancer, Serious condition needing hospitalisation, Other condition not listed above",
+  excluding_conditions: wlExcludingConditionsGateQuestionWithList(),
   diabetes_meds_beyond_metformin:
     "If you have Type 2 Diabetes, are you taking any medications other than metformin?",
   currently_taking_meds:

@@ -1,10 +1,13 @@
 /**
  * High-risk medicine catalogue for injectable weight-loss consultations.
- * Shared by new_start, transfer, and simple_repeat (step 6 + repeat monitoring).
+ * Shared by new_start, transfer, and simple_repeat — all journeys use step 7
  */
 
 export const WL_HIGH_RISK_GATE_QUESTION =
   "Are you currently taking any of the following medications?";
+
+export const WL_HIGH_RISK_STOPPED_PAST_THREE_MONTHS_QUESTION =
+  "Have you been on any of these medications and stopped them in the past three months?";
 
 export const WL_REPEAT_HIGH_RISK_QUESTION =
   "Do you take any of the following medications? If yes, we need your latest monitoring and symptom check.";
@@ -23,6 +26,7 @@ export const WL_HIGH_RISK_MEDICATIONS = [
   { id: "clozapine", label: "Clozapine" },
   { id: "digoxin", label: "Digoxin" },
   { id: "fenfluramine", label: "Fenfluramine" },
+  { id: "insulin", label: "Insulin" },
   { id: "lithium", label: "Lithium" },
   { id: "mycophenolate_mofetil", label: "Mycophenolate mofetil" },
   { id: "oral_methotrexate", label: "Oral methotrexate" },
@@ -32,14 +36,6 @@ export const WL_HIGH_RISK_MEDICATIONS = [
   { id: "tacrolimus", label: "Tacrolimus" },
   { id: "theophylline", label: "Theophylline" },
   { id: "warfarin", label: "Warfarin" },
-  { id: "sitagliptin", label: "sitagliptin", section: "DPP-4 inhibitors" },
-  { id: "vildagliptin", label: "vildagliptin" },
-  { id: "linagliptin", label: "linagliptin" },
-  { id: "gliclazide", label: "gliclazide", section: "Sulfonylureas" },
-  { id: "glibenclamide", label: "glibenclamide" },
-  { id: "tolbutamide", label: "tolbutamide" },
-  { id: "insulin", label: "Insulin" },
-  { id: "pioglitazone", label: "pioglitazone" },
 ] as const satisfies readonly WlHighRiskMedicationEntry[];
 
 export type WlHighRiskMedicationId =
@@ -82,22 +78,8 @@ export const WL_HIGH_RISK_REPEAT_SYMPTOMS_PROMPTS: Partial<
     "Since your last supply, have you had fever, sore throat, unusual bruising or signs of infection?",
   clozapine:
     "Since your last supply, have you had fever, sore throat, flu-like symptoms or severe tiredness?",
-  sitagliptin:
-    "Since your last supply, have you had symptoms of low blood sugar (shaking, sweating, confusion)?",
-  vildagliptin:
-    "Since your last supply, have you had symptoms of low blood sugar (shaking, sweating, confusion)?",
-  linagliptin:
-    "Since your last supply, have you had symptoms of low blood sugar (shaking, sweating, confusion)?",
-  gliclazide:
-    "Since your last supply, have you had symptoms of low blood sugar (shaking, sweating, confusion)?",
-  glibenclamide:
-    "Since your last supply, have you had symptoms of low blood sugar (shaking, sweating, confusion)?",
-  tolbutamide:
-    "Since your last supply, have you had symptoms of low blood sugar (shaking, sweating, confusion)?",
   insulin:
     "Since your last supply, have you had symptoms of low blood sugar (shaking, sweating, confusion)?",
-  pioglitazone:
-    "Since your last supply, have you had ankle swelling, breathlessness or unexplained weight gain?",
 };
 
 export function wlHighRiskRepeatSymptomsPrompt(id: string): string {
@@ -121,6 +103,13 @@ export const LEGACY_WL_HIGH_RISK_MED_LABELS: Record<string, string> = {
   methotrexate: "Methotrexate",
   sirolimus: "Sirolimus",
   other: "Other medication",
+  sitagliptin: "sitagliptin",
+  vildagliptin: "vildagliptin",
+  linagliptin: "linagliptin",
+  gliclazide: "gliclazide",
+  glibenclamide: "glibenclamide",
+  tolbutamide: "tolbutamide",
+  pioglitazone: "pioglitazone",
 };
 
 export function wlHighRiskMedLabelById(): Record<string, string> {

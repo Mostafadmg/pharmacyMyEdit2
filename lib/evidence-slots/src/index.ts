@@ -9,7 +9,13 @@ export const EVIDENCE_SLOT_IDS = [
 
 export * from "./wlBmiEligibility";
 export * from "./wlPmrMedicalHistory";
+export * from "./wlOralMedicalHistory";
+export * from "./wlOralExcludedMedications";
+export * from "./wlOralExcludingConditions";
+export * from "./wlExcludingConditions";
+export * from "./wlType2DiabetesListedMeds";
 export * from "./wlHighRiskMedications";
+export * from "./wlRepeatSideEffects";
 export * from "./patientDocumentStorage";
 import {
   isWlPriorProviderPatient,

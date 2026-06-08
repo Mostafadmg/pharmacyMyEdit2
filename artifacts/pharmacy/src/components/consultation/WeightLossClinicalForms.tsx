@@ -1,4 +1,14 @@
 import React from "react";
+import {
+  WL_EXCLUDING_CONDITIONS,
+  WL_EXCLUDING_CONDITIONS_GATE_QUESTION,
+  WL_CHOLECYSTECTOMY_TIMING_OPTIONS,
+  isWlExcludingConditionCholecystectomyTiming,
+  isWlExcludingConditionNoFollowUp,
+  isWlExcludingConditionWithFollowUp,
+  type RepeatSideEffectSymptomsMap,
+} from "@workspace/evidence-slots";
+import { SideEffectsSymptomSection } from "@/components/consultation/RepeatSideEffectsSection";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,10 +29,9 @@ import {
 } from "@/lib/consultationTheme";
 import { cn } from "@/lib/utils";
 import {
-  TRANSFER_HIGH_RISK_MED_LABELS,
   TRANSFER_HIGH_RISK_QUESTION,
   WL_HIGH_RISK_MEDICATIONS,
-  type HighRiskMedDetail,
+  WL_HIGH_RISK_STOPPED_PAST_THREE_MONTHS_QUESTION,
   type TransferHighRiskMedId,
 } from "@/lib/weightLossHighRiskMeds";
 
@@ -91,8 +100,7 @@ export function emptyDiagnosedEntry(catalogue?: {
   return {
     id: newEntryId(),
     catalogueId: catalogue?.id,
-    condition:
-      catalogue?.id === "other" ? "" : (catalogue?.label ?? ""),
+    condition: catalogue?.label ?? "",
     howLongHad: "",
     onMedication: null,
     medications: [],
@@ -164,13 +172,47 @@ export type TransferWeightLossMedicationValue = {
   product: TransferWlProduct | null;
   strengthPenId: string;
   lastInjectionDate: string;
+  firstTreatmentWeightUnit: "kg" | "stlbs";
+  firstTreatmentWeightKg: string;
+  firstTreatmentWeightSt: string;
+  firstTreatmentWeightLbs: string;
+  firstTreatmentStartDate: string;
 };
 
 export function emptyTransferWeightLossMedication(): TransferWeightLossMedicationValue {
-  return { product: null, strengthPenId: "", lastInjectionDate: "" };
+  return {
+    product: null,
+    strengthPenId: "",
+    lastInjectionDate: "",
+    firstTreatmentWeightUnit: "kg",
+    firstTreatmentWeightKg: "",
+    firstTreatmentWeightSt: "",
+    firstTreatmentWeightLbs: "",
+    firstTreatmentStartDate: "",
+  };
 }
 
-export function isTransferWeightLossMedicationComplete(
+export function transferWlFirstTreatmentWeightKg(
+  v: TransferWeightLossMedicationValue,
+): number | null {
+  if (v.firstTreatmentWeightUnit === "kg") {
+    const kg = parseFloat(v.firstTreatmentWeightKg);
+    return Number.isFinite(kg) && kg > 0 ? kg : null;
+  }
+  const st = parseFloat(v.firstTreatmentWeightSt || "0");
+  const lbs = parseFloat(v.firstTreatmentWeightLbs || "0");
+  if (!st && !lbs) return null;
+  const kg = st * 6.35029 + lbs * 0.453592;
+  return kg > 0 ? Math.round(kg * 10) / 10 : null;
+}
+
+function isTransferWlFirstTreatmentWeightComplete(
+  v: TransferWeightLossMedicationValue,
+): boolean {
+  return transferWlFirstTreatmentWeightKg(v) !== null;
+}
+
+export function isTransferWlMedicationCoreComplete(
   v: TransferWeightLossMedicationValue,
 ): boolean {
   if (!v.product || !v.strengthPenId || !v.lastInjectionDate.trim()) {
@@ -181,10 +223,20 @@ export function isTransferWeightLossMedicationComplete(
   );
 }
 
+export function isTransferWeightLossMedicationComplete(
+  v: TransferWeightLossMedicationValue,
+): boolean {
+  if (!isTransferWlMedicationCoreComplete(v)) return false;
+  return (
+    v.firstTreatmentStartDate.trim().length > 0 &&
+    isTransferWlFirstTreatmentWeightComplete(v)
+  );
+}
+
 export function transferWlMedicationToDetailsRow(
   v: TransferWeightLossMedicationValue,
 ): TransferMedicationEntry | null {
-  if (!isTransferWeightLossMedicationComplete(v)) return null;
+  if (!isTransferWlMedicationCoreComplete(v)) return null;
   const pen = TRANSFER_WL_PEN_OPTIONS.find((p) => p.id === v.strengthPenId);
   if (!pen || !v.product) return null;
   return {
@@ -256,14 +308,56 @@ export function DiagnosedConditionsFollowUp({
   };
 
   const showConditionField = (entry: DiagnosedConditionEntry) =>
-    !entry.catalogueId || entry.catalogueId === "other";
+    !entry.catalogueId;
+
+  const entriesNeedingTiming = entries.filter((entry) =>
+    isWlExcludingConditionCholecystectomyTiming(entry.catalogueId),
+  );
+
+  const entriesNeedingFollowUp = entries.filter((entry) =>
+    isWlExcludingConditionWithFollowUp(entry.catalogueId),
+  );
+
+  if (entriesNeedingTiming.length === 0 && entriesNeedingFollowUp.length === 0) {
+    return null;
+  }
 
   return (
     <div className="mt-5 space-y-5 border-t border-stone-200/90 pt-4">
       <p className="text-sm font-semibold text-secondary">
         Details for each selected condition
       </p>
-      {entries.map((entry) => (
+      {entriesNeedingTiming.map((entry) => (
+        <div key={entry.id} className={WL_DETAIL_PANEL}>
+          {!showConditionField(entry) ? (
+            <p className={cn("text-sm", WL_SECTION_TITLE)}>{entry.condition}</p>
+          ) : null}
+          <div>
+            <Label className="font-semibold text-secondary">
+              Was your gallbladder surgery more or less than 12 months ago? *
+            </Label>
+            <div className="mt-2 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              {WL_CHOLECYSTECTOMY_TIMING_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => update(entry.id, { howLongHad: option.id })}
+                  data-testid={`cholecystectomy-timing-${entry.id}-${option.id}`}
+                  className={cn(
+                    "min-h-12 rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-colors",
+                    entry.howLongHad === option.id
+                      ? WL_YESNO_SELECTED
+                      : WL_YESNO_UNSELECTED,
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ))}
+      {entriesNeedingFollowUp.map((entry) => (
         <div
           key={entry.id}
           className={WL_DETAIL_PANEL}
@@ -649,6 +743,15 @@ export function InjectablesFollowUp({
 }
 
 export function isDiagnosedEntryComplete(e: DiagnosedConditionEntry): boolean {
+  if (isWlExcludingConditionNoFollowUp(e.catalogueId)) {
+    return Boolean(e.condition.trim());
+  }
+  if (isWlExcludingConditionCholecystectomyTiming(e.catalogueId)) {
+    return (
+      Boolean(e.condition.trim()) &&
+      WL_CHOLECYSTECTOMY_TIMING_OPTIONS.some((o) => o.id === e.howLongHad)
+    );
+  }
   if (!e.condition.trim() || !e.howLongHad.trim()) {
     return false;
   }
@@ -681,31 +784,7 @@ export function isLastInjectionComplete(
   return true;
 }
 
-export const EXCLUDING_CONDITIONS = [
-  { id: "pancreatitis", label: "Pancreatitis" },
-  { id: "gallstones_gallbladder", label: "Gallstones or gallbladder problems" },
-  {
-    id: "inflammatory_bowel_disease",
-    label: "Inflammatory bowel disease (Crohn's, ulcerative colitis)",
-  },
-  {
-    id: "gastroparesis",
-    label: "Gastroparesis or delayed stomach emptying",
-  },
-  { id: "chronic_malabsorption", label: "Chronic malabsorption" },
-  { id: "bariatric_gastric_surgery", label: "Bariatric or gastric surgery" },
-  { id: "liver_disease", label: "Liver disease" },
-  { id: "kidney_disease", label: "Kidney disease" },
-  { id: "type1_diabetes", label: "Type 1 Diabetes" },
-  { id: "diabetic_retinopathy", label: "Diabetic eye disease (retinopathy)" },
-  { id: "heart_disease_rhythm", label: "Heart disease or rhythm issues" },
-  { id: "cancer", label: "Cancer" },
-  {
-    id: "serious_hospitalisation",
-    label: "Serious condition needing hospitalisation",
-  },
-  { id: "other", label: "Other condition not listed above" },
-] as const;
+export const EXCLUDING_CONDITIONS = WL_EXCLUDING_CONDITIONS;
 
 export type ExcludingConditionId = (typeof EXCLUDING_CONDITIONS)[number]["id"];
 
@@ -713,40 +792,57 @@ export const EXCLUDING_CONDITIONS_ITEMS = EXCLUDING_CONDITIONS.map(
   (c) => c.label,
 );
 
-const EXCLUDING_CONDITIONS_GATE_QUESTION =
-  "Have you been diagnosed with or had surgery for any of the following?";
+const EXCLUDING_CONDITIONS_GATE_QUESTION = WL_EXCLUDING_CONDITIONS_GATE_QUESTION;
 
-function isExcludingConditionSelected(
+export function isExcludingConditionNoFollowUp(
+  catalogueId: string | undefined,
+): boolean {
+  return isWlExcludingConditionNoFollowUp(catalogueId);
+}
+
+/** Derive legacy yes/no history answers from the excluding-conditions checklist. */
+export function historyAnswerFromExcludingConditions(
+  gate: YesNo | null,
   entries: DiagnosedConditionEntry[],
   catalogueId: ExcludingConditionId,
-): boolean {
-  return entries.some((e) => e.catalogueId === catalogueId);
+): YesNo | null {
+  if (gate === null) return null;
+  if (gate === "no") return "no";
+  return entries.some((e) => e.catalogueId === catalogueId) ? "yes" : "no";
 }
+
 
 export function ExcludingConditionsSection({
   excludingConditions,
   onExcludingConditionsChange,
   diagnosedConditions,
   onDiagnosedConditionsChange,
+  conditions = EXCLUDING_CONDITIONS,
+  gateQuestion = EXCLUDING_CONDITIONS_GATE_QUESTION,
+  checkboxOnly = false,
 }: {
   excludingConditions: YesNo | null;
   onExcludingConditionsChange: (v: YesNo) => void;
   diagnosedConditions: DiagnosedConditionEntry[];
   onDiagnosedConditionsChange: (entries: DiagnosedConditionEntry[]) => void;
+  conditions?: readonly { id: string; label: string }[];
+  gateQuestion?: string;
+  /** When true, checklist only — no diagnosed-when / medication follow-up. */
+  checkboxOnly?: boolean;
 }) {
-  const checklistItems = EXCLUDING_CONDITIONS.map((c) => ({
+  const checklistItems = conditions.map((c) => ({
     id: c.id,
     label: c.label,
   }));
 
-  const toggleCondition = (catalogueId: ExcludingConditionId) => {
-    if (isExcludingConditionSelected(diagnosedConditions, catalogueId)) {
+  const toggleCondition = (catalogueId: string) => {
+    if (diagnosedConditions.some((e) => e.catalogueId === catalogueId)) {
       onDiagnosedConditionsChange(
         diagnosedConditions.filter((e) => e.catalogueId !== catalogueId),
       );
       return;
     }
-    const catalogue = EXCLUDING_CONDITIONS.find((c) => c.id === catalogueId);
+    const catalogue = conditions.find((c) => c.id === catalogueId);
     if (!catalogue) return;
     onDiagnosedConditionsChange([
       ...diagnosedConditions,
@@ -757,7 +853,7 @@ export function ExcludingConditionsSection({
   return (
     <div className="space-y-6">
       <GatedChecklistSection
-        gateQuestion={`${EXCLUDING_CONDITIONS_GATE_QUESTION} *`}
+        gateQuestion={`${gateQuestion} *`}
         gateValue={excludingConditions}
         onGateChange={(v) => {
           onExcludingConditionsChange(v);
@@ -767,12 +863,9 @@ export function ExcludingConditionsSection({
         }}
         items={checklistItems}
         isSelected={(id) =>
-          isExcludingConditionSelected(
-            diagnosedConditions,
-            id as ExcludingConditionId,
-          )
+          diagnosedConditions.some((e) => e.catalogueId === id)
         }
-        onToggle={(id) => toggleCondition(id as ExcludingConditionId)}
+        onToggle={toggleCondition}
         infoHeading="These are the conditions we ask about:"
         infoHeadingWhenNo="For your information, these are the conditions we ask about:"
         selectHint="Select any conditions you have been diagnosed with or had surgery for."
@@ -785,12 +878,15 @@ export function ExcludingConditionsSection({
         )}
       />
 
-      {excludingConditions === "yes" && diagnosedConditions.length > 0 && (
-        <DiagnosedConditionsFollowUp
-          entries={diagnosedConditions}
-          onChange={onDiagnosedConditionsChange}
-        />
-      )}
+      {excludingConditions === "yes" &&
+        diagnosedConditions.some(
+          (e) => !isWlExcludingConditionNoFollowUp(e.catalogueId),
+        ) && (
+          <DiagnosedConditionsFollowUp
+            entries={diagnosedConditions}
+            onChange={onDiagnosedConditionsChange}
+          />
+        )}
     </div>
   );
 }
@@ -798,15 +894,14 @@ export function ExcludingConditionsSection({
 export function isExcludingConditionsStepComplete(
   excludingConditions: YesNo | null,
   diagnosedConditions: DiagnosedConditionEntry[],
+  options?: { checkboxOnly?: boolean },
 ): boolean {
   if (excludingConditions === null) {
     return false;
   }
   if (excludingConditions === "yes") {
-    return (
-      diagnosedConditions.length > 0 &&
-      diagnosedConditions.every(isDiagnosedEntryComplete)
-    );
+    if (diagnosedConditions.length === 0) return false;
+    return diagnosedConditions.every(isDiagnosedEntryComplete);
   }
   return true;
 }
@@ -900,6 +995,56 @@ export function isTransferOtherMedicalConditionsComplete(
   if (takesMedications === null) return false;
   if (takesMedications === "no") return true;
   return medicationNames.trim().length > 0;
+}
+
+function WeightUnitSlidingToggle({
+  value,
+  onChange,
+  testIdPrefix,
+}: {
+  value: "kg" | "stlbs";
+  onChange: (unit: "kg" | "stlbs") => void;
+  testIdPrefix: string;
+}) {
+  const toggle = () => onChange(value === "kg" ? "stlbs" : "kg");
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={value === "stlbs"}
+      aria-label={`Weight unit: ${value === "kg" ? "kilograms" : "stone and pounds"}. Click to switch.`}
+      onClick={toggle}
+      className="relative mt-1.5 mb-2 grid w-full max-w-xs grid-cols-2 rounded-xl border border-stone-200 bg-stone-100 p-1"
+      data-testid={`${testIdPrefix}-toggle`}
+    >
+      <span
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-lg bg-primary shadow-sm transition-transform duration-200 ease-out",
+          value === "stlbs" && "translate-x-full",
+        )}
+      />
+      <span
+        className={cn(
+          "relative z-10 flex h-10 items-center justify-center rounded-lg text-sm font-semibold transition-colors",
+          value === "kg" ? "text-primary-foreground" : "text-stone-600",
+        )}
+        data-testid={`${testIdPrefix}-kg`}
+      >
+        kg
+      </span>
+      <span
+        className={cn(
+          "relative z-10 flex h-10 items-center justify-center rounded-lg text-sm font-semibold transition-colors",
+          value === "stlbs" ? "text-primary-foreground" : "text-stone-600",
+        )}
+        data-testid={`${testIdPrefix}-stlbs`}
+      >
+        st/lbs
+      </span>
+    </button>
+  );
 }
 
 export function TransferWeightLossMedicationPicker({
@@ -1004,6 +1149,66 @@ export function TransferWeightLossMedicationPicker({
             min="2020-01-01"
             placeholder="Select last injection date"
           />
+
+          <div>
+            <Label className="font-semibold text-secondary">
+              What was your weight when you started your first GLP-1 weight-loss
+              injection? *
+            </Label>
+            <WeightUnitSlidingToggle
+              value={value.firstTreatmentWeightUnit}
+              onChange={(firstTreatmentWeightUnit) =>
+                onChange({ ...value, firstTreatmentWeightUnit })
+              }
+              testIdPrefix="transfer-wl-first-weight-unit"
+            />
+            {value.firstTreatmentWeightUnit === "kg" ? (
+              <Input
+                type="number"
+                placeholder="kg"
+                value={value.firstTreatmentWeightKg}
+                onChange={(e) =>
+                  onChange({ ...value, firstTreatmentWeightKg: e.target.value })
+                }
+                className="h-12 rounded-xl"
+                data-testid="transfer-wl-first-weight-kg"
+              />
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  type="number"
+                  placeholder="st"
+                  value={value.firstTreatmentWeightSt}
+                  onChange={(e) =>
+                    onChange({ ...value, firstTreatmentWeightSt: e.target.value })
+                  }
+                  className="h-12 rounded-xl"
+                  data-testid="transfer-wl-first-weight-st"
+                />
+                <Input
+                  type="number"
+                  placeholder="lbs"
+                  value={value.firstTreatmentWeightLbs}
+                  onChange={(e) =>
+                    onChange({ ...value, firstTreatmentWeightLbs: e.target.value })
+                  }
+                  className="h-12 rounded-xl"
+                  data-testid="transfer-wl-first-weight-lbs"
+                />
+              </div>
+            )}
+          </div>
+
+          <DateField
+            label="When did you start your first GLP-1 weight-loss injection? *"
+            value={value.firstTreatmentStartDate}
+            onChange={(firstTreatmentStartDate) =>
+              onChange({ ...value, firstTreatmentStartDate })
+            }
+            max={new Date().toISOString().slice(0, 10)}
+            min="2010-01-01"
+            placeholder="Select start date"
+          />
         </div>
       )}
     </div>
@@ -1075,134 +1280,106 @@ export function TransferCurrentMedicationsTable({
   );
 }
 
-function HighRiskMedicationsInfoList() {
-  const items = WL_HIGH_RISK_MEDICATIONS.map((m) => ({
-    id: m.id,
-    label: m.label,
-    section: m.section,
-  }));
-  return (
-    <GroupedChecklistInfoList
-      items={items}
-      testIdPrefix="high-risk-meds-info-list"
-    />
-  );
-}
-
 export function HighRiskMedicationsSection({
   taken,
   onTakenChange,
   selected,
   onSelectedChange,
-  details,
-  onDetailsChange,
+  stoppedPastThreeMonths,
+  onStoppedPastThreeMonthsChange,
+  gateQuestion = TRANSFER_HIGH_RISK_QUESTION,
+  stoppedPastThreeMonthsQuestion = WL_HIGH_RISK_STOPPED_PAST_THREE_MONTHS_QUESTION,
+  medications = WL_HIGH_RISK_MEDICATIONS,
+  infoHeading = "These are the medications we ask about:",
+  infoHeadingWhenNo = "For your information, these are the medications we ask about:",
+  exclusiveNoneId,
 }: {
   taken: YesNo | null;
   onTakenChange: (v: YesNo) => void;
-  selected: TransferHighRiskMedId[];
-  onSelectedChange: (ids: TransferHighRiskMedId[]) => void;
-  details: HighRiskMedDetail[];
-  onDetailsChange: (details: HighRiskMedDetail[]) => void;
+  selected: readonly string[];
+  onSelectedChange: (ids: string[]) => void;
+  stoppedPastThreeMonths: YesNo | null;
+  onStoppedPastThreeMonthsChange: (v: YesNo | null) => void;
+  gateQuestion?: string;
+  stoppedPastThreeMonthsQuestion?: string;
+  medications?: readonly { id: string; label: string; section?: string }[];
+  infoHeading?: string;
+  infoHeadingWhenNo?: string;
+  /** When set, selecting this id clears other selections and vice versa. */
+  exclusiveNoneId?: string;
 }) {
-  const toggle = (id: TransferHighRiskMedId) => {
-    const next = selected.includes(id)
-      ? selected.filter((x) => x !== id)
-      : [...selected, id];
-    onSelectedChange(next);
-    const detailById = new Map(details.map((d) => [d.medId, d]));
-    onDetailsChange(
-      next.map(
-        (medId) =>
-          detailById.get(medId) ?? {
-            medId,
-            name: "",
-            condition: "",
-            duration: "",
-          },
-      ),
+  const toggle = (id: string) => {
+    if (exclusiveNoneId && id === exclusiveNoneId) {
+      onSelectedChange(selected.includes(id) ? [] : [id]);
+      return;
+    }
+    if (exclusiveNoneId) {
+      const withoutNone = selected.filter((x) => x !== exclusiveNoneId);
+      onSelectedChange(
+        withoutNone.includes(id)
+          ? withoutNone.filter((x) => x !== id)
+          : [...withoutNone, id],
+      );
+      return;
+    }
+    onSelectedChange(
+      selected.includes(id)
+        ? selected.filter((x) => x !== id)
+        : [...selected, id],
     );
   };
 
-  const updateDetail = (
-    medId: TransferHighRiskMedId,
-    patch: Partial<HighRiskMedDetail>,
-  ) => {
-    onDetailsChange(
-      details.map((d) => (d.medId === medId ? { ...d, ...patch } : d)),
-    );
-  };
-
-  const checklistItems = WL_HIGH_RISK_MEDICATIONS.map((m) => ({
+  const checklistItems = medications.map((m) => ({
     id: m.id,
     label: m.label,
     section: m.section,
   }));
 
+  const infoList = () => (
+    <GroupedChecklistInfoList
+      items={
+        exclusiveNoneId
+          ? checklistItems.filter((item) => item.id !== exclusiveNoneId)
+          : checklistItems
+      }
+      testIdPrefix="high-risk-meds-info-list"
+    />
+  );
+
   return (
     <div className="space-y-4">
       <GatedChecklistSection
-        gateQuestion={`${TRANSFER_HIGH_RISK_QUESTION} *`}
+        gateQuestion={`${gateQuestion} *`}
         gateValue={taken}
-        onGateChange={onTakenChange}
+        onGateChange={(v) => {
+          onTakenChange(v);
+          if (v === "yes") {
+            onStoppedPastThreeMonthsChange(null);
+          } else {
+            onSelectedChange([]);
+          }
+        }}
         items={checklistItems}
-        isSelected={(id) => selected.includes(id as TransferHighRiskMedId)}
-        onToggle={(id) => toggle(id as TransferHighRiskMedId)}
-        infoHeading="These are the medications we ask about:"
-        infoHeadingWhenNo="For your information, these are the medications we ask about:"
-        selectHint="Select any that apply. For each one selected, we will ask for a few more details."
+        isSelected={(id) => selected.includes(id)}
+        onToggle={toggle}
+        infoHeading={infoHeading}
+        infoHeadingWhenNo={infoHeadingWhenNo}
+        selectHint="Select any that apply."
         testIdPrefix="high-risk-meds-taken"
-        renderInfoList={() => <HighRiskMedicationsInfoList />}
+        renderInfoList={infoList}
+        renderAfterGateWhenNo={() => (
+          <div>
+            <p className={cn(WL_SECTION_TITLE, "mb-3")}>
+              {stoppedPastThreeMonthsQuestion} *
+            </p>
+            <YesNoChoiceInline
+              value={stoppedPastThreeMonths}
+              onChange={onStoppedPastThreeMonthsChange}
+              testIdPrefix="high-risk-meds-stopped-past-three-months"
+            />
+          </div>
+        )}
       />
-
-      {taken === "yes" && selected.length > 0 && (
-        <div className="space-y-4 border-t border-stone-200/90 pt-4">
-          {selected.map((medId) => {
-            const row =
-              details.find((d) => d.medId === medId) ?? {
-                medId,
-                name: "",
-                condition: "",
-                duration: "",
-              };
-            return (
-              <div
-                key={medId}
-                className={WL_DETAIL_PANEL}
-              >
-                <p className="text-sm font-bold text-secondary">
-                  {TRANSFER_HIGH_RISK_MED_LABELS[medId]}
-                </p>
-                <div>
-                  <Label className="font-semibold text-secondary">
-                    What condition do you take it for? *
-                  </Label>
-                  <Input
-                    value={row.condition}
-                    onChange={(e) =>
-                      updateDetail(medId, { condition: e.target.value })
-                    }
-                    placeholder="e.g. Atrial fibrillation"
-                    className="h-12 mt-1.5 rounded-xl"
-                  />
-                </div>
-                <div>
-                  <Label className="font-semibold text-secondary">
-                    How long have you been taking it? *
-                  </Label>
-                  <Input
-                    value={row.duration}
-                    onChange={(e) =>
-                      updateDetail(medId, { duration: e.target.value })
-                    }
-                    placeholder="e.g. About 2 years"
-                    className={durationInputClass}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
@@ -1257,6 +1434,8 @@ export function TransferYesNoWithDetail({
 export function WlContinuationSafetySection({
   sideEffects,
   onSideEffectsChange,
+  sideEffectSymptoms,
+  onSideEffectSymptomsChange,
   sideEffectsDetails,
   onSideEffectsDetailsChange,
   hospitalised,
@@ -1272,6 +1451,8 @@ export function WlContinuationSafetySection({
 }: {
   sideEffects: YesNo | null;
   onSideEffectsChange: (v: YesNo) => void;
+  sideEffectSymptoms: RepeatSideEffectSymptomsMap;
+  onSideEffectSymptomsChange: (next: RepeatSideEffectSymptomsMap) => void;
   sideEffectsDetails: string;
   onSideEffectsDetailsChange: (v: string) => void;
   hospitalised: YesNo | null;
@@ -1303,18 +1484,21 @@ export function WlContinuationSafetySection({
         />
       )}
       {showSideEffects && (
-        <TransferYesNoWithDetail
-          question="Have you experienced any side effects from your weight-loss medication? *"
-          value={sideEffects}
-          onChange={(v) => {
+        <SideEffectsSymptomSection
+          gateTitle="Have you experienced any side effects from your weight-loss medication? *"
+          idPrefix="transfer-side-effects"
+          standalone={false}
+          anySideEffects={sideEffects}
+          onAnySideEffectsChange={(v) => {
             onSideEffectsChange(v);
-            if (v === "no") onSideEffectsDetailsChange("");
+            if (v === "no") {
+              onSideEffectsDetailsChange("");
+            }
           }}
-          detailValue={sideEffectsDetails}
-          onDetailChange={onSideEffectsDetailsChange}
-          detailLabel="Please describe your side effects"
-          detailPlaceholder="e.g. Nausea for the first few days after each injection"
-          testIdPrefix="continuationSideEffects"
+          symptoms={sideEffectSymptoms}
+          onSymptomsChange={onSideEffectSymptomsChange}
+          details={sideEffectsDetails}
+          onDetailsChange={onSideEffectsDetailsChange}
         />
       )}
       <TransferYesNoWithDetail

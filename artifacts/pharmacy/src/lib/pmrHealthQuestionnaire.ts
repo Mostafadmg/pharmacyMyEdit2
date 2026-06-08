@@ -2,14 +2,17 @@
 
 import {
   PMR_MEDICAL_HISTORY_GATE_QUESTION,
+  PMR_MEDICAL_HISTORY_INTRO,
   WL_MEDICAL_HISTORY_CONDITIONS,
   WL_HIGH_RISK_MEDICATIONS,
+  wlType2DiabetesListedMedLabel,
+  type WlType2DiabetesListedMedId,
 } from "@workspace/evidence-slots";
 
 export type PmrYesNo = "yes" | "no";
 
 export const MEDICAL_HISTORY_CONDITIONS = WL_MEDICAL_HISTORY_CONDITIONS;
-export { PMR_MEDICAL_HISTORY_GATE_QUESTION };
+export { PMR_MEDICAL_HISTORY_GATE_QUESTION, PMR_MEDICAL_HISTORY_INTRO };
 
 export type MedicalHistoryId = (typeof MEDICAL_HISTORY_CONDITIONS)[number]["id"];
 
@@ -66,6 +69,9 @@ export type HighRiskMedDetail = {
 export type MedicalHistoryConditionDetail = {
   onMedication: PmrYesNo | null;
   medications: string[];
+  /** Type 2 diabetes — sulfonylureas, DPP-4, SGLT2, TZDs. */
+  takesListedMeds: PmrYesNo | null;
+  listedMeds: WlType2DiabetesListedMedId[];
 };
 
 export type PmrHealthFormSlice = {
@@ -111,21 +117,42 @@ export function emptyHighRiskMedDetail(): HighRiskMedDetail {
 }
 
 export function emptyMedicalHistoryDetail(): MedicalHistoryConditionDetail {
-  return { onMedication: null, medications: [] };
+  return {
+    onMedication: null,
+    medications: [],
+    takesListedMeds: null,
+    listedMeds: [],
+  };
 }
 
 export function emptyMedicalHistoryDetails(): Record<
   MedicalHistoryId,
   MedicalHistoryConditionDetail
 > {
+  return emptyMedicalHistoryDetailsFor(MEDICAL_HISTORY_CONDITIONS);
+}
+
+export function emptyMedicalHistoryDetailsFor(
+  conditions: readonly { id: string }[],
+): Record<string, MedicalHistoryConditionDetail> {
   return Object.fromEntries(
-    MEDICAL_HISTORY_CONDITIONS.map((c) => [c.id, emptyMedicalHistoryDetail()]),
-  ) as Record<MedicalHistoryId, MedicalHistoryConditionDetail>;
+    conditions.map((c) => [c.id, emptyMedicalHistoryDetail()]),
+  );
 }
 
 export function isMedicalHistoryConditionDetailComplete(
+  id: string,
   detail: MedicalHistoryConditionDetail,
 ): boolean {
+  if (id === "type2_diabetes") {
+    if (detail.takesListedMeds === null) return false;
+    if (detail.takesListedMeds === "yes" && detail.listedMeds.length === 0) {
+      return false;
+    }
+    if (detail.onMedication === null) return false;
+    if (detail.onMedication === "no") return true;
+    return detail.medications.some((m) => m.trim().length > 0);
+  }
   if (detail.onMedication === null) return false;
   if (detail.onMedication === "no") return true;
   return detail.medications.some((m) => m.trim().length > 0);
@@ -207,7 +234,7 @@ export function isMedicalHistoryComplete(slice: PmrHealthFormSlice): boolean {
   const selected = selectedMedicalHistoryConditions(slice);
   if (selected.length === 0) return false;
   return selected.every((c) =>
-    isMedicalHistoryConditionDetailComplete(slice.medicalHistoryDetails[c.id]),
+    isMedicalHistoryConditionDetailComplete(c.id, slice.medicalHistoryDetails[c.id]),
   );
 }
 
@@ -221,17 +248,13 @@ export function isAlcoholComplete(slice: PmrHealthFormSlice): boolean {
   );
 }
 
-/** Lifestyle only (high-risk meds collected separately in transfer-style UI). */
-export function isPmrLifestyleStepComplete(slice: PmrHealthFormSlice): boolean {
-  if (!isSmokingComplete(slice)) return false;
-  if (!isAlcoholComplete(slice)) return false;
-  if (!slice.exerciseSessionsPerWeek || !slice.exerciseIntensity) return false;
+/** Lifestyle step — no longer collected in the consultation UI. */
+export function isPmrLifestyleStepComplete(_slice: PmrHealthFormSlice): boolean {
   return true;
 }
 
 export function isPmrHealthStepComplete(slice: PmrHealthFormSlice): boolean {
-  if (!isMedicalHistoryComplete(slice)) return false;
-  return isPmrLifestyleStepComplete(slice);
+  return isMedicalHistoryComplete(slice);
 }
 
 /** Flat consultation `answers` keys for pharmacist review. */
@@ -253,6 +276,25 @@ export function pmrHealthToAnswers(slice: PmrHealthFormSlice): Record<string, un
     }
     out.medical_history_details = selected.map((c) => {
       const detail = slice.medicalHistoryDetails[c.id];
+      if (c.id === "type2_diabetes") {
+        const listedMedicationNames = detail.listedMeds.map((id) =>
+          wlType2DiabetesListedMedLabel(id),
+        );
+        const otherMedications = detail.medications
+          .map((m) => m.trim())
+          .filter((m) => m.length > 0);
+        return {
+          id: c.id,
+          label: c.label,
+          takes_listed_meds: detail.takesListedMeds,
+          listed_meds: detail.listedMeds,
+          listed_medication_names: listedMedicationNames,
+          on_other_medication: detail.onMedication,
+          other_medications: otherMedications,
+          on_medication: detail.onMedication,
+          medications: [...listedMedicationNames, ...otherMedications],
+        };
+      }
       return {
         id: c.id,
         label: c.label,
@@ -268,24 +310,18 @@ export function pmrHealthToAnswers(slice: PmrHealthFormSlice): Record<string, un
     }
   }
 
-  out.smokes = slice.smokes;
-  out.ever_smoked = slice.everSmoked;
-  out.smoking_cigs_per_day = slice.smokingCigsPerDay.trim() || null;
-  out.smoking_year_started = slice.smokingYearStarted.trim() || null;
-  out.smoking_year_stopped = slice.smokingYearStopped.trim() || null;
+  out.smokes = null;
+  out.ever_smoked = null;
+  out.smoking_cigs_per_day = null;
+  out.smoking_year_started = null;
+  out.smoking_year_stopped = null;
 
-  out.drinks_alcohol = slice.drinksAlcohol;
-  if (slice.drinksAlcohol === "yes") {
-    out.alcohol_frequency = slice.alcoholFrequency;
-    out.alcohol_units_typical_day = slice.alcoholUnitsTypicalDay;
-    out.alcohol_binge_frequency = slice.alcoholBingeFrequency;
-  } else {
-    out.alcohol_frequency = null;
-    out.alcohol_units_typical_day = null;
-    out.alcohol_binge_frequency = null;
-  }
-  out.exercise_sessions_per_week = slice.exerciseSessionsPerWeek;
-  out.exercise_intensity = slice.exerciseIntensity;
+  out.drinks_alcohol = null;
+  out.alcohol_frequency = null;
+  out.alcohol_units_typical_day = null;
+  out.alcohol_binge_frequency = null;
+  out.exercise_sessions_per_week = null;
+  out.exercise_intensity = null;
 
   return out;
 }

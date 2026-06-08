@@ -2,6 +2,7 @@
 import {
   WL_HIGH_RISK_GATE_QUESTION,
   WL_HIGH_RISK_MEDICATIONS,
+  WL_HIGH_RISK_STOPPED_PAST_THREE_MONTHS_QUESTION,
   WL_REPEAT_HIGH_RISK_QUESTION,
   WL_TRANSFER_HIGH_RISK_MED_IDS,
   wlHighRiskMedLabelsIncludingLegacy,
@@ -11,6 +12,7 @@ import {
 export {
   WL_HIGH_RISK_GATE_QUESTION,
   WL_HIGH_RISK_MEDICATIONS,
+  WL_HIGH_RISK_STOPPED_PAST_THREE_MONTHS_QUESTION,
   WL_REPEAT_HIGH_RISK_QUESTION,
   WL_TRANSFER_HIGH_RISK_MED_IDS,
   wlHighRiskMedLabelsIncludingLegacy,
@@ -45,6 +47,23 @@ export function formatHighRiskMedDetailsForAnswers(
       duration: row?.duration.trim() ?? "",
     };
   });
+}
+
+export function formatHighRiskMedSelectionForAnswers(
+  selected: TransferHighRiskMedId[],
+): HighRiskMedDetail[] {
+  return selected.map((medId) => ({
+    medId,
+    name: TRANSFER_HIGH_RISK_MED_LABELS[medId] ?? medId,
+    condition: "",
+    duration: "",
+  }));
+}
+
+export function isHighRiskMedSelectionComplete(
+  selected: TransferHighRiskMedId[],
+): boolean {
+  return selected.length > 0;
 }
 
 export function isHighRiskMedDetailComplete(d: HighRiskMedDetail): boolean {

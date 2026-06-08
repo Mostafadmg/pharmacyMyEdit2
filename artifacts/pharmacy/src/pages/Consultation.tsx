@@ -35,7 +35,6 @@ import {
   emptySimpleRepeatFormState,
   isSimpleRepeatDeclarationComplete,
   isSimpleRepeatMonitoringComplete,
-  isSimpleRepeatScreeningComplete,
   simpleRepeatToAnswers,
   type SimpleRepeatFormState,
 } from "@/lib/simpleRepeatQuestionnaire";
@@ -324,7 +323,7 @@ export default function Consultation() {
   const [step, setStep] = useState<Step>(() =>
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("repeatOf")?.trim()
-      ? "REPEAT_SCREENING"
+      ? "REPEAT_MONITORING"
       : "ELIGIBILITY",
   );
   const [repeatForm, setRepeatForm] = useState<SimpleRepeatFormState>(
@@ -439,7 +438,7 @@ export default function Consultation() {
   // ── Step ordering helpers ────────────────────────────────────────────────
   const stepOrder = useMemo<Step[]>(() => {
     if (isSimpleRepeat) {
-      const list: Step[] = ["REPEAT_SCREENING", "REPEAT_MONITORING"];
+      const list: Step[] = ["REPEAT_MONITORING"];
       if (requiresPhoto) list.push("PHOTO");
       if (!isLoggedIn) list.push("ACCOUNT");
       list.push("GP", "REVIEW");
@@ -475,7 +474,7 @@ export default function Consultation() {
   }
 
   function goBack() {
-    if (step === "REPEAT_SCREENING") {
+    if (step === "REPEAT_MONITORING") {
       setLocation(`/conditions/${conditionId}`);
       return;
     }
@@ -890,25 +889,6 @@ export default function Consultation() {
           }}
           onNext={handleClinicalNext}
         />
-      )}
-
-      {step === "REPEAT_SCREENING" && (
-        <div className="flex flex-col gap-5">
-          <StepCard
-            title="Repeat order screening"
-            subtitle="Answer each question about changes since your last supply."
-          >
-            <SimpleRepeatQuestionnaire
-              section="screening"
-              state={repeatForm}
-              onChange={setRepeatForm}
-            />
-          </StepCard>
-          <ContinueButton
-            onClick={goNext}
-            disabled={!isSimpleRepeatScreeningComplete(repeatForm)}
-          />
-        </div>
       )}
 
       {step === "REPEAT_MONITORING" && (

@@ -1,3 +1,5 @@
+import { parseRepeatSideEffectSymptomsFromAnswers } from "@workspace/evidence-slots";
+
 export type ChangesSinceLastOrder =
   | "new_diagnosis"
   | "new_medication_allergy"
@@ -38,6 +40,8 @@ export type RepeatSafetySummary = {
     hospitalisation: string | null;
     vomitingDiarrhoea: string | null;
     injectionSite: string | null;
+    symptomsReported: string[];
+    details: string | null;
   };
   monitoring: {
     smokingStatus: string | null;
@@ -77,6 +81,8 @@ export function repeatSafetyFromAnswers(
     }
   }
 
+  const parsedSymptoms = parseRepeatSideEffectSymptomsFromAnswers(answers);
+
   return {
     isRepeat,
     changesSinceLast: formatChangesSinceLast(answers.changes_since_last_order),
@@ -97,6 +103,8 @@ export function repeatSafetyFromAnswers(
       hospitalisation: formatYesNo(answers.side_effects_hospitalisation),
       vomitingDiarrhoea: formatYesNo(answers.side_effects_vomiting_diarrhoea),
       injectionSite: formatYesNo(answers.side_effects_injection_site),
+      symptomsReported: parsedSymptoms.symptomsReported,
+      details: parsedSymptoms.details,
     },
     monitoring: {
       smokingStatus:
@@ -125,6 +133,8 @@ export function hasRepeatSafetyResponses(summary: RepeatSafetySummary): boolean 
     s.adherenceProblems != null ||
     s.pharmacistQuestions != null ||
     summary.sideEffects.any != null ||
+    summary.sideEffects.symptomsReported.length > 0 ||
+    summary.sideEffects.details != null ||
     summary.sideEffects.hospitalisation != null ||
     summary.monitoring.smokingStatus != null ||
     summary.monitoring.alcoholUnitsPerWeek != null ||

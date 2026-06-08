@@ -28,8 +28,18 @@ import {
   isPreviousBmiVerificationRequired,
   requirementLabel,
   wlBmiEligibilityAnswerFields,
+  emptyRepeatSideEffectSymptoms,
+  isRepeatSideEffectSymptomsComplete,
+  repeatSideEffectsToAnswers,
+  transferSideEffectsToAnswers,
+  isWlExcludingConditionCholecystectomyTiming,
+  wlCholecystectomyTimingLabel,
   type EvidenceSlotId,
+  type RepeatSideEffectSymptomsMap,
 } from "@workspace/evidence-slots";
+import { RepeatSideEffectsSection } from "@/components/consultation/RepeatSideEffectsSection";
+import { ClinicalTeamNotesSection } from "@/components/consultation/ClinicalTeamNotesSection";
+import { clinicalTeamNotesToAnswers } from "@/lib/clinicalTeamNotes";
 import { EvidenceCriteriaList } from "@/components/EvidenceCriteriaList";
 import { DateField } from "@/components/consultation/DateField";
 import {
@@ -38,41 +48,33 @@ import {
   type OtherHealthEntry,
   type LastInjectionTiming,
   type TransferWeightLossMedicationValue,
-  emptyMedicationEntry,
-  emptyHealthEntry,
   emptyTransferWeightLossMedication,
   TRANSFER_WL_PEN_OPTIONS,
-  CurrentMedicationsFollowUp,
-  OtherHealthHistoryFollowUp,
-  InjectablesFollowUp,
   TransferWeightLossMedicationPicker,
   transferWlMedicationToDetailsRow,
+  transferWlFirstTreatmentWeightKg,
   HighRiskMedicationsSection,
   WlContinuationSafetySection,
   ExcludingConditionsSection,
   TransferOtherMedicalConditionsSection,
+  historyAnswerFromExcludingConditions,
   isDiagnosedEntryComplete,
   isExcludingConditionsStepComplete,
-  isMedicationEntryComplete,
-  isHealthEntryComplete,
-  isLastInjectionComplete,
   isTransferWeightLossMedicationComplete,
   isTransferOtherMedicalConditionsComplete,
 } from "@/components/consultation/WeightLossClinicalForms";
 import {
-  formatHighRiskMedDetailsForAnswers,
-  isHighRiskMedDetailComplete,
+  formatHighRiskMedSelectionForAnswers,
+  isHighRiskMedSelectionComplete,
   TRANSFER_HIGH_RISK_MED_LABELS,
   type HighRiskMedDetail,
   type TransferHighRiskMedId,
 } from "@/lib/weightLossHighRiskMeds";
 import {
   MedicalHistorySection,
-  PmrLifestyleQuestionnaire,
 } from "@/components/consultation/PmrHealthQuestionnaireForms";
 import {
   emptyPmrHealthFormSlice,
-  isPmrLifestyleStepComplete,
   isMedicalHistoryComplete,
   pmrHealthToAnswers,
   type PmrHealthFormSlice,
@@ -82,7 +84,6 @@ import {
   emptySimpleRepeatFormState,
   isSimpleRepeatDeclarationComplete,
   isSimpleRepeatMonitoringComplete,
-  isSimpleRepeatScreeningComplete,
   simpleRepeatToAnswers,
   type SimpleRepeatFormState,
 } from "@/lib/simpleRepeatQuestionnaire";
@@ -93,7 +94,6 @@ import {
   resolveConsultationKind,
   showsContinuationBlock,
   showsTransferMedicationPicker,
-  showsNewPatientMedicationBlock,
   skipsTreatmentPlanPicker,
   isWlContinuationSafetyComplete,
   parsePriorSelectedPlan,
@@ -146,6 +146,7 @@ function emptyTransferQuestionnaireFields(): Pick<
   | "transferHighRiskMedsSelected"
   | "transferHighRiskMedDetails"
   | "transferSideEffects"
+  | "transferSideEffectSymptoms"
   | "transferSideEffectsDetails"
   | "transferHealthChangesSinceReview"
   | "transferHealthChangesSinceReviewDetails"
@@ -167,6 +168,7 @@ function emptyTransferQuestionnaireFields(): Pick<
     transferHighRiskMedsSelected: [],
     transferHighRiskMedDetails: [],
     transferSideEffects: null,
+    transferSideEffectSymptoms: emptyRepeatSideEffectSymptoms(),
     transferSideEffectsDetails: "",
     transferHealthChangesSinceReview: null,
     transferHealthChangesSinceReviewDetails: "",
@@ -185,15 +187,11 @@ function emptyTransferQuestionnaireFields(): Pick<
 }
 
 function isTransferHighRiskStepComplete(state: FormState): boolean {
-  return (
-    state.transferHighRiskMedsTaken !== null &&
-    (state.transferHighRiskMedsTaken === "no" ||
-      (state.transferHighRiskMedsSelected.length > 0 &&
-        formatHighRiskMedDetailsForAnswers(
-          state.transferHighRiskMedsSelected,
-          state.transferHighRiskMedDetails,
-        ).every(isHighRiskMedDetailComplete)))
-  );
+  if (state.transferHighRiskMedsTaken === null) return false;
+  if (state.transferHighRiskMedsTaken === "yes") {
+    return isHighRiskMedSelectionComplete(state.transferHighRiskMedsSelected);
+  }
+  return state.transferHighRiskMedsStoppedPastThreeMonths !== null;
 }
 
 function isSharedScreeningStepComplete(state: FormState): boolean {
@@ -206,7 +204,7 @@ function isSharedScreeningStepComplete(state: FormState): boolean {
 }
 
 const CONTACT_STEP = 2;
-const FLOW_TOTAL_STEPS = 14;
+const FLOW_TOTAL_STEPS = 16;
 
 function getPatientSession() {
   if (typeof window === "undefined") {
@@ -337,9 +335,8 @@ interface FormState {
   journey: JourneyStage | null;
   changesSinceLast: ChangesSinceLastOrder | null;
   repeatSideEffectsAny: YesNo | null;
-  repeatSideEffectsHospital: YesNo | null;
-  repeatSideEffectsVomiting: YesNo | null;
-  repeatSideEffectsInjection: YesNo | null;
+  repeatSideEffectSymptoms: RepeatSideEffectSymptomsMap;
+  repeatSideEffectsDetails: string;
   // Step 4 — Ethnicity
   ethnicity: Ethnicity | null;
   // Step 6 — PMR health & lifestyle / repeat monitoring
@@ -360,8 +357,6 @@ interface FormState {
   ageBracket: YesNo | null;
   pregnant: YesNo | null;
   glp1Allergy: YesNo | null;
-  thyroidHistory: YesNo | null;
-  eatingDisorder: YesNo | null;
   // Step 7 — Conditions
   excludingConditions: YesNo | null;
   diagnosedConditions: DiagnosedConditionEntry[];
@@ -380,8 +375,10 @@ interface FormState {
   transferWlMedication: TransferWeightLossMedicationValue;
   transferHighRiskMedsTaken: YesNo | null;
   transferHighRiskMedsSelected: TransferHighRiskMedId[];
+  transferHighRiskMedsStoppedPastThreeMonths: YesNo | null;
   transferHighRiskMedDetails: HighRiskMedDetail[];
   transferSideEffects: YesNo | null;
+  transferSideEffectSymptoms: RepeatSideEffectSymptomsMap;
   transferSideEffectsDetails: string;
   transferHealthChangesSinceReview: YesNo | null;
   transferHealthChangesSinceReviewDetails: string;
@@ -398,6 +395,7 @@ interface FormState {
   transferOtcSupplements: YesNo | null;
   transferOtcSupplementsDetails: string;
   transferPatientDeclaration: boolean;
+  clinicalTeamNotes: string;
   // Step 9 — Agreement
   agreement: YesNo | null;
   // Step 10 — GP
@@ -440,6 +438,15 @@ function prescriptionItemsFromPlan(
   });
 }
 
+function isSelectedPlanComplete(
+  plan: FormState["selectedPlan"],
+): boolean {
+  if (!plan) return false;
+  const need =
+    plan.type === "single" ? 1 : plan.type === "two-pen" ? 2 : 3;
+  return plan.penIds.length === need;
+}
+
 const initialState: FormState = {
   fullName: "",
   email: "",
@@ -447,9 +454,8 @@ const initialState: FormState = {
   journey: null,
   changesSinceLast: null,
   repeatSideEffectsAny: null,
-  repeatSideEffectsHospital: null,
-  repeatSideEffectsVomiting: null,
-  repeatSideEffectsInjection: null,
+  repeatSideEffectSymptoms: emptyRepeatSideEffectSymptoms(),
+  repeatSideEffectsDetails: "",
   ethnicity: null,
   pmrHealth: emptyPmrHealthFormSlice(),
   simpleRepeat: emptySimpleRepeatFormState(),
@@ -466,15 +472,13 @@ const initialState: FormState = {
   ageBracket: null,
   pregnant: null,
   glp1Allergy: null,
-  thyroidHistory: null,
-  eatingDisorder: null,
   excludingConditions: null,
   diagnosedConditions: [],
   diabetesMedsOther: null,
   takingMeds: null,
-  currentMedications: [emptyMedicationEntry()],
+  currentMedications: [],
   otherConditions: null,
-  otherHealthHistory: [emptyHealthEntry()],
+  otherHealthHistory: [],
   oralContraceptive: null,
   newToInjectables: null,
   changingProvider: null,
@@ -483,8 +487,10 @@ const initialState: FormState = {
   transferWlMedication: emptyTransferWeightLossMedication(),
   transferHighRiskMedsTaken: null,
   transferHighRiskMedsSelected: [],
+  transferHighRiskMedsStoppedPastThreeMonths: null,
   transferHighRiskMedDetails: [],
   transferSideEffects: null,
+  transferSideEffectSymptoms: emptyRepeatSideEffectSymptoms(),
   transferSideEffectsDetails: "",
   transferHealthChangesSinceReview: null,
   transferHealthChangesSinceReviewDetails: "",
@@ -500,6 +506,7 @@ const initialState: FormState = {
   transferOtcSupplements: null,
   transferOtcSupplementsDetails: "",
   transferPatientDeclaration: false,
+  clinicalTeamNotes: "",
   agreement: null,
   gpConsent: null,
   gpName: "",
@@ -908,7 +915,9 @@ export default function InjectableWeightLossConsultation() {
   // Clinical hard-stops unrelated to BMI — these always block online prescribing.
   const clinicalHardStops = useMemo(() => {
     const reasons: string[] = [];
-    if (state.ageBracket === "no" || (ageYears !== null && (ageYears < 18 || ageYears > 75))) reasons.push("Outside the 18–75 age range for online prescribing.");
+    if (ageYears !== null && (ageYears < 18 || ageYears > 75)) {
+      reasons.push("Outside the 18–75 age range for online prescribing.");
+    }
     if (
       asksFemaleHealthQuestions(state.assignedSex) &&
       state.pregnant === "yes"
@@ -918,10 +927,33 @@ export default function InjectableWeightLossConsultation() {
       );
     }
     if (state.glp1Allergy === "yes") reasons.push("Previous allergic reaction to GLP-1 medicines.");
-    if (state.thyroidHistory === "yes") reasons.push("Personal or family history of medullary thyroid cancer or MEN2.");
-    if (state.eatingDisorder === "yes") reasons.push("History of an eating disorder — requires in-person specialist review.");
+    if (
+      historyAnswerFromExcludingConditions(
+        state.excludingConditions,
+        state.diagnosedConditions,
+        "mtc_or_men2",
+      ) === "yes"
+    ) {
+      reasons.push("Personal or family history of medullary thyroid cancer or MEN2.");
+    }
+    if (
+      historyAnswerFromExcludingConditions(
+        state.excludingConditions,
+        state.diagnosedConditions,
+        "eating_disorder",
+      ) === "yes"
+    ) {
+      reasons.push("History of an eating disorder — requires in-person specialist review.");
+    }
     return reasons;
-  }, [state.ageBracket, ageYears, state.assignedSex, state.pregnant, state.glp1Allergy, state.thyroidHistory, state.eatingDisorder]);
+  }, [
+    ageYears,
+    state.assignedSex,
+    state.pregnant,
+    state.glp1Allergy,
+    state.excludingConditions,
+    state.diagnosedConditions,
+  ]);
 
   // New-starter BMI band classification ("lowest threshold wins").
   const newStarterEligibility: NewStarterEligibility = useMemo(
@@ -1012,13 +1044,13 @@ export default function InjectableWeightLossConsultation() {
   const next = () => {
     // Clinical hard-stops (age, pregnancy, allergy, thyroid, eating disorder) —
     // always block, regardless of journey.
-    if ((step === 7 || step === 8) && clinicalHardStops.length > 0) {
+    if ((step === 8 || step === 9) && clinicalHardStops.length > 0) {
       setRejectionMessage(null);
       go(99); // ineligible screen
       return;
     }
-    // New-starter BMI band logic runs once comorbidity is known (after step 8).
-    if (step === 8 && consultationType === "new_start") {
+    // New-starter BMI band logic runs once comorbidity is known (after step 9).
+    if (step === 9 && consultationType === "new_start") {
       if (newStarterEligibility.status === "reject_low_bmi") {
         setRejectionMessage(newStarterEligibility.message);
         go(99);
@@ -1030,20 +1062,20 @@ export default function InjectableWeightLossConsultation() {
       }
     }
     let n = stepAfter(step, isLoggedIn);
-    // Repeat: medication/plan come from prior order — skip pen picker (step 13).
+    // Repeat: medication/plan come from prior order — skip pen picker (step 14).
     if (
-      n === 13 &&
-      skipsTreatmentPlanPicker(consultationType) &&
-      state.selectedPlan
+      n === 15 &&
+      isSelectedPlanComplete(state.selectedPlan) &&
+      skipsTreatmentPlanPicker(consultationType)
     ) {
-      n = stepAfter(13, isLoggedIn);
+      n = stepAfter(15, isLoggedIn);
     }
     go(n);
   };
   const back = () => {
     if (step === 99 || step === 98) {
       setRejectionMessage(null);
-      go(8);
+      go(9);
       return;
     }
     if (step > 1) {
@@ -1173,35 +1205,30 @@ export default function InjectableWeightLossConsultation() {
         return Boolean(state.dob) && heightOk && weightOk;
       }
       case 6:
-        return (
-          isMedicalHistoryComplete(state.pmrHealth) &&
-          isTransferHighRiskStepComplete(state) &&
-          isPmrLifestyleStepComplete(state.pmrHealth)
-        );
-      case 7: {
-        const pregnancyOk =
+        return isMedicalHistoryComplete(state.pmrHealth);
+      case 7:
+        return isTransferHighRiskStepComplete(state);
+      case 8: {
+        const femaleHealthOk =
           !asksFemaleHealthQuestions(state.assignedSex) ||
-          state.pregnant !== null;
+          (state.pregnant !== null && state.oralContraceptive !== null);
         return (
           state.assignedSex !== null &&
-          state.ageBracket !== null &&
-          pregnancyOk &&
-          state.glp1Allergy !== null &&
-          state.thyroidHistory !== null &&
-          state.eatingDisorder !== null
+          femaleHealthOk &&
+          state.glp1Allergy !== null
         );
       }
-      case 8:
+      case 9:
         return (
           isExcludingConditionsStepComplete(
             state.excludingConditions,
             state.diagnosedConditions,
           ) && isSharedScreeningStepComplete(state)
         );
-      case 9: {
+      case 10: {
         const continuationOk = isWlContinuationSafetyComplete({
           sideEffects: state.transferSideEffects,
-          sideEffectsDetails: state.transferSideEffectsDetails,
+          sideEffectSymptoms: state.transferSideEffectSymptoms,
           hospitalised: state.transferHospitalisedWlMedication,
           hospitalisationDetails: state.transferHospitalisationDetails,
           changesSinceReview: state.transferHealthChangesSinceReview,
@@ -1211,6 +1238,28 @@ export default function InjectableWeightLossConsultation() {
           requireChanges: showsContinuationBlock(consultationType),
         });
 
+        if (consultationType === "simple_repeat") {
+          if (!continuationOk) return false;
+          if (!state.repeatSideEffectsAny) return false;
+          if (state.repeatSideEffectsAny === "yes") {
+            return isRepeatSideEffectSymptomsComplete(
+              state.repeatSideEffectSymptoms,
+            );
+          }
+          return true;
+        }
+
+        if (state.journey === "new") {
+          if (state.newToInjectables === null) return false;
+          if (state.newToInjectables === "yes") {
+            return true;
+          }
+          return (
+            continuationOk &&
+            isTransferWeightLossMedicationComplete(state.transferWlMedication)
+          );
+        }
+
         if (consultationType === "transfer") {
           return (
             continuationOk &&
@@ -1218,50 +1267,11 @@ export default function InjectableWeightLossConsultation() {
           );
         }
 
-        if (consultationType === "simple_repeat") {
-          if (!continuationOk) return false;
-          if (!isSimpleRepeatScreeningComplete(state.simpleRepeat)) return false;
-          if (!state.repeatSideEffectsAny) return false;
-          if (state.repeatSideEffectsAny === "yes") {
-            return (
-              state.repeatSideEffectsHospital !== null &&
-              state.repeatSideEffectsVomiting !== null &&
-              state.repeatSideEffectsInjection !== null
-            );
-          }
-          return true;
-        }
-
-        const contraceptionOk =
-          !asksFemaleHealthQuestions(state.assignedSex) ||
-          state.oralContraceptive !== null;
-        const medsOk =
-          state.takingMeds !== "yes" ||
-          (state.currentMedications.length > 0 &&
-            state.currentMedications.every(isMedicationEntryComplete));
-        const healthOk =
-          state.otherConditions !== "yes" ||
-          (state.otherHealthHistory.length > 0 &&
-            state.otherHealthHistory.every(isHealthEntryComplete));
-        const injectablesOk =
-          state.newToInjectables === "yes" ||
-          (state.changingProvider !== null &&
-            (state.changingProvider === "yes" ||
-              isLastInjectionComplete(
-                state.lastInjectionTiming,
-                state.lastInjectionDate,
-              )));
-        return (
-          state.takingMeds !== null &&
-          medsOk &&
-          state.otherConditions !== null &&
-          healthOk &&
-          contraceptionOk &&
-          state.newToInjectables !== null &&
-          injectablesOk
-        );
+        return false;
       }
-      case 10:
+      case 11:
+        return true;
+      case 12:
         if (isExplicitTransferJourney) {
           return (
             state.agreement === "yes" && state.transferPatientDeclaration
@@ -1274,34 +1284,15 @@ export default function InjectableWeightLossConsultation() {
           );
         }
         return state.agreement === "yes";
-      case 11:
+      case 13:
         return state.gpConsent !== null
           && (state.gpConsent === "no" || (state.gpName.trim().length > 0 && state.gpAddress.trim().length > 0));
-      case 12:
+      case 14:
         return true;
-      case 13: {
-        if (skipsTreatmentPlanPicker(consultationType) && state.selectedPlan) {
-          const need =
-            state.selectedPlan.type === "single"
-              ? 1
-              : state.selectedPlan.type === "two-pen"
-                ? 2
-                : 3;
-          return state.selectedPlan.penIds.length === need;
-        }
-        if (!state.selectedPlan) return false;
-        const need = state.selectedPlan.type === "single" ? 1 : state.selectedPlan.type === "two-pen" ? 2 : 3;
-        return state.selectedPlan.penIds.length === need;
-      }
-      case 14: {
-        if (!state.selectedPlan) return false;
-        const need =
-          state.selectedPlan.type === "single"
-            ? 1
-            : state.selectedPlan.type === "two-pen"
-              ? 2
-              : 3;
-        const planOk = state.selectedPlan.penIds.length === need;
+      case 15:
+        return isSelectedPlanComplete(state.selectedPlan);
+      case 16: {
+        const planOk = isSelectedPlanComplete(state.selectedPlan);
         if (!planOk) return false;
         if (isLoggedIn) return true;
         return (
@@ -1340,34 +1331,25 @@ export default function InjectableWeightLossConsultation() {
             e.onMedication === "yes"
               ? e.medications.map((m) => m.name.trim()).filter(Boolean)
               : [];
+          const timingLabel = isWlExcludingConditionCholecystectomyTiming(
+            e.catalogueId,
+          )
+            ? wlCholecystectomyTimingLabel(e.howLongHad) ?? e.howLongHad.trim()
+            : e.howLongHad.trim();
           return {
             catalogue_id: e.catalogueId ?? null,
             condition: e.condition.trim(),
-            diagnosed_when: e.howLongHad.trim(),
-            how_long_had: e.howLongHad.trim(),
+            diagnosed_when: timingLabel,
+            how_long_had: timingLabel,
+            ...(isWlExcludingConditionCholecystectomyTiming(e.catalogueId)
+              ? { cholecystectomy_timing: e.howLongHad }
+              : {}),
             on_medication: e.onMedication,
             medication_names: medNames,
             medication_name:
               medNames.length > 0 ? medNames.join(", ") : null,
           };
         });
-
-      const formatMeds = state.currentMedications
-        .filter((e) => e.medication.trim())
-        .map((e) => ({
-          medication: e.medication.trim(),
-          for_condition: e.forCondition.trim(),
-          notes: e.reason.trim() || null,
-        }));
-
-      const formatHealth = state.otherHealthHistory
-        .filter((e) => e.condition.trim())
-        .map((e) => ({
-          condition: e.condition.trim(),
-          when: e.howLongAgo.trim(),
-          how_long_ago: e.howLongAgo.trim(),
-          outcome: e.outcome.trim(),
-        }));
 
       const transferWlRow = transferWlMedicationToDetailsRow(
         state.transferWlMedication,
@@ -1389,16 +1371,13 @@ export default function InjectableWeightLossConsultation() {
 
       const formatHighRiskMeds =
         state.transferHighRiskMedsTaken === "yes"
-          ? formatHighRiskMedDetailsForAnswers(
+          ? formatHighRiskMedSelectionForAnswers(
               state.transferHighRiskMedsSelected,
-              state.transferHighRiskMedDetails,
             ).map((d) => ({
               med_id: d.medId,
               medication:
                 TRANSFER_HIGH_RISK_MED_LABELS[d.medId] ??
                 (d.name.trim() || d.medId),
-              condition: d.condition.trim(),
-              duration: d.duration.trim(),
             }))
           : [];
 
@@ -1417,18 +1396,26 @@ export default function InjectableWeightLossConsultation() {
             : null,
         bmi: bmi ? Number(bmi.toFixed(1)) : null,
         assigned_sex: state.assignedSex,
-        age_18_75: state.ageBracket,
+        age_18_75: null,
         pregnant_or_breastfeeding: state.pregnant,
         glp1_allergy_history: state.glp1Allergy,
-        mtc_or_men2_history: state.thyroidHistory,
-        eating_disorder_history: state.eatingDisorder,
+        mtc_or_men2_history: historyAnswerFromExcludingConditions(
+          state.excludingConditions,
+          state.diagnosedConditions,
+          "mtc_or_men2",
+        ),
+        eating_disorder_history: historyAnswerFromExcludingConditions(
+          state.excludingConditions,
+          state.diagnosedConditions,
+          "eating_disorder",
+        ),
         excluding_conditions: state.excludingConditions,
         diagnosed_conditions_details: formatDiagnosed,
         diabetes_meds_beyond_metformin: state.diabetesMedsOther,
-        currently_taking_meds: state.takingMeds,
-        current_medications_details: formatMeds,
-        other_health_conditions: state.otherConditions,
-        other_health_conditions_details: formatHealth,
+        currently_taking_meds: null,
+        current_medications_details: null,
+        other_health_conditions: null,
+        other_health_conditions_details: null,
         oral_contraceptive: state.oralContraceptive,
         new_to_injectables: state.newToInjectables,
         changing_from_provider: state.changingProvider,
@@ -1452,20 +1439,24 @@ export default function InjectableWeightLossConsultation() {
             !patientDocs["supporting-evidence"],
         },
         consent_agreement: state.agreement,
+        ...clinicalTeamNotesToAnswers(state.clinicalTeamNotes),
         gp_consent: state.gpConsent,
         gp_name: state.gpName,
         gp_address: state.gpAddress,
         ...(isRepeatFlow
           ? {
               ...simpleRepeatToAnswers(state.simpleRepeat),
-              side_effects_since_last: state.repeatSideEffectsAny,
-              side_effects_hospitalisation: state.repeatSideEffectsHospital,
-              side_effects_vomiting_diarrhoea: state.repeatSideEffectsVomiting,
-              side_effects_injection_site: state.repeatSideEffectsInjection,
+              ...repeatSideEffectsToAnswers(
+                state.repeatSideEffectsAny,
+                state.repeatSideEffectSymptoms,
+                state.repeatSideEffectsDetails,
+              ),
             }
           : {}),
         ...pmrHealthToAnswers(state.pmrHealth),
         high_risk_medications_taken: state.transferHighRiskMedsTaken,
+        high_risk_medications_stopped_past_three_months:
+          state.transferHighRiskMedsStoppedPastThreeMonths,
         high_risk_medications_details: formatHighRiskMeds,
         transfer_allergies: state.transferAllergies,
         transfer_allergies_details:
@@ -1504,6 +1495,28 @@ export default function InjectableWeightLossConsultation() {
                 state.transferWlMedication.strengthPenId || null,
               transfer_wl_last_injection:
                 state.transferWlMedication.lastInjectionDate.trim() || null,
+              transfer_wl_first_treatment_weight_kg:
+                transferWlFirstTreatmentWeightKg(state.transferWlMedication),
+              transfer_wl_first_treatment_weight_unit:
+                state.transferWlMedication.firstTreatmentWeightUnit,
+              transfer_wl_first_treatment_weight_kg_input:
+                state.transferWlMedication.firstTreatmentWeightUnit === "kg"
+                  ? state.transferWlMedication.firstTreatmentWeightKg.trim() ||
+                    null
+                  : null,
+              transfer_wl_first_treatment_weight_st:
+                state.transferWlMedication.firstTreatmentWeightUnit === "stlbs"
+                  ? state.transferWlMedication.firstTreatmentWeightSt.trim() ||
+                    null
+                  : null,
+              transfer_wl_first_treatment_weight_lbs:
+                state.transferWlMedication.firstTreatmentWeightUnit === "stlbs"
+                  ? state.transferWlMedication.firstTreatmentWeightLbs.trim() ||
+                    null
+                  : null,
+              transfer_wl_first_treatment_start_date:
+                state.transferWlMedication.firstTreatmentStartDate.trim() ||
+                null,
               transfer_current_medications_details: formatTransferMeds,
               last_injection_timing: "exact_date",
               last_injection_date:
@@ -1520,11 +1533,11 @@ export default function InjectableWeightLossConsultation() {
           : {}),
         ...(showsContinuationBlock(submitConsultationType)
           ? {
-              transfer_side_effects: state.transferSideEffects,
-              transfer_side_effects_details:
-                state.transferSideEffects === "yes"
-                  ? state.transferSideEffectsDetails.trim()
-                  : null,
+              ...transferSideEffectsToAnswers(
+                state.transferSideEffects,
+                state.transferSideEffectSymptoms,
+                state.transferSideEffectsDetails,
+              ),
               transfer_hospitalised_wl_medication:
                 state.transferHospitalisedWlMedication,
               transfer_hospitalisation_details:
@@ -1570,7 +1583,7 @@ export default function InjectableWeightLossConsultation() {
           variant: "destructive",
         });
         setSubmitting(false);
-        go(13);
+        go(15);
         return;
       }
 
@@ -1623,19 +1636,10 @@ export default function InjectableWeightLossConsultation() {
                     return inj ? `${base} — last injection ${inj}` : base;
                   })
                   .join("; ")
-              : formatMeds.length > 0
-                ? formatMeds
-                    .map((m) => `${m.medication} (${m.for_condition})`)
-                    .join("; ")
-                : state.takingMeds === "yes"
-                  ? "Medications reported — see consultation answers"
-                  : "None",
+              : "None",
           medicalHistory:
-            [...formatDiagnosed, ...formatHealth].length > 0
-              ? [
-                  ...formatDiagnosed.map((d) => d.condition),
-                  ...formatHealth.map((h) => h.condition),
-                ].join("; ")
+            formatDiagnosed.length > 0
+              ? formatDiagnosed.map((d) => d.condition).join("; ")
               : "None reported",
           answers: clinicalAnswers,
           hasPhoto: Object.values(patientDocs).some(Boolean),
@@ -2107,70 +2111,84 @@ export default function InjectableWeightLossConsultation() {
             </StepShell>
           )}
 
-          {/* Step 6 — PMR basics for every journey (new_start, transfer, simple_repeat):
-              medical history, high-risk meds, lifestyle — same checklist for all paths. */}
+          {/* Step 6 — PMR medical history (all journeys). */}
           {step === 6 && (
             <StepShell
               step={flowStepNumber(6, isLoggedIn)}
               totalSteps={shellTotal}
-              label="Health & lifestyle"
+              label="Medical history"
               icon={<ClipboardCheck className="w-6 h-6" />}
-              title="Health & lifestyle"
-              subtitle="A few standard questions help our pharmacists review your safety — the same information we keep on your patient record."
+              title="Medical history"
+              subtitle="Tell us about any conditions you have been diagnosed with — the same information we keep on your patient record."
               onBack={back}
               onContinue={next}
               canContinue={canContinue}
             >
-              <div className="space-y-5">
-                <SectionCard>
-                  <MedicalHistorySection
-                    slice={state.pmrHealth}
-                    onChange={(pmrHealth) =>
-                      setState((s) => ({ ...s, pmrHealth }))
-                    }
-                  />
-                </SectionCard>
-                <SectionCard>
-                  <HighRiskMedicationsSection
-                    taken={state.transferHighRiskMedsTaken}
-                    onTakenChange={(v) =>
-                      setState((s) => ({
-                        ...s,
-                        transferHighRiskMedsTaken: v,
-                        ...(v === "no"
-                          ? {
-                              transferHighRiskMedsSelected: [],
-                              transferHighRiskMedDetails: [],
-                            }
-                          : {}),
-                      }))
-                    }
-                    selected={state.transferHighRiskMedsSelected}
-                    onSelectedChange={(transferHighRiskMedsSelected) =>
-                      setState((s) => ({ ...s, transferHighRiskMedsSelected }))
-                    }
-                    details={state.transferHighRiskMedDetails}
-                    onDetailsChange={(transferHighRiskMedDetails) =>
-                      setState((s) => ({ ...s, transferHighRiskMedDetails }))
-                    }
-                  />
-                </SectionCard>
-                <SectionCard>
-                  <PmrLifestyleQuestionnaire
-                    slice={state.pmrHealth}
-                    onChange={(pmrHealth) =>
-                      setState((s) => ({ ...s, pmrHealth }))
-                    }
-                  />
-                </SectionCard>
-              </div>
+              <SectionCard>
+                <MedicalHistorySection
+                  slice={state.pmrHealth}
+                  onChange={(pmrHealth) =>
+                    setState((s) => ({ ...s, pmrHealth }))
+                  }
+                />
+              </SectionCard>
             </StepShell>
           )}
 
-          {/* ───── Step 7 — Your Health */}
+          {/* Step 7 — High-risk medications (all journeys). */}
           {step === 7 && (
             <StepShell
               step={flowStepNumber(7, isLoggedIn)}
+              totalSteps={shellTotal}
+              label="Medications"
+              icon={<PillIcon className="w-6 h-6" />}
+              title="High-risk medications"
+              subtitle="Some medicines need extra review before we can prescribe weight-loss treatment."
+              onBack={back}
+              onContinue={next}
+              canContinue={canContinue}
+            >
+              <SectionCard>
+                <HighRiskMedicationsSection
+                  taken={state.transferHighRiskMedsTaken}
+                  onTakenChange={(v) =>
+                    setState((s) => ({
+                      ...s,
+                      transferHighRiskMedsTaken: v,
+                      ...(v === "no"
+                        ? {
+                            transferHighRiskMedsSelected: [],
+                            transferHighRiskMedDetails: [],
+                          }
+                        : {
+                            transferHighRiskMedsStoppedPastThreeMonths: null,
+                          }),
+                    }))
+                  }
+                  selected={state.transferHighRiskMedsSelected}
+                  onSelectedChange={(transferHighRiskMedsSelected) =>
+                    setState((s) => ({ ...s, transferHighRiskMedsSelected }))
+                  }
+                  stoppedPastThreeMonths={
+                    state.transferHighRiskMedsStoppedPastThreeMonths
+                  }
+                  onStoppedPastThreeMonthsChange={(
+                    transferHighRiskMedsStoppedPastThreeMonths,
+                  ) =>
+                    setState((s) => ({
+                      ...s,
+                      transferHighRiskMedsStoppedPastThreeMonths,
+                    }))
+                  }
+                />
+              </SectionCard>
+            </StepShell>
+          )}
+
+          {/* ───── Step 8 — Your Health */}
+          {step === 8 && (
+            <StepShell
+              step={flowStepNumber(8, isLoggedIn)}
               totalSteps={shellTotal}
               label="Your Health"
               icon={<Heart className="w-6 h-6" />}
@@ -2202,26 +2220,21 @@ export default function InjectableWeightLossConsultation() {
               </SectionCard>
 
               {[
-                { key: "ageBracket", q: "Are you aged between 18 and 75? *" },
                 ...(asksFemaleHealthQuestions(state.assignedSex)
                   ? [
                       {
                         key: "pregnant",
                         q: "Are you currently pregnant, breastfeeding, or planning to become pregnant or breastfeed while using this medication? *",
                       },
+                      {
+                        key: "oralContraceptive",
+                        q: "Are you taking an oral contraceptive? *",
+                      },
                     ]
                   : []),
                 {
                   key: "glp1Allergy",
                   q: "Have you ever had an allergic reaction to Wegovy, Mounjaro, Ozempic, Saxenda, or other GLP-1 medications? *",
-                },
-                {
-                  key: "thyroidHistory",
-                  q: "Do you or a family member have a history of medullary thyroid cancer or MEN2? *",
-                },
-                {
-                  key: "eatingDisorder",
-                  q: "Have you ever had an eating disorder (e.g. anorexia, bulimia)? *",
                 },
               ].map(({ key, q }) => (
                 <SectionCard key={key}>
@@ -2236,10 +2249,10 @@ export default function InjectableWeightLossConsultation() {
             </StepShell>
           )}
 
-          {/* ───── Step 8 — Medical Conditions */}
-          {step === 8 && (
+          {/* ───── Step 9 — Medical Conditions */}
+          {step === 9 && (
             <StepShell
-              step={flowStepNumber(8, isLoggedIn)}
+              step={flowStepNumber(9, isLoggedIn)}
               totalSteps={shellTotal}
               label="Medical Conditions"
               icon={<ShieldCheck className="w-6 h-6" />}
@@ -2310,10 +2323,10 @@ export default function InjectableWeightLossConsultation() {
             </StepShell>
           )}
 
-          {/* ───── Step 9 — Branch: continuation (transfer/repeat) or new-patient medication */}
-          {step === 9 && (
+          {/* ───── Step 10 — Branch: continuation (transfer/repeat) or new-patient medication */}
+          {step === 10 && (
             <StepShell
-              step={flowStepNumber(9, isLoggedIn)}
+              step={flowStepNumber(10, isLoggedIn)}
               totalSteps={shellTotal}
               label="Medication"
               icon={<PillIcon className="w-6 h-6" />}
@@ -2325,11 +2338,245 @@ export default function InjectableWeightLossConsultation() {
               subtitle={
                 showsContinuationBlock(consultationType)
                   ? "Since your last review — then confirm your current treatment where needed."
-                  : "Tell us about your current and past medications."
+                  : state.journey === "new"
+                    ? "Tell us whether you are new to injectable weight-loss medications."
+                    : "Tell us about your current and past medications."
               }
               onBack={back} onContinue={next} canContinue={canContinue}
             >
-              {showsTransferMedicationPicker(consultationType) ? (
+              {consultationType === "simple_repeat" ? (
+                <>
+                  {state.repeatMedicationLocked && wlMedicationLabel(state.transferWlMedication) && (
+                    <SectionCard>
+                      <p className="font-semibold text-secondary mb-1">
+                        Your current treatment
+                      </p>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        We already have this from your previous order — you do not need to
+                        choose a product again.
+                      </p>
+                      <p
+                        className="text-lg font-bold text-[#0E3D2D]"
+                        data-testid="repeat-known-medication"
+                      >
+                        {wlMedicationLabel(state.transferWlMedication)}
+                      </p>
+                    </SectionCard>
+                  )}
+
+                  <SectionCard>
+                    <WlContinuationSafetySection
+                      sideEffects={state.transferSideEffects}
+                      onSideEffectsChange={(v) =>
+                        setState((s) => ({
+                          ...s,
+                          transferSideEffects: v,
+                          ...(v === "no"
+                            ? {
+                                transferSideEffectsDetails: "",
+                                transferSideEffectSymptoms:
+                                  emptyRepeatSideEffectSymptoms(),
+                              }
+                            : {}),
+                        }))
+                      }
+                      sideEffectSymptoms={state.transferSideEffectSymptoms}
+                      onSideEffectSymptomsChange={(transferSideEffectSymptoms) =>
+                        setState((s) => ({ ...s, transferSideEffectSymptoms }))
+                      }
+                      sideEffectsDetails={state.transferSideEffectsDetails}
+                      onSideEffectsDetailsChange={(transferSideEffectsDetails) =>
+                        update("transferSideEffectsDetails", transferSideEffectsDetails)
+                      }
+                      hospitalised={state.transferHospitalisedWlMedication}
+                      onHospitalisedChange={(v) =>
+                        setState((s) => ({
+                          ...s,
+                          transferHospitalisedWlMedication: v,
+                          ...(v === "no"
+                            ? { transferHospitalisationDetails: "" }
+                            : {}),
+                        }))
+                      }
+                      hospitalisationDetails={state.transferHospitalisationDetails}
+                      onHospitalisationDetailsChange={(transferHospitalisationDetails) =>
+                        update(
+                          "transferHospitalisationDetails",
+                          transferHospitalisationDetails,
+                        )
+                      }
+                      changesSinceReview={state.transferHealthChangesSinceReview}
+                      onChangesSinceReviewChange={(v) =>
+                        setState((s) => ({
+                          ...s,
+                          transferHealthChangesSinceReview: v,
+                          ...(v === "no"
+                            ? { transferHealthChangesSinceReviewDetails: "" }
+                            : {}),
+                        }))
+                      }
+                      changesSinceReviewDetails={
+                        state.transferHealthChangesSinceReviewDetails
+                      }
+                      onChangesSinceReviewDetailsChange={(
+                        transferHealthChangesSinceReviewDetails,
+                      ) =>
+                        update(
+                          "transferHealthChangesSinceReviewDetails",
+                          transferHealthChangesSinceReviewDetails,
+                        )
+                      }
+                      showSideEffects={false}
+                    />
+                  </SectionCard>
+
+                  <RepeatSideEffectsSection
+                    anySideEffects={state.repeatSideEffectsAny}
+                    onAnySideEffectsChange={(repeatSideEffectsAny) =>
+                      setState((s) => ({
+                        ...s,
+                        repeatSideEffectsAny,
+                        ...(repeatSideEffectsAny === "no"
+                          ? {
+                              repeatSideEffectSymptoms:
+                                emptyRepeatSideEffectSymptoms(),
+                              repeatSideEffectsDetails: "",
+                            }
+                          : {}),
+                      }))
+                    }
+                    symptoms={state.repeatSideEffectSymptoms}
+                    onSymptomsChange={(repeatSideEffectSymptoms) =>
+                      setState((s) => ({ ...s, repeatSideEffectSymptoms }))
+                    }
+                    details={state.repeatSideEffectsDetails}
+                    onDetailsChange={(repeatSideEffectsDetails) =>
+                      update("repeatSideEffectsDetails", repeatSideEffectsDetails)
+                    }
+                  />
+                </>
+              ) : state.journey === "new" ? (
+                <>
+                  <SectionCard>
+                    <p className="font-semibold text-secondary mb-3">
+                      Are you new to using injectable weight-loss medications? *
+                    </p>
+                    <YesNoChoice
+                      value={state.newToInjectables}
+                      onChange={(v) => {
+                        setState((s) => ({
+                          ...s,
+                          newToInjectables: v,
+                          ...(v === "yes"
+                            ? {
+                                changingProvider: null,
+                                lastInjectionTiming: null,
+                                lastInjectionDate: "",
+                                selectedPlan: null,
+                                ...emptyTransferQuestionnaireFields(),
+                              }
+                            : {
+                                changingProvider: "yes",
+                                lastInjectionTiming: null,
+                                lastInjectionDate: "",
+                                selectedPlan: null,
+                              }),
+                        }));
+                      }}
+                      testIdPrefix="newToInjectables"
+                    />
+                  </SectionCard>
+
+                  {state.newToInjectables === "no" && (
+                    <>
+                      <SectionCard>
+                        <WlContinuationSafetySection
+                          sideEffects={state.transferSideEffects}
+                          onSideEffectsChange={(v) =>
+                            setState((s) => ({
+                              ...s,
+                              transferSideEffects: v,
+                              ...(v === "no"
+                                ? {
+                                    transferSideEffectsDetails: "",
+                                    transferSideEffectSymptoms:
+                                      emptyRepeatSideEffectSymptoms(),
+                                  }
+                                : {}),
+                            }))
+                          }
+                          sideEffectSymptoms={state.transferSideEffectSymptoms}
+                          onSideEffectSymptomsChange={(transferSideEffectSymptoms) =>
+                            setState((s) => ({ ...s, transferSideEffectSymptoms }))
+                          }
+                          sideEffectsDetails={state.transferSideEffectsDetails}
+                          onSideEffectsDetailsChange={(transferSideEffectsDetails) =>
+                            update(
+                              "transferSideEffectsDetails",
+                              transferSideEffectsDetails,
+                            )
+                          }
+                          hospitalised={state.transferHospitalisedWlMedication}
+                          onHospitalisedChange={(v) =>
+                            setState((s) => ({
+                              ...s,
+                              transferHospitalisedWlMedication: v,
+                              ...(v === "no"
+                                ? { transferHospitalisationDetails: "" }
+                                : {}),
+                            }))
+                          }
+                          hospitalisationDetails={state.transferHospitalisationDetails}
+                          onHospitalisationDetailsChange={(
+                            transferHospitalisationDetails,
+                          ) =>
+                            update(
+                              "transferHospitalisationDetails",
+                              transferHospitalisationDetails,
+                            )
+                          }
+                          changesSinceReview={state.transferHealthChangesSinceReview}
+                          onChangesSinceReviewChange={(v) =>
+                            setState((s) => ({
+                              ...s,
+                              transferHealthChangesSinceReview: v,
+                              ...(v === "no"
+                                ? { transferHealthChangesSinceReviewDetails: "" }
+                                : {}),
+                            }))
+                          }
+                          changesSinceReviewDetails={
+                            state.transferHealthChangesSinceReviewDetails
+                          }
+                          onChangesSinceReviewDetailsChange={(
+                            transferHealthChangesSinceReviewDetails,
+                          ) =>
+                            update(
+                              "transferHealthChangesSinceReviewDetails",
+                              transferHealthChangesSinceReviewDetails,
+                            )
+                          }
+                        />
+                      </SectionCard>
+
+                      <SectionCard>
+                        <p className="font-semibold text-secondary mb-1">
+                          What weight loss injection or medication are you currently taking from your previous provider? *
+                        </p>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Choose Wegovy or Mounjaro, your strength, and when your last (or next) dose is due.
+                        </p>
+                        <TransferWeightLossMedicationPicker
+                          value={state.transferWlMedication}
+                          onChange={(transferWlMedication) =>
+                            setState((s) => ({ ...s, transferWlMedication }))
+                          }
+                        />
+                      </SectionCard>
+                    </>
+                  )}
+                </>
+              ) : showsTransferMedicationPicker(consultationType) ? (
                 <>
                   <SectionCard>
                     <WlContinuationSafetySection
@@ -2339,9 +2586,17 @@ export default function InjectableWeightLossConsultation() {
                           ...s,
                           transferSideEffects: v,
                           ...(v === "no"
-                            ? { transferSideEffectsDetails: "" }
+                            ? {
+                                transferSideEffectsDetails: "",
+                                transferSideEffectSymptoms:
+                                  emptyRepeatSideEffectSymptoms(),
+                              }
                             : {}),
                         }))
+                      }
+                      sideEffectSymptoms={state.transferSideEffectSymptoms}
+                      onSideEffectSymptomsChange={(transferSideEffectSymptoms) =>
+                        setState((s) => ({ ...s, transferSideEffectSymptoms }))
                       }
                       sideEffectsDetails={state.transferSideEffectsDetails}
                       onSideEffectsDetailsChange={(transferSideEffectsDetails) =>
@@ -2403,317 +2658,38 @@ export default function InjectableWeightLossConsultation() {
                     />
                   </SectionCard>
                 </>
-              ) : consultationType === "simple_repeat" ? (
-                <>
-                  {state.repeatMedicationLocked && wlMedicationLabel(state.transferWlMedication) && (
-                    <SectionCard>
-                      <p className="font-semibold text-secondary mb-1">
-                        Your current treatment
-                      </p>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        We already have this from your previous order — you do not need to
-                        choose a product again.
-                      </p>
-                      <p
-                        className="text-lg font-bold text-[#0E3D2D]"
-                        data-testid="repeat-known-medication"
-                      >
-                        {wlMedicationLabel(state.transferWlMedication)}
-                      </p>
-                    </SectionCard>
-                  )}
-
-                  <SectionCard>
-                    <WlContinuationSafetySection
-                      sideEffects={state.transferSideEffects}
-                      onSideEffectsChange={(v) =>
-                        setState((s) => ({
-                          ...s,
-                          transferSideEffects: v,
-                          ...(v === "no"
-                            ? { transferSideEffectsDetails: "" }
-                            : {}),
-                        }))
-                      }
-                      sideEffectsDetails={state.transferSideEffectsDetails}
-                      onSideEffectsDetailsChange={(transferSideEffectsDetails) =>
-                        update("transferSideEffectsDetails", transferSideEffectsDetails)
-                      }
-                      hospitalised={state.transferHospitalisedWlMedication}
-                      onHospitalisedChange={(v) =>
-                        setState((s) => ({
-                          ...s,
-                          transferHospitalisedWlMedication: v,
-                          ...(v === "no"
-                            ? { transferHospitalisationDetails: "" }
-                            : {}),
-                        }))
-                      }
-                      hospitalisationDetails={state.transferHospitalisationDetails}
-                      onHospitalisationDetailsChange={(transferHospitalisationDetails) =>
-                        update(
-                          "transferHospitalisationDetails",
-                          transferHospitalisationDetails,
-                        )
-                      }
-                      changesSinceReview={state.transferHealthChangesSinceReview}
-                      onChangesSinceReviewChange={(v) =>
-                        setState((s) => ({
-                          ...s,
-                          transferHealthChangesSinceReview: v,
-                          ...(v === "no"
-                            ? { transferHealthChangesSinceReviewDetails: "" }
-                            : {}),
-                        }))
-                      }
-                      changesSinceReviewDetails={
-                        state.transferHealthChangesSinceReviewDetails
-                      }
-                      onChangesSinceReviewDetailsChange={(
-                        transferHealthChangesSinceReviewDetails,
-                      ) =>
-                        update(
-                          "transferHealthChangesSinceReviewDetails",
-                          transferHealthChangesSinceReviewDetails,
-                        )
-                      }
-                      showSideEffects={false}
-                    />
-                  </SectionCard>
-
-                  <div className="mt-2 space-y-5">
-                    <SimpleRepeatQuestionnaire
-                      section="screening"
-                      state={state.simpleRepeat}
-                      onChange={(simpleRepeat) =>
-                        setState((s) => ({ ...s, simpleRepeat }))
-                      }
-                    />
-
-                    <div className="space-y-2 rounded-2xl border border-violet-200 bg-violet-50/40 p-4">
-                      <p className="text-sm font-semibold text-secondary">
-                        Side effects since your last order *
-                      </p>
-                      <RadioRow
-                        selected={state.repeatSideEffectsAny === "yes"}
-                        onSelect={() => update("repeatSideEffectsAny", "yes")}
-                        title="Yes — I have had side effects"
-                        testId="repeat-side-effects-yes"
-                      />
-                      <RadioRow
-                        selected={state.repeatSideEffectsAny === "no"}
-                        onSelect={() => {
-                          update("repeatSideEffectsAny", "no");
-                          update("repeatSideEffectsHospital", "no");
-                          update("repeatSideEffectsVomiting", "no");
-                          update("repeatSideEffectsInjection", "no");
-                        }}
-                        title="No side effects"
-                        testId="repeat-side-effects-no"
-                      />
-                    </div>
-
-                    {state.repeatSideEffectsAny === "yes" && (
-                      <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/50 p-3">
-                        <p className="text-xs font-semibold text-amber-900">
-                          Please answer all of the following:
-                        </p>
-                        {(
-                          [
-                            [
-                              "repeatSideEffectsHospital",
-                              "Hospitalisation since your last order?",
-                            ],
-                            [
-                              "repeatSideEffectsVomiting",
-                              "Vomiting or diarrhoea?",
-                            ],
-                            [
-                              "repeatSideEffectsInjection",
-                              "Injection site reactions?",
-                            ],
-                          ] as const
-                        ).map(([key, label]) => (
-                          <div key={key} className="flex flex-wrap gap-2">
-                            <span className="w-full text-sm font-medium text-stone-800">
-                              {label}
-                            </span>
-                            {(["yes", "no"] as YesNo[]).map((v) => (
-                              <button
-                                key={v}
-                                type="button"
-                                onClick={() => update(key, v)}
-                                className={cn(
-                                  "h-10 min-w-[5rem] rounded-xl px-4 text-sm font-semibold transition-colors",
-                                  state[key] === v
-                                    ? "bg-[#0E3D2D] text-white"
-                                    : "bg-white border border-stone-200 text-stone-700",
-                                )}
-                                data-testid={`${key}-${v}`}
-                              >
-                                {v === "yes" ? "Yes" : "No"}
-                              </button>
-                            ))}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </>
-              ) : showsNewPatientMedicationBlock(consultationType) ? (
-              <>
-              <SectionCard>
-                <p className="font-semibold text-secondary mb-3">
-                  Are you currently taking any prescribed, over-the-counter, or recreational drugs? *
-                </p>
-                <YesNoChoice
-                  value={state.takingMeds}
-                  onChange={(v) => {
-                    setState((s) => ({
-                      ...s,
-                      takingMeds: v,
-                      currentMedications:
-                        v === "yes" && s.currentMedications.length === 0
-                          ? [emptyMedicationEntry()]
-                          : s.currentMedications,
-                    }));
-                  }}
-                  testIdPrefix="takingMeds"
-                />
-                {state.takingMeds === "yes" && (
-                  <CurrentMedicationsFollowUp
-                    entries={state.currentMedications}
-                    onChange={(currentMedications) =>
-                      setState((s) => ({ ...s, currentMedications }))
-                    }
-                  />
-                )}
-              </SectionCard>
-
-              <SectionCard>
-                <p className="font-semibold text-secondary mb-3">
-                  Do you have any previous or current health conditions? *
-                </p>
-                <YesNoChoice
-                  value={state.otherConditions}
-                  onChange={(v) => {
-                    setState((s) => ({
-                      ...s,
-                      otherConditions: v,
-                      otherHealthHistory:
-                        v === "yes" && s.otherHealthHistory.length === 0
-                          ? [emptyHealthEntry()]
-                          : s.otherHealthHistory,
-                    }));
-                  }}
-                  testIdPrefix="otherConditions"
-                />
-                {state.otherConditions === "yes" && (
-                  <OtherHealthHistoryFollowUp
-                    entries={state.otherHealthHistory}
-                    onChange={(otherHealthHistory) =>
-                      setState((s) => ({ ...s, otherHealthHistory }))
-                    }
-                  />
-                )}
-              </SectionCard>
-
-              {asksFemaleHealthQuestions(state.assignedSex) && (
-                <SectionCard>
-                  <p className="font-semibold text-secondary mb-3">
-                    Are you taking an oral contraceptive? *
-                  </p>
-                  <YesNoChoice
-                    value={state.oralContraceptive}
-                    onChange={(v) => update("oralContraceptive", v)}
-                    testIdPrefix="oralContraceptive"
-                  />
-                </SectionCard>
-              )}
-
-              <SectionCard>
-                <p className="font-semibold text-secondary mb-3">
-                  Are you new to using injectable weight-loss medications? *
-                </p>
-                <YesNoChoice
-                  value={state.newToInjectables}
-                  onChange={(v) => {
-                    setState((s) => ({
-                      ...s,
-                      newToInjectables: v,
-                      ...(v === "yes"
-                        ? {
-                            changingProvider: null,
-                            lastInjectionTiming: null,
-                            lastInjectionDate: "",
-                            ...emptyTransferQuestionnaireFields(),
-                          }
-                        : {}),
-                    }));
-                  }}
-                  testIdPrefix="newToInjectables"
-                />
-                {state.newToInjectables === "no" && (
-                  <>
-                    <InjectablesFollowUp
-                      changingProvider={state.changingProvider}
-                      onChangingProvider={(changingProvider) =>
-                        setState((s) => ({
-                          ...s,
-                          changingProvider,
-                          ...(changingProvider === "yes"
-                            ? {
-                                journey: "transferring",
-                                lastInjectionTiming: null,
-                                lastInjectionDate: "",
-                              }
-                            : changingProvider === "no"
-                              ? {
-                                  ...emptyTransferQuestionnaireFields(),
-                                  lastInjectionTiming: null,
-                                  lastInjectionDate: "",
-                                }
-                              : {
-                                  lastInjectionTiming: null,
-                                  lastInjectionDate: "",
-                                }),
-                        }))
-                      }
-                      lastInjectionTiming={state.lastInjectionTiming}
-                      onLastInjectionTiming={(lastInjectionTiming) =>
-                        setState((s) => ({
-                          ...s,
-                          lastInjectionTiming,
-                          ...(lastInjectionTiming !== "exact_date"
-                            ? { lastInjectionDate: "" }
-                            : {}),
-                        }))
-                      }
-                      lastInjectionDate={state.lastInjectionDate}
-                      onLastInjectionDate={(lastInjectionDate) =>
-                        update("lastInjectionDate", lastInjectionDate)
-                      }
-                      showLastInjection={state.changingProvider !== "yes"}
-                    />
-                    {state.changingProvider === "yes" && (
-                      <p className="mt-4 text-sm text-muted-foreground rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3">
-                        Switching from another provider? Go back and choose{" "}
-                        <strong>Transferring</strong> on the journey step — that
-                        questionnaire collects your previous treatment details.
-                      </p>
-                    )}
-                  </>
-                )}
-              </SectionCard>
-              </>
               ) : null}
             </StepShell>
           )}
 
-          {/* ───── Step 10 — Agreement */}
-          {step === 10 && (
+          {/* ───── Step 11 — Clinical team notes */}
+          {step === 11 && (
             <StepShell
-              step={flowStepNumber(10, isLoggedIn)}
+              step={flowStepNumber(11, isLoggedIn)}
+              totalSteps={shellTotal}
+              label="Final details"
+              icon={<FileText className="w-6 h-6" />}
+              title="Anything else for our clinical team?"
+              subtitle="Optional — share anything you think our prescribing team should know before we review your order."
+              onBack={back}
+              onContinue={next}
+              canContinue={canContinue}
+            >
+              <SectionCard>
+                <ClinicalTeamNotesSection
+                  value={state.clinicalTeamNotes}
+                  onChange={(clinicalTeamNotes) =>
+                    update("clinicalTeamNotes", clinicalTeamNotes)
+                  }
+                />
+              </SectionCard>
+            </StepShell>
+          )}
+
+          {/* ───── Step 12 — Agreement */}
+          {step === 12 && (
+            <StepShell
+              step={flowStepNumber(12, isLoggedIn)}
               totalSteps={shellTotal}
               label="Agreement"
               icon={<CheckCircle2 className="w-6 h-6" />}
@@ -2784,10 +2760,10 @@ export default function InjectableWeightLossConsultation() {
             </StepShell>
           )}
 
-          {/* ───── Step 11 — GP Details */}
-          {step === 11 && (
+          {/* ───── Step 13 — GP Details */}
+          {step === 13 && (
             <StepShell
-              step={flowStepNumber(11, isLoggedIn)}
+              step={flowStepNumber(13, isLoggedIn)}
               totalSteps={shellTotal}
               label="GP Details"
               icon={<Stethoscope className="w-6 h-6" />}
@@ -2833,10 +2809,10 @@ export default function InjectableWeightLossConsultation() {
             </StepShell>
           )}
 
-          {/* ───── Step 12 — Weight verification photo */}
-          {step === 12 && (
+          {/* ───── Step 14 — Weight verification photo */}
+          {step === 14 && (
             <StepShell
-              step={flowStepNumber(12, isLoggedIn)}
+              step={flowStepNumber(14, isLoggedIn)}
               totalSteps={shellTotal}
               label="Verification"
               icon={<Upload className="w-6 h-6" />}
@@ -2972,10 +2948,10 @@ export default function InjectableWeightLossConsultation() {
             </StepShell>
           )}
 
-          {/* ───── Step 13 — Treatment plan (new + transfer pick; repeat uses prior plan) */}
-          {step === 13 && (
+          {/* ───── Step 15 — Treatment plan (new + transfer pick; repeat uses prior plan) */}
+          {step === 15 && (
             <StepShell
-              step={flowStepNumber(13, isLoggedIn)}
+              step={flowStepNumber(15, isLoggedIn)}
               totalSteps={shellTotal}
               label="Treatment"
               icon={<Syringe className="w-6 h-6" />}
@@ -2992,13 +2968,14 @@ export default function InjectableWeightLossConsultation() {
               onBack={back} onContinue={next} canContinue={canContinue}
               continueLabel="Continue to add-ons"
             >
-              {skipsTreatmentPlanPicker(consultationType) && state.selectedPlan ? (
+              {isSelectedPlanComplete(state.selectedPlan) &&
+              skipsTreatmentPlanPicker(consultationType) ? (
                 <SectionCard>
                   <p className="text-sm text-muted-foreground mb-3">
                     You are reordering the same treatment plan — no need to pick pens again.
                   </p>
                   <ul className="space-y-2">
-                    {state.selectedPlan.penIds.map((penId) => {
+                    {state.selectedPlan!.penIds.map((penId) => {
                       const pen = PEN_OPTIONS.find((p) => p.id === penId);
                       return pen ? (
                         <li
@@ -3039,10 +3016,10 @@ export default function InjectableWeightLossConsultation() {
             </StepShell>
           )}
 
-          {/* ───── Step 14 — Add-ons (post-clinical upsell) */}
-          {step === 14 && (
+          {/* ───── Step 16 — Add-ons (post-clinical upsell) */}
+          {step === 16 && (
             <StepShell
-              step={flowStepNumber(14, isLoggedIn)}
+              step={flowStepNumber(16, isLoggedIn)}
               totalSteps={shellTotal}
               label="Add-ons"
               icon={<Plus className="w-6 h-6" />}
@@ -3199,7 +3176,7 @@ export default function InjectableWeightLossConsultation() {
                         lastInjectionDate: "",
                         ...emptyTransferQuestionnaireFields(),
                       }));
-                      go(9);
+                      go(10);
                     }}
                     title="Yes — I have taken Mounjaro or Wegovy before"
                     subtitle="We'll continue your treatment and ask for proof of your previous prescription and starting BMI."

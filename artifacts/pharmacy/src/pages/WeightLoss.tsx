@@ -39,7 +39,7 @@ export default function WeightLoss() {
               I Want to take a tablet to lose weight
             </p>
             <Link
-              href="/treatments/orlistat"
+              href="/consultation/weight-loss-oral"
               className="rounded-full bg-[#B5DA37] text-[#0E3D2D] hover:bg-[#A8CC2E] px-5 py-2 inline-flex items-center gap-1.5 text-sm font-semibold w-fit mt-6"
               data-testid="get-started-oral"
             >

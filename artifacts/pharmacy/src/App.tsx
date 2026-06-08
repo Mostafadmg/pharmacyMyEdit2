@@ -11,6 +11,7 @@ import Conditions from "./pages/Conditions";
 import WeightLoss from "./pages/WeightLoss";
 import InjectableWeightLoss from "./pages/InjectableWeightLoss";
 import InjectableWeightLossConsultation from "./pages/InjectableWeightLossConsultation";
+import OralWeightLossConsultation from "./pages/OralWeightLossConsultation";
 import ConditionDetail from "./pages/ConditionDetail";
 import Consultation from "./pages/Consultation";
 import Dashboard from "./pages/Dashboard";
@@ -116,6 +117,8 @@ function Router() {
       <Route path="/injectable-weight-loss" component={InjectableWeightLoss} />
       <Route path="/treatments/weight-loss/injectable" component={InjectableWeightLossConsultation} />
       <Route path="/consultation/weight-loss-injectable" component={InjectableWeightLossConsultation} />
+      <Route path="/consultation/weight-loss-oral" component={OralWeightLossConsultation} />
+      <Route path="/treatments/weight-loss/oral" component={OralWeightLossConsultation} />
       <Route path="/treatments/:slug" component={TreatmentLanding} />
       <Route path="/health-hub" component={HealthHub} />
       <Route path="/health-hub/:slug" component={HealthHubArticle} />

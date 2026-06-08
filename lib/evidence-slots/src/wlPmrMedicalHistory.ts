@@ -4,6 +4,9 @@
  * (`MedicalHistorySection`) with this single catalogue.
  */
 
+export const PMR_MEDICAL_HISTORY_INTRO =
+  "Weight loss injections can significantly improve weight-related comorbidity.";
+
 export const PMR_MEDICAL_HISTORY_GATE_QUESTION =
   "Have you ever been diagnosed with any of the following?";
 

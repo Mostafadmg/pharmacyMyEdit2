@@ -2,19 +2,15 @@ import {
   YesNoChoice,
   TextareaField,
   TextField,
-  RadioRow,
   SelectField,
   CheckboxRow,
 } from "@/components/consultation";
 import type { YesNo } from "@/components/consultation";
 import { GatedChecklistSection } from "@/components/consultation/GatedChecklistSection";
-import { WL_CARD_INNER, WL_SECTION_TITLE } from "@/lib/consultationTheme";
-import { cn } from "@/lib/utils";
+import { WL_SECTION_TITLE } from "@/lib/consultationTheme";
 import { REPEAT_HIGH_RISK_QUESTION } from "@/lib/weightLossHighRiskMeds";
 import {
   SIMPLE_REPEAT_HIGH_RISK_MEDS,
-  SIMPLE_REPEAT_SCREENING_QUESTIONS,
-  SMOKING_STATUS_OPTIONS,
   emptyHighRiskMedEntry,
   repeatHighRiskGate,
   type SimpleRepeatFormState,
@@ -24,7 +20,7 @@ import {
 type Props = {
   state: SimpleRepeatFormState;
   onChange: (next: SimpleRepeatFormState) => void;
-  section: "screening" | "monitoring" | "declaration";
+  section: "monitoring" | "declaration";
 };
 
 function patch<K extends keyof SimpleRepeatFormState>(
@@ -51,66 +47,7 @@ function patchHighRisk(
   });
 }
 
-function ScreeningYesNoBlock({
-  question,
-  yesNo,
-  details,
-  onYesNo,
-  onDetails,
-}: {
-  question: string;
-  yesNo: YesNo | null;
-  details: string;
-  onYesNo: (v: YesNo) => void;
-  onDetails: (v: string) => void;
-}) {
-  return (
-    <div className={cn(WL_CARD_INNER, "space-y-3 !p-4")}>
-      <p className={cn("text-sm", WL_SECTION_TITLE)}>{question}</p>
-      <YesNoChoice
-        value={yesNo}
-        onChange={(v) => {
-          onYesNo(v);
-          if (v === "no") onDetails("");
-        }}
-      />
-      {yesNo === "yes" && (
-        <TextareaField
-          label="Please give details *"
-          value={details}
-          onChange={onDetails}
-          placeholder="Include medicine names, doses and dates where relevant"
-        />
-      )}
-    </div>
-  );
-}
-
 export function SimpleRepeatQuestionnaire({ state, onChange, section }: Props) {
-  if (section === "screening") {
-    return (
-      <div className="flex flex-col gap-4">
-        <div className="rounded-2xl border border-violet-200 bg-violet-50/50 px-4 py-3">
-          <p className="text-sm font-bold text-foreground">Repeat order screening</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Since your last supply — answer each question. If you answer Yes, please
-            provide brief details.
-          </p>
-        </div>
-        {SIMPLE_REPEAT_SCREENING_QUESTIONS.map((q) => (
-          <ScreeningYesNoBlock
-            key={q.answerKey}
-            question={q.text}
-            yesNo={state[q.yesNoKey]}
-            details={state[q.detailsKey]}
-            onYesNo={(v) => patch(state, onChange, q.yesNoKey, v)}
-            onDetails={(v) => patch(state, onChange, q.detailsKey, v)}
-          />
-        ))}
-      </div>
-    );
-  }
-
   if (section === "monitoring") {
     return (
       <div className="flex flex-col gap-5">
@@ -119,43 +56,6 @@ export function SimpleRepeatQuestionnaire({ state, onChange, section }: Props) {
           <p className="mt-1 text-xs text-emerald-900/80">
             Lifestyle and monitoring — helps your pharmacist review your repeat safely.
           </p>
-        </div>
-
-        <div className="space-y-3 rounded-2xl border border-emerald-200/80 bg-card p-4">
-          <p className="text-sm font-semibold text-foreground">Smoking status</p>
-          {SMOKING_STATUS_OPTIONS.map((opt) => (
-            <RadioRow
-              key={opt.value}
-              selected={state.smokingStatus === opt.value}
-              onSelect={() =>
-                onChange({
-                  ...state,
-                  smokingStatus: opt.value,
-                  smokingCigsPerDay:
-                    opt.value === "current" ? state.smokingCigsPerDay : "",
-                })
-              }
-              title={opt.label}
-            />
-          ))}
-          {state.smokingStatus === "current" && (
-            <TextField
-              label="Cigarettes per day (approx.) *"
-              value={state.smokingCigsPerDay}
-              onChange={(v) => patch(state, onChange, "smokingCigsPerDay", v)}
-              placeholder="e.g. 10"
-            />
-          )}
-        </div>
-
-        <div className="rounded-2xl border border-emerald-200/80 bg-card p-4">
-          <TextField
-            label="Alcohol (units per week) *"
-            value={state.alcoholUnitsPerWeek}
-            onChange={(v) => patch(state, onChange, "alcoholUnitsPerWeek", v)}
-            placeholder="e.g. 14"
-            hint="UK units — e.g. 1 pint ≈ 2 units, 1 glass wine ≈ 2–3 units"
-          />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">

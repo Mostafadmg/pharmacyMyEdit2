@@ -475,6 +475,10 @@ export function OrderMonitoringPanel({
     const se = repeatSafety.sideEffects;
     const seParts = [
       se.any ? `Any SE: ${se.any}` : null,
+      se.symptomsReported.length
+        ? `Symptoms: ${se.symptomsReported.join(", ")}`
+        : null,
+      se.details ? `SE notes: ${se.details}` : null,
       se.hospitalisation ? `Hospital: ${se.hospitalisation}` : null,
       se.vomitingDiarrhoea ? `GI: ${se.vomitingDiarrhoea}` : null,
       se.injectionSite ? `Injection site: ${se.injectionSite}` : null,
