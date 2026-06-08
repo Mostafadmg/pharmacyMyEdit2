@@ -12,7 +12,11 @@ import { cn } from "@/lib/utils";
 
 export type GateYesNo = "yes" | "no";
 
-type ChecklistItem = { id: string; label: string };
+export type ChecklistItem = {
+  id: string;
+  label: string;
+  section?: string;
+};
 
 type GatedChecklistSectionProps = {
   gateQuestion: string;
@@ -27,6 +31,26 @@ type GatedChecklistSectionProps = {
   testIdPrefix: string;
   renderInfoList?: () => ReactNode;
 };
+
+function SectionHeader({ title }: { title: string }) {
+  return (
+    <p className="text-sm font-semibold text-secondary pt-1">{title}:</p>
+  );
+}
+
+function renderWithSections(
+  items: readonly ChecklistItem[],
+  renderItem: (item: ChecklistItem) => ReactNode,
+): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  for (const item of items) {
+    if (item.section) {
+      nodes.push(<SectionHeader key={`section-${item.id}`} title={item.section} />);
+    }
+    nodes.push(renderItem(item));
+  }
+  return nodes;
+}
 
 export function GatedChecklistSection({
   gateQuestion,
@@ -46,7 +70,7 @@ export function GatedChecklistSection({
   return (
     <div className="space-y-4">
       <div>
-        <p className={cn(WL_SECTION_TITLE, 'mb-3')}>{gateQuestion}</p>
+        <p className={cn(WL_SECTION_TITLE, "mb-3")}>{gateQuestion}</p>
         <YesNoChoiceInline
           value={gateValue}
           onChange={onGateChange}
@@ -72,8 +96,8 @@ export function GatedChecklistSection({
       {gateValue === "yes" && (
         <>
           <p className="text-sm text-muted-foreground">{selectHint}</p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {items.map((item) => {
+          <div className="flex flex-col gap-2">
+            {renderWithSections(items, (item) => {
               const checked = isSelected(item.id);
               return (
                 <button
@@ -114,14 +138,32 @@ function DefaultInfoList({
 }) {
   return (
     <ul
-      className="grid gap-2 sm:grid-cols-2 list-none p-0 m-0"
+      className="flex flex-col gap-2 list-none p-0 m-0"
       data-testid={`${testIdPrefix}-info-list`}
     >
-      {items.map((item) => (
-        <li
-          key={item.id}
-          className={WL_CHIP_INFO}
-        >
+      {renderWithSections(items, (item) => (
+        <li key={item.id} className={WL_CHIP_INFO}>
+          {item.label}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function GroupedChecklistInfoList({
+  items,
+  testIdPrefix,
+}: {
+  items: readonly ChecklistItem[];
+  testIdPrefix: string;
+}) {
+  return (
+    <ul
+      className="flex flex-col gap-2 list-none p-0 m-0"
+      data-testid={testIdPrefix}
+    >
+      {renderWithSections(items, (item) => (
+        <li key={item.id} className={WL_CHIP_INFO}>
           {item.label}
         </li>
       ))}

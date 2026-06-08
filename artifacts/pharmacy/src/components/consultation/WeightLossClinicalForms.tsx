@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DateField } from "@/components/consultation/DateField";
-import { GatedChecklistSection } from "@/components/consultation/GatedChecklistSection";
+import { GatedChecklistSection, GroupedChecklistInfoList } from "@/components/consultation/GatedChecklistSection";
 import {
   WL_BTN_DASHED,
   WL_CHIP_INFO,
@@ -19,9 +19,9 @@ import {
 } from "@/lib/consultationTheme";
 import { cn } from "@/lib/utils";
 import {
-  TRANSFER_HIGH_RISK_MED_IDS,
   TRANSFER_HIGH_RISK_MED_LABELS,
   TRANSFER_HIGH_RISK_QUESTION,
+  WL_HIGH_RISK_MEDICATIONS,
   type HighRiskMedDetail,
   type TransferHighRiskMedId,
 } from "@/lib/weightLossHighRiskMeds";
@@ -52,6 +52,8 @@ export type ConditionMedicationEntry = {
 
 export type DiagnosedConditionEntry = {
   id: string;
+  /** When picked from the excluding-conditions checklist. */
+  catalogueId?: string;
   condition: string;
   howLongHad: string;
   onMedication: YesNo | null;
@@ -82,10 +84,15 @@ export function emptyConditionMedication(): ConditionMedicationEntry {
   return { id: newEntryId(), name: "" };
 }
 
-export function emptyDiagnosedEntry(): DiagnosedConditionEntry {
+export function emptyDiagnosedEntry(catalogue?: {
+  id: string;
+  label: string;
+}): DiagnosedConditionEntry {
   return {
     id: newEntryId(),
-    condition: "",
+    catalogueId: catalogue?.id,
+    condition:
+      catalogue?.id === "other" ? "" : (catalogue?.label ?? ""),
     howLongHad: "",
     onMedication: null,
     medications: [],
@@ -248,41 +255,34 @@ export function DiagnosedConditionsFollowUp({
     onChange(entries.map((e) => (e.id === id ? { ...e, ...patch } : e)));
   };
 
+  const showConditionField = (entry: DiagnosedConditionEntry) =>
+    !entry.catalogueId || entry.catalogueId === "other";
+
   return (
-    <div className="mt-5 space-y-5 border-t border-stone-100 pt-5">
+    <div className="mt-5 space-y-5 border-t border-stone-200/90 pt-4">
       <p className="text-sm font-semibold text-secondary">
-        Tell us about each condition
+        Details for each selected condition
       </p>
-      {entries.map((entry, index) => (
+      {entries.map((entry) => (
         <div
           key={entry.id}
           className={WL_DETAIL_PANEL}
         >
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-bold uppercase tracking-wide text-stone-500">
-              Condition {index + 1}
-            </p>
-            {entries.length > 1 && (
-              <button
-                type="button"
-                onClick={() => onChange(entries.filter((e) => e.id !== entry.id))}
-                className="text-xs font-semibold text-rose-600 flex items-center gap-1"
-              >
-                <Trash2 className="w-3.5 h-3.5" /> Remove
-              </button>
-            )}
-          </div>
-          <div>
-            <Label className="font-semibold text-secondary">
-              What were you diagnosed with? *
-            </Label>
-            <Input
-              value={entry.condition}
-              onChange={(e) => update(entry.id, { condition: e.target.value })}
-              placeholder="e.g. Type 2 diabetes"
-              className="h-12 mt-1.5 rounded-xl"
-            />
-          </div>
+          {!showConditionField(entry) ? (
+            <p className={cn("text-sm", WL_SECTION_TITLE)}>{entry.condition}</p>
+          ) : (
+            <div>
+              <Label className="font-semibold text-secondary">
+                What were you diagnosed with? *
+              </Label>
+              <Input
+                value={entry.condition}
+                onChange={(e) => update(entry.id, { condition: e.target.value })}
+                placeholder="Describe your condition"
+                className="h-12 mt-1.5 rounded-xl"
+              />
+            </div>
+          )}
           <div>
             <Label className="font-semibold text-secondary">
               How long ago were you diagnosed with it? *
@@ -376,10 +376,6 @@ export function DiagnosedConditionsFollowUp({
           )}
         </div>
       ))}
-      <AddAnotherButton
-        label="Add another condition"
-        onClick={() => onChange([...entries, emptyDiagnosedEntry()])}
-      />
     </div>
   );
 }
@@ -685,85 +681,115 @@ export function isLastInjectionComplete(
   return true;
 }
 
-export const EXCLUDING_CONDITIONS_ITEMS = [
-  "Pancreatitis",
-  "Gallstones or gallbladder problems",
-  "Inflammatory bowel disease (Crohn's, ulcerative colitis)",
-  "Gastroparesis or delayed stomach emptying",
-  "Chronic malabsorption",
-  "Bariatric or gastric surgery",
-  "Liver disease",
-  "Kidney disease",
-  "Type 1 Diabetes",
-  "Diabetic eye disease (retinopathy)",
-  "Heart disease or rhythm issues",
-  "Cancer",
-  "Serious condition needing hospitalisation",
-  "Other condition not listed above",
+export const EXCLUDING_CONDITIONS = [
+  { id: "pancreatitis", label: "Pancreatitis" },
+  { id: "gallstones_gallbladder", label: "Gallstones or gallbladder problems" },
+  {
+    id: "inflammatory_bowel_disease",
+    label: "Inflammatory bowel disease (Crohn's, ulcerative colitis)",
+  },
+  {
+    id: "gastroparesis",
+    label: "Gastroparesis or delayed stomach emptying",
+  },
+  { id: "chronic_malabsorption", label: "Chronic malabsorption" },
+  { id: "bariatric_gastric_surgery", label: "Bariatric or gastric surgery" },
+  { id: "liver_disease", label: "Liver disease" },
+  { id: "kidney_disease", label: "Kidney disease" },
+  { id: "type1_diabetes", label: "Type 1 Diabetes" },
+  { id: "diabetic_retinopathy", label: "Diabetic eye disease (retinopathy)" },
+  { id: "heart_disease_rhythm", label: "Heart disease or rhythm issues" },
+  { id: "cancer", label: "Cancer" },
+  {
+    id: "serious_hospitalisation",
+    label: "Serious condition needing hospitalisation",
+  },
+  { id: "other", label: "Other condition not listed above" },
 ] as const;
+
+export type ExcludingConditionId = (typeof EXCLUDING_CONDITIONS)[number]["id"];
+
+export const EXCLUDING_CONDITIONS_ITEMS = EXCLUDING_CONDITIONS.map(
+  (c) => c.label,
+);
+
+const EXCLUDING_CONDITIONS_GATE_QUESTION =
+  "Have you been diagnosed with or had surgery for any of the following?";
+
+function isExcludingConditionSelected(
+  entries: DiagnosedConditionEntry[],
+  catalogueId: ExcludingConditionId,
+): boolean {
+  return entries.some((e) => e.catalogueId === catalogueId);
+}
 
 export function ExcludingConditionsSection({
   excludingConditions,
   onExcludingConditionsChange,
   diagnosedConditions,
   onDiagnosedConditionsChange,
-  diabetesMedsOther,
-  onDiabetesMedsOtherChange,
-  showDiabetesQuestion = true,
 }: {
   excludingConditions: YesNo | null;
   onExcludingConditionsChange: (v: YesNo) => void;
   diagnosedConditions: DiagnosedConditionEntry[];
   onDiagnosedConditionsChange: (entries: DiagnosedConditionEntry[]) => void;
-  diabetesMedsOther: YesNo | null;
-  onDiabetesMedsOtherChange: (v: YesNo) => void;
-  showDiabetesQuestion?: boolean;
 }) {
+  const checklistItems = EXCLUDING_CONDITIONS.map((c) => ({
+    id: c.id,
+    label: c.label,
+  }));
+
+  const toggleCondition = (catalogueId: ExcludingConditionId) => {
+    if (isExcludingConditionSelected(diagnosedConditions, catalogueId)) {
+      onDiagnosedConditionsChange(
+        diagnosedConditions.filter((e) => e.catalogueId !== catalogueId),
+      );
+      return;
+    }
+    const catalogue = EXCLUDING_CONDITIONS.find((c) => c.id === catalogueId);
+    if (!catalogue) return;
+    onDiagnosedConditionsChange([
+      ...diagnosedConditions,
+      emptyDiagnosedEntry(catalogue),
+    ]);
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <p className="font-semibold text-secondary mb-2">
-          Have you been diagnosed with or had surgery for any of the following? *
-        </p>
-        <ul className="text-sm text-foreground/80 space-y-1.5 mb-4 bg-muted/40 rounded-xl p-4">
-          {EXCLUDING_CONDITIONS_ITEMS.map((c) => (
-            <li key={c} className="flex items-start gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
-              <span>{c}</span>
-            </li>
-          ))}
-        </ul>
-        <YesNoChoiceInline
-          value={excludingConditions}
-          onChange={(v) => {
-            onExcludingConditionsChange(v);
-            if (
-              v === "yes" &&
-              diagnosedConditions.length === 0
-            ) {
-              onDiagnosedConditionsChange([emptyDiagnosedEntry()]);
-            }
-          }}
-          testIdPrefix="excludingConditions"
-        />
-        {excludingConditions === "yes" && (
-          <DiagnosedConditionsFollowUp
-            entries={diagnosedConditions}
-            onChange={onDiagnosedConditionsChange}
+      <GatedChecklistSection
+        gateQuestion={`${EXCLUDING_CONDITIONS_GATE_QUESTION} *`}
+        gateValue={excludingConditions}
+        onGateChange={(v) => {
+          onExcludingConditionsChange(v);
+          if (v === "no") {
+            onDiagnosedConditionsChange([]);
+          }
+        }}
+        items={checklistItems}
+        isSelected={(id) =>
+          isExcludingConditionSelected(
+            diagnosedConditions,
+            id as ExcludingConditionId,
+          )
+        }
+        onToggle={(id) => toggleCondition(id as ExcludingConditionId)}
+        infoHeading="These are the conditions we ask about:"
+        infoHeadingWhenNo="For your information, these are the conditions we ask about:"
+        selectHint="Select any conditions you have been diagnosed with or had surgery for."
+        testIdPrefix="excludingConditions"
+        renderInfoList={() => (
+          <GroupedChecklistInfoList
+            items={checklistItems}
+            testIdPrefix="excluding-conditions-info-list"
           />
         )}
-      </div>
-      {showDiabetesQuestion && (
-        <div>
-          <p className="font-semibold text-secondary mb-3">
-            If you have type 2 diabetes, are you taking any medications other than metformin? *
-          </p>
-          <YesNoChoiceInline
-            value={diabetesMedsOther}
-            onChange={onDiabetesMedsOtherChange}
-            testIdPrefix="diabetesMedsOther"
-          />
-        </div>
+      />
+
+      {excludingConditions === "yes" && diagnosedConditions.length > 0 && (
+        <DiagnosedConditionsFollowUp
+          entries={diagnosedConditions}
+          onChange={onDiagnosedConditionsChange}
+        />
       )}
     </div>
   );
@@ -772,9 +798,8 @@ export function ExcludingConditionsSection({
 export function isExcludingConditionsStepComplete(
   excludingConditions: YesNo | null,
   diagnosedConditions: DiagnosedConditionEntry[],
-  diabetesMedsOther: YesNo | null,
 ): boolean {
-  if (excludingConditions === null || diabetesMedsOther === null) {
+  if (excludingConditions === null) {
     return false;
   }
   if (excludingConditions === "yes") {
@@ -1051,20 +1076,16 @@ export function TransferCurrentMedicationsTable({
 }
 
 function HighRiskMedicationsInfoList() {
+  const items = WL_HIGH_RISK_MEDICATIONS.map((m) => ({
+    id: m.id,
+    label: m.label,
+    section: m.section,
+  }));
   return (
-    <ul
-      className="grid gap-2 sm:grid-cols-2 list-none p-0 m-0"
-      data-testid="high-risk-meds-info-list"
-    >
-      {TRANSFER_HIGH_RISK_MED_IDS.map((id) => (
-        <li
-          key={id}
-          className={WL_CHIP_INFO}
-        >
-          {TRANSFER_HIGH_RISK_MED_LABELS[id]}
-        </li>
-      ))}
-    </ul>
+    <GroupedChecklistInfoList
+      items={items}
+      testIdPrefix="high-risk-meds-info-list"
+    />
   );
 }
 
@@ -1111,9 +1132,10 @@ export function HighRiskMedicationsSection({
     );
   };
 
-  const checklistItems = TRANSFER_HIGH_RISK_MED_IDS.map((id) => ({
-    id,
-    label: TRANSFER_HIGH_RISK_MED_LABELS[id],
+  const checklistItems = WL_HIGH_RISK_MEDICATIONS.map((m) => ({
+    id: m.id,
+    label: m.label,
+    section: m.section,
   }));
 
   return (
@@ -1125,8 +1147,8 @@ export function HighRiskMedicationsSection({
         items={checklistItems}
         isSelected={(id) => selected.includes(id as TransferHighRiskMedId)}
         onToggle={(id) => toggle(id as TransferHighRiskMedId)}
-        infoHeading="These are the high-risk medicines we ask about:"
-        infoHeadingWhenNo="For your information, these are the high-risk medicines we ask about:"
+        infoHeading="These are the medications we ask about:"
+        infoHeadingWhenNo="For your information, these are the medications we ask about:"
         selectHint="Select any that apply. For each one selected, we will ask for a few more details."
         testIdPrefix="high-risk-meds-taken"
         renderInfoList={() => <HighRiskMedicationsInfoList />}
@@ -1150,22 +1172,6 @@ export function HighRiskMedicationsSection({
                 <p className="text-sm font-bold text-secondary">
                   {TRANSFER_HIGH_RISK_MED_LABELS[medId]}
                 </p>
-                {medId === "other" && (
-                  <div>
-                    <Label className="font-semibold text-secondary">
-                      Name of medication *
-                    </Label>
-                    <Input
-                      value={row.name}
-                      onChange={(e) =>
-                        updateDetail(medId, { name: e.target.value })
-                      }
-                      placeholder="Medication name"
-                      className="h-12 mt-1.5 rounded-xl"
-                      data-testid="high-risk-other-name"
-                    />
-                  </div>
-                )}
                 <div>
                   <Label className="font-semibold text-secondary">
                     What condition do you take it for? *

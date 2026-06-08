@@ -1,33 +1,28 @@
-/** High-risk medicines asked on transfer / new-starter continuation questionnaires. */
-export const TRANSFER_HIGH_RISK_MED_IDS = [
-  "digoxin",
-  "methotrexate",
-  "lithium",
-  "warfarin",
-  "phenytoin",
-  "ciclosporin",
-  "sirolimus",
-  "tacrolimus",
-  "theophylline",
-  "amiodarone",
-  "other",
-] as const;
+/** High-risk medicines — re-exports shared WL catalogue (all consultation pathways). */
+import {
+  WL_HIGH_RISK_GATE_QUESTION,
+  WL_HIGH_RISK_MEDICATIONS,
+  WL_REPEAT_HIGH_RISK_QUESTION,
+  WL_TRANSFER_HIGH_RISK_MED_IDS,
+  wlHighRiskMedLabelsIncludingLegacy,
+  type WlTransferHighRiskMedId,
+} from "@workspace/evidence-slots";
 
-export type TransferHighRiskMedId = (typeof TRANSFER_HIGH_RISK_MED_IDS)[number];
-
-export const TRANSFER_HIGH_RISK_MED_LABELS: Record<TransferHighRiskMedId, string> = {
-  digoxin: "Digoxin",
-  methotrexate: "Methotrexate",
-  lithium: "Lithium",
-  warfarin: "Warfarin",
-  phenytoin: "Phenytoin",
-  ciclosporin: "Ciclosporin",
-  sirolimus: "Sirolimus",
-  tacrolimus: "Tacrolimus",
-  theophylline: "Theophylline",
-  amiodarone: "Amiodarone",
-  other: "Other high-risk medicine",
+export {
+  WL_HIGH_RISK_GATE_QUESTION,
+  WL_HIGH_RISK_MEDICATIONS,
+  WL_REPEAT_HIGH_RISK_QUESTION,
+  WL_TRANSFER_HIGH_RISK_MED_IDS,
+  wlHighRiskMedLabelsIncludingLegacy,
+  type WlTransferHighRiskMedId,
 };
+
+export type TransferHighRiskMedId = WlTransferHighRiskMedId;
+
+export const TRANSFER_HIGH_RISK_MED_IDS = WL_TRANSFER_HIGH_RISK_MED_IDS;
+
+export const TRANSFER_HIGH_RISK_MED_LABELS =
+  wlHighRiskMedLabelsIncludingLegacy() as Record<TransferHighRiskMedId, string>;
 
 export type HighRiskMedDetail = {
   medId: TransferHighRiskMedId;
@@ -53,12 +48,11 @@ export function formatHighRiskMedDetailsForAnswers(
 }
 
 export function isHighRiskMedDetailComplete(d: HighRiskMedDetail): boolean {
-  if (d.medId === "other" && !d.name.trim()) return false;
   return Boolean(d.condition.trim() && d.duration.trim());
 }
 
-export const TRANSFER_HIGH_RISK_QUESTION =
-  "Are you currently taking any of the following high-risk medications?";
+export const TRANSFER_HIGH_RISK_QUESTION = WL_HIGH_RISK_GATE_QUESTION;
+export const REPEAT_HIGH_RISK_QUESTION = WL_REPEAT_HIGH_RISK_QUESTION;
 
-export const REPEAT_HIGH_RISK_QUESTION =
-  "Do you take any of the following high-risk medicines?";
+/** @deprecated Use WL_HIGH_RISK_MEDICATIONS — kept for imports that expected PMR naming. */
+export const PMR_HIGH_RISK_MEDICATIONS = WL_HIGH_RISK_MEDICATIONS;

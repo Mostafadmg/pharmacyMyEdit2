@@ -209,6 +209,7 @@ export function SimpleRepeatQuestionnaire({ state, onChange, section }: Props) {
             items={SIMPLE_REPEAT_HIGH_RISK_MEDS.map((m) => ({
               id: m.id,
               label: m.label,
+              section: m.section,
             }))}
             isSelected={(id) =>
               state.highRiskMeds[id as SimpleRepeatHighRiskMedId].takes === "yes"
@@ -228,8 +229,8 @@ export function SimpleRepeatQuestionnaire({ state, onChange, section }: Props) {
                   : {}),
               });
             }}
-            infoHeading="These are the high-risk medicines we ask about:"
-            infoHeadingWhenNo="For your information, these are the high-risk medicines we ask about:"
+            infoHeading="These are the medications we ask about:"
+            infoHeadingWhenNo="For your information, these are the medications we ask about:"
             selectHint="Select any you take. For each one, we will ask for your latest monitoring and symptom check."
             testIdPrefix="repeat-high-risk-meds"
           />

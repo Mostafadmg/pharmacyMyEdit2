@@ -1,4 +1,9 @@
 import type { Consultation } from "@workspace/api-client-react";
+import {
+  PMR_MEDICAL_HISTORY_GATE_QUESTION,
+  wlMedicalHistoryLabelById,
+  wlMedicalHistoryLabelsIncludingLegacy,
+} from "@workspace/evidence-slots";
 import { cn } from "@/lib/utils";
 import {
   HIGH_RISK_CATALOGUE_ROW_LABEL,
@@ -111,17 +116,8 @@ function yesNo(value: unknown): string {
   return value != null ? String(value) : "—";
 }
 
-const MED_HISTORY_LABELS: Record<string, string> = {
-  asthma: "Asthma",
-  copd: "COPD",
-  diabetes: "Diabetes",
-  heart_disease: "Heart disease",
-  hypertension: "Hypertension",
-  stroke_tia: "Stroke / TIA",
-  epilepsy: "Epilepsy",
-  cancer: "Cancer",
-  mental_health: "Mental health condition",
-};
+const CURRENT_MED_HISTORY_LABELS = wlMedicalHistoryLabelById();
+const MED_HISTORY_LABELS = wlMedicalHistoryLabelsIncludingLegacy();
 
 type PmrHighRiskMedRow = {
   drug: string;
@@ -854,9 +850,9 @@ export function buildWeightLossClinicalBundles(
   return bundles;
 }
 
-const PMR_MEDICAL_HISTORY_GATE_QUESTION =
-  `Have you ever been diagnosed with any of the following? ${Object.values(
-    MED_HISTORY_LABELS,
+const PMR_MEDICAL_HISTORY_GATE_QUESTION_WITH_LIST =
+  `${PMR_MEDICAL_HISTORY_GATE_QUESTION} ${Object.values(
+    CURRENT_MED_HISTORY_LABELS,
   ).join(", ")}`;
 
 type MedicalHistoryDetailAnswer = {
@@ -896,7 +892,7 @@ function buildPmrHealthBundles(
       .map(([, label]) => label);
     const rows: ClinicalQaRowData[] = [
       {
-        question: PMR_MEDICAL_HISTORY_GATE_QUESTION,
+        question: PMR_MEDICAL_HISTORY_GATE_QUESTION_WITH_LIST,
         value: gate === "no" ? "No" : "Yes",
       },
     ];

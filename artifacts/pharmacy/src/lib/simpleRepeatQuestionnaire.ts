@@ -1,54 +1,15 @@
 /** Simple repeat (repeat customer) questionnaire — screening, monitoring, declaration. */
 
+import {
+  WL_SIMPLE_REPEAT_HIGH_RISK_MEDS,
+  type WlHighRiskMedicationId,
+} from "@workspace/evidence-slots";
+
 export type RepeatYesNo = "yes" | "no";
 
-export const SIMPLE_REPEAT_HIGH_RISK_MEDS = [
-  {
-    id: "lithium",
-    label: "Lithium",
-    symptomsPrompt:
-      "Since your last supply, have you had increased thirst, tremor, confusion, diarrhoea or vomiting?",
-  },
-  {
-    id: "methotrexate",
-    label: "Methotrexate",
-    symptomsPrompt:
-      "Since your last supply, have you had sore throat, unusual bruising, mouth ulcers or breathlessness?",
-  },
-  {
-    id: "warfarin",
-    label: "Warfarin",
-    symptomsPrompt:
-      "Since your last supply, have you had unusual bleeding, bruising, or blood in urine or stool?",
-  },
-  {
-    id: "digoxin",
-    label: "Digoxin",
-    symptomsPrompt:
-      "Since your last supply, have you had blurred vision, nausea, vomiting, diarrhoea or stomach pain?",
-  },
-  {
-    id: "amiodarone",
-    label: "Amiodarone",
-    symptomsPrompt:
-      "Since your last supply, have you had breathlessness, cough, thyroid symptoms or eyesight changes?",
-  },
-  {
-    id: "theophylline",
-    label: "Theophylline",
-    symptomsPrompt:
-      "Since your last supply, have you had nausea, vomiting, palpitations or tremor?",
-  },
-  {
-    id: "phenytoin",
-    label: "Phenytoin",
-    symptomsPrompt:
-      "Since your last supply, have you had dizziness, unsteadiness, rash or double vision?",
-  },
-] as const;
+export const SIMPLE_REPEAT_HIGH_RISK_MEDS = WL_SIMPLE_REPEAT_HIGH_RISK_MEDS;
 
-export type SimpleRepeatHighRiskMedId =
-  (typeof SIMPLE_REPEAT_HIGH_RISK_MEDS)[number]["id"];
+export type SimpleRepeatHighRiskMedId = WlHighRiskMedicationId;
 
 export type SimpleRepeatHighRiskMedEntry = {
   takes: RepeatYesNo | null;

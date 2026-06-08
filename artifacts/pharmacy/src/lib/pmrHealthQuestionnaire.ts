@@ -1,36 +1,19 @@
 /** PMR-style health & lifestyle questions (MedExpress reference parity). */
 
+import {
+  PMR_MEDICAL_HISTORY_GATE_QUESTION,
+  WL_MEDICAL_HISTORY_CONDITIONS,
+  WL_HIGH_RISK_MEDICATIONS,
+} from "@workspace/evidence-slots";
+
 export type PmrYesNo = "yes" | "no";
 
-export const MEDICAL_HISTORY_CONDITIONS = [
-  { id: "asthma", label: "Asthma" },
-  { id: "copd", label: "COPD" },
-  { id: "diabetes", label: "Diabetes" },
-  { id: "heart_disease", label: "Heart disease" },
-  { id: "hypertension", label: "Hypertension" },
-  { id: "stroke_tia", label: "Stroke / TIA" },
-  { id: "epilepsy", label: "Epilepsy" },
-  { id: "cancer", label: "Cancer" },
-  { id: "mental_health", label: "Mental health condition" },
-] as const;
+export const MEDICAL_HISTORY_CONDITIONS = WL_MEDICAL_HISTORY_CONDITIONS;
+export { PMR_MEDICAL_HISTORY_GATE_QUESTION };
 
 export type MedicalHistoryId = (typeof MEDICAL_HISTORY_CONDITIONS)[number]["id"];
 
-export const PMR_MEDICAL_HISTORY_GATE_QUESTION =
-  "Have you ever been diagnosed with any of the following?";
-
-export const HIGH_RISK_MEDICATIONS = [
-  { id: "digoxin", label: "Digoxin" },
-  { id: "methotrexate", label: "Methotrexate" },
-  { id: "lithium", label: "Lithium" },
-  { id: "warfarin", label: "Warfarin" },
-  { id: "phenytoin", label: "Phenytoin" },
-  { id: "ciclosporin", label: "Ciclosporin" },
-  { id: "sirolimus", label: "Sirolimus" },
-  { id: "tacrolimus", label: "Tacrolimus" },
-  { id: "theophylline", label: "Theophylline" },
-  { id: "amiodarone", label: "Amiodarone" },
-] as const;
+export const HIGH_RISK_MEDICATIONS = WL_HIGH_RISK_MEDICATIONS;
 
 export type HighRiskMedId = (typeof HIGH_RISK_MEDICATIONS)[number]["id"];
 

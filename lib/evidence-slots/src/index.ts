@@ -8,6 +8,8 @@ export const EVIDENCE_SLOT_IDS = [
 ] as const;
 
 export * from "./wlBmiEligibility";
+export * from "./wlPmrMedicalHistory";
+export * from "./wlHighRiskMedications";
 export * from "./patientDocumentStorage";
 import {
   isWlPriorProviderPatient,

@@ -38,7 +38,6 @@ import {
   type OtherHealthEntry,
   type LastInjectionTiming,
   type TransferWeightLossMedicationValue,
-  emptyDiagnosedEntry,
   emptyMedicationEntry,
   emptyHealthEntry,
   emptyTransferWeightLossMedication,
@@ -50,7 +49,6 @@ import {
   transferWlMedicationToDetailsRow,
   HighRiskMedicationsSection,
   WlContinuationSafetySection,
-  TransferYesNoWithDetail,
   ExcludingConditionsSection,
   TransferOtherMedicalConditionsSection,
   isDiagnosedEntryComplete,
@@ -199,21 +197,12 @@ function isTransferHighRiskStepComplete(state: FormState): boolean {
 }
 
 function isSharedScreeningStepComplete(state: FormState): boolean {
-  const allergiesOk =
-    state.transferAllergies !== null &&
-    (state.transferAllergies === "no" ||
-      state.transferAllergiesDetails.trim().length > 0);
-  const otherConditionsOk = isTransferOtherMedicalConditionsComplete(
+  return isTransferOtherMedicalConditionsComplete(
     state.transferOtherMedicalConditions,
     state.transferOtherMedicalConditionsDetails,
     state.transferOtherConditionsMeds,
     state.transferOtherConditionsMedsDetails,
   );
-  const otcOk =
-    state.transferOtcSupplements !== null &&
-    (state.transferOtcSupplements === "no" ||
-      state.transferOtcSupplementsDetails.trim().length > 0);
-  return allergiesOk && otherConditionsOk && otcOk;
 }
 
 const CONTACT_STEP = 2;
@@ -480,7 +469,7 @@ const initialState: FormState = {
   thyroidHistory: null,
   eatingDisorder: null,
   excludingConditions: null,
-  diagnosedConditions: [emptyDiagnosedEntry()],
+  diagnosedConditions: [],
   diabetesMedsOther: null,
   takingMeds: null,
   currentMedications: [emptyMedicationEntry()],
@@ -1207,7 +1196,6 @@ export default function InjectableWeightLossConsultation() {
           isExcludingConditionsStepComplete(
             state.excludingConditions,
             state.diagnosedConditions,
-            state.diabetesMedsOther,
           ) && isSharedScreeningStepComplete(state)
         );
       case 9: {
@@ -1353,6 +1341,7 @@ export default function InjectableWeightLossConsultation() {
               ? e.medications.map((m) => m.name.trim()).filter(Boolean)
               : [];
           return {
+            catalogue_id: e.catalogueId ?? null,
             condition: e.condition.trim(),
             diagnosed_when: e.howLongHad.trim(),
             how_long_had: e.howLongHad.trim(),
@@ -1406,9 +1395,8 @@ export default function InjectableWeightLossConsultation() {
             ).map((d) => ({
               med_id: d.medId,
               medication:
-                d.medId === "other"
-                  ? d.name.trim()
-                  : TRANSFER_HIGH_RISK_MED_LABELS[d.medId],
+                TRANSFER_HIGH_RISK_MED_LABELS[d.medId] ??
+                (d.name.trim() || d.medId),
               condition: d.condition.trim(),
               duration: d.duration.trim(),
             }))
@@ -1623,12 +1611,9 @@ export default function InjectableWeightLossConsultation() {
           patientAge: ageYears ?? 0,
           patientSex: sexForApi,
           allergies:
-            isTransferFlow && state.transferAllergies === "yes"
-              ? state.transferAllergiesDetails.trim() ||
-                "Allergies reported — see consultation answers"
-              : state.glp1Allergy === "yes"
-                ? "GLP-1 allergy history reported"
-                : "None",
+            state.glp1Allergy === "yes"
+              ? "GLP-1 allergy history reported"
+              : "None",
           currentMedications:
             isTransferFlow && formatTransferMeds.length > 0
               ? formatTransferMeds
@@ -2122,7 +2107,8 @@ export default function InjectableWeightLossConsultation() {
             </StepShell>
           )}
 
-          {/* ───── Step 6 — PMR basics for every journey (medical history, high-risk meds, lifestyle) */}
+          {/* Step 6 — PMR basics for every journey (new_start, transfer, simple_repeat):
+              medical history, high-risk meds, lifestyle — same checklist for all paths. */}
           {step === 6 && (
             <StepShell
               step={flowStepNumber(6, isLoggedIn)}
@@ -2269,38 +2255,13 @@ export default function InjectableWeightLossConsultation() {
                       ...s,
                       excludingConditions: v,
                       diagnosedConditions:
-                        v === "yes" && s.diagnosedConditions.length === 0
-                          ? [emptyDiagnosedEntry()]
-                          : s.diagnosedConditions,
+                        v === "no" ? [] : s.diagnosedConditions,
                     }));
                   }}
                   diagnosedConditions={state.diagnosedConditions}
                   onDiagnosedConditionsChange={(diagnosedConditions) =>
                     setState((s) => ({ ...s, diagnosedConditions }))
                   }
-                  diabetesMedsOther={state.diabetesMedsOther}
-                  onDiabetesMedsOtherChange={(v) => update("diabetesMedsOther", v)}
-                />
-              </SectionCard>
-
-              <SectionCard>
-                <TransferYesNoWithDetail
-                  question="Do you have any allergies? *"
-                  value={state.transferAllergies}
-                  onChange={(v) =>
-                    setState((s) => ({
-                      ...s,
-                      transferAllergies: v,
-                      ...(v === "no" ? { transferAllergiesDetails: "" } : {}),
-                    }))
-                  }
-                  detailValue={state.transferAllergiesDetails}
-                  onDetailChange={(transferAllergiesDetails) =>
-                    update("transferAllergiesDetails", transferAllergiesDetails)
-                  }
-                  detailLabel="List your allergies and the reaction"
-                  detailPlaceholder="e.g. Penicillin — rash and swelling"
-                  testIdPrefix="transferAllergies"
                 />
               </SectionCard>
 
@@ -2344,32 +2305,6 @@ export default function InjectableWeightLossConsultation() {
                       transferOtherConditionsMedsDetails,
                     )
                   }
-                />
-              </SectionCard>
-
-              <SectionCard>
-                <TransferYesNoWithDetail
-                  question="Are you taking any other medications, supplements, or herbal remedies (including vitamins)? *"
-                  value={state.transferOtcSupplements}
-                  onChange={(v) =>
-                    setState((s) => ({
-                      ...s,
-                      transferOtcSupplements: v,
-                      ...(v === "no"
-                        ? { transferOtcSupplementsDetails: "" }
-                        : {}),
-                    }))
-                  }
-                  detailValue={state.transferOtcSupplementsDetails}
-                  onDetailChange={(transferOtcSupplementsDetails) =>
-                    update(
-                      "transferOtcSupplementsDetails",
-                      transferOtcSupplementsDetails,
-                    )
-                  }
-                  detailLabel="Please list them"
-                  detailPlaceholder="e.g. Vitamin D, multivitamin, St John's Wort"
-                  testIdPrefix="transferOtcSupplements"
                 />
               </SectionCard>
             </StepShell>

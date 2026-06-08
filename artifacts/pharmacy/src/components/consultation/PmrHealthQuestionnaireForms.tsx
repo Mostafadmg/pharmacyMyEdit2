@@ -84,7 +84,7 @@ function OptionList({
 function MedicalHistoryInfoList() {
   return (
     <ul
-      className="grid gap-2 sm:grid-cols-2 list-none p-0 m-0"
+      className="flex flex-col gap-2 list-none p-0 m-0"
       data-testid="medical-history-info-list"
     >
       {MEDICAL_HISTORY_CONDITIONS.map((c) => (
@@ -285,7 +285,7 @@ export function MedicalHistorySection({
           <p className="text-sm text-muted-foreground">
             Select any conditions you have been diagnosed with.
           </p>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="flex flex-col gap-2">
             {MEDICAL_HISTORY_CONDITIONS.map((item) => {
               const checked = slice.medicalHistory[item.id] === "yes";
               return (
