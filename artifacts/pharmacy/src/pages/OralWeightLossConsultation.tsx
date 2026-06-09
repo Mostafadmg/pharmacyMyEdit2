@@ -36,9 +36,6 @@ import { DeferredRedFlagNotice } from "@/components/consultation/DeferredRedFlag
 import { ClinicalTeamNotesSection } from "@/components/consultation/ClinicalTeamNotesSection";
 import {
   collectOralDeferredRedFlags,
-  oralExcludedMedRedFlags,
-  oralExcludingConditionsRedFlags,
-  oralYourHealthRedFlags,
 } from "@/lib/oralRedFlags";
 import { MedicalHistorySection } from "@/components/consultation/PmrHealthQuestionnaireForms";
 import { HighRiskMedicationsSection, ExcludingConditionsSection } from "@/components/consultation/WeightLossClinicalForms";
@@ -120,7 +117,7 @@ const CONTACT_STEP = 2;
 /** Matches injectable flow length — later steps added incrementally. */
 const FLOW_TOTAL_STEPS = 14;
 const LAST_IMPLEMENTED_STEP = 10;
-/** Deferred rejection after the clinical flow completes (not a mid-flow hard stop). */
+/** End screen after clinical steps — eligibility assessed silently; patient sees a neutral completion message. */
 const DEFERRED_REJECTION_STEP = 98;
 
 const initialState: OralFormState = {
@@ -442,6 +439,9 @@ export default function OralWeightLossConsultation() {
   const deferredRedFlags = useMemo(
     () =>
       collectOralDeferredRedFlags({
+        journeyStage: state.journey,
+        bmi,
+        oralHealth: state.oralHealth,
         assignedSex: state.assignedSex,
         pregnant: state.pregnant,
         orlistatAllergy: state.orlistatAllergy,
@@ -450,33 +450,15 @@ export default function OralWeightLossConsultation() {
         oralExcludingConditions: state.oralExcludingConditions,
       }),
     [
+      state.journey,
+      bmi,
+      state.oralHealth,
       state.assignedSex,
       state.pregnant,
       state.orlistatAllergy,
       state.excludedMeds,
       state.oralExcludingConditions,
     ],
-  );
-
-  const yourHealthRedFlags = useMemo(
-    () =>
-      oralYourHealthRedFlags({
-        assignedSex: state.assignedSex,
-        pregnant: state.pregnant,
-        orlistatAllergy: state.orlistatAllergy,
-        asksFemaleHealthQuestions,
-      }),
-    [state.assignedSex, state.pregnant, state.orlistatAllergy],
-  );
-
-  const excludedMedRedFlags = useMemo(
-    () => oralExcludedMedRedFlags(state.excludedMeds),
-    [state.excludedMeds],
-  );
-
-  const excludingConditionsRedFlags = useMemo(
-    () => oralExcludingConditionsRedFlags(state.oralExcludingConditions),
-    [state.oralExcludingConditions],
   );
 
   const canContinue = useMemo(() => {
@@ -558,9 +540,9 @@ export default function OralWeightLossConsultation() {
                 Weight-loss assessment
               </h1>
               <p className="mt-3 max-w-lg text-base leading-relaxed text-muted-foreground">
-                A pharmacist-led consultation to check your eligibility for oral
-                weight-loss treatment (such as Orlistat or Mysimba). Free to start
-                — you are not committed until you choose a treatment plan.
+                A pharmacist-led consultation for oral weight-loss treatment
+                (such as Orlistat or Mysimba). Free to start — you are not
+                committed until you choose a treatment plan.
               </p>
 
               <ul className="mt-10 space-y-3">
@@ -709,7 +691,7 @@ export default function OralWeightLossConsultation() {
               label="BMI Check"
               icon={<ClipboardCheck className="w-6 h-6" />}
               title="BMI Assessment"
-              subtitle="Let's calculate your BMI to confirm your eligibility"
+              subtitle="Let's calculate your BMI as part of your assessment."
               onBack={back}
               onContinue={next}
               canContinue={canContinue}
@@ -751,7 +733,7 @@ export default function OralWeightLossConsultation() {
               label="Ethnicity"
               icon={<User className="w-6 h-6" />}
               title="Ethnicity"
-              subtitle="We ask for this to help us accurately assess your eligibility — South Asian, Black African and Caribbean patients have lower BMI thresholds for cardiometabolic risk."
+              subtitle="We ask for this to help us accurately assess cardiometabolic risk as part of your consultation."
               onBack={back}
               onContinue={next}
               canContinue={canContinue}
@@ -785,7 +767,7 @@ export default function OralWeightLossConsultation() {
               label="BMI Check"
               icon={<ClipboardCheck className="w-6 h-6" />}
               title="BMI Assessment"
-              subtitle="We'll calculate your BMI to determine your eligibility."
+              subtitle="We'll calculate your BMI from your height and weight."
               onBack={back}
               onContinue={next}
               canContinue={canContinue}
@@ -1029,9 +1011,6 @@ export default function OralWeightLossConsultation() {
                   onChange={(orlistatAllergy) => update("orlistatAllergy", orlistatAllergy)}
                 />
               </SectionCard>
-              {yourHealthRedFlags.length > 0 && (
-                <DeferredRedFlagNotice flags={yourHealthRedFlags} variant="inline" />
-              )}
             </StepShell>
           )}
 
@@ -1123,7 +1102,6 @@ export default function OralWeightLossConsultation() {
                     }))
                   }
                 />
-                <DeferredRedFlagNotice flags={excludedMedRedFlags} variant="inline" />
               </SectionCard>
               <SectionCard>
                 <p className="font-semibold text-secondary mb-3">
@@ -1220,12 +1198,6 @@ export default function OralWeightLossConsultation() {
                   }
                 />
               </SectionCard>
-              {excludingConditionsRedFlags.length > 0 && (
-                <DeferredRedFlagNotice
-                  flags={excludingConditionsRedFlags}
-                  variant="inline"
-                />
-              )}
             </StepShell>
           )}
 
@@ -1283,22 +1255,13 @@ export default function OralWeightLossConsultation() {
               className="max-w-xl mx-auto px-5 pt-6 pb-20"
             >
               <SectionCard>
-                <DeferredRedFlagNotice flags={deferredRedFlags} variant="final" />
+                <DeferredRedFlagNotice />
               </SectionCard>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Button
-                  variant="outline"
-                  onClick={back}
-                  size="lg"
-                  className="h-12 flex-1 rounded-2xl"
-                  data-testid="button-oral-deferred-back"
-                >
-                  Review my answers
-                </Button>
+              <div className="mt-8">
                 <Button
                   asChild
                   size="lg"
-                  className="h-12 flex-1 rounded-2xl bg-secondary text-white hover:bg-secondary/90"
+                  className="h-12 w-full rounded-2xl bg-secondary text-white hover:bg-secondary/90"
                   data-testid="button-oral-deferred-home"
                 >
                   <Link href="/treatments/weight-loss">Back to treatments</Link>

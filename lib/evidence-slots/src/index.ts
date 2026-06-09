@@ -12,6 +12,7 @@ export * from "./wlPmrMedicalHistory";
 export * from "./wlOralMedicalHistory";
 export * from "./wlOralExcludedMedications";
 export * from "./wlOralExcludingConditions";
+export * from "./wlOralBmiEligibility";
 export * from "./wlExcludingConditions";
 export * from "./wlType2DiabetesListedMeds";
 export * from "./wlHighRiskMedications";

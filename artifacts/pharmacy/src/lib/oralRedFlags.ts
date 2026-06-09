@@ -1,12 +1,21 @@
 import {
+  oralNewPatientBmiIneligibleReason,
+  oralNewPatientMeetsBmiEligibility,
+} from "@workspace/evidence-slots";
+import {
   ORAL_EXCLUDED_MED_LABELS,
   type OralExcludedMedsSlice,
 } from "@/lib/oralExcludedMedications";
-import { ORAL_ORLISTAT_ALLERGY_QUESTION } from "@/lib/oralHealthQuestionnaire";
+import {
+  ORAL_ORLISTAT_ALLERGY_QUESTION,
+  selectedOralMedicalHistoryConditions,
+  type OralHealthFormSlice,
+} from "@/lib/oralHealthQuestionnaire";
 import {
   wlOralExcludingConditionLabel,
   type OralExcludingConditionsSlice,
 } from "@/lib/oralExcludingConditions";
+import type { JourneyStage } from "@/lib/wlConsultationRouting";
 
 export type OralRedFlag = {
   id: string;
@@ -16,17 +25,38 @@ export type OralRedFlag = {
 
 export type OralYesNo = "yes" | "no";
 
-export const ORAL_RED_FLAG_INLINE_HEADING =
-  "This treatment may not be suitable for you";
-
-export const ORAL_RED_FLAG_INLINE_BODY =
-  "Based on this answer, oral weight-loss treatment is unlikely to be suitable. You can continue the consultation for now — we will review everything at the end.";
-
 export const ORAL_DEFERRED_REJECTION_HEADING =
-  "We are unable to offer treatment online";
+  "Thank you for completing your consultation";
 
 export const ORAL_DEFERRED_REJECTION_BODY =
-  "Based on your answers, oral weight-loss treatment is not suitable for you at this time. A prescriber would not be able to approve this consultation.";
+  "Our clinical team will review your answers and let you know whether oral weight-loss treatment is suitable for you. You do not need to do anything else for now.";
+
+export function oralBmiRedFlags(input: {
+  journeyStage: JourneyStage | null;
+  bmi: number | null;
+  oralHealth: OralHealthFormSlice;
+}): OralRedFlag[] {
+  const hasStep7Comorbidity =
+    selectedOralMedicalHistoryConditions(input.oralHealth).length > 0;
+  const bmiInput = {
+    journeyStage: input.journeyStage,
+    bmi: input.bmi,
+    hasStep7Comorbidity,
+  };
+
+  if (oralNewPatientMeetsBmiEligibility(bmiInput)) return [];
+
+  const reason = oralNewPatientBmiIneligibleReason(bmiInput);
+  if (!reason) return [];
+
+  return [
+    {
+      id: "bmi:new_patient_threshold",
+      source: "bmi",
+      label: reason,
+    },
+  ];
+}
 
 export function oralYourHealthRedFlags(input: {
   assignedSex: "male" | "female" | "prefer-not-to-say" | null;
@@ -91,6 +121,9 @@ export function oralExcludingConditionsRedFlags(
 }
 
 export function collectOralDeferredRedFlags(input: {
+  journeyStage: JourneyStage | null;
+  bmi: number | null;
+  oralHealth: OralHealthFormSlice;
   assignedSex: "male" | "female" | "prefer-not-to-say" | null;
   pregnant: OralYesNo | null;
   orlistatAllergy: OralYesNo | null;
@@ -101,6 +134,7 @@ export function collectOralDeferredRedFlags(input: {
   oralExcludingConditions: OralExcludingConditionsSlice;
 }): OralRedFlag[] {
   return [
+    ...oralBmiRedFlags(input),
     ...oralYourHealthRedFlags(input),
     ...oralExcludedMedRedFlags(input.excludedMeds),
     ...oralExcludingConditionsRedFlags(input.oralExcludingConditions),
