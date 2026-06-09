@@ -32,7 +32,14 @@ import { YesNoChoice, type YesNo } from "@/components/consultation/YesNoChoice";
 import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { CheckboxRow } from "@/components/consultation/CheckboxRow";
+import { DeferredRedFlagNotice } from "@/components/consultation/DeferredRedFlagNotice";
 import { ClinicalTeamNotesSection } from "@/components/consultation/ClinicalTeamNotesSection";
+import {
+  collectOralDeferredRedFlags,
+  oralExcludedMedRedFlags,
+  oralExcludingConditionsRedFlags,
+  oralYourHealthRedFlags,
+} from "@/lib/oralRedFlags";
 import { MedicalHistorySection } from "@/components/consultation/PmrHealthQuestionnaireForms";
 import { HighRiskMedicationsSection, ExcludingConditionsSection } from "@/components/consultation/WeightLossClinicalForms";
 import {
@@ -113,6 +120,8 @@ const CONTACT_STEP = 2;
 /** Matches injectable flow length — later steps added incrementally. */
 const FLOW_TOTAL_STEPS = 14;
 const LAST_IMPLEMENTED_STEP = 10;
+/** Deferred rejection after the clinical flow completes (not a mid-flow hard stop). */
+const DEFERRED_REJECTION_STEP = 98;
 
 const initialState: OralFormState = {
   fullName: "",
@@ -351,6 +360,10 @@ export default function OralWeightLossConsultation() {
   };
 
   const back = () => {
+    if (step === DEFERRED_REJECTION_STEP) {
+      go(LAST_IMPLEMENTED_STEP);
+      return;
+    }
     if (step > 1) {
       go(stepBefore(step, isLoggedIn));
       return;
@@ -359,6 +372,14 @@ export default function OralWeightLossConsultation() {
   };
 
   const next = () => {
+    if (step === LAST_IMPLEMENTED_STEP) {
+      if (deferredRedFlags.length > 0) {
+        go(DEFERRED_REJECTION_STEP);
+        return;
+      }
+      go(LAST_IMPLEMENTED_STEP + 1);
+      return;
+    }
     if (step >= LAST_IMPLEMENTED_STEP) {
       go(Math.min(step + 1, LAST_IMPLEMENTED_STEP + 1));
       return;
@@ -417,6 +438,46 @@ export default function OralWeightLossConsultation() {
   }, [isLoggedIn, step]);
 
   const bmi = useMemo(() => bmiFrom(state), [state]);
+
+  const deferredRedFlags = useMemo(
+    () =>
+      collectOralDeferredRedFlags({
+        assignedSex: state.assignedSex,
+        pregnant: state.pregnant,
+        orlistatAllergy: state.orlistatAllergy,
+        asksFemaleHealthQuestions,
+        excludedMeds: state.excludedMeds,
+        oralExcludingConditions: state.oralExcludingConditions,
+      }),
+    [
+      state.assignedSex,
+      state.pregnant,
+      state.orlistatAllergy,
+      state.excludedMeds,
+      state.oralExcludingConditions,
+    ],
+  );
+
+  const yourHealthRedFlags = useMemo(
+    () =>
+      oralYourHealthRedFlags({
+        assignedSex: state.assignedSex,
+        pregnant: state.pregnant,
+        orlistatAllergy: state.orlistatAllergy,
+        asksFemaleHealthQuestions,
+      }),
+    [state.assignedSex, state.pregnant, state.orlistatAllergy],
+  );
+
+  const excludedMedRedFlags = useMemo(
+    () => oralExcludedMedRedFlags(state.excludedMeds),
+    [state.excludedMeds],
+  );
+
+  const excludingConditionsRedFlags = useMemo(
+    () => oralExcludingConditionsRedFlags(state.oralExcludingConditions),
+    [state.oralExcludingConditions],
+  );
 
   const canContinue = useMemo(() => {
     switch (step) {
@@ -968,6 +1029,9 @@ export default function OralWeightLossConsultation() {
                   onChange={(orlistatAllergy) => update("orlistatAllergy", orlistatAllergy)}
                 />
               </SectionCard>
+              {yourHealthRedFlags.length > 0 && (
+                <DeferredRedFlagNotice flags={yourHealthRedFlags} variant="inline" />
+              )}
             </StepShell>
           )}
 
@@ -1059,6 +1123,7 @@ export default function OralWeightLossConsultation() {
                     }))
                   }
                 />
+                <DeferredRedFlagNotice flags={excludedMedRedFlags} variant="inline" />
               </SectionCard>
               <SectionCard>
                 <p className="font-semibold text-secondary mb-3">
@@ -1116,10 +1181,10 @@ export default function OralWeightLossConsultation() {
             <StepShell
               step={flowStepNumber(9, isLoggedIn)}
               totalSteps={shellTotal}
-              label="Medical history"
+              label="Medical conditions"
               icon={<ShieldCheck className="w-6 h-6" />}
-              title="Excluding conditions"
-              subtitle="These conditions may affect whether we can safely prescribe oral weight-loss treatment."
+              title="Medical conditions"
+              subtitle="Help us understand your medical history."
               onBack={back}
               onContinue={next}
               canContinue={canContinue}
@@ -1155,6 +1220,12 @@ export default function OralWeightLossConsultation() {
                   }
                 />
               </SectionCard>
+              {excludingConditionsRedFlags.length > 0 && (
+                <DeferredRedFlagNotice
+                  flags={excludingConditionsRedFlags}
+                  variant="inline"
+                />
+              )}
             </StepShell>
           )}
 
@@ -1201,6 +1272,39 @@ export default function OralWeightLossConsultation() {
                 </p>
               </SectionCard>
             </StepShell>
+          )}
+
+          {step === DEFERRED_REJECTION_STEP && (
+            <motion.div
+              key="oral-deferred-rejection"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+              className="max-w-xl mx-auto px-5 pt-6 pb-20"
+            >
+              <SectionCard>
+                <DeferredRedFlagNotice flags={deferredRedFlags} variant="final" />
+              </SectionCard>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Button
+                  variant="outline"
+                  onClick={back}
+                  size="lg"
+                  className="h-12 flex-1 rounded-2xl"
+                  data-testid="button-oral-deferred-back"
+                >
+                  Review my answers
+                </Button>
+                <Button
+                  asChild
+                  size="lg"
+                  className="h-12 flex-1 rounded-2xl bg-secondary text-white hover:bg-secondary/90"
+                  data-testid="button-oral-deferred-home"
+                >
+                  <Link href="/treatments/weight-loss">Back to treatments</Link>
+                </Button>
+              </div>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>

@@ -9,6 +9,10 @@ export const WL_ORAL_EXCLUDING_CONDITIONS = [
     id: "chronic_malabsorption",
     label: "Chronic malabsorption syndrome",
   },
+  {
+    id: "inflammatory_bowel_disease",
+    label: "IBD, ulcerative colitis, or Crohn's disease",
+  },
   { id: "chronic_kidney_disease", label: "Chronic kidney disease" },
   {
     id: "calcium_oxalate_kidney_stones",
@@ -18,7 +22,6 @@ export const WL_ORAL_EXCLUDING_CONDITIONS = [
     id: "acute_hepatitis_liver_cirrhosis",
     label: "Acute hepatitis or liver cirrhosis",
   },
-  { id: "type1_diabetes", label: "Type 1 diabetes" },
   {
     id: "weight_gain_hormonal_or_medical",
     label:
@@ -43,6 +46,7 @@ export const LEGACY_WL_ORAL_EXCLUDING_CONDITION_LABELS: Record<string, string> =
     chronic_kidney_liver_disease:
       "Chronic kidney disease, acute hepatitis or liver cirrhosis",
     active_eating_disorder: "Active eating disorder",
+    type1_diabetes: "Type 1 diabetes",
   };
 
 export function wlOralExcludingConditionLabel(id: string): string | undefined {
