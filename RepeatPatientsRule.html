@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EveryDayMeds — Repeat Patients Dose &amp; Bundle Rules</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      color: #1a1a2e;
+      background: #f4f6f9;
+    }
+
+    .doc-header {
+      background: linear-gradient(135deg, #0E3D2D 0%, #2d7a4f 100%);
+      color: white;
+      padding: 48px 40px 36px;
+    }
+    .doc-header .logo {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      opacity: 0.75;
+      margin-bottom: 12px;
+    }
+    .doc-header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+    .doc-header .subtitle { opacity: 0.8; font-size: 14px; }
+    .meta-row { display: flex; gap: 24px; margin-top: 24px; flex-wrap: wrap; }
+    .meta-pill {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    .overview {
+      background: white;
+      border-left: 4px solid #0E3D2D;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 36px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .overview p { margin-bottom: 6px; }
+    .overview p:last-child { margin-bottom: 0; }
+    .overview strong { color: #0E3D2D; }
+
+    .step {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      margin-bottom: 28px;
+      overflow: hidden;
+    }
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px 24px;
+      border-bottom: 1px solid #eef0f3;
+    }
+    .step-number {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #0E3D2D; color: white;
+      font-size: 14px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .step-title { font-size: 17px; font-weight: 700; color: #1a1a2e; }
+    .step-body { padding: 24px; }
+    .step-body > * + * { margin-top: 20px; }
+
+    .subsection-title {
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.8px; color: #0E3D2D; margin-bottom: 10px;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    thead tr { background: #f0f4f8; }
+    th {
+      padding: 10px 14px; text-align: left; font-weight: 600; color: #4a5568;
+      font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    td { padding: 10px 14px; border-bottom: 1px solid #eef0f3; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafbfc; }
+
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: 12px;
+      font-size: 12px; font-weight: 600; white-space: nowrap;
+    }
+    .badge-eligible { background: #e6f4ec; color: #1a7a3f; border: 1px solid #b7dfc6; }
+    .badge-reject { background: #fde8e8; color: #c0392b; border: 1px solid #f5c6c6; }
+    .badge-blocked { background: #f1f3f5; color: #4a5568; border: 1px solid #d1d5db; }
+    .badge-recommended { background: #D4EFE2; color: #0E3D2D; border: 1px solid #86efac; }
+
+    .note-box {
+      border-radius: 8px; padding: 14px 18px; font-size: 14px;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .note-box.info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+    .note-box.warning { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
+    .note-box.success { background: #D4EFE2; border: 1px solid #86efac; color: #0E3D2D; }
+    .note-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+    .dose-ladder { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+    .dose-step {
+      background: #0E3D2D; color: white; border-radius: 6px;
+      padding: 5px 12px; font-size: 13px; font-weight: 600;
+    }
+    .dose-step.current { background: #2d7a4f; box-shadow: 0 0 0 2px #D4EFE2; }
+    .dose-step.recommended { background: #0A7A45; }
+    .dose-step.blocked { background: #e5e7eb; color: #9ca3af; text-decoration: line-through; }
+    .dose-arrow { color: #8492a6; font-size: 14px; }
+
+    .pathway-card {
+      border-radius: 8px; padding: 18px; border: 1px solid;
+      background: #f0fdf9; border-color: #86efac;
+    }
+    .pathway-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: #0E3D2D; }
+    .pathway-card ul { font-size: 14px; color: #166534; margin-left: 18px; line-height: 1.7; }
+
+    /* ── UI mocks (match patient app dosage picker screenshot) ── */
+    .ui-mock {
+      background: #fafafa;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 20px;
+      max-width: 560px;
+    }
+    .ui-mock-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.6px; color: #8492a6; margin-bottom: 10px;
+    }
+    .ui-mock-header {
+      display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px;
+    }
+    .ui-mock-step-num {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: #0E3D2D; color: white; font-weight: 800; font-size: 14px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .ui-mock-title { font-size: 18px; font-weight: 800; color: #0E3D2D; line-height: 1.2; }
+    .ui-mock-subtitle { font-size: 13px; color: #6b7280; margin-top: 2px; }
+
+    .bundle-tabs {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    .bundle-tab {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 600;
+      border: 1.5px solid #d1d5db; background: white; color: #374151;
+      cursor: default;
+    }
+    .bundle-tab.active {
+      background: #0E3D2D; border-color: #0E3D2D; color: white;
+    }
+    .bundle-tab .tab-count {
+      background: rgba(0,0,0,0.12); border-radius: 999px;
+      padding: 1px 7px; font-size: 11px; font-weight: 700;
+    }
+    .bundle-tab.active .tab-count { background: rgba(255,255,255,0.2); }
+    .bundle-tab.disabled { opacity: 0.45; }
+
+    .dose-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    @media (max-width: 520px) { .dose-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .dose-card {
+      position: relative;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 12px;
+      background: white;
+      padding: 14px 10px 12px;
+      text-align: center;
+      min-height: 88px;
+    }
+    .dose-card .dose-mg {
+      font-size: 20px; font-weight: 800; color: #0E3D2D; line-height: 1.1;
+    }
+    .dose-card .dose-weeks {
+      font-size: 11px; color: #6b7280; margin: 4px 0 6px;
+    }
+    .dose-card .dose-price {
+      font-size: 13px; font-weight: 700; color: #374151;
+    }
+    .dose-card.selected {
+      border-color: #0E3D2D;
+      background: #D4EFE2;
+      box-shadow: 0 0 0 1px #0E3D2D;
+    }
+    .dose-card.recommended:not(.selected) {
+      border-color: #86efac;
+      background: #f0fdf9;
+    }
+    .dose-card.blocked {
+      opacity: 0.42;
+      background: #f9fafb;
+      border-style: dashed;
+      border-color: #d1d5db;
+    }
+    .dose-card .check-icon {
+      position: absolute; top: 6px; right: 6px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #0E3D2D; color: white;
+      font-size: 11px; display: flex; align-items: center; justify-content: center;
+    }
+    .dose-card .rec-badge {
+      position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+      background: #0A7A45; color: white; font-size: 9px; font-weight: 700;
+      padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+      text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .dose-card .lock-hint {
+      font-size: 9px; color: #9ca3af; margin-top: 4px; line-height: 1.2;
+    }
+
+    .mock-legend {
+      display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px;
+      font-size: 12px; color: #6b7280;
+    }
+    .mock-legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .swatch {
+      width: 14px; height: 14px; border-radius: 4px; border: 1.5px solid #d1d5db;
+    }
+    .swatch.sel { background: #D4EFE2; border-color: #0E3D2D; }
+    .swatch.rec { background: #f0fdf9; border-color: #86efac; }
+    .swatch.blk { background: #f9fafb; border-style: dashed; opacity: 0.6; }
+
+    .callout-green {
+      background: #D4EFE2; border: 1px solid rgba(14,61,45,0.15);
+      border-radius: 12px; padding: 12px 16px; font-size: 14px; color: #0E3D2D;
+      margin-top: 14px;
+    }
+    .callout-gray {
+      background: rgba(14,61,45,0.05); border: 1px solid rgba(14,61,45,0.12);
+      border-radius: 12px; padding: 12px 16px; font-size: 14px; color: #374151;
+      margin-top: 10px;
+    }
+
+    .mock-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 720px) { .mock-row { grid-template-columns: 1fr; } }
+
+    .formula-box {
+      background: #1a1a2e; color: #a8e6c3; border-radius: 8px;
+      padding: 16px 20px; font-family: "SF Mono", "Fira Code", "Courier New", monospace;
+      font-size: 13px; line-height: 1.7;
+    }
+
+    .doc-footer {
+      text-align: center; padding: 32px 24px; color: #8492a6;
+      font-size: 13px; border-top: 1px solid #e4e7ec; margin-top: 40px;
+    }
+
+    @media print {
+      body { background: white; }
+      .step { box-shadow: none; border: 1px solid #e4e7ec; }
+      .doc-header { background: #0E3D2D !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="doc-header">
+  <div class="logo">EveryDayMeds · Clinical Rules</div>
+  <h1>Repeat Patients Rule</h1>
+  <p class="subtitle">Injectable weight-loss reorders (<code>simple_repeat</code>) — dose jump limits, recommended next dose, bundle picker &amp; checkout validation</p>
+  <div class="meta-row">
+    <span class="meta-pill">Journey: existing / repeat</span>
+    <span class="meta-pill">Mounjaro &amp; Wegovy</span>
+    <span class="meta-pill">Mirrors transfer + new-starter checkout rules</span>
+    <span class="meta-pill">Patient step 16 — dosage picker</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="overview">
+    <p><strong>Who counts as a repeat patient?</strong> Logged-in patient reordering injectable weight-loss treatment (<code>consultation_type: simple_repeat</code>). Their <strong>current dose</strong> comes from the prior approved order / PMR record.</p>
+    <p><strong>Core rule:</strong> A repeat patient must <strong>not jump more than one ladder step (2.5 mg Mounjaro / 0.5 mg Wegovy)</strong> above their current dose in a single order. Example: on <strong>10 mg</strong>, they may titrate to <strong>12.5 mg</strong> but <strong>not 15 mg</strong> (that is a 5 mg jump).</p>
+    <p><strong>Bundle &amp; checkout:</strong> The same titration-bundle rules already implemented for <strong>new starters</strong> and <strong>transfer</strong> patients apply — ladder contiguity, 1 / 2 / 3-pen bundle ceilings, titration acknowledgement, and Continue gated on validation.</p>
+  </div>
+
+  <!-- STEP 1 — Dose ladder & jump rule -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">1</div>
+      <div class="step-title">Maximum dose jump (+2.5 mg)</div>
+    </div>
+    <div class="step-body">
+
+      <div class="subsection-title">Mounjaro ladder</div>
+      <div class="dose-ladder" style="margin-bottom:16px;">
+        <span class="dose-step">2.5 mg</span><span class="dose-arrow">→</span>
+        <span class="dose-step">5 mg</span><span class="dose-arrow">→</span>
+        <span class="dose-step">7.5 mg</span><span class="dose-arrow">→</span>
+        <span class="dose-step">10 mg</span><span class="dose-arrow">→</span>
+        <span class="dose-step">12.5 mg</span><span class="dose-arrow">→</span>
+        <span class="dose-step">15 mg</span>
+      </div>
+
+      <div class="formula-box">
+        currentDoseMg = dose from patient's last approved order<br>
+        recommendedNextDoseMg = min(currentDoseMg + 2.5, catalogueMax)  // one ladder step up<br>
+        maxSelectableDoseMg = recommendedNextDoseMg  // hard cap for this order<br>
+        <br>
+        // Invalid: any pen strictly above maxSelectableDoseMg<br>
+        // Invalid: 10 mg → 15 mg (skips 12.5 mg AND exceeds +2.5 mg rule)
+      </div>
+
+      <table style="margin-top:16px;">
+        <thead>
+          <tr><th>Current dose</th><th>Recommended next dose</th><th>Max allowed this order</th><th>Blocked example</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>7.5 mg</td>
+            <td><span class="badge badge-recommended">10 mg</span></td>
+            <td>10 mg</td>
+            <td>12.5 mg, 15 mg on <strong>Single Pen</strong></td>
+          </tr>
+          <tr>
+            <td>10 mg</td>
+            <td><span class="badge badge-recommended">12.5 mg</span></td>
+            <td>12.5 mg</td>
+            <td><span class="badge badge-reject">15 mg</span> — exceeds +2.5 mg jump</td>
+          </tr>
+          <tr>
+            <td>12.5 mg</td>
+            <td><span class="badge badge-recommended">15 mg</span></td>
+            <td>15 mg</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>15 mg</td>
+            <td><span class="badge badge-recommended">15 mg</span> (maintain)</td>
+            <td>15 mg</td>
+            <td>Cannot titrate higher</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="note-box warning" style="margin-top:16px;">
+        <span class="note-icon">&#9888;</span>
+        <span>
+          <strong>10 mg → 15 mg is never allowed</strong> for repeat patients — it breaks both the <em>+2.5 mg jump rule</em> and <em>ladder contiguity</em> (12.5 mg would be skipped). Show the same locked-dose message used for transfer/new patients.
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 — Recommended next dose -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">2</div>
+      <div class="step-title">Recommended next dose (patient-facing)</div>
+    </div>
+    <div class="step-body">
+
+      <p>Always show the green recommended callout (same pattern as transfer patients):</p>
+
+      <div class="callout-green">
+        Based on the information you have provided, the <strong>dose we recommend for you</strong> is
+        <strong style="color:#0A7A45;">Mounjaro 10 mg</strong>.
+        You can still order a lower strength if you need to — as a single pen or as part of a bundle.
+      </div>
+
+      <table style="margin-top:16px;">
+        <thead><tr><th>Field</th><th>Rule</th></tr></thead>
+        <tbody>
+          <tr><td><strong>recommendedNextDoseMg</strong></td><td>One ladder step above <code>currentDoseMg</code>, or same dose if already at catalogue maximum</td></tr>
+          <tr><td><strong>Badge on dose card</strong></td><td>“Recommended” pill on the recommended strength in the picker grid</td></tr>
+          <tr><td><strong>Below recommended</strong></td><td>Patient may order any lower strength without including recommended (same as transfer)</td></tr>
+          <tr><td><strong>Above recommended</strong></td><td>Not possible for repeat — <code>maxSelectable</code> equals recommended; no strength above recommended is offered</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- STEP 3 — Bundle rules -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">3</div>
+      <div class="step-title">Bundle size rules (same as transfer / new)</div>
+    </div>
+    <div class="step-body">
+
+      <div class="pathway-card">
+        <h4>&#128257; Repeat patient — bundle ceilings</h4>
+        <ul>
+          <li><strong>Single Pen (1-month):</strong> strengths from ladder minimum → <strong>recommended next dose only</strong>. No strengths above recommended. Higher doses are <strong>blocked / greyed out</strong>.</li>
+          <li><strong>2-Pen Bundle:</strong> strengths from minimum → <strong>one step above recommended</strong> (capped by <code>maxSelectableDoseMg</code>).</li>
+          <li><strong>3-Pen Bundle:</strong> strengths from minimum → <strong>top of catalogue</strong> (capped by <code>maxSelectableDoseMg</code>).</li>
+          <li><strong>Bundle toggle</strong> does not reset when pens are removed — patient can clear and re-pick.</li>
+          <li><strong>Continue</strong> enabled only when pen count equals bundle size <strong>and</strong> validation passes.</li>
+          <li><strong>Titration acknowledgement</strong> required when any pen is above <code>currentDoseMg</code>.</li>
+        </ul>
+      </div>
+
+      <div class="subsection-title" style="margin-top:20px;">Repeat on 7.5 mg — strengths offered per bundle (recommended 10 mg)</div>
+      <table>
+        <thead><tr><th>Bundle tab</th><th>Strengths shown</th><th>Default pre-fill</th><th>Blocked in picker</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Single Pen</strong></td>
+            <td>2.5, 5, 7.5, <strong>10 mg</strong></td>
+            <td>10 mg (recommended)</td>
+            <td>12.5 mg, 15 mg <span class="badge badge-blocked">locked</span></td>
+          </tr>
+          <tr>
+            <td><strong>2-Pen Bundle</strong></td>
+            <td>2.5, 5, 7.5, 10, <strong>12.5 mg</strong></td>
+            <td><strong>10 mg + 12.5 mg</strong></td>
+            <td>15 mg <span class="badge badge-blocked">locked</span></td>
+          </tr>
+          <tr>
+            <td><strong>3-Pen Bundle</strong></td>
+            <td>2.5 … <strong>15 mg</strong></td>
+            <td>10 + 12.5 + 15 mg</td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="subsection-title" style="margin-top:20px;">Repeat on 10 mg — strengths offered per bundle (recommended 12.5 mg)</div>
+      <table>
+        <thead><tr><th>Bundle tab</th><th>Strengths shown</th><th>Default pre-fill</th><th>Blocked in picker</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Single Pen</strong></td>
+            <td>2.5 … <strong>12.5 mg</strong></td>
+            <td>12.5 mg</td>
+            <td>15 mg <span class="badge badge-blocked">locked</span></td>
+          </tr>
+          <tr>
+            <td><strong>2-Pen Bundle</strong></td>
+            <td>2.5 … <strong>12.5 mg</strong></td>
+            <td>12.5 mg + 12.5 mg (or 10 + 12.5)</td>
+            <td>15 mg <span class="badge badge-blocked">locked</span> — exceeds +2.5 mg from current</td>
+          </tr>
+          <tr>
+            <td><strong>3-Pen Bundle</strong></td>
+            <td>2.5 … <strong>12.5 mg</strong></td>
+            <td>Contiguous titration ending at 12.5 mg</td>
+            <td>15 mg <span class="badge badge-blocked">locked</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="note-box info" style="margin-top:16px;">
+        <span class="note-icon">&#8505;</span>
+        <span>
+          <strong>Locked-dose copy (reuse from transfer):</strong>
+          <em>“With a 1-month bundle you can choose your recommended dose or any lower strength. Higher doses are available with a 2- or 3-month bundle.”</em>
+          When blocked by the +2.5 mg rule, add:
+          <em>“You can only move up one strength at a time from your current dose.”</em>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4 — Checkout validation -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">4</div>
+      <div class="step-title">Checkout validation (shared with new &amp; transfer)</div>
+    </div>
+    <div class="step-body">
+      <table>
+        <thead><tr><th>Rule</th><th>New starter</th><th>Transfer</th><th>Repeat</th></tr></thead>
+        <tbody>
+          <tr><td>Bundle size = pen count</td><td colspan="3" style="text-align:center;"><span class="badge badge-eligible">Required</span></td></tr>
+          <tr><td>Ladder contiguity (no skipped steps)</td><td colspan="3" style="text-align:center;"><span class="badge badge-eligible">Required</span></td></tr>
+          <tr><td>Repeat same strength OK (e.g. 2×10 mg)</td><td colspan="3" style="text-align:center;"><span class="badge badge-eligible">Yes</span></td></tr>
+          <tr><td>1-bundle ceiling</td><td>Up to starter offer max</td><td>Up to recommended</td><td>Up to <strong>recommended next</strong></td></tr>
+          <tr><td>2-bundle ceiling</td><td>+2 steps from starter</td><td>Recommended + 1 step</td><td>Recommended + 1 step (capped)</td></tr>
+          <tr><td>3-bundle ceiling</td><td>Starter offer max</td><td>Full catalogue</td><td>Full catalogue (capped by max jump)</td></tr>
+          <tr><td>Titration ack checkbox</td><td>Above starter</td><td>Above recommended</td><td>Above <strong>current dose</strong></td></tr>
+          <tr><td>Max jump per order</td><td>N/A (starts low)</td><td>Gap rules</td><td><strong>+2.5 mg from current only</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- STEP 5 — UI mocks -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">5</div>
+      <div class="step-title">UI mocks — dosage picker (based on live screenshot)</div>
+    </div>
+    <div class="step-body">
+
+      <div class="note-box info" style="margin-bottom:20px;">
+        <span class="note-icon">&#128247;</span>
+        <span>Static HTML mocks below mirror the patient app <strong>Select Your Dosage</strong> step — Single Pens / 2-Pen Bundles / 3-Pen Bundles tabs and the 2.5–15 mg card grid.</span>
+      </div>
+
+      <!-- Mock A — current 7.5 mg, single pen -->
+      <div class="subsection-title">Mock A — Current dose 7.5 mg · Single Pen tab</div>
+      <p style="font-size:14px;color:#6b7280;margin-bottom:12px;">Patient continuing treatment. <strong>10 mg</strong> is recommended next. <strong>12.5 mg &amp; 15 mg blocked</strong> on single pen.</p>
+
+      <div class="ui-mock">
+        <div class="ui-mock-header">
+          <div class="ui-mock-step-num">1</div>
+          <div>
+            <div class="ui-mock-title">Select Your Dosage</div>
+            <div class="ui-mock-subtitle">Choose the dose that matches your treatment plan.</div>
+          </div>
+        </div>
+
+        <div class="bundle-tabs">
+          <div class="bundle-tab active">Single Pens <span class="tab-count">6</span></div>
+          <div class="bundle-tab">2-Pen Bundles <span class="tab-count">10</span></div>
+          <div class="bundle-tab">3-Pen Bundles <span class="tab-count">14</span></div>
+        </div>
+
+        <div class="dose-grid">
+          <div class="dose-card"><div class="dose-mg">2.5mg</div><div class="dose-weeks">Weeks 1–4</div><div class="dose-price">£174.99</div></div>
+          <div class="dose-card"><div class="dose-mg">5mg</div><div class="dose-weeks">Weeks 5–8</div><div class="dose-price">£204.99</div></div>
+          <div class="dose-card selected">
+            <div class="check-icon">&#10003;</div>
+            <div class="dose-mg">7.5mg</div><div class="dose-weeks">Weeks 9–12</div><div class="dose-price">£254.99</div>
+            <div class="lock-hint">Your current dose</div>
+          </div>
+          <div class="dose-card recommended">
+            <span class="rec-badge">Recommended</span>
+            <div class="dose-mg">10mg</div><div class="dose-weeks">Weeks 13–16</div><div class="dose-price">£274.99</div>
+          </div>
+          <div class="dose-card blocked">
+            <div class="dose-mg">12.5mg</div><div class="dose-weeks">Weeks 17–20</div><div class="dose-price">£304.99</div>
+            <div class="lock-hint">2- or 3-pen bundle</div>
+          </div>
+          <div class="dose-card blocked">
+            <div class="dose-mg">15mg</div><div class="dose-weeks">Weeks 21+</div><div class="dose-price">£323.99</div>
+            <div class="lock-hint">2- or 3-pen bundle</div>
+          </div>
+        </div>
+
+        <div class="callout-green" style="margin-top:14px;">
+          Based on the information you have provided, the <strong>dose we recommend for you</strong> is
+          <strong style="color:#0A7A45;">Mounjaro 10 mg</strong>.
+          You can still order a lower strength if you need to — as a single pen or as part of a bundle.
+        </div>
+
+        <div class="mock-legend">
+          <span><span class="swatch sel"></span> Selected (current 7.5 mg)</span>
+          <span><span class="swatch rec"></span> Recommended next (10 mg)</span>
+          <span><span class="swatch blk"></span> Blocked on single pen</span>
+        </div>
+      </div>
+
+      <!-- Mock B — current 10 mg, single pen, 15 blocked -->
+      <div class="subsection-title" style="margin-top:28px;">Mock B — Current dose 10 mg · Single Pen · 15 mg blocked (+2.5 mg rule)</div>
+
+      <div class="ui-mock">
+        <div class="ui-mock-header">
+          <div class="ui-mock-step-num">1</div>
+          <div>
+            <div class="ui-mock-title">Select Your Dosage</div>
+            <div class="ui-mock-subtitle">Choose the dose that matches your treatment plan.</div>
+          </div>
+        </div>
+
+        <div class="bundle-tabs">
+          <div class="bundle-tab active">Single Pens <span class="tab-count">6</span></div>
+          <div class="bundle-tab">2-Pen Bundles <span class="tab-count">8</span></div>
+          <div class="bundle-tab">3-Pen Bundles <span class="tab-count">8</span></div>
+        </div>
+
+        <div class="dose-grid">
+          <div class="dose-card"><div class="dose-mg">7.5mg</div><div class="dose-weeks">Weeks 9–12</div><div class="dose-price">£254.99</div></div>
+          <div class="dose-card"><div class="dose-mg">10mg</div><div class="dose-weeks">Weeks 13–16</div><div class="dose-price">£274.99</div><div class="lock-hint">Your current dose</div></div>
+          <div class="dose-card recommended selected">
+            <span class="rec-badge">Recommended</span>
+            <div class="check-icon">&#10003;</div>
+            <div class="dose-mg">12.5mg</div><div class="dose-weeks">Weeks 17–20</div><div class="dose-price">£304.99</div>
+          </div>
+          <div class="dose-card blocked" style="grid-column: span 1;">
+            <div class="dose-mg">15mg</div><div class="dose-weeks">Weeks 21+</div><div class="dose-price">£323.99</div>
+            <div class="lock-hint">Max +2.5 mg jump</div>
+          </div>
+        </div>
+
+        <div class="callout-gray">
+          <strong>15 mg is not available.</strong> You can only move up one strength at a time from your current dose (10 mg → 12.5 mg maximum this order).
+        </div>
+      </div>
+
+      <!-- Mock C — 2-pen bundle unlocks next step -->
+      <div class="subsection-title" style="margin-top:28px;">Mock C — Current 7.5 mg · 2-Pen Bundle unlocks 12.5 mg</div>
+
+      <div class="mock-row">
+        <div class="ui-mock">
+          <div class="bundle-tabs">
+            <div class="bundle-tab">Single Pens</div>
+            <div class="bundle-tab active">2-Pen Bundles</div>
+            <div class="bundle-tab">3-Pen Bundles</div>
+          </div>
+          <div class="dose-grid">
+            <div class="dose-card recommended"><span class="rec-badge">Rec</span><div class="dose-mg">10mg</div><div class="dose-price">£274.99</div></div>
+            <div class="dose-card selected"><div class="check-icon">&#10003;</div><div class="dose-mg">12.5mg</div><div class="dose-price">£304.99</div><div class="lock-hint">2-pen only</div></div>
+            <div class="dose-card blocked"><div class="dose-mg">15mg</div><div class="dose-price">£323.99</div></div>
+          </div>
+          <div class="callout-gray" style="font-size:12px;">Default: <strong>10 mg + 12.5 mg</strong>. Titration acknowledgement required.</div>
+        </div>
+
+        <div>
+          <table>
+            <thead><tr><th>Selection</th><th>Valid?</th></tr></thead>
+            <tbody>
+              <tr><td>7.5 mg only (1 pen)</td><td><span class="badge badge-eligible">Yes</span></td></tr>
+              <tr><td>10 mg only (1 pen)</td><td><span class="badge badge-eligible">Yes</span></td></tr>
+              <tr><td>10 mg + 12.5 mg (2 pen)</td><td><span class="badge badge-eligible">Yes</span></td></tr>
+              <tr><td>10 mg + 15 mg</td><td><span class="badge badge-reject">No</span></td></tr>
+              <tr><td>15 mg only</td><td><span class="badge badge-reject">No</span></td></tr>
+              <tr><td>12.5 mg on single pen</td><td><span class="badge badge-blocked">Not offered</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- STEP 6 — Examples -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">6</div>
+      <div class="step-title">Validation examples</div>
+    </div>
+    <div class="step-body">
+      <table>
+        <thead><tr><th>Current dose</th><th>Selection</th><th>Valid?</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>10 mg</td><td>12.5 mg (1 pen)</td><td><span class="badge badge-eligible">Yes</span></td><td>Recommended next; within +2.5 mg</td></tr>
+          <tr><td>10 mg</td><td>15 mg (any bundle)</td><td><span class="badge badge-reject">No</span></td><td>Exceeds +2.5 mg jump; skips 12.5 mg</td></tr>
+          <tr><td>10 mg</td><td>7.5 mg (1 pen)</td><td><span class="badge badge-eligible">Yes</span></td><td>Below recommended — allowed</td></tr>
+          <tr><td>7.5 mg</td><td>10 + 12.5 mg (2 pen)</td><td><span class="badge badge-eligible">Yes</span></td><td>2-bundle unlocks 12.5 mg; ack required</td></tr>
+          <tr><td>7.5 mg</td><td>2.5 + 10 mg (2 pen)</td><td><span class="badge badge-reject">No</span></td><td>Skipped 5 mg and 7.5 mg on ladder</td></tr>
+          <tr><td>12.5 mg</td><td>15 mg (1 pen)</td><td><span class="badge badge-eligible">Yes</span></td><td>Recommended next from 12.5 mg</td></tr>
+          <tr><td>15 mg</td><td>2×15 mg (2 pen)</td><td><span class="badge badge-eligible">Yes</span></td><td>Maintain max dose; repeat OK</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- STEP 7 — Implementation -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">7</div>
+      <div class="step-title">Developer implementation notes</div>
+    </div>
+    <div class="step-body">
+      <div class="note-box info">
+        <span class="note-icon">&#128221;</span>
+        <span>
+          <strong>Consultation type:</strong> <code>simple_repeat</code> via <code>wlConsultationRouting.ts</code>.<br>
+          <strong>Current dose source:</strong> prior order / <code>repeatOf</code> consultation preload when <code>repeatMedicationLocked</code>.<br>
+          <strong>Reuse transfer bundle engine:</strong> <code>offeredTransferDosesMg</code>, <code>validateTransferTitrationBundle</code> in <code>wlEligibilityDosing.ts</code> — pass <code>recommendedDoseMg = recommendedNextDoseMg</code> and clamp <code>maxOfferedDoseMg</code> to <code>currentDoseMg + 2.5</code>.<br>
+          <strong>UI:</strong> extend <code>TitrationBundlePicker</code> with <code>mode: "repeat"</code> or reuse <code>mode: "transfer"</code> with repeat-specific recommended/gap notes.<br>
+          <strong>Stored:</strong> <code>bundle_titration_acknowledged</code>, plan type <code>single</code> | <code>two-pen</code> | <code>three-pen</code>, <code>current_dose_mg</code> on answers.<br>
+          <strong>Today:</strong> pure repeats with unchanged plan skip step 16 (<code>skipsTreatmentPlanPicker</code>). This spec covers when the patient <em>changes</em> dose or bundle on reorder.
+        </span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="doc-footer">
+  EveryDayMeds · Repeat Patients Rule · Injectable Mounjaro &amp; Wegovy ·
+  Max +2.5 mg jump · Single-pen blocks above recommended · Same checkout validation as new &amp; transfer
+</div>
+
+</body>
+</html>
