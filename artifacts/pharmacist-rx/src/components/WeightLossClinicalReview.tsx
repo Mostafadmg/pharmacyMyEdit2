@@ -1,8 +1,12 @@
 import type { Consultation } from "@workspace/api-client-react";
 import {
   PMR_MEDICAL_HISTORY_GATE_QUESTION,
+  WL_ADDITIONAL_HEALTH_CONDITIONS_GATE_QUESTION,
+  WL_CANCER_DETAILS_QUESTION,
   parseSideEffectSymptomsFromAnswers,
+  wlCholecystectomyTimingLabel,
   wlExcludingConditionsGateQuestionWithList,
+  wlFormatProcedureMonthYear,
   wlMedicalHistoryLabelById,
   wlMedicalHistoryLabelsIncludingLegacy,
 } from "@workspace/evidence-slots";
@@ -28,9 +32,16 @@ import {
 } from "@/components/rx/ClinicalQaDisplay";
 
 type DiagnosedRow = {
+  catalogue_id?: string | null;
   condition: string;
   diagnosed_when?: string;
   how_long_had?: string;
+  condition_details?: string;
+  had_cholecystectomy?: string | null;
+  cholecystectomy_timing?: string;
+  bariatric_surgery_timing?: string;
+  bariatric_surgery_timing_label?: string;
+  procedure_date?: string;
   on_medication: string | null;
   medication_name?: string | null;
   medication_names?: string[];
@@ -81,7 +92,7 @@ const OTHER_HEALTH_Q =
   "Do you have any previous or current health conditions?";
 
 const NEW_TO_INJECTABLES_Q =
-  "Are you new to using injectable weight-loss medications?";
+  "Have you had weight loss medication in the past 6 months?";
 
 const CHANGING_PROVIDER_Q = "Are you changing from a different provider?";
 
@@ -463,10 +474,49 @@ export function buildWeightLossClinicalBundles(
   const answers = (c.answers ?? {}) as Record<string, unknown>;
   const bundles: ClinicalQaBundleData[] = [];
 
+  const additionalDiagnosed = (answers.additional_health_conditions_details ??
+    []) as DiagnosedRow[];
   const diagnosed = (answers.diagnosed_conditions_details ??
     []) as DiagnosedRow[];
   const meds = (answers.current_medications_details ?? []) as MedRow[];
   const health = (answers.other_health_conditions_details ?? []) as HealthRow[];
+
+  const additionalAnswer = answers.additional_health_conditions;
+  if (additionalAnswer != null || additionalDiagnosed.length > 0) {
+    const groups: ClinicalQaGroupData[] = [];
+    additionalDiagnosed.forEach((row, i) => {
+      const prefix =
+        additionalDiagnosed.length > 1 ? ` (condition ${i + 1})` : "";
+      const rows: ClinicalQaRowData[] = [];
+      if (i === 0 && additionalAnswer != null) {
+        rows.push({
+          question: WL_ADDITIONAL_HEALTH_CONDITIONS_GATE_QUESTION,
+          value: yesNo(additionalAnswer),
+        });
+      }
+      rows.push({
+        question: `Condition${prefix}`,
+        value: row.condition || "—",
+      });
+      groups.push({ rows });
+    });
+    if (groups.length === 0 && additionalAnswer != null) {
+      groups.push({
+        rows: [
+          {
+            question: WL_ADDITIONAL_HEALTH_CONDITIONS_GATE_QUESTION,
+            value: yesNo(additionalAnswer),
+          },
+        ],
+      });
+    }
+    if (groups.length > 0) {
+      bundles.push({
+        title: "About your health",
+        groups,
+      });
+    }
+  }
 
   const excludingAnswer = answers.excluding_conditions;
   if (excludingAnswer != null || diagnosed.length > 0) {
@@ -482,27 +532,80 @@ export function buildWeightLossClinicalBundles(
         });
       }
       conditionRows.push({
-        question: `What were you diagnosed with?${prefix}`,
+        question: `Condition${prefix}`,
         value: row.condition || "—",
       });
-      conditionRows.push({
-        question: `How long ago were you diagnosed with it?${prefix}`,
-        value: formatWhenAnswer(row.how_long_had ?? row.diagnosed_when),
-      });
-      conditionRows.push({
-        question: `Do you take any medication?${prefix}`,
-        value: row.on_medication === "yes" ? "Yes" : "No",
-      });
-      if (row.on_medication === "yes") {
-        const medList =
-          row.medication_names?.length
-            ? row.medication_names.join(", ")
-            : row.medication_name;
-        if (medList) {
+      if (row.catalogue_id === "cancer") {
+        conditionRows.push({
+          question: `${WL_CANCER_DETAILS_QUESTION}${prefix}`,
+          value: row.condition_details?.trim() || "—",
+        });
+      } else if (row.catalogue_id === "gallstones_gallbladder") {
+        if (row.had_cholecystectomy != null) {
           conditionRows.push({
-            question: `Medications${prefix}`,
-            value: medList,
+            question: `Had cholecystectomy (gallbladder removal)?${prefix}`,
+            value: row.had_cholecystectomy === "yes" ? "Yes" : "No",
           });
+        }
+        if (row.had_cholecystectomy === "yes" && row.cholecystectomy_timing) {
+          conditionRows.push({
+            question: `Gallbladder surgery timing${prefix}`,
+            value:
+              wlCholecystectomyTimingLabel(row.cholecystectomy_timing) ??
+              row.cholecystectomy_timing,
+          });
+        }
+        if (row.procedure_date?.trim()) {
+          conditionRows.push({
+            question: `Gallbladder surgery month and year${prefix}`,
+            value: wlFormatProcedureMonthYear(row.procedure_date),
+          });
+        }
+      } else if (row.catalogue_id === "bariatric_gastric_surgery") {
+        if (row.bariatric_surgery_timing || row.how_long_had) {
+          conditionRows.push({
+            question: `Weight-loss surgery timing${prefix}`,
+            value:
+              row.bariatric_surgery_timing_label ??
+              wlCholecystectomyTimingLabel(
+                row.bariatric_surgery_timing ?? row.how_long_had ?? "",
+              ) ??
+              row.how_long_had ??
+              row.diagnosed_when ??
+              "—",
+          });
+        }
+        if (row.procedure_date?.trim()) {
+          conditionRows.push({
+            question: `Procedure month and year${prefix}`,
+            value: wlFormatProcedureMonthYear(row.procedure_date),
+          });
+        }
+      } else {
+        const when = formatWhenAnswer(row.how_long_had ?? row.diagnosed_when);
+        if (when !== "—") {
+          conditionRows.push({
+            question: `How long ago were you diagnosed with it?${prefix}`,
+            value: when,
+          });
+        }
+        if (row.on_medication != null) {
+          conditionRows.push({
+            question: `Do you take any medication?${prefix}`,
+            value: row.on_medication === "yes" ? "Yes" : "No",
+          });
+        }
+        if (row.on_medication === "yes") {
+          const medList =
+            row.medication_names?.length
+              ? row.medication_names.join(", ")
+              : row.medication_name;
+          if (medList) {
+            conditionRows.push({
+              question: `Medications${prefix}`,
+              value: medList,
+            });
+          }
         }
       }
       groups.push({ rows: conditionRows });
@@ -876,7 +979,7 @@ export function buildWeightLossClinicalBundles(
     if (newToInjectables != null) {
       groupRows.push({
         question: NEW_TO_INJECTABLES_Q,
-        value: yesNo(newToInjectables),
+        value: yesNo(newToInjectables === "no" ? "yes" : "no"),
       });
     }
     if (changingProvider != null) {

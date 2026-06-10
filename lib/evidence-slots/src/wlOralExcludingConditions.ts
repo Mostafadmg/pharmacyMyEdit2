@@ -28,8 +28,9 @@ export const WL_ORAL_EXCLUDING_CONDITIONS = [
       "Told by a doctor that weight gain may be caused by a hormonal or medical condition (e.g. underactive thyroid, Cushing's syndrome) or by a medication you take",
   },
   {
-    id: "cholecystectomy",
-    label: "Gallbladder removed (cholecystectomy)",
+    id: "gallstones_gallbladder",
+    label:
+      "Gallbladder issues, such as gallstones, inflammation, surgery, or bile duct problems",
   },
   {
     id: "eating_disorder",
@@ -47,6 +48,7 @@ export const LEGACY_WL_ORAL_EXCLUDING_CONDITION_LABELS: Record<string, string> =
       "Chronic kidney disease, acute hepatitis or liver cirrhosis",
     active_eating_disorder: "Active eating disorder",
     type1_diabetes: "Type 1 diabetes",
+    cholecystectomy: "Gallbladder removed (cholecystectomy)",
   };
 
 export function wlOralExcludingConditionLabel(id: string): string | undefined {

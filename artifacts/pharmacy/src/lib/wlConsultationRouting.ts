@@ -27,6 +27,25 @@ export type ConsultationKind = "new_start" | "transfer" | "simple_repeat";
 
 export type YesNo = "yes" | "no";
 
+/**
+ * New Patient journey (step 3) — Yes routes to transfer, No to new starter.
+ * Transferring patients skip this; new starters skip step 11 medication content.
+ */
+export const WL_HAD_WL_MEDICATION_PAST_6_MONTHS_QUESTION =
+  "Have you had weight loss medication in the past 6 months?";
+
+/** Map stored `new_to_injectables` to patient-facing Yes/No on the question above. */
+export function hadWlMedicationPast6MonthsDisplay(
+  newToInjectables: YesNo | null,
+): YesNo | null {
+  if (newToInjectables === null) return null;
+  return newToInjectables === "no" ? "yes" : "no";
+}
+
+export function hadWlMedicationPast6MonthsToStored(display: YesNo): YesNo {
+  return display === "yes" ? "no" : "yes";
+}
+
 export type PlanType = "single" | "two-pen" | "three-pen";
 export type MedicineId = "mounjaro" | "wegovy";
 

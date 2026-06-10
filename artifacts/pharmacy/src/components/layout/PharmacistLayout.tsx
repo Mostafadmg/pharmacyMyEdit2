@@ -103,7 +103,7 @@ export default function PharmacistLayout({ current, children }: PharmacistLayout
           <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center font-bold text-lg shadow-sm">
             <Pill className="w-5 h-5 text-white" />
           </div>
-          <span className="text-2xl font-serif font-bold tracking-tight">PharmaCare</span>
+          <span className="text-2xl font-serif font-bold tracking-tight">EveryDayMeds</span>
         </Link>
         <button
           type="button"
@@ -219,7 +219,7 @@ export default function PharmacistLayout({ current, children }: PharmacistLayout
           <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
             <Pill className="w-4 h-4 text-white" />
           </div>
-          <span className="text-lg font-serif font-bold tracking-tight">PharmaCare</span>
+          <span className="text-lg font-serif font-bold tracking-tight">EveryDayMeds</span>
         </Link>
         <button
           type="button"

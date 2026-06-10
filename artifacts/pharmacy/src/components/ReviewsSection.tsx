@@ -15,7 +15,7 @@ const reviews = [
     name: "David K.",
     location: "Glasgow",
     title: "Saved me a wasted GP appointment",
-    body: "Could not get a GP slot for two weeks. PharmaCare reviewed my consultation in under three hours and the prescription was at my door the next morning. Genuinely impressed.",
+    body: "Could not get a GP slot for two weeks. EveryDayMeds reviewed my consultation in under three hours and the prescription was at my door the next morning. Genuinely impressed.",
     treatment: "Acid reflux · Omeprazole",
     rating: 5,
     verified: true,
@@ -33,7 +33,7 @@ const reviews = [
     name: "Marcus O.",
     location: "Birmingham",
     title: "Properly supported throughout",
-    body: "On a weight-loss programme through PharmaCare. Weekly check-ins from the pharmacist, dose titrated carefully, and the medicine always arrives on time. Genuinely felt looked after — your results will of course depend on you and your clinician.",
+    body: "On a weight-loss programme through EveryDayMeds. Weekly check-ins from the pharmacist, dose titrated carefully, and the medicine always arrives on time. Genuinely felt looked after — your results will of course depend on you and your clinician.",
     treatment: "Weight loss programme",
     rating: 5,
     verified: true,
@@ -85,7 +85,7 @@ export default function ReviewsSection() {
             What our patients <em className="text-primary italic">actually</em> say
           </h2>
           <p className="text-muted-foreground max-w-2xl">
-            A selection of recent feedback from verified PharmaCare patients. We collect post-consultation feedback on
+            A selection of recent feedback from verified EveryDayMeds patients. We collect post-consultation feedback on
             every order and publish a representative sample below — names abbreviated for privacy.
           </p>
         </div>

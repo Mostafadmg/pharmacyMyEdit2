@@ -209,7 +209,7 @@ export default function CommandPalette() {
         </div>
         <div className="px-4 py-2 border-t border-border bg-muted/20 text-[11px] text-muted-foreground flex items-center justify-between">
           <span>↑↓ to navigate · ↵ to open · ESC to close</span>
-          <span className="font-semibold">PharmaCare Command Palette</span>
+          <span className="font-semibold">EveryDayMeds Command Palette</span>
         </div>
       </div>
     </div>

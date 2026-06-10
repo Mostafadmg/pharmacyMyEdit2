@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/rx/"
-title = "PharmaCare Rx — Prescriber Portal"
+title = "EveryDayMeds Rx — Prescriber Portal"
 version = "1.0.0"
 id = "artifacts/pharmacist-rx"
 router = "path"

@@ -156,7 +156,7 @@ export default function TreatmentLanding() {
       <section className="bg-white border-y border-border">
         <div className="max-w-7xl mx-auto px-6 py-16">
           <div className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-3">Why patients choose PharmaCare</h2>
+            <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-3">Why patients choose EveryDayMeds</h2>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
             {page.benefits.map((b) => (

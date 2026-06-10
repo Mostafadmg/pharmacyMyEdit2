@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EveryDayMeds — Orlistat Patient Eligibility &amp; Rules</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      color: #1a1a2e;
+      background: #f4f6f9;
+    }
+
+    /* ── Header ── */
+    .doc-header {
+      background: linear-gradient(135deg, #1a4731 0%, #2d7a4f 100%);
+      color: white;
+      padding: 48px 40px 36px;
+    }
+    .doc-header .logo {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      opacity: 0.75;
+      margin-bottom: 12px;
+    }
+    .doc-header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .doc-header .subtitle {
+      opacity: 0.8;
+      font-size: 14px;
+    }
+    .meta-row {
+      display: flex;
+      gap: 24px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+    .meta-pill {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* ── Overview box ── */
+    .overview {
+      background: white;
+      border-left: 4px solid #2d7a4f;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 36px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .overview p { margin-bottom: 6px; }
+    .overview p:last-child { margin-bottom: 0; }
+    .overview strong { color: #1a4731; }
+
+    /* ── Step blocks ── */
+    .step {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      margin-bottom: 28px;
+      overflow: hidden;
+    }
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px 24px;
+      border-bottom: 1px solid #eef0f3;
+    }
+    .step-number {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #2d7a4f;
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+    .step-body { padding: 24px; }
+    .step-body > * + * { margin-top: 20px; }
+
+    /* ── Subsections inside a step ── */
+    .subsection { }
+    .subsection-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #2d7a4f;
+      margin-bottom: 10px;
+    }
+
+    /* ── Question block ── */
+    .question-block {
+      background: #f8f9fb;
+      border: 1px solid #e4e7ec;
+      border-radius: 8px;
+      padding: 14px 18px;
+    }
+    .question-block .q-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #8492a6;
+      margin-bottom: 4px;
+    }
+    .question-block .q-text {
+      font-size: 15px;
+      font-weight: 500;
+      color: #1a1a2e;
+    }
+
+    /* ── Tables ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    thead tr {
+      background: #f0f4f8;
+    }
+    th {
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+      color: #4a5568;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #eef0f3;
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafbfc; }
+
+    /* ── Outcome badges ── */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge-reject {
+      background: #fde8e8;
+      color: #c0392b;
+      border: 1px solid #f5c6c6;
+    }
+    .badge-eligible {
+      background: #e6f4ec;
+      color: #1a7a3f;
+      border: 1px solid #b7dfc6;
+    }
+    .badge-counselling {
+      background: #e8f0fe;
+      color: #1a56c4;
+      border: 1px solid #b3c9fa;
+    }
+    .badge-sop {
+      background: #f1f3f5;
+      color: #4a5568;
+      border: 1px solid #d1d5db;
+    }
+
+    /* ── Condition lists ── */
+    .condition-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .condition-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .condition-item.reject {
+      background: #fdf2f2;
+      border-left: 3px solid #e53e3e;
+    }
+    .condition-item.info {
+      background: #f5f0ff;
+      border-left: 3px solid #7c3aed;
+    }
+    .condition-icon {
+      margin-top: 1px;
+      font-size: 13px;
+    }
+
+    /* ── Med list ── */
+    .med-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .med-tag {
+      background: #fde8e8;
+      color: #c0392b;
+      border: 1px solid #f5c6c6;
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    /* ── Comorbidity list ── */
+    .comorbidity-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 8px;
+    }
+    .comorbidity-item {
+      background: #e6f4ec;
+      border: 1px solid #b7dfc6;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 13px;
+      color: #1a4731;
+    }
+
+    /* ── Info / note boxes ── */
+    .note-box {
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-size: 14px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .note-box.info {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+    }
+    .note-box.warning {
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      color: #92400e;
+    }
+    .note-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Footer ── */
+    .doc-footer {
+      text-align: center;
+      padding: 32px 24px;
+      color: #8492a6;
+      font-size: 13px;
+      border-top: 1px solid #e4e7ec;
+      margin-top: 40px;
+    }
+
+    /* ── Print ── */
+    @media print {
+      body { background: white; }
+      .step { box-shadow: none; border: 1px solid #e4e7ec; }
+      .doc-header { background: #1a4731 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="doc-header">
+  <div class="logo">EveryDayMeds</div>
+  <h1>Orlistat &mdash; Patient Eligibility &amp; Rules</h1>
+  <p class="subtitle">Oral Weight Loss Consultation — New Patient Pathway</p>
+  <div class="meta-row">
+    <span class="meta-pill">Draft v2</span>
+    <span class="meta-pill">June 2026</span>
+    <span class="meta-pill">For Prescriber Review</span>
+    <span class="meta-pill">Orlistat</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Overview -->
+  <div class="overview">
+    <p><strong>Deferred eligibility model:</strong> The patient completes the full consultation form before any eligibility decision is shown. There are no mid-form blocks.</p>
+    <p><strong>All rejections are deferred</strong> — displayed only at the end, after the full form is submitted.</p>
+    <p>This document covers the <strong>New Patient</strong> Orlistat pathway. The full question flow for the Existing Patient (Repeat) Orlistat pathway is a separate document — <strong>Step 1 (BMI Eligibility)</strong> below also documents the BMI rule that applies to repeat patients.</p>
+  </div>
+
+  <!-- Developer Note: Age Eligibility -->
+  <div class="note-box warning" style="margin-bottom: 28px;">
+    <span class="note-icon">&#128221;</span>
+    <span><strong>Developer note — age eligibility (18&ndash;75):</strong> Do not add a question asking "Are you between the age of 18 and 75?" — this question does not currently exist in the form and should not be added as a separate question. Instead, calculate the patient's age from their <strong>date of birth</strong> (collected in the BMI measurements step) against the consultation date. If the calculated age falls outside 18&ndash;75, treat this the same as any other deferred rejection criteria.</span>
+  </div>
+
+  <!-- ── STEP 1 ── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">1</div>
+      <div class="step-title">BMI Eligibility</div>
+    </div>
+    <div class="step-body">
+
+      <div class="subsection">
+        <div class="subsection-title">1a — New Patient BMI Rule</div>
+
+        <div class="note-box warning">
+          <span class="note-icon">&#9888;</span>
+          <span><strong>Ethnicity (BAME) has no effect</strong> on BMI eligibility for Orlistat. Only the presence of a qualifying comorbidity changes the threshold.</span>
+        </div>
+
+        <div class="question-block" style="margin-top:12px; margin-bottom:12px;">
+          <div class="q-label">Question</div>
+          <div class="q-text">"Have you ever been diagnosed with any of the following?"</div>
+        </div>
+        <p style="font-size:14px; color:#4a5568; margin-bottom:12px;">Selecting <strong>at least one</strong> of the following qualifies as a comorbidity for the BMI rule below.</p>
+        <div class="comorbidity-grid">
+          <div class="comorbidity-item">Prediabetes</div>
+          <div class="comorbidity-item">Type 2 diabetes mellitus (diet controlled)</div>
+          <div class="comorbidity-item">Hypertension (high blood pressure)</div>
+          <div class="comorbidity-item">Dyslipidaemia (high cholesterol / raised triglycerides / low HDL)</div>
+          <div class="comorbidity-item">Cardiovascular disease — including previous heart attack, previous stroke, TIA, ischaemic heart disease, peripheral arterial disease, heart failure</div>
+          <div class="comorbidity-item">Obstructive sleep apnoea</div>
+          <div class="comorbidity-item">MASLD / NAFLD (metabolic dysfunction-associated steatotic liver disease)</div>
+          <div class="comorbidity-item">Polycystic ovary syndrome (PCOS) with metabolic features</div>
+        </div>
+
+        <table style="margin-top:12px;">
+          <thead><tr><th>Patient Profile</th><th>Minimum BMI</th></tr></thead>
+          <tbody>
+            <tr><td>No qualifying comorbidity</td><td><strong>30.0</strong></td></tr>
+            <tr><td>One or more qualifying comorbidities</td><td><strong>28.0</strong></td></tr>
+          </tbody>
+        </table>
+        <table style="margin-top:12px;">
+          <thead><tr><th>BMI</th><th>Outcome</th></tr></thead>
+          <tbody>
+            <tr><td>&#8805; threshold for profile (28 or 30)</td><td><span class="badge badge-eligible">Eligible</span></td></tr>
+            <tr><td>&lt; threshold for profile</td><td><span class="badge badge-reject">Deferred Rejection</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">1b — Repeat / Existing Patient BMI Rule</div>
+        <p style="font-size:14px; color:#4a5568; margin-bottom:12px;">For patients <strong>repeating</strong> Orlistat (existing patients), the new-patient threshold (28 / 30) and comorbidity list above do <strong>not</strong> apply. Instead, a single BMI floor applies regardless of comorbidity or BAME status.</p>
+        <table>
+          <thead><tr><th>BMI</th><th>Outcome</th></tr></thead>
+          <tbody>
+            <tr><td>Above 21</td><td><span class="badge badge-eligible">Eligible</span></td></tr>
+            <tr><td>21 or below</td><td><span class="badge badge-sop">Outside SOP Eligibility</span></td></tr>
+          </tbody>
+        </table>
+        <div class="note-box info" style="margin-top:12px;">
+          <span class="note-icon">&#8505;</span>
+          <span><strong>Outside SOP Eligibility</strong> is treated the same as a deferred rejection — shown only at the end of the form, after submission.</span>
+        </div>
+        <div class="note-box warning" style="margin-top:12px;">
+          <span class="note-icon">&#128221;</span>
+          <span><strong>Developer note:</strong> please confirm the exact boundary value with the clinical team — i.e. whether a BMI of exactly <strong>21.0</strong> should count as eligible or as "Outside SOP Eligibility". This document treats 21.0 itself as <strong>not</strong> eligible (BMI must be strictly above 21).</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── STEP 2 ── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">2</div>
+      <div class="step-title">Red Flags</div>
+    </div>
+    <div class="step-body">
+
+      <!-- 2a Pregnancy -->
+      <div class="subsection">
+        <div class="subsection-title">2a — Pregnancy / Breastfeeding</div>
+        <div class="note-box warning" style="margin-bottom:10px;">
+          <span class="note-icon">&#9888;</span>
+          <span>Shown only when sex assigned at birth = <strong>Female</strong> or <strong>Prefer not to say</strong></span>
+        </div>
+        <div class="question-block" style="margin-bottom:10px;">
+          <div class="q-label">Question</div>
+          <div class="q-text">"Are you currently pregnant, breastfeeding, or planning to become pregnant or breastfeed while using this medication?"</div>
+        </div>
+        <table>
+          <thead><tr><th>Answer</th><th>Outcome</th></tr></thead>
+          <tbody>
+            <tr><td>Yes</td><td><span class="badge badge-reject">Deferred Rejection</span></td></tr>
+            <tr><td>No</td><td>Continue</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 2b Contraceptives -->
+      <div class="subsection">
+        <div class="subsection-title">2b — Oral Contraceptives</div>
+        <div class="note-box warning" style="margin-bottom:10px;">
+          <span class="note-icon">&#9888;</span>
+          <span>Shown only when sex = <strong>Female</strong> or <strong>Prefer not to say</strong>, and 2a was passed</span>
+        </div>
+        <div class="question-block" style="margin-bottom:10px;">
+          <div class="q-label">Question</div>
+          <div class="q-text">"Are you taking an oral contraceptive?"</div>
+        </div>
+        <table style="margin-bottom:12px;">
+          <thead><tr><th>Answer</th><th>Outcome</th></tr></thead>
+          <tbody>
+            <tr><td>Yes</td><td><span class="badge badge-counselling">Counselling Required</span> &nbsp; Patient must read the counselling text below and acknowledge before continuing. Not a rejection.</td></tr>
+            <tr><td>No</td><td>Continue</td></tr>
+          </tbody>
+        </table>
+        <div class="note-box info">
+          <span class="note-icon">&#8505;</span>
+          <span>
+            <strong>Orlistat-specific counselling text (verbatim):</strong><br/><br/>
+            <em>"Orlistat and oral contraception<br/>
+            Orlistat can cause severe diarrhoea. The Orlistat Summary of Product Characteristics (SPC) states that severe diarrhoea may reduce the effectiveness of oral contraceptive pills. If you are prescribed Orlistat, you should use an additional contraceptive method — for example, condoms — particularly if you experience severe diarrhoea while taking it."</em>
+          </span>
+        </div>
+      </div>
+
+      <!-- 2c Hypersensitivity -->
+      <div class="subsection">
+        <div class="subsection-title">2c — Hypersensitivity</div>
+        <div class="question-block" style="margin-bottom:10px;">
+          <div class="q-label">Question</div>
+          <div class="q-text">"Have you ever had an allergic reaction or hypersensitivity to Orlistat (including Xenical or Alli)?"</div>
+        </div>
+        <table>
+          <thead><tr><th>Answer</th><th>Outcome</th></tr></thead>
+          <tbody>
+            <tr><td>Yes</td><td><span class="badge badge-reject">Deferred Rejection</span></td></tr>
+            <tr><td>No</td><td>Continue</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── STEP 3 ── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">3</div>
+      <div class="step-title">Medications</div>
+    </div>
+    <div class="step-body">
+
+      <div class="subsection">
+        <div class="subsection-title">3a — Excluded Medications</div>
+        <div class="question-block" style="margin-bottom:10px;">
+          <div class="q-label">Gate question</div>
+          <div class="q-text">"Are you currently taking any of the following medicines?"</div>
+        </div>
+        <div class="question-block" style="margin-bottom:12px;">
+          <div class="q-label">Follow-up question</div>
+          <div class="q-text">"Have you been on any of these medications and stopped them in the past three months?"</div>
+        </div>
+        <p style="font-size:14px; color:#4a5568; margin-bottom:10px;">Selecting <strong>one or more</strong> medicines under <strong>either</strong> question results in a deferred rejection.</p>
+        <div class="med-grid">
+          <span class="med-tag">Sulfonylureas for diabetes (e.g. gliclazide, glibenclamide, glipizide)</span>
+          <span class="med-tag">Oral anticoagulants (e.g. warfarin, acenocoumarol)</span>
+          <span class="med-tag">Ciclosporin (immunosuppressant)</span>
+          <span class="med-tag">Tacrolimus (immunosuppressant)</span>
+          <span class="med-tag">Levothyroxine (thyroid medication)</span>
+          <span class="med-tag">Amiodarone (heart rhythm medication)</span>
+          <span class="med-tag">Acarbose (diabetes medication)</span>
+          <span class="med-tag">HIV medication (antiretrovirals)</span>
+          <span class="med-tag">Iodine salts or iodine-containing medications</span>
+          <span class="med-tag">Anti-convulsant / anti-epileptic drugs (e.g. phenytoin, lamotrigine, levetiracetam)</span>
+          <span class="med-tag">Antidepressants associated with weight gain (e.g. mirtazapine, amitriptyline, duloxetine)</span>
+          <span class="med-tag">Antipsychotic medication (e.g. olanzapine, quetiapine, clozapine, risperidone)</span>
+          <span class="med-tag">Lithium</span>
+          <span class="med-tag">Other anti-obesity or weight-loss drugs or injections (e.g. Mounjaro, Wegovy)</span>
+        </div>
+        <table style="margin-top:12px;">
+          <thead><tr><th>Answer (either question)</th><th>Outcome</th></tr></thead>
+          <tbody>
+            <tr><td>One or more selected</td><td><span class="badge badge-reject">Deferred Rejection</span></td></tr>
+            <tr><td>None selected</td><td>Continue</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">3b — Other Medications (Information Only)</div>
+        <div class="question-block" style="margin-bottom:10px;">
+          <div class="q-label">Question</div>
+          <div class="q-text">"Are you currently taking any other prescription medication, over-the-counter medicine, supplement, or herbal remedy not listed above?"</div>
+        </div>
+        <table>
+          <thead><tr><th>Answer</th><th>Outcome</th></tr></thead>
+          <tbody>
+            <tr><td>Yes</td><td>Free-text list collected. <strong>Information only</strong> — does not affect eligibility.</td></tr>
+            <tr><td>No</td><td>Continue</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── STEP 4 ── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">4</div>
+      <div class="step-title">Excluding Conditions</div>
+    </div>
+    <div class="step-body">
+
+      <div class="question-block" style="margin-bottom:14px;">
+        <div class="q-label">Gate question</div>
+        <div class="q-text">"Have you been diagnosed with or had surgery for any of the following?"</div>
+      </div>
+
+      <div class="note-box warning" style="margin-bottom:14px;">
+        <span class="note-icon">&#9888;</span>
+        <span>Every condition below is a straight deferred rejection — there are <strong>no conditional follow-up questions</strong>.</span>
+      </div>
+
+      <div class="condition-list">
+        <div class="condition-item reject"><span class="condition-icon">&#10007;</span><span>Cholestasis</span></div>
+        <div class="condition-item reject"><span class="condition-icon">&#10007;</span><span>Chronic malabsorption syndrome</span></div>
+        <div class="condition-item reject"><span class="condition-icon">&#10007;</span><span>IBD, ulcerative colitis, or Crohn's disease</span></div>
+        <div class="condition-item reject"><span class="condition-icon">&#10007;</span><span>Chronic kidney disease</span></div>
+        <div class="condition-item reject"><span class="condition-icon">&#10007;</span><span>History of calcium oxalate kidney stones</span></div>
+        <div class="condition-item reject"><span class="condition-icon">&#10007;</span><span>Acute hepatitis or liver cirrhosis</span></div>
+        <div class="condition-item reject"><span class="condition-icon">&#10007;</span><span>Told by a doctor that weight gain may be caused by a hormonal or medical condition (e.g. underactive thyroid, Cushing's syndrome) or by a medication you take</span></div>
+        <div class="condition-item reject"><span class="condition-icon">&#10007;</span><span>Gallbladder removed (cholecystectomy)</span></div>
+        <div class="condition-item reject"><span class="condition-icon">&#10007;</span><span>Eating disorder, such as anorexia or bulimia nervosa</span></div>
+      </div>
+
+      <table style="margin-top:14px;">
+        <thead><tr><th>Answer</th><th>Outcome</th></tr></thead>
+        <tbody>
+          <tr><td>One or more selected</td><td><span class="badge badge-reject">Deferred Rejection</span></td></tr>
+          <tr><td>None selected</td><td>Continue</td></tr>
+        </tbody>
+      </table>
+
+    </div>
+  </div>
+
+  <!-- ── STEP 5 ── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">5</div>
+      <div class="step-title">Clinical Team Notes</div>
+    </div>
+    <div class="step-body">
+      <div class="question-block" style="margin-bottom:10px;">
+        <div class="q-label">Question</div>
+        <div class="q-text">"Anything else for our clinical team?"</div>
+      </div>
+      <div class="condition-item info">
+        <span class="condition-icon">&#9432;</span>
+        <div>
+          <p style="font-size:14px; color:#5b21b6;">Optional free-text field. <strong>Prescriber review only</strong> — does not affect eligibility.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SUMMARY TABLE ── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number" style="background:#1a1a2e;">&#9776;</div>
+      <div class="step-title">Full Rejection &amp; Action Summary</div>
+    </div>
+    <div class="step-body">
+      <table>
+        <thead>
+          <tr><th>Rule</th><th>Outcome</th><th>Timing</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Age outside 18&ndash;75 (calculated from DOB)</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>New patient — BMI below threshold (28 with comorbidity / 30 without; BAME has no effect)</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Repeat / existing patient — BMI 21 or below</td><td><span class="badge badge-sop">Outside SOP Eligibility</span></td><td>Deferred</td></tr>
+          <tr><td>Repeat / existing patient — BMI above 21</td><td><span class="badge badge-eligible">Eligible</span></td><td>—</td></tr>
+          <tr><td>Pregnancy / breastfeeding</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Oral contraceptive</td><td><span class="badge badge-counselling">Counselling + Acknowledgement</span></td><td>No rejection</td></tr>
+          <tr><td>Hypersensitivity to Orlistat / Xenical / Alli</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Excluded medication — currently taking</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Excluded medication — stopped in past 3 months</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Other medication (free text)</td><td>Information only</td><td>No rejection</td></tr>
+          <tr><td>Any excluding condition (Step 4 list, 9 items)</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Clinical team notes (free text)</td><td>Information only</td><td>No rejection</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="doc-footer">
+    <p>EveryDayMeds &mdash; Orlistat Pathway &mdash; Draft v2 &mdash; June 2026</p>
+    <p style="margin-top:4px;">For internal prescriber review only. Not for patient distribution.</p>
+  </div>
+
+</div>
+</body>
+</html>

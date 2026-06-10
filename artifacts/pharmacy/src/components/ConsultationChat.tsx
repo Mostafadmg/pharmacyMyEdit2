@@ -253,7 +253,7 @@ export default function ConsultationChat({ consultationId, audience, className, 
       (otherRole === "pharmacist" ? "Your pharmacist" : "Patient");
     return {
       name,
-      subtitle: otherRole === "pharmacist" ? "PharmaCare Prescriber · GPhC registered" : "Patient",
+      subtitle: otherRole === "pharmacist" ? "EveryDayMeds Prescriber · GPhC registered" : "Patient",
     };
   }, [messages, actions, audience]);
 

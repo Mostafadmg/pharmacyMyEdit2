@@ -148,7 +148,7 @@ router.get("/patient/data-export", requirePatient, async (req: AuthedRequest, re
   const payload = {
     exportedAt: new Date().toISOString(),
     note:
-      "This file contains every personal record we hold about your PharmaCare account. " +
+      "This file contains every personal record we hold about your EveryDayMeds account. " +
       "Keep it safe — it includes clinical and order history.",
     account: { ...account, passwordHash: undefined },
     orders,

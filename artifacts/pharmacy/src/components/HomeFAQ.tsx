@@ -3,8 +3,8 @@ import { ChevronDown } from "lucide-react";
 
 const faqs = [
   {
-    q: "Is PharmaCare a real UK pharmacy?",
-    a: "Yes. PharmaCare Pharmacy Ltd is registered with the General Pharmaceutical Council (GPhC Premises Reg 9012345). Our Superintendent Pharmacist is Dr Aisha Patel MPharm IP. You can verify us on the official GPhC register at any time.",
+    q: "Is EveryDayMeds a real UK pharmacy?",
+    a: "Yes. EveryDayMeds Pharmacy Ltd is registered with the General Pharmaceutical Council (GPhC Premises Reg 9012345). Our Superintendent Pharmacist is Dr Aisha Patel MPharm IP. You can verify us on the official GPhC register at any time.",
   },
   {
     q: "How quickly will I get my treatment?",

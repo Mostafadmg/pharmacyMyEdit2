@@ -82,7 +82,7 @@ export async function seedTreatmentProducts(opts?: {
           id,
           slug: id,
           name: p.name,
-          brand: "PharmaCare",
+          brand: "EveryDayMeds",
           category: p.category,
           subcategory: null,
           classification: p.classification,

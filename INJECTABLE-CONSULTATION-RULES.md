@@ -27,7 +27,7 @@ Steps 1–16
   After step 8 or 9 → any hard-stop answer → Reject
   After step 9 (new patient only) → BMI rules → Reject, Prompt, or Continue
   Step 98 (if prompted) → Yes = continue as transfer; No = Reject
-  Step 15 → gap rules restrict which pen strengths are selectable
+  Step 16 → gap rules + bundle size restrict which pen strengths are selectable
 ```
 
 Logged-in patients skip the contact-details step.
@@ -154,8 +154,12 @@ Patient may always choose a **lower** dose than the maximum allowed.
 
 ### Gap 4 weeks or less
 
-- Patient may stay on **same dose** or move **up one step** on the ladder (normal titration).
+- **Recommended dose** = **last tolerated dose** (stay on the same strength).
+- Patient may order that dose or any **lower** strength.
+- Multi-month bundles may **titrate up** from the recommended dose (see Step 16 bundle rules).
 - No forced step-down.
+
+**Example:** last injection 3 weeks ago, last tolerated **Mounjaro 10 mg** → recommended **10 mg** (not 12.5 mg). A 2-month bundle defaults to **10 mg + 12.5 mg**.
 
 ---
 
@@ -204,13 +208,17 @@ Patient may always choose a **lower** dose than the maximum allowed.
 ```mermaid
 flowchart TD
     start[Last injection date known] --> gap{Gap in weeks}
-    gap -->|4 or less| sameOrUp[Same dose or titrate up one step]
-    gap -->|more than 4 and less than 8| stepDown[One step down from last tolerated]
+    gap -->|4 or less| recSame[Recommended = last tolerated dose]
+    recSame --> bundle1[Step 16: bundle size sets picker ceiling]
+    gap -->|more than 4 and less than 8| stepDown[Recommended = one step down]
     stepDown --> cap{Above product cap?}
     cap -->|Mounjaro over 10mg| mcap[Cap at 10 mg]
     cap -->|Wegovy over 1mg| wcap[Cap at 1 mg]
-    cap -->|no| allowDown[Allow reduced dose]
-    gap -->|8 or more| init[Initiation dose only: 2.5 mg or 0.25 mg]
+    cap -->|no| allowDown[Use reduced dose]
+    gap -->|more than 8| init[Recommended = starter: 2.5 mg or 0.25 mg]
+    bundle1 --> b1[1-bundle: up to recommended]
+    bundle1 --> b2[2-bundle: up to recommended + 1 step]
+    bundle1 --> b3[3-bundle: full catalogue]
 ```
 
 ---
@@ -405,15 +413,81 @@ Amiodarone, Carbamazepine, Ciclosporin, Clozapine, Digoxin, Fenfluramine, Insuli
 
 ---
 
-## Step 15 — Treatment plan (strength selection)
+## Step 16 — Treatment plan (1-, 2-, or 3-month bundles)
 
-| Journey | Allowed strengths |
-|---------|-------------------|
-| **New patient** (eligible) | Mounjaro **2.5 mg** or Wegovy **0.25 mg** only |
-| **Transfer / restart** | Per **gap dose rules** above — only permitted steps selectable |
-| **Existing reorder** | Prior plan (may skip this step) |
+Each pen = one month (4-week supply). Patient picks bundle size with a **1 bundle / 2 bundle / 3 bundle** toggle. The toggle **does not change** when pens are removed — they can clear a pre-filled bundle and choose a different combination (e.g. 2.5 mg + 5 mg instead of 10 mg + 12.5 mg).
 
-If gap rules allow no selectable strength (e.g. missing last injection date), patient cannot complete plan until data provided.
+**Continue** is enabled only when the number of pens selected **equals** the chosen bundle size and all validation rules pass.
+
+| Journey | Bundle rules |
+|---------|----------------|
+| **New starter** | Must include **starter dose** (2.5 / 0.25 mg) in the bundle. Offered titration: 2.5 → 5 → 7.5 mg (Mounjaro) / 0.25 → 0.5 → 1 mg (Wegovy). No 10 mg in new-starter picker. |
+| **Transfer** | **Recommended dose** from gap rules (see above). Strengths offered depend on bundle size (table below). May order **below** recommended without including it. If **any pen above** recommended → must include recommended at least once. |
+| **Existing reorder** | Prior plan (skip this step) |
+
+### Transfer — strengths shown per bundle size
+
+Recommended dose comes from gap rules (e.g. **10 mg** after a 4–8 week gap on prior **15 mg**).
+
+| Bundle | Strengths available in picker | Default pre-fill |
+|--------|------------------------------|------------------|
+| **1 bundle** | Lowest on ladder → **recommended** (inclusive). **No strengths above** recommended. | Recommended dose only |
+| **2 bundle** | Lowest on ladder → **one step above** recommended (e.g. 2.5–**12.5 mg** when recommended is 10 mg) | **Recommended + next step up** (e.g. 10 mg + 12.5 mg) — not doses below recommended |
+| **3 bundle** | Lowest on ladder → **top of catalogue** (Mounjaro **15 mg** / Wegovy **2.4 mg**) | Recommended + next two steps up where available (e.g. 10 + 12.5 + 15 mg) |
+
+**Gap &gt; 8 weeks** (restart at starter):
+
+| Bundle | Offered | Default |
+|--------|---------|---------|
+| **1 bundle** | Starter only (2.5 / 0.25 mg) | Starter |
+| **2 bundle** | Starter → next step (2.5 + 5 mg / 0.25 + 0.5 mg) | Starter + next step |
+| **3 bundle** | Starter → two steps up on ladder | Starter titration path |
+
+**Purchasable catalogue (step 16):** Mounjaro 2.5, 5, 7.5, 10, 12.5, 15 mg · Wegovy 0.25, 0.5, 1, 1.7, 2.4 mg.
+
+### Ladder contiguity (both pathways)
+
+| Rule | Detail |
+|------|--------|
+| **No skipped steps** | Distinct strengths must form a **contiguous run** on the ladder. Example: **2.5 mg + 10 mg** is invalid (skipped 5 mg and 7.5 mg). |
+| **Repeat allowed** | Same strength may appear more than once (e.g. **2× 10 mg**, **3× 10 mg**). |
+| **Below recommended** | Patient may select only lower strengths (e.g. **2.5 mg + 5 mg**) without including the recommended dose. |
+| **Above recommended** | If any pen is **above** recommended, the bundle **must include the recommended dose at least once**. |
+| **Acknowledgement** | Required checkbox if any dose is above starter (new) or above recommended (transfer). |
+
+**Patient-facing locked-dose messages:**
+
+- *"Your pens must follow the dose ladder in order with no skipped steps… You can repeat the same dose."*
+- *"With a 1-month bundle you can choose your recommended dose or any lower strength. Higher doses are available with a 2- or 3-month bundle."*
+
+### Transfer examples (recommended **10 mg**, 2-bundle picker offers 2.5–12.5 mg)
+
+| Selection | Valid? | Notes |
+|-----------|--------|-------|
+| 7.5 mg only (1 bundle) | **Yes** | Below recommended |
+| 1× 10 mg (1 bundle) | **Yes** | At recommended |
+| 2.5 mg + 5 mg (2 bundle) | **Yes** | All below recommended; user cleared default |
+| 2× 10 mg (2 bundle) | **Yes** | Repeat at recommended |
+| **10 mg + 12.5 mg** (2 bundle) | **Yes** | Default 2-bundle; acknowledgement required |
+| 10 mg + 15 mg (3 bundle) | **No** | Skipped 12.5 mg |
+| 12.5 mg only (2 bundle) | **No** | Above recommended without 10 mg |
+| 2.5 mg + 10 mg (2 bundle) | **No** | Skipped 5 mg and 7.5 mg |
+| 10 mg + 2× 15 mg (3 bundle) | **No** | Skipped 12.5 mg between 10 and 15 |
+
+### New starter examples
+
+| Selection | Valid? |
+|-----------|--------|
+| 2.5 mg only | **Yes** |
+| 2.5 + 5 + 7.5 mg | **Yes** — ack required |
+| 2.5 + 7.5 mg | **No** — skipped 5 mg |
+| 10 mg | **Not offered** |
+
+Patient note (transfer): *"Based on the information you have provided, the dose we recommend for you is [X]. You can still order a lower strength if you need to — as a single pen or as part of a bundle."*
+
+If last injection date is missing, gap rules cannot run and the patient cannot complete the plan until it is provided.
+
+**Code:** `computeRestartDosing`, `offeredTransferDosesMg`, `validateTransferTitrationBundle` in `wlEligibilityDosing.ts` · UI: `TitrationBundlePicker`, `BundleSizeToggle` on step 16.
 
 ---
 
@@ -445,10 +519,18 @@ If gap rules allow no selectable strength (e.g. missing last injection date), pa
 
 | Situation | Mounjaro | Wegovy |
 |-----------|----------|--------|
-| New starter eligible | 2.5 mg only | 0.25 mg only |
-| Gap ≤ 4 weeks | Same or +1 step | Same or +1 step |
-| Gap &gt; 4 and &lt; 8 weeks | One step down, max **10 mg** | One step down, max **1 mg** |
-| Gap ≥ 8 weeks | **2.5 mg** only (initiation) | **0.25 mg** only (initiation) |
+| New starter — starter dose required in bundle | 2.5 mg | 0.25 mg |
+| New starter — titration offer (step 16) | 2.5, 5, 7.5 mg | 0.25, 0.5, 1 mg |
+| Transfer — 1-bundle picker | Up to recommended only | Same |
+| Transfer — 2-bundle picker | Up to recommended **+ 1 step** | Same |
+| Transfer — 3-bundle picker | Full catalogue to **15 mg** / **2.4 mg** | Same |
+| Transfer — 2-bundle default | Recommended + next step up | Same |
+| Transfer — order below recommended | Allowed without recommended dose | Same |
+| Transfer — any pen above recommended | Must include recommended dose once | Same |
+| Transfer — ladder contiguity | No skipped steps; repeat same dose OK | Same |
+| Gap ≤ 4 weeks — **recommended** | **Same** as last tolerated | **Same** as last tolerated |
+| Gap &gt; 4 and &lt; 8 weeks — **recommended** | One step down, max **10 mg** | One step down, max **1 mg** |
+| Gap ≥ 8 weeks — **recommended** | **2.5 mg** (starter) | **0.25 mg** (starter) |
 
 ---
 
@@ -464,4 +546,4 @@ If gap rules allow no selectable strength (e.g. missing last injection date), pa
 
 ---
 
-*Injectable weight-loss consultation — Mounjaro & Wegovy. Gap rules updated: ≤4 weeks titrate normally; &gt;4–&lt;8 weeks one step down (10 mg / 1 mg cap); ≥8 weeks initiation dose only.*
+*Injectable weight-loss consultation — Mounjaro & Wegovy. Gap: ≤4 weeks recommended = same dose; 4–8 weeks one step down (10 mg / 1 mg cap); &gt;8 weeks starter only. Step 16: 1/2/3-bundle toggle with bundle-size dose offerings and ladder contiguity.*

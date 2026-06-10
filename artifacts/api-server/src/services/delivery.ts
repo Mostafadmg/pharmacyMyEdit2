@@ -31,7 +31,7 @@ export interface DeliveryProvider {
 }
 
 class MockDeliveryProvider implements DeliveryProvider {
-  name = "PharmaCare Express";
+  name = "EveryDayMeds Express";
 
   async createShipment(req: CreateDeliveryRequest): Promise<CreateDeliveryResult> {
     const tracking = `PCEX${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
@@ -50,7 +50,7 @@ class MockDeliveryProvider implements DeliveryProvider {
       case "preparing": return "Your order is being prepared by our pharmacy team.";
       case "shipped": return "Your order has been dispatched and is on its way.";
       case "out_for_delivery": return "Out for delivery — expected today.";
-      case "delivered": return "Delivered. Thanks for shopping with PharmaCare.";
+      case "delivered": return "Delivered. Thanks for shopping with EveryDayMeds.";
       case "exception": return "There was an issue with delivery — we'll be in touch shortly.";
     }
   }

@@ -85,7 +85,7 @@ export default function Notifications() {
     <AccountSubPage
       parents={PARENTS}
       title="Notifications"
-      intro={`Your in-app updates from PharmaCare. ${unread > 0 ? `${unread} unread.` : "You're all caught up."}`}
+      intro={`Your in-app updates from EveryDayMeds. ${unread > 0 ? `${unread} unread.` : "You're all caught up."}`}
     >
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <div className="inline-flex rounded-full bg-white border border-border/40 p-1">

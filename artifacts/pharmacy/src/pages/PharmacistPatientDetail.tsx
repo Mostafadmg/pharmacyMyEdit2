@@ -157,7 +157,7 @@ export default function PharmacistPatientDetail() {
   };
 
   const handleEmailPatient = () => {
-    window.location.href = `mailto:${email}?subject=${encodeURIComponent("PharmaCare Pharmacy")}`;
+    window.location.href = `mailto:${email}?subject=${encodeURIComponent("EveryDayMeds Pharmacy")}`;
     logCommunication("email", "Email composed", "Pharmacist opened email client");
   };
   const handleCallPatient = (phone?: string) => {

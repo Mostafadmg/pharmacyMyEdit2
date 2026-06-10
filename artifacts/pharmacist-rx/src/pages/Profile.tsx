@@ -53,7 +53,7 @@ export function Profile() {
           </div>
         </div>
         <div className="grid md:grid-cols-2 gap-4 mt-6">
-          <Field icon={Mail} label="Email" value="sarah.mitchell@pharmacare.co.uk" />
+          <Field icon={Mail} label="Email" value="sarah.mitchell@everydaymeds.co.uk" />
           <Field icon={Phone} label="Phone" value="0800 123 4567" />
           <Field icon={MapPin} label="Branch" value="Manchester Dispensary HQ" />
           <Field icon={Award} label="Specialisms" value="Women's health, weight management" />

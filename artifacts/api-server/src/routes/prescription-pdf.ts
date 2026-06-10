@@ -112,7 +112,7 @@ router.get("/consultations/:id/prescription.pdf", async (req, res): Promise<void
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader(
     "Content-Disposition",
-    `inline; filename="PharmaCare-Prescription-${ref.replace(/[^a-zA-Z0-9-]/g, "")}.pdf"`,
+    `inline; filename="EveryDayMeds-Prescription-${ref.replace(/[^a-zA-Z0-9-]/g, "")}.pdf"`,
   );
   doc.pipe(res);
 
@@ -170,7 +170,7 @@ router.get("/consultations/:id/referral.pdf", async (req, res): Promise<void> =>
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader(
     "Content-Disposition",
-    `inline; filename="PharmaCare-Referral-${refNumber}.pdf"`,
+    `inline; filename="EveryDayMeds-Referral-${refNumber}.pdf"`,
   );
   doc.pipe(res);
 

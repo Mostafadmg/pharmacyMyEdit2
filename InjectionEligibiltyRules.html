@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EveryDayMeds — Injectable Weight Loss Eligibility &amp; Dose Rules</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      color: #1a1a2e;
+      background: #f4f6f9;
+    }
+
+    /* ── Header ── */
+    .doc-header {
+      background: linear-gradient(135deg, #1a4731 0%, #2d7a4f 100%);
+      color: white;
+      padding: 48px 40px 36px;
+    }
+    .doc-header .logo {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      opacity: 0.75;
+      margin-bottom: 12px;
+    }
+    .doc-header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .doc-header .subtitle {
+      opacity: 0.8;
+      font-size: 14px;
+    }
+    .meta-row {
+      display: flex;
+      gap: 24px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+    .meta-pill {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* ── Overview box ── */
+    .overview {
+      background: white;
+      border-left: 4px solid #2d7a4f;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 36px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .overview p { margin-bottom: 6px; }
+    .overview p:last-child { margin-bottom: 0; }
+    .overview strong { color: #1a4731; }
+
+    /* ── Step blocks ── */
+    .step {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      margin-bottom: 28px;
+      overflow: hidden;
+    }
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px 24px;
+      border-bottom: 1px solid #eef0f3;
+    }
+    .step-number {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #2d7a4f;
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+    .step-body { padding: 24px; }
+    .step-body > * + * { margin-top: 20px; }
+
+    /* ── Subsections inside a step ── */
+    .subsection { }
+    .subsection-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #2d7a4f;
+      margin-bottom: 10px;
+    }
+
+    /* ── Question block ── */
+    .question-block {
+      background: #f8f9fb;
+      border: 1px solid #e4e7ec;
+      border-radius: 8px;
+      padding: 14px 18px;
+    }
+    .question-block .q-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #8492a6;
+      margin-bottom: 4px;
+    }
+    .question-block .q-text {
+      font-size: 15px;
+      font-weight: 500;
+      color: #1a1a2e;
+    }
+
+    /* ── Tables ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    thead tr {
+      background: #f0f4f8;
+    }
+    th {
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+      color: #4a5568;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #eef0f3;
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafbfc; }
+
+    /* ── Outcome badges ── */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge-reject {
+      background: #fde8e8;
+      color: #c0392b;
+      border: 1px solid #f5c6c6;
+    }
+    .badge-eligible {
+      background: #e6f4ec;
+      color: #1a7a3f;
+      border: 1px solid #b7dfc6;
+    }
+    .badge-evidence {
+      background: #fff3e0;
+      color: #b45309;
+      border: 1px solid #fcd998;
+    }
+    .badge-counselling {
+      background: #e8f0fe;
+      color: #1a56c4;
+      border: 1px solid #b3c9fa;
+    }
+    .badge-review {
+      background: #f3e8ff;
+      color: #7c3aed;
+      border: 1px solid #d8b4fe;
+    }
+    .badge-blocked {
+      background: #f1f3f5;
+      color: #4a5568;
+      border: 1px solid #d1d5db;
+    }
+
+    /* ── Condition lists ── */
+    .condition-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .condition-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .condition-item.reject {
+      background: #fdf2f2;
+      border-left: 3px solid #e53e3e;
+    }
+    .condition-item.info {
+      background: #f5f0ff;
+      border-left: 3px solid #7c3aed;
+    }
+    .condition-item.conditional {
+      background: #fffbeb;
+      border-left: 3px solid #d97706;
+    }
+    .condition-icon {
+      margin-top: 1px;
+      font-size: 13px;
+    }
+
+    /* ── Med list ── */
+    .med-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .med-tag {
+      background: #fde8e8;
+      color: #c0392b;
+      border: 1px solid #f5c6c6;
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    /* ── Comorbidity list ── */
+    .comorbidity-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 8px;
+    }
+    .comorbidity-item {
+      background: #e6f4ec;
+      border: 1px solid #b7dfc6;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 13px;
+      color: #1a4731;
+    }
+
+    /* ── Dose ladder ── */
+    .dose-ladder {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .dose-step {
+      background: #1a4731;
+      color: white;
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .dose-arrow {
+      color: #8492a6;
+      font-size: 14px;
+    }
+
+    /* ── Gap formula ── */
+    .formula-box {
+      background: #1a1a2e;
+      color: #a8e6c3;
+      border-radius: 8px;
+      padding: 16px 20px;
+      font-family: "SF Mono", "Fira Code", "Courier New", monospace;
+      font-size: 14px;
+    }
+
+    /* ── Info / note boxes ── */
+    .note-box {
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-size: 14px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .note-box.info {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+    }
+    .note-box.warning {
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      color: #92400e;
+    }
+    .note-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Pathway split ── */
+    .pathway-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 640px) { .pathway-split { grid-template-columns: 1fr; } }
+    .pathway-card {
+      border-radius: 8px;
+      padding: 18px;
+      border: 1px solid;
+    }
+    .pathway-card.new-starter {
+      background: #f0fdf4;
+      border-color: #86efac;
+    }
+    .pathway-card.transfer {
+      background: #fefce8;
+      border-color: #fde047;
+    }
+    .pathway-card h4 {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .pathway-card.new-starter h4 { color: #15803d; }
+    .pathway-card.transfer h4 { color: #a16207; }
+
+    /* ── Journey answer cards ── */
+    .answer-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 500px) { .answer-split { grid-template-columns: 1fr; } }
+    .answer-card {
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      border: 2px solid;
+    }
+    .answer-card .answer-label { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .answer-card .answer-route { font-size: 13px; font-weight: 600; }
+    .answer-card.yes { border-color: #f59e0b; background: #fffbeb; }
+    .answer-card.yes .answer-label { color: #b45309; }
+    .answer-card.yes .answer-route { color: #92400e; }
+    .answer-card.no { border-color: #34d399; background: #f0fdf4; }
+    .answer-card.no .answer-label { color: #059669; }
+    .answer-card.no .answer-route { color: #065f46; }
+
+    /* ── Conditional flow ── */
+    .flow-step {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .flow-step + .flow-step { margin-top: 10px; }
+    .flow-connector {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .flow-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #2d7a4f;
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .flow-line {
+      width: 2px;
+      background: #d1d5db;
+      flex-grow: 1;
+      min-height: 12px;
+      margin: 3px 0;
+    }
+    .flow-content { padding-top: 4px; flex: 1; }
+    .flow-content p { font-size: 14px; margin-bottom: 6px; }
+
+    /* ── Toggle option buttons ── */
+    .toggle-options {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .toggle-option {
+      background: white;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #1a1a2e;
+    }
+    .field-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 6px;
+    }
+    .date-field-mock {
+      background: white;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      color: #8492a6;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 280px;
+      margin-bottom: 4px;
+    }
+
+    /* ── Summary table colour coding ── */
+    .summary-reject td:last-child { }
+
+    /* ── Footer ── */
+    .doc-footer {
+      text-align: center;
+      padding: 32px 24px;
+      color: #8492a6;
+      font-size: 13px;
+      border-top: 1px solid #e4e7ec;
+      margin-top: 40px;
+    }
+
+    /* ── Print ── */
+    @media print {
+      body { background: white; }
+      .step { box-shadow: none; border: 1px solid #e4e7ec; }
+      .doc-header { background: #1a4731 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="doc-header">
+  <div class="logo">EveryDayMeds</div>
+  <h1>Injectable Weight Loss — Eligibility &amp; Dose Rules</h1>
+  <p class="subtitle">Injectable Weight Loss Consultation — New Starter &amp; Transfer Pathways</p>
+  <div class="meta-row">
+    <span class="meta-pill">Draft v11</span>
+    <span class="meta-pill">June 2026</span>
+    <span class="meta-pill">For Prescriber Review</span>
+    <span class="meta-pill">Mounjaro &amp; Wegovy</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Overview -->
+  <div class="overview">
+    <p><strong>Deferred eligibility model:</strong> The patient completes the full consultation form before any eligibility decision is shown. There are no mid-form blocks.</p>
+    <p><strong>All rejections are deferred</strong> — displayed only at the end, after the full form is submitted.</p>
+    <p>This document covers the <strong>New Starter</strong> and <strong>Transfer</strong> pathways only. The Existing Patient (Repeat) pathway is a separate flow.</p>
+  </div>
+
+  <!-- ── STEP 1 ── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">1</div>
+      <div class="step-title">Determine Consultation Type</div>
+    </div>
+    <div class="step-body">
+      <div class="question-block" style="margin-bottom:14px;">
+        <div class="q-label">Journey step (patient app)</div>
+        <div class="q-text">Patient selects <strong>New Patient</strong>, <strong>Existing Patient</strong> (repeat — separate flow), or <strong>Transferring</strong> (from another provider).</div>
+      </div>
+      <div class="note-box info" style="margin-bottom:14px;">
+        <span class="note-icon">&#8505;</span>
+        <span><strong>New Patient only:</strong> "Have you had weight loss medication in the past 6 months?" — Yes &#8594; Transfer pathway; No &#8594; New Starter pathway. <strong>Transferring</strong> skips this question and enters the transfer pathway directly.</span>
+      </div>
+      <div class="answer-split">
+        <div class="answer-card yes">
+          <div class="answer-label">Transfer</div>
+          <div class="answer-route">&#8594; Step 11: continuation safety + medication picker (same for all transfer patients)</div>
+        </div>
+        <div class="answer-card no">
+          <div class="answer-label">New Starter</div>
+          <div class="answer-route">&#8594; Skips step 11 — continues to clinical notes / agreement</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Developer Note: Age Eligibility -->
+  <div class="note-box warning" style="margin-bottom: 28px;">
+    <span class="note-icon">&#128221;</span>
+    <span><strong>Developer note — age eligibility (18&ndash;75):</strong> Do not add a question asking "Are you between the age of 18 and 75?" — this question does not currently exist in the form and should not be added as a separate question. Instead, calculate the patient's age from their <strong>date of birth</strong> (collected in the BMI measurements step) against the consultation date. If the calculated age falls outside 18&ndash;75, treat this the same as any other deferred rejection criteria.</span>
+  </div>
+
+  <!-- ── STEP 2 ── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">2</div>
+      <div class="step-title">BMI Eligibility</div>
+    </div>
+    <div class="step-body">
+
+      <div class="subsection">
+        <div class="subsection-title">2a — Determine Licence Threshold</div>
+        <p style="font-size:14px; color:#4a5568; margin-bottom:12px;">The minimum acceptable BMI is determined by the patient's ethnicity and comorbidities. The lowest applicable threshold always wins.</p>
+        <table>
+          <thead>
+            <tr><th>Patient Profile</th><th>Minimum BMI (licenceThreshold)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>No BAME ethnicity, no comorbidity</td><td><strong>30.0</strong></td></tr>
+            <tr><td>BAME ethnicity only</td><td><strong>27.5</strong></td></tr>
+            <tr><td>Comorbidity only (not BAME)</td><td><strong>27.0</strong></td></tr>
+            <tr><td>BAME <em>and</em> comorbidity</td><td><strong>27.0</strong> &nbsp;<span style="color:#8492a6; font-size:12px;">(lowest always wins)</span></td></tr>
+          </tbody>
+        </table>
+        <div class="note-box info" style="margin-top:12px;">
+          <span class="note-icon">&#8505;</span>
+          <span><strong>BAME definition:</strong> Patient selected Asian, Black African/Caribbean, Middle Eastern, or Mixed at the ethnicity question.</span>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Comorbidity List</div>
+        <p style="font-size:14px; color:#4a5568; margin-bottom:12px;">Selecting <strong>at least one</strong> of the following qualifies as a comorbidity and drops the licence threshold to 27.0.</p>
+        <div class="comorbidity-grid">
+          <div class="comorbidity-item">Prediabetes</div>
+          <div class="comorbidity-item">Type 2 diabetes</div>
+          <div class="comorbidity-item">High blood pressure</div>
+          <div class="comorbidity-item">High cholesterol</div>
+          <div class="comorbidity-item">Heart or blood vessel disease (including previous heart attack)</div>
+          <div class="comorbidity-item">Previous stroke</div>
+          <div class="comorbidity-item">Obstructive sleep apnoea</div>
+          <div class="comorbidity-item">Acid reflux / GORD (on regular medication)</div>
+          <div class="comorbidity-item">MASLD (previously non-alcoholic fatty liver disease)</div>
+          <div class="comorbidity-item">Osteoarthritis</div>
+          <div class="comorbidity-item">Depression (on regular medication)</div>
+          <div class="comorbidity-item">Erectile dysfunction</div>
+          <div class="comorbidity-item">Polycystic ovary syndrome (PCOS)</div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">2b — Apply BMI Rule by Pathway</div>
+        <div class="pathway-split">
+          <div class="pathway-card new-starter">
+            <h4>&#127807; New Starter Pathway</h4>
+            <table>
+              <thead><tr><th>BMI</th><th>Outcome</th></tr></thead>
+              <tbody>
+                <tr><td>&#8805; licenceThreshold</td><td><span class="badge badge-eligible">Eligible</span></td></tr>
+                <tr><td>&lt; licenceThreshold</td><td><span class="badge badge-reject">Deferred Rejection</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pathway-card transfer">
+            <h4>&#8646; Transfer Pathway</h4>
+            <table>
+              <thead><tr><th>BMI</th><th>Outcome</th></tr></thead>
+              <tbody>
+                <tr><td>&lt; 23</td><td><span class="badge badge-reject">Deferred Rejection</span></td></tr>
+                <tr><td>&#8805; 23 and &lt; licenceThreshold</td><td><span class="badge badge-evidence">Eligible + Evidence Required</span></td></tr>
+                <tr><td>&#8805; licenceThreshold, starting dose</td><td><span class="badge badge-eligible">Eligible</span></td></tr>
+                <tr><td>&#8805; licenceThreshold, dose &gt; starting</td><td><span class="badge badge-evidence">Eligible + Evidence Required</span></td></tr>
+              </tbody>
+            </table>
+            <p style="font-size:12px; color:#92400e; margin-top:8px;">Starting dose = Mounjaro 2.5 mg / Wegovy 0.25 mg</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── MEDICAL HISTORY (PMR) — patient app step 6 ── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">6</div>
+      <div class="step-title">Medical History (PMR)</div>
+    </div>
+    <div class="step-body">
+
+      <div class="note-box info" style="margin-bottom:16px;">
+        <span class="note-icon">&#8505;</span>
+        <span>Patient consultation <strong>step 6</strong> — all pathways (new starter, transfer, repeat). Gate question: <em>"Have you ever been diagnosed with any of the following?"</em> Selecting conditions unlocks follow-up panels per condition.</span>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Type 2 diabetes follow-up</div>
+        <div class="note-box warning" style="margin-bottom:12px;">
+          <span class="note-icon">&#9888;</span>
+          <span>Shown only when <strong>Type 2 diabetes</strong> is selected on the PMR medical-history checklist (also counts as a comorbidity for BMI licence threshold).</span>
+        </div>
+
+        <div class="question-block" style="margin-bottom:14px;">
+          <div class="q-label">Question 1 — listed glucose-lowering medications</div>
+          <div class="q-text">"Do you take any of the following?"</div>
+        </div>
+
+        <p style="font-size:14px; color:#4a5568; margin-bottom:12px;">If the patient answers <strong>No</strong>, show the medication list for reference only. If <strong>Yes</strong>, they must select which listed medications they take.</p>
+
+        <div class="condition-list" style="margin-bottom:16px;">
+          <div class="condition-item info" style="border-left-color:#2d7a4f;">
+            <span class="condition-icon">&#9432;</span>
+            <div style="flex:1;">
+              <strong>Sulfonylureas such as:</strong>
+              <div class="med-grid" style="margin-top:8px;">
+                <span class="med-tag" style="background:#e6f4ec;color:#1a4731;border-color:#b7dfc6;">Gliclazide</span>
+                <span class="med-tag" style="background:#e6f4ec;color:#1a4731;border-color:#b7dfc6;">Glibenclamide</span>
+                <span class="med-tag" style="background:#e6f4ec;color:#1a4731;border-color:#b7dfc6;">Tolbutamide</span>
+              </div>
+            </div>
+          </div>
+          <div class="condition-item info" style="border-left-color:#2d7a4f;">
+            <span class="condition-icon">&#9432;</span>
+            <div style="flex:1;">
+              <strong>DPP-4 inhibitors such as:</strong>
+              <div class="med-grid" style="margin-top:8px;">
+                <span class="med-tag" style="background:#e6f4ec;color:#1a4731;border-color:#b7dfc6;">Sitagliptin</span>
+                <span class="med-tag" style="background:#e6f4ec;color:#1a4731;border-color:#b7dfc6;">Vildagliptin</span>
+                <span class="med-tag" style="background:#e6f4ec;color:#1a4731;border-color:#b7dfc6;">Linagliptin</span>
+              </div>
+            </div>
+          </div>
+          <div class="condition-item info" style="border-left-color:#2d7a4f;">
+            <span class="condition-icon">&#9432;</span>
+            <div style="flex:1;">
+              <strong>SGLT2 inhibitors such as:</strong>
+              <div class="med-grid" style="margin-top:8px;">
+                <span class="med-tag" style="background:#e6f4ec;color:#1a4731;border-color:#b7dfc6;">Empagliflozin</span>
+                <span class="med-tag" style="background:#e6f4ec;color:#1a4731;border-color:#b7dfc6;">Canagliflozin</span>
+                <span class="med-tag" style="background:#e6f4ec;color:#1a4731;border-color:#b7dfc6;">Dapagliflozin</span>
+              </div>
+            </div>
+          </div>
+          <div class="condition-item info" style="border-left-color:#2d7a4f;">
+            <span class="condition-icon">&#9432;</span>
+            <div style="flex:1;">
+              <strong>Thiazolidinediones</strong>
+              <div class="med-grid" style="margin-top:8px;">
+                <span class="med-tag" style="background:#e6f4ec;color:#1a4731;border-color:#b7dfc6;">Pioglitazone</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <table style="margin-bottom:20px;">
+          <thead><tr><th>Answer to question 1</th><th>Outcome</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Yes</strong> — takes one or more listed medications (must select from checklist)</td>
+              <td><span class="badge badge-reject">Deferred Rejection</span></td>
+            </tr>
+            <tr>
+              <td><strong>No</strong> — does not take any listed medication</td>
+              <td>Continue to question 2 — <strong>not rejected</strong> on this basis alone</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="question-block" style="margin-bottom:14px;">
+          <div class="q-label">Question 2 — other medication</div>
+          <div class="q-text">"Do you take any other medication?"</div>
+        </div>
+
+        <table>
+          <thead><tr><th>Scenario</th><th>Outcome</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Question 1 = <strong>No</strong>, question 2 = <strong>Yes</strong> (e.g. metformin only)</td>
+              <td><span class="badge badge-eligible">No Rejection</span> &nbsp; Collect medication names for clinical review</td>
+            </tr>
+            <tr>
+              <td>Question 1 = <strong>No</strong>, question 2 = <strong>No</strong></td>
+              <td><span class="badge badge-eligible">Continue</span></td>
+            </tr>
+            <tr>
+              <td>Question 1 = <strong>Yes</strong> (any listed med selected)</td>
+              <td><span class="badge badge-reject">Deferred Rejection</span> &nbsp; Question 2 does not override — patient is ineligible</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="note-box warning" style="margin-top:14px;">
+          <span class="note-icon">&#9888;</span>
+          <span><strong>Important:</strong> Rejection applies <em>only</em> when the patient answers <strong>Yes</strong> to taking listed medications (question 1) and selects at least one. Answering <strong>No</strong> to listed meds but <strong>Yes</strong> to other medication (e.g. metformin, statins) is <strong>not</strong> an automatic rejection.</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── STEP 3 ── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">3</div>
+      <div class="step-title">Red Flags &amp; Excluding Conditions</div>
+    </div>
+    <div class="step-body">
+
+      <!-- 3a Pregnancy -->
+      <div class="subsection">
+        <div class="subsection-title">3a — Pregnancy / Breastfeeding</div>
+        <div class="note-box warning" style="margin-bottom:10px;">
+          <span class="note-icon">&#9888;</span>
+          <span>Shown only when sex assigned at birth = <strong>Female</strong> or <strong>Prefer not to say</strong></span>
+        </div>
+        <div class="question-block" style="margin-bottom:10px;">
+          <div class="q-label">Question</div>
+          <div class="q-text">"Are you currently pregnant, breastfeeding, or planning to become pregnant or breastfeed while using this medication?"</div>
+        </div>
+        <table>
+          <thead><tr><th>Answer</th><th>Outcome</th></tr></thead>
+          <tbody>
+            <tr><td>Yes</td><td><span class="badge badge-reject">Deferred Rejection</span></td></tr>
+            <tr><td>No</td><td>Continue</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 3b Contraceptives -->
+      <div class="subsection">
+        <div class="subsection-title">3b — Oral Contraceptives</div>
+        <div class="note-box warning" style="margin-bottom:10px;">
+          <span class="note-icon">&#9888;</span>
+          <span>Shown only when sex = <strong>Female</strong> or <strong>Prefer not to say</strong>, and 3a was passed</span>
+        </div>
+        <div class="question-block" style="margin-bottom:10px;">
+          <div class="q-label">Question</div>
+          <div class="q-text">"Are you taking an oral contraceptive?"</div>
+        </div>
+        <table>
+          <thead><tr><th>Answer</th><th>Outcome</th></tr></thead>
+          <tbody>
+            <tr><td>Yes</td><td><span class="badge badge-counselling">Counselling Required</span> &nbsp; Patient must read contraception counselling and acknowledge before continuing. Not a rejection.</td></tr>
+            <tr><td>No</td><td>Continue</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 3c High-risk meds -->
+      <div class="subsection">
+        <div class="subsection-title">3c — High-Risk Medications</div>
+        <div class="question-block" style="margin-bottom:12px;">
+          <div class="q-label">Question</div>
+          <div class="q-text">"Are you currently taking any of the following medications?"</div>
+        </div>
+        <p style="font-size:14px; color:#4a5568; margin-bottom:10px;">Selecting <strong>one or more</strong> of the following results in a deferred rejection.</p>
+        <div class="med-grid">
+          <span class="med-tag">Amiodarone</span>
+          <span class="med-tag">Carbamazepine</span>
+          <span class="med-tag">Ciclosporin</span>
+          <span class="med-tag">Clozapine</span>
+          <span class="med-tag">Digoxin</span>
+          <span class="med-tag">Fenfluramine</span>
+          <span class="med-tag">Insulin</span>
+          <span class="med-tag">Lithium</span>
+          <span class="med-tag">Mycophenolate mofetil</span>
+          <span class="med-tag">Oral methotrexate</span>
+          <span class="med-tag">Phenobarbital</span>
+          <span class="med-tag">Phenytoin</span>
+          <span class="med-tag">Somatrogon</span>
+          <span class="med-tag">Tacrolimus</span>
+          <span class="med-tag">Theophylline</span>
+          <span class="med-tag">Warfarin</span>
+        </div>
+      </div>
+
+      <!-- 3d Hypersensitivity -->
+      <div class="subsection">
+        <div class="subsection-title">3d — Hypersensitivity</div>
+        <div class="question-block" style="margin-bottom:10px;">
+          <div class="q-label">Question</div>
+          <div class="q-text">"Have you ever had an allergic reaction to Wegovy, Mounjaro, Ozempic, Saxenda, or other GLP-1 medications?"</div>
+        </div>
+        <table>
+          <thead><tr><th>Answer</th><th>Outcome</th></tr></thead>
+          <tbody>
+            <tr><td>Yes</td><td><span class="badge badge-reject">Deferred Rejection</span></td></tr>
+            <tr><td>No</td><td>Continue</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 3e Excluding Conditions -->
+      <div class="subsection">
+        <div class="subsection-title">3e — Excluding Conditions</div>
+        <div class="question-block" style="margin-bottom:14px;">
+          <div class="q-label">Gate question</div>
+          <div class="q-text">"Have you been diagnosed with or had surgery for any of the following?"</div>
+        </div>
+        <div class="note-box info" style="margin-bottom:16px;">
+          <span class="note-icon">&#8505;</span>
+          <span>If the patient answers <strong>No</strong>, this section is skipped entirely. If <strong>Yes</strong>, they select which conditions apply and each is handled independently as below.</span>
+        </div>
+
+        <p style="font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:#c0392b; margin-bottom:8px;">Automatic Deferred Rejections — selecting any of these rejects the patient</p>
+        <div class="condition-list" style="margin-bottom:20px;">
+          <div class="condition-item reject"><span class="condition-icon">&#10007;</span><span>Pancreatitis</span></div>
+          <div class="condition-item reject"><span class="condition-icon">&#10007;</span><span>Type 1 diabetes</span></div>
+          <div class="condition-item reject"><span class="condition-icon">&#10007;</span><span>Eating disorder (anorexia or bulimia nervosa)</span></div>
+          <div class="condition-item reject"><span class="condition-icon">&#10007;</span><span>Personal or family history of medullary thyroid cancer (MTC) or MEN2 syndrome</span></div>
+          <div class="condition-item reject"><span class="condition-icon">&#10007;</span><span>Chronic kidney disease with reduced function (eGFR less than 30 ml/min)</span></div>
+          <div class="condition-item reject"><span class="condition-icon">&#10007;</span><span>Severe gastrointestinal disease, including inflammatory bowel disease (ulcerative colitis or Crohn's disease), or gastroparesis (delayed stomach emptying)</span></div>
+          <div class="condition-item reject"><span class="condition-icon">&#10007;</span><span>Chronic malabsorption syndrome (problems absorbing nutrients)</span></div>
+          <div class="condition-item reject"><span class="condition-icon">&#10007;</span><span>Liver cirrhosis or a liver transplant</span></div>
+          <div class="condition-item reject"><span class="condition-icon">&#10007;</span><span>An endocrine (hormone) disorder — overactive thyroid disease awaiting radioactive iodine or surgery, acromegaly, Addison's disease, Cushing's syndrome, congenital adrenal hyperplasia, or a growth hormone disorder</span></div>
+          <div class="condition-item reject"><span class="condition-icon">&#10007;</span><span>Treatment or rehabilitation for excessive alcohol use</span></div>
+          <div class="condition-item reject"><span class="condition-icon">&#10007;</span><span>Any cognitive or memory impairment (e.g. dementia) that may impact the ability to make decisions</span></div>
+        </div>
+
+        <p style="font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:#d97706; margin-bottom:8px;">Conditional — follow-up questions determine outcome</p>
+
+        <div class="note-box warning" style="margin-bottom:14px;">
+          <span class="note-icon">&#9888;</span>
+          <span><strong>Date logic (applies to both conditions below):</strong> The patient may either pick a toggle ("More than 12 months ago" / "Less than 12 months ago") OR enter an exact date. The exact date field collects <strong>month and year only</strong> (no day). If an exact date is provided, calculate the gap to the consultation date and use that result instead of the toggle — less than 12 months &rarr; deferred rejection, 12 months or more &rarr; continue.</span>
+        </div>
+
+        <div class="condition-list" style="margin-bottom:20px;">
+
+          <!-- Gallbladder -->
+          <div class="condition-item conditional">
+            <span class="condition-icon">&#63;</span>
+            <div style="flex:1;">
+              <strong>Gallbladder issues</strong>
+              <div style="margin-top:8px;">
+                <div class="flow-step">
+                  <div class="flow-connector"><div class="flow-dot">1</div><div class="flow-line"></div></div>
+                  <div class="flow-content">
+                    <p><em>"Have you had a cholecystectomy (gallbladder removal surgery)?"</em></p>
+                    <p>No &#8594; Continue &nbsp;|&nbsp; Yes &#8594; go to question 2</p>
+                  </div>
+                </div>
+                <div class="flow-step">
+                  <div class="flow-connector"><div class="flow-dot">2</div></div>
+                  <div class="flow-content">
+                    <p><em>"When did you have this surgery?"</em></p>
+                    <p style="font-size:13px; color:#92400e; margin-bottom:8px;">If you know the exact date, enter it below (optional). Otherwise, choose whether it was more or less than 12 months ago.</p>
+                    <div class="toggle-options">
+                      <div class="toggle-option">More than 12 months ago</div>
+                      <div class="toggle-option">Less than 12 months ago</div>
+                    </div>
+                    <div class="field-label">Exact date this happened (optional) — month &amp; year only</div>
+                    <div class="date-field-mock"><span>Select month and year</span><span>&#128197;</span></div>
+                    <table style="margin-top:10px;">
+                      <thead><tr><th>Result</th><th>Outcome</th></tr></thead>
+                      <tbody>
+                        <tr><td>Less than 12 months ago</td><td><span class="badge badge-reject">Deferred Rejection</span></td></tr>
+                        <tr><td>12 months ago or more</td><td><span class="badge badge-eligible">Continue</span></td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Weight loss procedure / surgery -->
+          <div class="condition-item conditional">
+            <span class="condition-icon">&#63;</span>
+            <div style="flex:1;">
+              <strong>Any weight loss procedures or surgery, such as gastric sleeve, gastric band, gastric bypass, or gastric balloon</strong>
+              <div style="margin-top:8px;">
+                <div class="flow-step">
+                  <div class="flow-connector"><div class="flow-dot">1</div></div>
+                  <div class="flow-content">
+                    <p><em>"When did you have this procedure or surgery?"</em></p>
+                    <p style="font-size:13px; color:#92400e; margin-bottom:8px;">If you know the exact date, enter it below (optional). Otherwise, choose whether it was more or less than 12 months ago.</p>
+                    <div class="toggle-options">
+                      <div class="toggle-option">More than 12 months ago</div>
+                      <div class="toggle-option">Less than 12 months ago</div>
+                    </div>
+                    <div class="field-label">Exact date this happened (optional) — month &amp; year only</div>
+                    <div class="date-field-mock"><span>Select month and year</span><span>&#128197;</span></div>
+                    <table style="margin-top:10px;">
+                      <thead><tr><th>Result</th><th>Outcome</th></tr></thead>
+                      <tbody>
+                        <tr><td>Less than 12 months ago</td><td><span class="badge badge-reject">Deferred Rejection</span></td></tr>
+                        <tr><td>12 months ago or more</td><td><span class="badge badge-eligible">Continue</span></td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <p style="font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:#7c3aed; margin-bottom:8px;">Clinical information only — no rejection, flagged for prescriber review</p>
+        <div class="condition-list">
+          <div class="condition-item info">
+            <span class="condition-icon">&#9432;</span>
+            <div>
+              <strong>Cancer</strong>
+              <p style="margin-top:6px; font-size:13px; color:#5b21b6;">Patient is shown a free-text field: <em>"Please tell us about your cancer, including the type of cancer, whether you are currently receiving any treatment, and any ongoing symptoms or issues."</em></p>
+              <p style="margin-top:4px; font-size:13px; color:#5b21b6;">Answer is flagged for prescriber review before the order is approved.</p>
+            </div>
+          </div>
+          <div class="condition-item info">
+            <span class="condition-icon">&#9432;</span>
+            <div>
+              <strong>Liver disease or impairment</strong>
+              <p style="margin-top:4px; font-size:13px; color:#5b21b6;">Prescriber notified. No rejection. Follow-up questions to be defined.</p>
+            </div>
+          </div>
+          <div class="condition-item info">
+            <span class="condition-icon">&#9432;</span>
+            <div>
+              <strong>Diabetic retinopathy or NAION</strong>
+              <p style="margin-top:4px; font-size:13px; color:#5b21b6;">Prescriber notified. No rejection. Follow-up questions to be defined.</p>
+            </div>
+          </div>
+          <div class="condition-item info">
+            <span class="condition-icon">&#9432;</span>
+            <div>
+              <strong>Heart failure with shortness of breath at rest</strong>
+              <p style="margin-top:4px; font-size:13px; color:#5b21b6;">Prescriber notified. No rejection. Follow-up questions to be defined.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 4 ── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">4</div>
+      <div class="step-title">Transfer Dose Recommendation &amp; Cap</div>
+    </div>
+    <div class="step-body">
+
+      <div class="note-box info">
+        <span class="note-icon">&#8505;</span>
+        <span>This step applies to the <strong>Transfer pathway only</strong>. New Starter patients are always on a starting dose (Mounjaro 2.5 mg / Wegovy 0.25 mg).</span>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">4a — Calculate Gap in Weeks</div>
+        <p style="font-size:14px; color:#4a5568; margin-bottom:10px;">The patient provides the date of their last injection. The system calculates the gap from that date to the date of the consultation.</p>
+        <div class="formula-box">gapWeeks = floor( (consultationDate &minus; lastInjectionDate) &divide; 7 days )</div>
+        <div class="note-box warning" style="margin-top:10px;">
+          <span class="note-icon">&#9888;</span>
+          <span>Use <strong>whole weeks only</strong> (floor, not round). 12 months is treated as 52 weeks for boundary purposes.</span>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">4b — Dose Ladders</div>
+        <p style="font-size:14px; color:#4a5568; margin-bottom:10px;"><strong>Mounjaro (mg)</strong></p>
+        <div class="dose-ladder" style="margin-bottom:16px;">
+          <span class="dose-step">2.5</span><span class="dose-arrow">&#8594;</span>
+          <span class="dose-step">5</span><span class="dose-arrow">&#8594;</span>
+          <span class="dose-step">7.5</span><span class="dose-arrow">&#8594;</span>
+          <span class="dose-step">10</span><span class="dose-arrow">&#8594;</span>
+          <span class="dose-step">12.5</span><span class="dose-arrow">&#8594;</span>
+          <span class="dose-step">15</span>
+        </div>
+        <p style="font-size:14px; color:#4a5568; margin-bottom:10px;"><strong>Wegovy (mg)</strong></p>
+        <div class="dose-ladder">
+          <span class="dose-step">0.25</span><span class="dose-arrow">&#8594;</span>
+          <span class="dose-step">0.5</span><span class="dose-arrow">&#8594;</span>
+          <span class="dose-step">1</span><span class="dose-arrow">&#8594;</span>
+          <span class="dose-step">1.7</span><span class="dose-arrow">&#8594;</span>
+          <span class="dose-step">2.4</span><span class="dose-arrow">&#8594;</span>
+          <span class="dose-step">7.2</span>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">4c — Gap Band Rules</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Gap Duration</th>
+              <th>Rule</th>
+              <th>Recommended Dose</th>
+              <th>Hard Cap</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>&le; 4 weeks</strong></td>
+              <td>Stay on same dose or titrate up in multi-month bundles</td>
+              <td><strong>Same as last tolerated dose</strong> (e.g. was on 10 mg &rarr; recommend 10 mg)</td>
+              <td>1-bundle: up to recommended only. 2-bundle: +1 ladder step. 3-bundle: full catalogue.</td>
+            </tr>
+            <tr>
+              <td><strong>&gt; 4 and &le; 8 weeks</strong></td>
+              <td>Drop <strong>one step</strong> below last tolerated, then apply product cap</td>
+              <td>One step below last tolerated, capped at Mounjaro <strong>10 mg</strong> / Wegovy <strong>1 mg</strong> (e.g. was on 15 mg &rarr; recommend <strong>10 mg</strong>, not 12.5 mg)</td>
+              <td>Same bundle caps as &le; 4 weeks row</td>
+            </tr>
+            <tr>
+              <td><strong>&gt; 8 weeks</strong></td>
+              <td>Restart at starting dose</td>
+              <td>Mounjaro <strong>2.5 mg</strong> &nbsp;|&nbsp; Wegovy <strong>0.25 mg</strong></td>
+              <td>1-bundle: starter only. 2-bundle: starter + next step. 3-bundle: starter + two steps up.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">4d — Worked example (4&ndash;8 week gap)</div>
+        <table>
+          <thead><tr><th>Last tolerated (Mounjaro)</th><th>One step down</th><th>After 10 mg cap</th><th>Recommended dose</th></tr></thead>
+          <tbody>
+            <tr><td>7.5 mg</td><td>5 mg</td><td>5 mg</td><td><strong>5 mg</strong></td></tr>
+            <tr><td>10 mg</td><td>7.5 mg</td><td>7.5 mg</td><td><strong>7.5 mg</strong></td></tr>
+            <tr><td>12.5 mg</td><td>10 mg</td><td>10 mg</td><td><strong>10 mg</strong></td></tr>
+            <tr><td>15 mg</td><td>12.5 mg</td><td><strong>10 mg</strong></td><td><strong>10 mg</strong></td></tr>
+          </tbody>
+        </table>
+        <div class="note-box info" style="margin-top:12px;">
+          <span class="note-icon">&#8505;</span>
+          <span>Gap is calculated in <strong>whole weeks</strong> (floor). Example: last injection 25 Apr 2026, consultation 8 Jun 2026 &asymp; <strong>6 weeks</strong> &rarr; <strong>4&ndash;8 week band</strong>.</span>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">4e — BMI Requirements by Gap Length</div>
+        <table>
+          <thead><tr><th>Gap</th><th>BMI</th><th>Rule</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>&le; 52 weeks</td>
+              <td>Below licenceThreshold (still &#8805; 23)</td>
+              <td><span class="badge badge-evidence">Eligible — Previous Use Evidence Required</span></td>
+            </tr>
+            <tr>
+              <td>&le; 52 weeks</td>
+              <td>&#8805; licenceThreshold</td>
+              <td><span class="badge badge-eligible">Eligible</span></td>
+            </tr>
+            <tr>
+              <td>&gt; 52 weeks (&gt; 12 months)</td>
+              <td>Below licenceThreshold</td>
+              <td><span class="badge badge-reject">Deferred Rejection</span> &nbsp; Must re-meet new patient BMI eligibility (30 / 27 / 27.5 depending on profile, lowest wins)</td>
+            </tr>
+            <tr>
+              <td>&gt; 52 weeks (&gt; 12 months)</td>
+              <td>&#8805; licenceThreshold</td>
+              <td><span class="badge badge-blocked">Starting dose only</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="note-box info" style="margin-top:12px;">
+          <span class="note-icon">&#8505;</span>
+          <span>licenceThreshold is the same value calculated in Step 2a (30.0 / 27.5 / 27.0 depending on BAME and comorbidity status, lowest applicable wins).</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── STEP 5 — Treatment plan & bundles (patient app step 16) ── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">5</div>
+      <div class="step-title">Treatment Plan &amp; Titration Bundles</div>
+    </div>
+    <div class="step-body">
+
+      <div class="note-box info" style="margin-bottom:16px;">
+        <span class="note-icon">&#8505;</span>
+        <span>Patient consultation <strong>step 16</strong> — new starters and transfer patients choose 1&ndash;3 pens (one month / 4-week supply each). Repeat patients inherit their prior plan and do not re-pick.</span>
+      </div>
+
+      <div class="pathway-split" style="margin-bottom:20px;">
+        <div class="pathway-card new-starter">
+          <h4>&#127807; New Starter</h4>
+          <ul style="font-size:14px; color:#166534; margin-left:18px; line-height:1.7;">
+            <li>Must begin at <strong>starter dose</strong> (Mounjaro 2.5 mg / Wegovy 0.25 mg).</li>
+            <li>May order up to <strong>3 pens</strong> in one bundle.</li>
+            <li>Offered titration strengths (Mounjaro): <strong>2.5 &rarr; 5 &rarr; 7.5 mg</strong> only — no 10 mg in the picker.</li>
+            <li>Strengths must follow the ladder <strong>in order</strong> — cannot skip (e.g. 7.5 mg requires 5 mg, which requires 2.5 mg).</li>
+            <li>First pen in the bundle must be the starter dose.</li>
+          </ul>
+        </div>
+        <div class="pathway-card transfer">
+          <h4>&#8646; Transfer (e.g. recommended 10 mg)</h4>
+          <ul style="font-size:14px; color:#92400e; margin-left:18px; line-height:1.7;">
+            <li><strong>1 / 2 / 3 bundle toggle</strong> — choice persists when pens are removed so patient can re-pick (e.g. 2.5+5 instead of 10+12.5).</li>
+            <li><strong>Recommended dose badge</strong> from gap rules — not required in bundle if ordering below only.</li>
+            <li><strong>1 bundle:</strong> strengths 2.5 mg &rarr; recommended only (no 12.5 mg). Default = recommended.</li>
+            <li><strong>2 bundle:</strong> strengths 2.5 mg &rarr; <strong>one step above</strong> recommended (e.g. up to 12.5 mg). Default = <strong>10 mg + 12.5 mg</strong>.</li>
+            <li><strong>3 bundle:</strong> strengths 2.5 mg &rarr; <strong>15 mg</strong> (full catalogue). Default = recommended + next two steps (e.g. 10+12.5+15 mg).</li>
+            <li>If <strong>any pen above</strong> recommended: must include <strong>recommended dose at least once</strong>.</li>
+            <li><strong>Contiguous ladder</strong> — no skipped steps (2.5+10 invalid); <strong>repeat same dose OK</strong> (2&times;10 mg).</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Bundle size toggle &amp; validation (both pathways)</div>
+        <table>
+          <thead><tr><th>Rule</th><th>New starter</th><th>Transfer</th></tr></thead>
+          <tbody>
+            <tr><td>Bundle toggle</td><td>1 / 2 / 3 bundle — does <strong>not</strong> reset when pens removed</td><td>Same</td></tr>
+            <tr><td>Continue enabled</td><td colspan="2">Pen count must equal chosen bundle size <strong>and</strong> validation must pass</td></tr>
+            <tr><td>Strengths in picker</td><td>2.5 &rarr; 5 &rarr; 7.5 mg (Mounjaro)</td><td>Depends on bundle size (see transfer card above)</td></tr>
+            <tr><td>Required first dose</td><td>Must include <strong>starter dose</strong></td><td>Not required if ordering at/below recommended only</td></tr>
+            <tr><td>Above recommended / starter</td><td>Acknowledgement if any dose above starter</td><td>Must include <strong>recommended</strong> if any pen above it; acknowledgement required</td></tr>
+            <tr><td>Ladder contiguity</td><td colspan="2">No skipped steps (e.g. 2.5+10 invalid). Repeat same strength allowed.</td></tr>
+            <tr><td>Locked-dose messages</td><td colspan="2">Shown when patient tries to skip a ladder step or pick above 1-bundle ceiling</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Transfer — strengths offered per bundle (recommended 10 mg)</div>
+        <table>
+          <thead><tr><th>Bundle</th><th>Strengths shown</th><th>Default pre-fill</th></tr></thead>
+          <tbody>
+            <tr><td><strong>1 bundle</strong></td><td>2.5, 5, 7.5, <strong>10 mg</strong></td><td>10 mg</td></tr>
+            <tr><td><strong>2 bundle</strong></td><td>2.5, 5, 7.5, 10, <strong>12.5 mg</strong></td><td><strong>10 mg + 12.5 mg</strong></td></tr>
+            <tr><td><strong>3 bundle</strong></td><td>2.5, 5, 7.5, 10, 12.5, <strong>15 mg</strong></td><td>10 + 12.5 + 15 mg</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Patient-facing notes (step 16)</div>
+        <div class="note-box info" style="margin-bottom:12px;">
+          <span class="note-icon">&#8505;</span>
+          <span><strong>Recommended dose note (always shown):</strong> &ldquo;Based on the information you have provided, the dose we recommend for you is [X]. You can still order a lower strength if you need to — as a single pen or as part of a bundle.&rdquo;</span>
+        </div>
+        <div class="note-box warning">
+          <span class="note-icon">&#9888;</span>
+          <span>
+            <strong>Titration acknowledgement (when bundle includes a dose above starter / recommended):</strong> Side effects are more likely when titrating up. Multi-month bundles may not suit a revised plan if the patient needs to reduce their dose. One pen at a time allows month-by-month tailoring. Patient must tick acknowledgement checkbox before Continue.
+          </span>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Examples — new starter</div>
+        <table>
+          <thead><tr><th>Selection (1–3 pens)</th><th>Valid?</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>2.5 mg only</td><td><span class="badge badge-eligible">Yes</span></td><td>1-pen bundle</td></tr>
+            <tr><td>2.5 mg + 5 mg + 7.5 mg</td><td><span class="badge badge-eligible">Yes</span></td><td>3-pen titration; ack required</td></tr>
+            <tr><td>2.5 mg + 7.5 mg (skipped 5 mg)</td><td><span class="badge badge-reject">No</span></td><td>Skipped ladder step</td></tr>
+            <tr><td>10 mg</td><td><span class="badge badge-blocked">Not offered</span></td><td>Above starter offer range</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Examples — transfer (recommended 10 mg, 2-bundle offers up to 12.5 mg)</div>
+        <table>
+          <thead><tr><th>Selection</th><th>Valid?</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>7.5 mg only (1 bundle)</td><td><span class="badge badge-eligible">Yes</span></td><td>Below recommended</td></tr>
+            <tr><td>2.5 mg + 5 mg (2 bundle)</td><td><span class="badge badge-eligible">Yes</span></td><td>User cleared default; all below recommended</td></tr>
+            <tr><td>10 mg only (1 bundle)</td><td><span class="badge badge-eligible">Yes</span></td><td>At recommended</td></tr>
+            <tr><td><strong>10 mg + 12.5 mg</strong> (2 bundle)</td><td><span class="badge badge-eligible">Yes</span></td><td><strong>Default 2-bundle pre-fill</strong>; ack required</td></tr>
+            <tr><td>2&times;10 mg (2 bundle)</td><td><span class="badge badge-eligible">Yes</span></td><td>Repeat at recommended</td></tr>
+            <tr><td>10 + 12.5 + 15 mg (3 bundle)</td><td><span class="badge badge-eligible">Yes</span></td><td>Default 3-bundle; ack required</td></tr>
+            <tr><td>10 mg + 15 mg</td><td><span class="badge badge-reject">No</span></td><td>Skipped 12.5 mg</td></tr>
+            <tr><td>12.5 mg only (no 10 mg)</td><td><span class="badge badge-reject">No</span></td><td>Above recommended without recommended dose</td></tr>
+            <tr><td>2.5 mg + 10 mg</td><td><span class="badge badge-reject">No</span></td><td>Skipped 5 mg and 7.5 mg — locked with patient message</td></tr>
+            <tr><td>10 mg + 2&times;15 mg</td><td><span class="badge badge-reject">No</span></td><td>Skipped 12.5 mg</td></tr>
+            <tr><td>12.5 mg on 1-bundle picker</td><td><span class="badge badge-blocked">Not offered</span></td><td>Above recommended — use 2- or 3-bundle</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Developer implementation</div>
+        <div class="note-box info">
+          <span class="note-icon">&#128221;</span>
+          <span>
+            <strong>Gap dosing:</strong> <code>computeRestartDosing</code>, <code>categoriseRestartGap</code> (<code>le_4_weeks</code>, <code>gap_4_to_8_weeks</code>, <code>gap_over_8_weeks</code>) in <code>wlEligibilityDosing.ts</code>.<br>
+            <strong>Bundles:</strong> <code>offeredTransferDosesMg</code>, <code>transferBundleMaxOfferedDoseMg</code>, <code>validateTransferTitrationBundle</code>.<br>
+            <strong>UI:</strong> <code>TitrationBundlePicker</code>, <code>BundleSizeToggle</code> on patient step 16. Bundle toggle state independent of pen count.<br>
+            <strong>Stored:</strong> <code>bundle_titration_acknowledged</code>, plan type <code>single</code> | <code>two-pen</code> | <code>three-pen</code>.
+          </span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── SUMMARY TABLE ── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number" style="background:#1a1a2e;">&#9776;</div>
+      <div class="step-title">Full Rejection &amp; Action Summary</div>
+    </div>
+    <div class="step-body">
+      <table>
+        <thead>
+          <tr><th>Rule</th><th>Pathway</th><th>Outcome</th><th>Timing</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Age outside 18&ndash;75 (calculated from DOB)</td><td>Both</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>BMI below licenceThreshold</td><td>New Starter</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>BMI below 23</td><td>Transfer</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Gap &gt; 12 months + BMI below licenceThreshold</td><td>Transfer</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Gap &le; 12 months + BMI below licenceThreshold (&#8805; 23)</td><td>Transfer</td><td><span class="badge badge-evidence">Previous Use Evidence Required</span></td><td>—</td></tr>
+          <tr><td>Pregnancy / breastfeeding</td><td>Both</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Oral contraceptive</td><td>Both</td><td><span class="badge badge-counselling">Counselling + Acknowledgement</span></td><td>No rejection</td></tr>
+          <tr><td>Type 2 diabetes + takes listed glucose-lowering med (sulfonylurea, DPP-4, SGLT2, pioglitazone)</td><td>Both</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Type 2 diabetes + No to listed meds + Yes to other medication only</td><td>Both</td><td><span class="badge badge-eligible">No Rejection</span></td><td>Collect for review</td></tr>
+          <tr><td>High-risk medication selected</td><td>Both</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Hypersensitivity to GLP-1</td><td>Both</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Pancreatitis</td><td>Both</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Type 1 diabetes</td><td>Both</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Eating disorder</td><td>Both</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Weight loss procedure/surgery &lt; 12 months ago (toggle or exact date)</td><td>Both</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Weight loss procedure/surgery &#8805; 12 months ago</td><td>Both</td><td><span class="badge badge-eligible">No Rejection</span></td><td>—</td></tr>
+          <tr><td>MTC / MEN2 history</td><td>Both</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Chronic kidney disease eGFR &lt; 30</td><td>Both</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Severe gastrointestinal disease / gastroparesis</td><td>Both</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Chronic malabsorption syndrome</td><td>Both</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Liver cirrhosis or liver transplant</td><td>Both</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Endocrine disorder (listed)</td><td>Both</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Excessive alcohol treatment / rehabilitation</td><td>Both</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Cognitive / memory impairment</td><td>Both</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Gallbladder cholecystectomy &lt; 12 months</td><td>Both</td><td><span class="badge badge-reject">Rejection</span></td><td>Deferred</td></tr>
+          <tr><td>Gallbladder cholecystectomy &gt; 12 months</td><td>Both</td><td><span class="badge badge-eligible">No Rejection</span></td><td>—</td></tr>
+          <tr><td>Cancer</td><td>Both</td><td><span class="badge badge-review">Prescriber Review</span></td><td>No rejection</td></tr>
+          <tr><td>Liver disease or impairment</td><td>Both</td><td><span class="badge badge-review">Prescriber Review</span></td><td>No rejection</td></tr>
+          <tr><td>Diabetic retinopathy / NAION</td><td>Both</td><td><span class="badge badge-review">Prescriber Review</span></td><td>No rejection</td></tr>
+          <tr><td>Heart failure at rest</td><td>Both</td><td><span class="badge badge-review">Prescriber Review</span></td><td>No rejection</td></tr>
+          <tr><td>Dose above gap cap requested</td><td>Transfer</td><td><span class="badge badge-blocked">Dose Hidden / Disabled</span></td><td>—</td></tr>
+          <tr><td>BMI &#8805; 23 but &lt; licenceThreshold</td><td>Transfer</td><td><span class="badge badge-evidence">Previous Use Evidence Required</span></td><td>—</td></tr>
+          <tr><td>Requesting dose above starting dose</td><td>Transfer</td><td><span class="badge badge-evidence">Previous Use Evidence Required</span></td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="doc-footer">
+    <p>EveryDayMeds &mdash; Draft v11 &mdash; June 2026</p>
+    <p style="margin-top:4px;">For internal prescriber review only. Not for patient distribution.</p>
+  </div>
+
+</div>
+</body>
+</html>

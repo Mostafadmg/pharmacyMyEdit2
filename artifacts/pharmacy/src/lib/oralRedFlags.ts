@@ -102,12 +102,31 @@ export function oralExcludedMedRedFlags(
   }));
 }
 
+function isOralGallbladderDeferredRejection(
+  entry: OralExcludingConditionsSlice["diagnosedConditions"][number],
+): boolean {
+  const id = entry.catalogueId;
+  if (id !== "gallstones_gallbladder" && id !== "cholecystectomy") {
+    return false;
+  }
+  return entry.hadCholecystectomy === "no";
+}
+
 export function oralExcludingConditionsRedFlags(
   slice: OralExcludingConditionsSlice,
 ): OralRedFlag[] {
   if (slice.excludingConditions !== "yes") return [];
   return slice.diagnosedConditions
-    .filter((entry) => entry.catalogueId)
+    .filter((entry) => {
+      if (!entry.catalogueId) return false;
+      if (
+        entry.catalogueId === "gallstones_gallbladder" ||
+        entry.catalogueId === "cholecystectomy"
+      ) {
+        return isOralGallbladderDeferredRejection(entry);
+      }
+      return true;
+    })
     .map((entry) => {
       const catalogueId = entry.catalogueId!;
       return {

@@ -48,7 +48,7 @@ export default function PatientRegister() {
       localStorage.setItem("patient_email", json.email);
       localStorage.setItem("patient_id", json.patientId);
 
-      toast.success("Account created! Welcome to PharmaCare.");
+      toast.success("Account created! Welcome to EveryDayMeds.");
       navigate("/my-consultations");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
@@ -118,7 +118,7 @@ export default function PatientRegister() {
           <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-white mb-2">Create your account</h2>
-              <p className="text-white/60 text-sm">Join thousands of patients using PharmaCare</p>
+              <p className="text-white/60 text-sm">Join thousands of patients using EveryDayMeds</p>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">

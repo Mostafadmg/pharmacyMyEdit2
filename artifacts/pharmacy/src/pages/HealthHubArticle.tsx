@@ -31,7 +31,7 @@ export default function HealthHubArticle() {
       headline: article.title,
       description: article.excerpt,
       author: { "@type": "Person", name: article.author, jobTitle: article.authorRole },
-      publisher: { "@type": "Organization", name: "PharmaCare", logo: { "@type": "ImageObject", url: "/logo.png" } },
+      publisher: { "@type": "Organization", name: "EveryDayMeds", logo: { "@type": "ImageObject", url: "/logo.png" } },
       datePublished: article.publishedAt,
       mainEntityOfPage: { "@type": "WebPage", "@id": `/health-hub/${article.slug}` },
     },

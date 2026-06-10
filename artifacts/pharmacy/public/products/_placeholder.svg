@@ -10,6 +10,6 @@
     <circle r="56" fill="#168A7B"/>
     <text x="0" y="14" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="42" font-weight="700" fill="white">Rx</text>
   </g>
-  <text x="200" y="280" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="22" font-weight="600" fill="#0E5A52">PharmaCare</text>
+  <text x="200" y="280" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="22" font-weight="600" fill="#0E5A52">EveryDayMeds</text>
   <text x="200" y="310" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" fill="#168A7B" opacity="0.7">Image coming soon</text>
 </svg>

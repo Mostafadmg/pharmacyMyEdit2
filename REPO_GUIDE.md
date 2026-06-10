@@ -1,6 +1,6 @@
-# PharmaCare — Repository Guide
+# EveryDayMeds — Repository Guide
 
-This is a **pnpm monorepo** containing every piece of the PharmaCare platform: the patient website, the prescriber web portal, the pharmacist mobile app, and the shared backend API + database.
+This is a **pnpm monorepo** containing every piece of the EveryDayMeds platform: the patient website, the prescriber web portal, the pharmacist mobile app, and the shared backend API + database.
 
 Each app lives in its own folder so you can open exactly the codebase you want to work on.
 

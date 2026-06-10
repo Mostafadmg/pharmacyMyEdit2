@@ -214,7 +214,7 @@ export default function PharmacistPatients() {
             Patients
           </h1>
           <p className="text-muted-foreground mt-2 text-lg">
-            Every patient who has used PharmaCare — consultations and shop orders linked by email.
+            Every patient who has used EveryDayMeds — consultations and shop orders linked by email.
           </p>
         </div>
         <div className="relative w-full md:w-80">

@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "PharmaCare Digital Pharmacy"
+title = "EveryDayMeds Digital Pharmacy"
 version = "1.0.0"
 id = "artifacts/pharmacy"
 router = "path"

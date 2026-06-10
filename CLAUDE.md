@@ -1,4 +1,4 @@
-# Claude Project Instructions — PharmaCare Rx Portal Rebuild
+# Claude Project Instructions — EveryDayMeds Rx Portal Rebuild
 
 ## Who This Is For
 This file is for Claude. Read this at the start of every conversation about this project.
@@ -97,7 +97,7 @@ File: `src/components/RxLayout.tsx`
 
 **COMPLETED inside RxLayout:**
 - Full layout shell: h-screen, flex-col, overflow-hidden — sidebar fixed, main scrolls
-- `Header` — logo (PharmaCare Rx with Leaf icon), search bar (hidden on mobile), MenuButton (mobile only), theme toggle, profile avatar
+- `Header` — logo (EveryDayMeds Rx with Leaf icon), search bar (hidden on mobile), MenuButton (mobile only), theme toggle, profile avatar
 - `Theme` — dark/light toggle with useEffect wiring to `document.documentElement.classList`, persists to localStorage key `pharmacare:rx-theme`
 - `Profile` — reads real pharmacist name from localStorage via `getPharmacistName()`, shows initials
 - `Sidebar` — collapsible (w-57 expanded / w-15 collapsed), nav links from NAV array, active state with useLocation + cn(), green left border on active, portals section pinned at bottom

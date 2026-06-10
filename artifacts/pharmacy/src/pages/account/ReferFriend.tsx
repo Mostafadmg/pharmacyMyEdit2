@@ -54,8 +54,8 @@ export default function ReferFriend() {
   function shareNative() {
     if (typeof navigator !== "undefined" && "share" in navigator) {
       navigator.share({
-        title: "PharmaCare — £25 off",
-        text: `I trust PharmaCare for my UK pharmacy needs. Use my code ${code} for £25 off your first order.`,
+        title: "EveryDayMeds — £25 off",
+        text: `I trust EveryDayMeds for my UK pharmacy needs. Use my code ${code} for £25 off your first order.`,
         url: link,
       }).catch(() => { /* user cancelled */ });
     } else {
@@ -130,7 +130,7 @@ export default function ReferFriend() {
                   <Share2 className="w-4 h-4 mr-2" /> Share
                 </Button>
                 <Button asChild type="button" variant="outline" className="rounded-full">
-                  <a href={`mailto:?subject=£25%20off%20your%20first%20PharmaCare%20order&body=Use%20my%20code%20${encodeURIComponent(code)}%20at%20${encodeURIComponent(link)}%20—%20we%20both%20get%20£25%20off.`} data-testid="button-share-email">
+                  <a href={`mailto:?subject=£25%20off%20your%20first%20EveryDayMeds%20order&body=Use%20my%20code%20${encodeURIComponent(code)}%20at%20${encodeURIComponent(link)}%20—%20we%20both%20get%20£25%20off.`} data-testid="button-share-email">
                     <Mail className="w-4 h-4 mr-2" /> Email a friend
                   </a>
                 </Button>

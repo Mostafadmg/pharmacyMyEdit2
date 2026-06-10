@@ -1,4 +1,4 @@
-# PharmaCare Rx — Docker deployment
+# EveryDayMeds Rx — Docker deployment
 
 Runs the **Rx prescriber portal**, **API**, and **PostgreSQL** together.
 

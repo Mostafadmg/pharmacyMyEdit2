@@ -79,7 +79,7 @@ export default function Footer() {
                 +
               </span>
               <span className="font-serif text-xl font-bold text-white">
-                PharmaCare
+                EveryDayMeds
               </span>
             </Link>
             <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/60">
@@ -105,10 +105,10 @@ export default function Footer() {
                 </span>
                 <dd>
                   <a
-                    href="mailto:care@pharmacare.example.uk"
+                    href="mailto:care@everydaymeds.example.uk"
                     className="hover:text-white transition-colors"
                   >
-                    care@pharmacare.example.uk
+                    care@everydaymeds.example.uk
                   </a>
                 </dd>
               </div>
@@ -166,7 +166,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-6 flex flex-col gap-2 text-[11px] leading-relaxed text-white/40 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <p>© {year} PharmaCare Pharmacy Ltd. All rights reserved.</p>
+          <p>© {year} EveryDayMeds Pharmacy Ltd. All rights reserved.</p>
           <p className="sm:max-w-md sm:text-right">
             Regulated by the General Pharmaceutical Council (GPhC).
           </p>

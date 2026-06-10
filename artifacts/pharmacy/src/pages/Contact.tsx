@@ -24,9 +24,9 @@ const CONTACT_DETAILS = [
   {
     icon: <Mail className="w-5 h-5" />,
     label: "Email",
-    value: "support@pharmacare.co.uk",
+    value: "support@everydaymeds.co.uk",
     sub: "We aim to respond within 4 hours",
-    href: "mailto:support@pharmacare.co.uk",
+    href: "mailto:support@everydaymeds.co.uk",
     color: "text-primary",
     bg: "bg-primary/5",
   },
@@ -273,7 +273,7 @@ export default function Contact() {
                 <p>GPhC Registration No: <strong className="text-secondary">1234567</strong></p>
                 <p>CQC Registered Provider</p>
                 <p>ICO Registration: <strong className="text-secondary">ZA123456</strong></p>
-                <p className="pt-1">Complaints: <a href="mailto:complaints@pharmacare.co.uk" className="text-primary hover:underline">complaints@pharmacare.co.uk</a></p>
+                <p className="pt-1">Complaints: <a href="mailto:complaints@everydaymeds.co.uk" className="text-primary hover:underline">complaints@everydaymeds.co.uk</a></p>
               </div>
             </div>
           </div>

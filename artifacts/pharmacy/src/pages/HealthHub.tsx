@@ -24,7 +24,7 @@ export default function HealthHub() {
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "Blog",
-      name: "PharmaCare Health Hub",
+      name: "EveryDayMeds Health Hub",
       description: "Pharmacist-written guides to UK private prescriptions and everyday medicines.",
     },
   });

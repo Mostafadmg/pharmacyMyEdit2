@@ -263,7 +263,7 @@ export default function ProfileScreen() {
             <Feather name="mail" size={18} color={colors.primary} />
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={{ fontSize: 15, fontWeight: "600" as const, color: colors.secondary }}>Email Clinical Team</Text>
-              <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 1 }}>clinical@pharmacare.co.uk</Text>
+              <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 1 }}>clinical@everydaymeds.co.uk</Text>
             </View>
           </Pressable>
           <View style={styles.divider} />
@@ -284,7 +284,7 @@ export default function ProfileScreen() {
           <View style={styles.divider} />
           <InfoRow icon="lock" label="Security" value="Encrypted end-to-end" colors={colors} />
           <View style={styles.divider} />
-          <InfoRow icon="info" label="Version" value="PharmaCare v1.1" colors={colors} />
+          <InfoRow icon="info" label="Version" value="EveryDayMeds v1.1" colors={colors} />
         </View>
       </View>
 

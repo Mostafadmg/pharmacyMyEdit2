@@ -201,26 +201,20 @@ export function classifyNewStarterEligibility(
 
 /* ─────────────────────── B. Restart / gap dosing ─────────────────────── */
 
-/** Hard maximum restart doses (mg) per gap band — see reference image. */
-export const RESTART_CAP_8_TO_12_WEEKS: Record<WlProduct, number> = {
+/** Maximum recommended dose when gap is 4–8 weeks (one step down rule). */
+export const RESTART_CAP_4_TO_8_WEEKS: Record<WlProduct, number> = {
   mounjaro: 10,
   wegovy: 1,
 };
-export const RESTART_CAP_12_TO_24_WEEKS: Record<WlProduct, number> = {
-  mounjaro: 5,
-  wegovy: 1,
-};
 
-/** ~12 months expressed in whole weeks. */
-const WEEKS_IN_12_MONTHS = 52;
+/** @deprecated Use {@link RESTART_CAP_4_TO_8_WEEKS}. */
+export const RESTART_CAP_8_TO_12_WEEKS = RESTART_CAP_4_TO_8_WEEKS;
 
 export type RestartGapCategory =
   | "no_data"
-  | "le_8_weeks"
-  | "gap_8_to_12_weeks"
-  | "gap_12_to_24_weeks"
-  | "gap_24_weeks_to_12_months"
-  | "gap_over_12_months";
+  | "le_4_weeks"
+  | "gap_4_to_8_weeks"
+  | "gap_over_8_weeks";
 
 export type RestartDosingResult = {
   category: RestartGapCategory;
@@ -260,11 +254,9 @@ export function categoriseRestartGap(
   gapWeeks: number | null,
 ): RestartGapCategory {
   if (gapWeeks == null) return "no_data";
-  if (gapWeeks <= 8) return "le_8_weeks";
-  if (gapWeeks <= 12) return "gap_8_to_12_weeks";
-  if (gapWeeks <= 24) return "gap_12_to_24_weeks";
-  if (gapWeeks <= WEEKS_IN_12_MONTHS) return "gap_24_weeks_to_12_months";
-  return "gap_over_12_months";
+  if (gapWeeks <= 4) return "le_4_weeks";
+  if (gapWeeks <= 8) return "gap_4_to_8_weeks";
+  return "gap_over_8_weeks";
 }
 
 /** Index of `mg` on the ladder; falls back to the nearest dose at or below it. */
@@ -295,7 +287,7 @@ export type RestartDosingInput = {
 export function computeRestartDosing(
   input: RestartDosingInput,
 ): RestartDosingResult {
-  const { product, lastToleratedDoseMg, gapWeeks, bmi } = input;
+  const { product, lastToleratedDoseMg, gapWeeks } = input;
   const ladder = doseLadderFor(product);
   const lowest = ladder[0]!;
   const category = categoriseRestartGap(gapWeeks);
@@ -316,8 +308,6 @@ export function computeRestartDosing(
     note: "",
   };
 
-  const dosesAtOrBelow = (max: number) => ladder.filter((d) => d <= max);
-
   switch (category) {
     case "no_data": {
       result.note =
@@ -325,81 +315,41 @@ export function computeRestartDosing(
       return result;
     }
 
-    case "le_8_weeks": {
-      const next =
-        idx >= 0 && idx + 1 < ladder.length
-          ? ladder[idx + 1]!
-          : idx >= 0
-            ? ladder[idx]!
-            : lowest;
-      result.allowedDosesMg = dosesAtOrBelow(next);
-      result.recommendedDoseMg = next;
-      result.maxDoseMg = next;
+    case "le_4_weeks": {
+      const current = idx >= 0 ? ladder[idx]! : lowest;
+      const nextHigher =
+        idx >= 0 && idx + 1 < ladder.length ? ladder[idx + 1]! : current;
+      result.allowedDosesMg = [...ladder];
+      result.recommendedDoseMg = current;
+      result.maxDoseMg = nextHigher;
       result.note =
-        `Gap of 8 weeks or less — you may continue your dose or titrate up to ` +
-        `the next level. ${formatProductDose(product, next)} is the recommended ` +
-        `next step; lower doses remain available.`;
+        "Based on the information you have provided, your last injection was " +
+        "within 4 weeks.";
       return result;
     }
 
-    case "gap_8_to_12_weeks": {
-      const cap = RESTART_CAP_8_TO_12_WEEKS[product];
-      const base = lastToleratedDoseMg ?? lowest;
-      const target = Math.min(base, cap);
-      result.allowedDosesMg = dosesAtOrBelow(target);
-      result.recommendedDoseMg = target;
-      result.maxDoseMg = cap;
-      result.note =
-        `Gap of 8–12 weeks — continue your last tolerated dose, capped at a ` +
-        `maximum of ${formatProductDose(product, cap)}.`;
-      return result;
-    }
-
-    case "gap_12_to_24_weeks": {
-      const cap = RESTART_CAP_12_TO_24_WEEKS[product];
+    case "gap_4_to_8_weeks": {
+      const cap = RESTART_CAP_4_TO_8_WEEKS[product];
       const oneLower = idx > 0 ? ladder[idx - 1]! : lowest;
       const target = Math.min(oneLower, cap);
-      result.allowedDosesMg = dosesAtOrBelow(target);
+      result.allowedDosesMg = [...ladder];
       result.recommendedDoseMg = target;
-      result.maxDoseMg = cap;
+      result.maxDoseMg = ladder[ladder.length - 1]!;
       result.note =
-        `Gap of 12–24 weeks — restart one dose lower than your last tolerated ` +
-        `dose, capped at a maximum of ${formatProductDose(product, cap)}.`;
+        "Based on the information you have provided, you have had a gap of " +
+        "4–8 weeks since your last injection. After a gap like this, we usually " +
+        "restart one step below your last tolerated dose.";
       return result;
     }
 
-    case "gap_24_weeks_to_12_months": {
+    case "gap_over_8_weeks": {
       result.restartAtLowest = true;
-      result.requiresMinBmi25 = true;
-      result.recommendedDoseMg = lowest;
-      result.maxDoseMg = lowest;
-      if (bmi != null && bmi < NEW_STARTER_MIN_BMI) {
-        result.blocked = {
-          reason:
-            "After a gap of more than 24 weeks, a restart is only possible if " +
-            "your BMI is at least 25.",
-        };
-        result.allowedDosesMg = [];
-        result.note = result.blocked.reason;
-        return result;
-      }
-      result.allowedDosesMg = [lowest];
-      result.note =
-        `Gap of more than 24 weeks — restart at the lowest dose ` +
-        `(${formatProductDose(product, lowest)}). Allowed only if BMI ≥ 25.`;
-      return result;
-    }
-
-    case "gap_over_12_months": {
-      result.restartAtLowest = true;
-      result.mustMeetNewPatientCriteria = true;
-      result.allowedDosesMg = [lowest];
+      result.allowedDosesMg = [...ladder];
       result.recommendedDoseMg = lowest;
       result.maxDoseMg = lowest;
       result.note =
-        `Gap of more than 12 months — restart at the lowest dose ` +
-        `(${formatProductDose(product, lowest)}) and you must meet the full ` +
-        `new-patient criteria again (starter doses only).`;
+        "Based on the information you have provided, you have had a gap of " +
+        "more than 8 weeks since your last injection.";
       return result;
     }
   }
@@ -416,11 +366,70 @@ export function computeRestartDosing(
 export const NEW_STARTER_MAX_BUNDLE_PENS = 3;
 
 /**
- * How many strengths *above* the eligible dose to offer (the patient is shown
- * their eligible dose plus up to this many higher strengths). Capped by the
- * purchasable catalogue.
+ * How many strengths *above* the eligible dose to offer for **new starters**
+ * (Mounjaro: 2.5 → 5 → 7.5 mg — no 10 mg in the titration picker).
  */
-export const NEW_STARTER_HIGHER_OFFER_COUNT = 3;
+export const NEW_STARTER_HIGHER_OFFER_COUNT = 2;
+
+export const NEW_STARTER_BUNDLE_INTRO =
+  "New starters begin at the lowest starter dose (Mounjaro 2.5 mg / Wegovy 0.25 mg). " +
+  "You can order up to 3 months (3 pens) in one go, but each strength must follow " +
+  "the titration ladder in order — you cannot skip a step (for example, 7.5 mg " +
+  "requires 5 mg, and 5 mg requires 2.5 mg).";
+
+export const TRANSFER_BUNDLE_INTRO =
+  "Choose 1, 2, or 3 pens (one month each). A 1-month bundle can be your recommended " +
+  "dose or any lower strength. Multi-month bundles let you step up the ladder — each " +
+  "strength must follow the next with no gaps, and you can repeat the same dose.";
+
+export const BUNDLE_LADDER_SKIP_MESSAGE =
+  "Your pens must follow the dose ladder in order with no skipped steps — for example, " +
+  "you can't combine 2.5 mg and 10 mg without the strengths in between. You can repeat " +
+  "the same dose (e.g. two 10 mg pens).";
+
+export const BUNDLE_ONE_MONTH_HIGH_DOSE_MESSAGE =
+  "With a 1-month bundle you can choose your recommended dose or any lower strength. " +
+  "Higher doses are available with a 2- or 3-month bundle.";
+
+export const NEW_STARTER_BUNDLE_RECOMMENDED_NOTE =
+  "As a new starter, treatment begins at the lowest dose. You can order that dose " +
+  "alone or build a 1–3 pen bundle stepping up from there.";
+
+export function transferRecommendedDoseNote(
+  product: WlProduct,
+  recommendedDoseMg: number,
+): string {
+  return (
+    `Based on the information you have provided, the dose we recommend for you is ` +
+    `${formatProductDose(product, recommendedDoseMg)}. You can still order a lower ` +
+    `strength if you need to — as a single pen or as part of a bundle.`
+  );
+}
+
+export const BUNDLE_TITRATION_ACK_LABEL =
+  "I understand that side effects are more likely when titrating to a higher dose. " +
+  "If I struggle with side effects on a multi-month bundle, I may need to reduce my " +
+  "dose and pens I have already ordered may not suit a revised plan. I can order " +
+  "one pen at a time if I prefer a dose tailored month by month.";
+
+export function titrationBundleSideEffectsWarning(product: WlProduct): string {
+  if (product === "mounjaro") {
+    return (
+      "Side effects are more likely when you titrate to a higher dose, especially " +
+      "from 5 mg onwards. If you order a multi-month bundle and struggle with side " +
+      "effects, you may need to reduce your dose — pens you have already ordered " +
+      "may not match a revised plan. Ordering one pen at a time lets our clinical " +
+      "team tailor your dose month by month."
+    );
+  }
+  return (
+    "Side effects are more likely when you titrate to a higher dose, especially " +
+    "from 1 mg onwards. If you order a multi-month bundle and struggle with side " +
+    "effects, you may need to reduce your dose — pens you have already ordered " +
+    "may not match a revised plan. Ordering one pen at a time lets our clinical " +
+    "team tailor your dose month by month."
+  );
+}
 
 const DOSE_EPSILON = 1e-9;
 
@@ -443,6 +452,87 @@ export function offeredStarterDosesMg(
     .slice(0, maxHigher + 1);
 }
 
+/**
+ * Strengths shown in the transfer bundle picker for a given bundle size.
+ *
+ * • 1-month: lowest dose → recommended (no strengths above recommended).
+ * • 2-month: lowest dose → one ladder step above recommended.
+ * • 3-month: lowest dose → top of catalogue (e.g. 15 mg Mounjaro).
+ * • Gap > 8 weeks: restart at starter; multi-month bundles titrate from starter.
+ */
+export function offeredTransferDosesMg(
+  catalogDosesMg: number[],
+  recommendedDoseMg: number | null,
+  bundleSize: 1 | 2 | 3,
+  restartCategory?: RestartGapCategory,
+): number[] {
+  const ladder = [...catalogDosesMg].sort((a, b) => a - b);
+  if (ladder.length === 0 || recommendedDoseMg == null) return [];
+
+  const recIdx = ladder.findIndex(
+    (d) => Math.abs(d - recommendedDoseMg) < DOSE_EPSILON,
+  );
+  if (recIdx < 0) {
+    return ladder.filter((d) => d <= recommendedDoseMg + DOSE_EPSILON);
+  }
+
+  if (restartCategory === "gap_over_8_weeks") {
+    if (bundleSize === 1) return [ladder[0]!];
+    const maxIdx = Math.min(bundleSize - 1, ladder.length - 1);
+    return ladder.slice(0, maxIdx + 1);
+  }
+
+  let maxIdx: number;
+  if (bundleSize === 1) {
+    maxIdx = recIdx;
+  } else if (bundleSize === 2) {
+    maxIdx = Math.min(recIdx + 1, ladder.length - 1);
+  } else {
+    maxIdx = ladder.length - 1;
+  }
+  return ladder.slice(0, maxIdx + 1);
+}
+
+export function transferBundleMaxOfferedDoseMg(
+  catalogDosesMg: number[],
+  recommendedDoseMg: number | null,
+  bundleSize: 1 | 2 | 3,
+  restartCategory?: RestartGapCategory,
+): number | null {
+  const offered = offeredTransferDosesMg(
+    catalogDosesMg,
+    recommendedDoseMg,
+    bundleSize,
+    restartCategory,
+  );
+  return offered[offered.length - 1] ?? null;
+}
+
+/** Full titration ladder for validation (allowed strengths on the product ladder). */
+export function transferBundleLadderMg(
+  catalogDosesMg: number[],
+  allowedDosesMg: number[],
+): number[] {
+  const allowed = new Set(allowedDosesMg);
+  return [...catalogDosesMg]
+    .sort((a, b) => a - b)
+    .filter((d) => allowed.has(d));
+}
+
+export function selectionHasDoseAbove(
+  selectedDosesMg: number[],
+  thresholdMg: number,
+): boolean {
+  return selectedDosesMg.some((d) => d > thresholdMg + DOSE_EPSILON);
+}
+
+export function selectionIncludesDose(
+  selectedDosesMg: number[],
+  doseMg: number,
+): boolean {
+  return selectedDosesMg.some((d) => Math.abs(d - doseMg) < DOSE_EPSILON);
+}
+
 export type BundleValidation = { ok: boolean; reason: string | null };
 
 /**
@@ -459,13 +549,16 @@ export type BundleValidation = { ok: boolean; reason: string | null };
  * `offeredDosesMg` must be ascending with the eligible dose first (see
  * `offeredStarterDosesMg`).
  */
-export function validateStarterBundle(args: {
+export function validateTitrationBundle(args: {
   offeredDosesMg: number[];
   selectedDosesMg: number[];
   maxPens?: number;
+  /** Label for the required first strength in error copy. */
+  requiredDoseLabel?: string;
 }): BundleValidation {
   const { offeredDosesMg, selectedDosesMg } = args;
   const maxPens = args.maxPens ?? NEW_STARTER_MAX_BUNDLE_PENS;
+  const requiredLabel = args.requiredDoseLabel ?? "your eligible starter dose";
 
   if (selectedDosesMg.length === 0) {
     return { ok: false, reason: "Select at least one pen to continue." };
@@ -488,20 +581,95 @@ export function validateStarterBundle(args: {
   if (distinct[0] !== 0) {
     return {
       ok: false,
-      reason: "Your bundle must include your eligible starter dose.",
+      reason: `Your bundle must include ${requiredLabel}.`,
     };
   }
   for (let k = 0; k < distinct.length; k++) {
     if (distinct[k] !== k) {
       return {
         ok: false,
-        reason:
-          "Doses must step up one strength at a time — you can't skip a strength.",
+        reason: BUNDLE_LADDER_SKIP_MESSAGE,
       };
     }
   }
   return { ok: true, reason: null };
 }
+
+/**
+ * Validate a transfer titration bundle.
+ *
+ * Rules:
+ *  • 1–`maxPens` pens; each strength must be on the allowed ladder.
+ *  • Distinct strengths must form a contiguous run on the ladder (no skipped steps).
+ *  • Ordering **only at or below** the recommended dose: recommended dose not required.
+ *  • Any pen **above** the recommended dose: must include the recommended dose at least once.
+ */
+export function validateTransferTitrationBundle(args: {
+  ladderDosesMg: number[];
+  recommendedDoseMg: number;
+  selectedDosesMg: number[];
+  maxPens?: number;
+  maxOfferedDoseMg?: number | null;
+}): BundleValidation {
+  const { ladderDosesMg, recommendedDoseMg, selectedDosesMg } = args;
+  const maxPens = args.maxPens ?? NEW_STARTER_MAX_BUNDLE_PENS;
+
+  if (selectedDosesMg.length === 0) {
+    return { ok: false, reason: "Select at least one pen to continue." };
+  }
+  if (selectedDosesMg.length > maxPens) {
+    return {
+      ok: false,
+      reason: `You can buy up to ${maxPens} months (${maxPens} pens) per order.`,
+    };
+  }
+
+  if (args.maxOfferedDoseMg != null) {
+    const tooHigh = selectedDosesMg.some(
+      (d) => d > args.maxOfferedDoseMg! + DOSE_EPSILON,
+    );
+    if (tooHigh) {
+      return {
+        ok: false,
+        reason: BUNDLE_ONE_MONTH_HIGH_DOSE_MESSAGE,
+      };
+    }
+  }
+
+  const indexOfDose = (mg: number) =>
+    ladderDosesMg.findIndex((d) => Math.abs(d - mg) < DOSE_EPSILON);
+  const indices = selectedDosesMg.map(indexOfDose);
+  if (indices.some((i) => i < 0)) {
+    return { ok: false, reason: "That strength isn't available for you." };
+  }
+
+  const hasAbove = selectionHasDoseAbove(selectedDosesMg, recommendedDoseMg);
+  if (
+    hasAbove &&
+    !selectionIncludesDose(selectedDosesMg, recommendedDoseMg)
+  ) {
+    return {
+      ok: false,
+      reason:
+        "If you include a dose above your recommended strength, you must include at least one pen at the recommended dose.",
+    };
+  }
+
+  const distinct = Array.from(new Set(indices)).sort((a, b) => a - b);
+  for (let k = 0; k < distinct.length; k++) {
+    if (distinct[k] !== distinct[0]! + k) {
+      return {
+        ok: false,
+        reason: BUNDLE_LADDER_SKIP_MESSAGE,
+      };
+    }
+  }
+
+  return { ok: true, reason: null };
+}
+
+/** @deprecated Use {@link validateTitrationBundle}. */
+export const validateStarterBundle = validateTitrationBundle;
 
 /**
  * Map computed allowed doses to the purchasable pen ids in a catalogue.

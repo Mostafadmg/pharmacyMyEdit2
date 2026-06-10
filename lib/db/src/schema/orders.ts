@@ -49,7 +49,7 @@ export const orderItemsTable = pgTable("order_items", {
 export const deliveriesTable = pgTable("deliveries", {
   id: text("id").primaryKey(),
   orderId: text("order_id").notNull().unique(),
-  carrier: text("carrier").notNull().default("PharmaCare Express"),
+  carrier: text("carrier").notNull().default("EveryDayMeds Express"),
   trackingNumber: text("tracking_number").notNull(),
   trackingUrl: text("tracking_url"),
   status: text("status").notNull().default("preparing"),

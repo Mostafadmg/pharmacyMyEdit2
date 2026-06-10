@@ -235,7 +235,7 @@ export default function PatientMessageInbox({
 
   const teamName = useMemo(() => {
     const fromPharmacist = [...messages].reverse().find((m) => m.senderRole === "pharmacist");
-    return fromPharmacist?.senderName ?? "PharmaCare Clinical Team";
+    return fromPharmacist?.senderName ?? "EveryDayMeds Clinical Team";
   }, [messages]);
 
   async function handleSend() {
@@ -296,7 +296,7 @@ export default function PatientMessageInbox({
           </div>
           <div className="min-w-0">
             <p className="truncate font-semibold text-secondary">{teamName}</p>
-            <p className="text-xs text-muted-foreground">PharmaCare · GPhC-registered pharmacy</p>
+            <p className="text-xs text-muted-foreground">EveryDayMeds · GPhC-registered pharmacy</p>
           </div>
         </div>
         <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:inline-flex">

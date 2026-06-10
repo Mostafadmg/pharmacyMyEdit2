@@ -33,6 +33,7 @@ import {
 import {
   buildCriteriaEmailNote,
   getDocumentRequirements,
+  hasWlType2DiabetesListedMedRejectionFromAnswers,
   PATIENT_DOCUMENT_DATA_URL_MAX,
   validatePatientDocumentDataUrl,
   patientDocumentsHasAnyUpload,
@@ -107,7 +108,22 @@ const RED_FLAG_KEYWORDS = [
   "coughing blood",
 ];
 
+function hasCancerPrescriberReviewFlag(
+  answers: Record<string, unknown>,
+): boolean {
+  if (answers.cancer_history === "yes") return true;
+  const diagnosed = answers.diagnosed_conditions_details;
+  if (!Array.isArray(diagnosed)) return false;
+  return diagnosed.some((row) => {
+    if (!row || typeof row !== "object") return false;
+    const catalogueId = (row as Record<string, unknown>).catalogue_id;
+    return catalogueId === "cancer";
+  });
+}
+
 function detectRedFlags(answers: Record<string, unknown>): boolean {
+  if (hasCancerPrescriberReviewFlag(answers)) return true;
+  if (hasWlType2DiabetesListedMedRejectionFromAnswers(answers)) return true;
   const answersStr = JSON.stringify(answers).toLowerCase();
   return RED_FLAG_KEYWORDS.some((flag) => answersStr.includes(flag));
 }
@@ -811,7 +827,7 @@ router.post(
               await tx.insert(deliveriesTable).values({
                 id: randomUUID(),
                 orderId,
-                carrier: "PharmaCare Express",
+                carrier: "EveryDayMeds Express",
                 trackingNumber,
                 status: "preparing",
                 estimatedDelivery: eta,

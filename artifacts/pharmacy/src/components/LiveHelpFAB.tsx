@@ -73,7 +73,7 @@ export default function LiveHelpFAB() {
                 <Phone className="w-4 h-4 text-primary" /> 0800 020 9090
               </a>
               <a
-                href="mailto:care@pharmacare.example.uk"
+                href="mailto:care@everydaymeds.example.uk"
                 className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-muted/40 hover:bg-muted text-sm font-semibold text-secondary"
               >
                 <Mail className="w-4 h-4 text-primary" /> Email

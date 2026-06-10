@@ -3,9 +3,19 @@ import {
   WL_EXCLUDING_CONDITIONS,
   WL_EXCLUDING_CONDITIONS_GATE_QUESTION,
   WL_CHOLECYSTECTOMY_TIMING_OPTIONS,
+  WL_GALLBLADDER_CHOLECYSTECTOMY_QUESTION,
+  WL_GALLBLADDER_SURGERY_DATE_LABEL,
+  WL_GALLBLADDER_SURGERY_TIMING_QUESTION,
+  WL_BARIATRIC_SURGERY_DATE_LABEL,
+  WL_BARIATRIC_SURGERY_TIMING_QUESTION,
+  WL_SURGERY_TIMING_INSTRUCTION,
+  WL_CANCER_DETAILS_QUESTION,
+  isWlExcludingConditionBariatricTiming,
+  isWlExcludingConditionCancerDetails,
   isWlExcludingConditionCholecystectomyTiming,
   isWlExcludingConditionNoFollowUp,
   isWlExcludingConditionWithFollowUp,
+  wlTwelveMonthTimingFromDate,
   type RepeatSideEffectSymptomsMap,
 } from "@workspace/evidence-slots";
 import { SideEffectsSymptomSection } from "@/components/consultation/RepeatSideEffectsSection";
@@ -15,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DateField } from "@/components/consultation/DateField";
+import { MonthYearField } from "@/components/consultation/MonthYearField";
 import { GatedChecklistSection, GroupedChecklistInfoList } from "@/components/consultation/GatedChecklistSection";
 import {
   WL_BTN_DASHED,
@@ -65,6 +76,12 @@ export type DiagnosedConditionEntry = {
   catalogueId?: string;
   condition: string;
   howLongHad: string;
+  /** Gallbladder issues — had cholecystectomy? */
+  hadCholecystectomy?: YesNo | null;
+  /** Bariatric surgery — optional exact procedure date (ISO). */
+  procedureDate?: string;
+  /** Cancer — free-text details for prescriber review. */
+  conditionDetails?: string;
   onMedication: YesNo | null;
   medications: ConditionMedicationEntry[];
 };
@@ -102,6 +119,9 @@ export function emptyDiagnosedEntry(catalogue?: {
     catalogueId: catalogue?.id,
     condition: catalogue?.label ?? "",
     howLongHad: "",
+    hadCholecystectomy: null,
+    procedureDate: "",
+    conditionDetails: "",
     onMedication: null,
     medications: [],
   };
@@ -215,7 +235,7 @@ function isTransferWlFirstTreatmentWeightComplete(
 export function isTransferWlMedicationCoreComplete(
   v: TransferWeightLossMedicationValue,
 ): boolean {
-  if (!v.product || !v.strengthPenId || !v.lastInjectionDate.trim()) {
+  if (!v.product || !v.strengthPenId || !(v.lastInjectionDate ?? "").trim()) {
     return false;
   }
   return TRANSFER_WL_PEN_OPTIONS.some(
@@ -228,7 +248,7 @@ export function isTransferWeightLossMedicationComplete(
 ): boolean {
   if (!isTransferWlMedicationCoreComplete(v)) return false;
   return (
-    v.firstTreatmentStartDate.trim().length > 0 &&
+    (v.firstTreatmentStartDate ?? "").trim().length > 0 &&
     isTransferWlFirstTreatmentWeightComplete(v)
   );
 }
@@ -282,6 +302,61 @@ export function YesNoChoiceInline({
   );
 }
 
+function TwelveMonthSurgeryTimingFields({
+  entry,
+  onUpdate,
+  timingQuestion,
+  dateLabel,
+  testIdPrefix,
+}: {
+  entry: DiagnosedConditionEntry;
+  onUpdate: (patch: Partial<DiagnosedConditionEntry>) => void;
+  timingQuestion: string;
+  dateLabel: string;
+  testIdPrefix: string;
+}) {
+  return (
+    <>
+      <div>
+        <Label className="font-semibold text-secondary">{timingQuestion} *</Label>
+        <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+          {WL_SURGERY_TIMING_INSTRUCTION}
+        </p>
+        <div className="mt-2 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          {WL_CHOLECYSTECTOMY_TIMING_OPTIONS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => onUpdate({ howLongHad: option.id })}
+              data-testid={`${testIdPrefix}-timing-${entry.id}-${option.id}`}
+              className={cn(
+                "min-h-12 rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-colors",
+                entry.howLongHad === option.id
+                  ? WL_YESNO_SELECTED
+                  : WL_YESNO_UNSELECTED,
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <MonthYearField
+        label={dateLabel}
+        value={entry.procedureDate ?? ""}
+        onChange={(monthYear) => {
+          const timing = monthYear ? wlTwelveMonthTimingFromDate(monthYear) : null;
+          onUpdate({
+            procedureDate: monthYear,
+            ...(timing ? { howLongHad: timing } : {}),
+          });
+        }}
+        testIdPrefix={`${testIdPrefix}-procedure`}
+      />
+    </>
+  );
+}
+
 function AddAnotherButton({ onClick, label }: { onClick: () => void; label: string }) {
   return (
     <Button
@@ -314,11 +389,24 @@ export function DiagnosedConditionsFollowUp({
     isWlExcludingConditionCholecystectomyTiming(entry.catalogueId),
   );
 
+  const entriesNeedingBariatricTiming = entries.filter((entry) =>
+    isWlExcludingConditionBariatricTiming(entry.catalogueId),
+  );
+
+  const entriesNeedingCancerDetails = entries.filter((entry) =>
+    isWlExcludingConditionCancerDetails(entry.catalogueId),
+  );
+
   const entriesNeedingFollowUp = entries.filter((entry) =>
     isWlExcludingConditionWithFollowUp(entry.catalogueId),
   );
 
-  if (entriesNeedingTiming.length === 0 && entriesNeedingFollowUp.length === 0) {
+  if (
+    entriesNeedingTiming.length === 0 &&
+    entriesNeedingBariatricTiming.length === 0 &&
+    entriesNeedingCancerDetails.length === 0 &&
+    entriesNeedingFollowUp.length === 0
+  ) {
     return null;
   }
 
@@ -334,26 +422,66 @@ export function DiagnosedConditionsFollowUp({
           ) : null}
           <div>
             <Label className="font-semibold text-secondary">
-              Was your gallbladder surgery more or less than 12 months ago? *
+              {WL_GALLBLADDER_CHOLECYSTECTOMY_QUESTION} *
             </Label>
-            <div className="mt-2 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-              {WL_CHOLECYSTECTOMY_TIMING_OPTIONS.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => update(entry.id, { howLongHad: option.id })}
-                  data-testid={`cholecystectomy-timing-${entry.id}-${option.id}`}
-                  className={cn(
-                    "min-h-12 rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-colors",
-                    entry.howLongHad === option.id
-                      ? WL_YESNO_SELECTED
-                      : WL_YESNO_UNSELECTED,
-                  )}
-                >
-                  {option.label}
-                </button>
-              ))}
+            <div className="mt-2">
+              <YesNoChoiceInline
+                value={entry.hadCholecystectomy ?? null}
+                onChange={(v) =>
+                  update(entry.id, {
+                    hadCholecystectomy: v,
+                    ...(v === "no"
+                      ? { howLongHad: "", procedureDate: "" }
+                      : {}),
+                  })
+                }
+                testIdPrefix={`cholecystectomy-had-${entry.id}`}
+              />
             </div>
+          </div>
+          {entry.hadCholecystectomy === "yes" ? (
+            <TwelveMonthSurgeryTimingFields
+              entry={entry}
+              onUpdate={(patch) => update(entry.id, patch)}
+              timingQuestion={WL_GALLBLADDER_SURGERY_TIMING_QUESTION}
+              dateLabel={WL_GALLBLADDER_SURGERY_DATE_LABEL}
+              testIdPrefix="cholecystectomy"
+            />
+          ) : null}
+        </div>
+      ))}
+      {entriesNeedingBariatricTiming.map((entry) => (
+        <div key={entry.id} className={WL_DETAIL_PANEL}>
+          {!showConditionField(entry) ? (
+            <p className={cn("text-sm", WL_SECTION_TITLE)}>{entry.condition}</p>
+          ) : null}
+          <TwelveMonthSurgeryTimingFields
+            entry={entry}
+            onUpdate={(patch) => update(entry.id, patch)}
+            timingQuestion={WL_BARIATRIC_SURGERY_TIMING_QUESTION}
+            dateLabel={WL_BARIATRIC_SURGERY_DATE_LABEL}
+            testIdPrefix="bariatric"
+          />
+        </div>
+      ))}
+      {entriesNeedingCancerDetails.map((entry) => (
+        <div key={entry.id} className={WL_DETAIL_PANEL}>
+          {!showConditionField(entry) ? (
+            <p className={cn("text-sm", WL_SECTION_TITLE)}>{entry.condition}</p>
+          ) : null}
+          <div>
+            <Label className="font-semibold text-secondary">
+              {WL_CANCER_DETAILS_QUESTION} *
+            </Label>
+            <Textarea
+              value={entry.conditionDetails ?? ""}
+              onChange={(e) =>
+                update(entry.id, { conditionDetails: e.target.value })
+              }
+              placeholder={WL_CANCER_DETAILS_QUESTION}
+              className="mt-1.5 min-h-[120px] rounded-xl resize-y"
+              data-testid={`cancer-details-${entry.id}`}
+            />
           </div>
         </div>
       ))}
@@ -747,10 +875,21 @@ export function isDiagnosedEntryComplete(e: DiagnosedConditionEntry): boolean {
     return Boolean(e.condition.trim());
   }
   if (isWlExcludingConditionCholecystectomyTiming(e.catalogueId)) {
+    if (!Boolean(e.condition.trim())) return false;
+    if (e.hadCholecystectomy === null || e.hadCholecystectomy === undefined) {
+      return false;
+    }
+    if (e.hadCholecystectomy === "no") return true;
+    return WL_CHOLECYSTECTOMY_TIMING_OPTIONS.some((o) => o.id === e.howLongHad);
+  }
+  if (isWlExcludingConditionBariatricTiming(e.catalogueId)) {
     return (
       Boolean(e.condition.trim()) &&
       WL_CHOLECYSTECTOMY_TIMING_OPTIONS.some((o) => o.id === e.howLongHad)
     );
+  }
+  if (isWlExcludingConditionCancerDetails(e.catalogueId)) {
+    return Boolean(e.condition.trim()) && Boolean(e.conditionDetails?.trim());
   }
   if (!e.condition.trim() || !e.howLongHad.trim()) {
     return false;
@@ -820,6 +959,9 @@ export function ExcludingConditionsSection({
   conditions = EXCLUDING_CONDITIONS,
   gateQuestion = EXCLUDING_CONDITIONS_GATE_QUESTION,
   checkboxOnly = false,
+  infoHeading = "These are the conditions we ask about:",
+  infoHeadingWhenNo = "For your information, these are the conditions we ask about:",
+  selectHint = "Select any conditions you have been diagnosed with or had surgery for.",
 }: {
   excludingConditions: YesNo | null;
   onExcludingConditionsChange: (v: YesNo) => void;
@@ -829,6 +971,9 @@ export function ExcludingConditionsSection({
   gateQuestion?: string;
   /** When true, checklist only — no diagnosed-when / medication follow-up. */
   checkboxOnly?: boolean;
+  infoHeading?: string;
+  infoHeadingWhenNo?: string;
+  selectHint?: string;
 }) {
   const checklistItems = conditions.map((c) => ({
     id: c.id,
@@ -866,9 +1011,9 @@ export function ExcludingConditionsSection({
           diagnosedConditions.some((e) => e.catalogueId === id)
         }
         onToggle={toggleCondition}
-        infoHeading="These are the conditions we ask about:"
-        infoHeadingWhenNo="For your information, these are the conditions we ask about:"
-        selectHint="Select any conditions you have been diagnosed with or had surgery for."
+        infoHeading={infoHeading}
+        infoHeadingWhenNo={infoHeadingWhenNo}
+        selectHint={selectHint}
         testIdPrefix="excludingConditions"
         renderInfoList={() => (
           <GroupedChecklistInfoList
@@ -1060,9 +1205,9 @@ export function TransferWeightLossMedicationPicker({
 
   const selectProduct = (product: TransferWlProduct) => {
     onChange({
+      ...value,
       product,
       strengthPenId: "",
-      lastInjectionDate: value.lastInjectionDate,
     });
   };
 

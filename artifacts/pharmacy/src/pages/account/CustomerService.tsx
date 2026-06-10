@@ -69,10 +69,10 @@ export default function CustomerService() {
           data-testid="card-call"
         />
         <ServiceTile
-          href="mailto:care@pharmacare.co.uk"
+          href="mailto:care@everydaymeds.co.uk"
           icon={Mail}
           title="Email us"
-          description="care@pharmacare.co.uk — for non-urgent enquiries."
+          description="care@everydaymeds.co.uk — for non-urgent enquiries."
           external
           data-testid="card-email"
         />

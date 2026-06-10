@@ -61,3 +61,33 @@ export function isWlType2DiabetesListedMedId(
     group.meds.some((m) => m.id === id),
   );
 }
+
+/** Deferred rejection when T2DM is selected and patient takes listed glucose-lowering meds. */
+export function hasWlType2DiabetesListedMedRejection(input: {
+  takesListedMeds: "yes" | "no" | null;
+  listedMeds: readonly string[];
+}): boolean {
+  return input.takesListedMeds === "yes" && input.listedMeds.length > 0;
+}
+
+export function hasWlType2DiabetesListedMedRejectionFromAnswers(
+  answers: Record<string, unknown>,
+): boolean {
+  const details = answers.medical_history_details;
+  if (!Array.isArray(details)) return false;
+  for (const row of details) {
+    if (!row || typeof row !== "object") continue;
+    const entry = row as Record<string, unknown>;
+    if (entry.id !== "type2_diabetes") continue;
+    const takesListed = entry.takes_listed_meds;
+    const listedMeds = entry.listed_meds;
+    if (
+      takesListed === "yes" &&
+      Array.isArray(listedMeds) &&
+      listedMeds.length > 0
+    ) {
+      return true;
+    }
+  }
+  return false;
+}

@@ -444,7 +444,7 @@ export default function PatientDetailScreen() {
             ]}
             onPress={() =>
               Linking.openURL(
-                `mailto:${email}?subject=Regarding%20your%20PharmaCare%20consultation`,
+                `mailto:${email}?subject=Regarding%20your%20EveryDayMeds%20consultation`,
               )
             }
           >
@@ -1086,7 +1086,7 @@ export default function PatientDetailScreen() {
               />
             </View>
             <Text style={styles.modalHint}>
-              Sent from your PharmaCare account. The patient will be able to
+              Sent from your EveryDayMeds account. The patient will be able to
               reply through their account portal or by emailing back.
             </Text>
           </ScrollView>

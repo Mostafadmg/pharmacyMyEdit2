@@ -56,7 +56,7 @@ export const softShadow = Platform.select({
   default: { boxShadow: "0 6px 16px rgba(14, 35, 84, 0.08)" } as object,
 }) as ViewStyle;
 
-export function PharmaCareLogo({ size = 28, monochrome = false }: { size?: number; monochrome?: boolean }) {
+export function EveryDayMedsLogo({ size = 28, monochrome = false }: { size?: number; monochrome?: boolean }) {
   const colors = useColors();
   const ringBg = monochrome ? "rgba(255,255,255,0.18)" : colors.primary;
   const wordColor = monochrome ? "#FFFFFF" : colors.secondary;
@@ -84,8 +84,8 @@ export function PharmaCareLogo({ size = 28, monochrome = false }: { size?: numbe
           letterSpacing: -0.4,
         }}
       >
-        <Text style={{ fontFamily: FONT.displayExtra }}>Pharma</Text>
-        <Text style={{ fontFamily: FONT.bodyMedium, color: wordColor, opacity: 0.78 }}>Care</Text>
+        <Text style={{ fontFamily: FONT.displayExtra }}>EveryDay</Text>
+        <Text style={{ fontFamily: FONT.bodyMedium, color: wordColor, opacity: 0.78 }}>Meds</Text>
       </Text>
     </View>
   );
@@ -115,7 +115,7 @@ export function BrandHeader({ title, subtitle, accent, right, style }: BrandHead
       ]}
     >
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-        <PharmaCareLogo size={26} />
+        <EveryDayMedsLogo size={26} />
         {right}
       </View>
       <View style={{ flexDirection: "row", alignItems: "baseline", flexWrap: "wrap" }}>

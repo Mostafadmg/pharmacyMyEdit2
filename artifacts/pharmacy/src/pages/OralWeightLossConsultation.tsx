@@ -1171,7 +1171,6 @@ export default function OralWeightLossConsultation() {
                 <ExcludingConditionsSection
                   conditions={WL_ORAL_EXCLUDING_CONDITIONS}
                   gateQuestion={WL_ORAL_EXCLUDING_CONDITIONS_GATE_QUESTION}
-                  checkboxOnly
                   excludingConditions={
                     state.oralExcludingConditions.excludingConditions
                   }

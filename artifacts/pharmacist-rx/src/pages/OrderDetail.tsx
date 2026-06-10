@@ -2081,7 +2081,8 @@ const ANSWER_LABELS: Record<string, string> = {
     "Currently taking prescribed / OTC / recreational drugs?",
   other_health_conditions: "Other health conditions not listed above?",
   oral_contraceptive: "Currently taking an oral contraceptive?",
-  new_to_injectables: "New to injectable weight-loss medications?",
+  new_to_injectables:
+    "Had weight-loss medication in the past 6 months?",
 
   // - Lifestyle (Step 8)
   alcohol_units_per_week: "Alcohol (units per week)",
@@ -2362,13 +2363,13 @@ const FULL_Q: Record<string, string> = {
     "Do you have any previous or current health conditions?",
   oral_contraceptive: "Are you taking an oral contraceptive?",
   new_to_injectables:
-    "Are you new to using injectable weight loss medications?",
+    "Have you had weight loss medication in the past 6 months?",
   changing_from_provider:
     "Are you changing from a different provider?",
   last_injection_timing: "When was your last injection?",
   consent_agreement: "By proceeding, I confirm and agree to the following",
   gp_consent:
-    "I consent to PharmaCare contacting my GP and share information about my prescription.",
+    "I consent to EveryDayMeds contacting my GP and share information about my prescription.",
   // Repeat flow
   weight_today: "What is your current weight today?",
   changes_since_last_order:

@@ -37,7 +37,7 @@ export default function OurService() {
               <h2 className="text-3xl font-serif font-bold text-secondary mb-4">Who we are</h2>
               <div className="space-y-4 text-slate-700 leading-relaxed">
                 <p>
-                  PharmaCare Pharmacy Ltd is a registered pharmacy in Great Britain. The pharmacy is
+                  EveryDayMeds Pharmacy Ltd is a registered pharmacy in Great Britain. The pharmacy is
                   registered with the <strong>General Pharmaceutical Council (GPhC)</strong>, the
                   regulator for pharmacists, pharmacy technicians and registered pharmacies in
                   England, Scotland and Wales.
@@ -70,7 +70,7 @@ export default function OurService() {
                   <Building2 className="w-5 h-5 text-primary mt-1 shrink-0" />
                   <div>
                     <p className="font-bold text-secondary text-sm">Registered pharmacy</p>
-                    <p className="text-sm text-slate-600">PharmaCare Pharmacy Ltd<br/>14 Harley Street, London W1G 9PB</p>
+                    <p className="text-sm text-slate-600">EveryDayMeds Pharmacy Ltd<br/>14 Harley Street, London W1G 9PB</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 pt-4 border-t border-border/40">

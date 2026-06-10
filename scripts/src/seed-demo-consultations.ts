@@ -238,8 +238,8 @@ function defaultMessages(
   dose: string,
 ): DemoMessage[] {
   const openers: Record<CustomerType, string> = {
-    new_start: `Hi ${firstName} — thank you for your first ${med} consultation with PharmaCare. You're starting at ${dose}. I've reviewed your questionnaire; please confirm you've read the starter leaflet and are happy with weekly injections.`,
-    transfer: `Hi ${firstName} — welcome to PharmaCare. This is your first order with us for ${med} ${dose} (transfer from another provider). Please upload your last dispensed pen label or GP summary so I can verify dose continuity before we dispatch.`,
+    new_start: `Hi ${firstName} — thank you for your first ${med} consultation with EveryDayMeds. You're starting at ${dose}. I've reviewed your questionnaire; please confirm you've read the starter leaflet and are happy with weekly injections.`,
+    transfer: `Hi ${firstName} — welcome to EveryDayMeds. This is your first order with us for ${med} ${dose} (transfer from another provider). Please upload your last dispensed pen label or GP summary so I can verify dose continuity before we dispatch.`,
     simple_repeat: `Hi ${firstName} — thanks for your repeat request for ${med} ${dose}. You've been on treatment with us for a while — any new symptoms, pregnancy, or medicines to declare since your last supply?`,
   };
   const replies: Record<CustomerType, string> = {
@@ -392,9 +392,9 @@ function buildDemoFromSlot(
     currentMedications: `${currentDose} weekly`,
     medicalHistory:
       customerType === "simple_repeat"
-        ? `${repeatCount} prior Mounjaro/Wegovy orders with PharmaCare; good adherence and weight response`
+        ? `${repeatCount} prior Mounjaro/Wegovy orders with EveryDayMeds; good adherence and weight response`
         : customerType === "transfer"
-          ? `Transferring ${currentDose} from another UK provider — first purchase with PharmaCare`
+          ? `Transferring ${currentDose} from another UK provider — first purchase with EveryDayMeds`
           : "First GLP-1 treatment — no prior injectable weight-loss medicines",
     riskCategory: slot.hasRedFlag ? "high" : index % 13 === 0 ? "medium" : "low",
     hasRedFlag: slot.hasRedFlag ?? false,

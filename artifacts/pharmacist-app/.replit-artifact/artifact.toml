@@ -1,6 +1,6 @@
 kind = "mobile"
 previewPath = "/pharmacist-app/"
-title = "PharmaCare Pharmacist App"
+title = "EveryDayMeds Pharmacist App"
 version = "1.0.0"
 id = "artifacts/pharmacist-app"
 router = "expo-domain"

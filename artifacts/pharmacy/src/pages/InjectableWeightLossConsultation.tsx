@@ -32,14 +32,30 @@ import {
   isRepeatSideEffectSymptomsComplete,
   repeatSideEffectsToAnswers,
   transferSideEffectsToAnswers,
+  isWlExcludingConditionBariatricTiming,
+  isWlExcludingConditionCancerDetails,
   isWlExcludingConditionCholecystectomyTiming,
   wlCholecystectomyTimingLabel,
+  WL_ADDITIONAL_HEALTH_CONDITIONS,
+  WL_ADDITIONAL_HEALTH_CONDITIONS_GATE_QUESTION,
+  WL_ADDITIONAL_HEALTH_INFO_HEADING,
+  WL_ADDITIONAL_HEALTH_INFO_HEADING_WHEN_NO,
+  WL_ADDITIONAL_HEALTH_SELECT_HINT,
+  WL_ADDITIONAL_HEALTH_STEP_INTRO,
+  WL_MEDICATIONS_SCREENING_INTRO,
   type EvidenceSlotId,
   type RepeatSideEffectSymptomsMap,
 } from "@workspace/evidence-slots";
 import { RepeatSideEffectsSection } from "@/components/consultation/RepeatSideEffectsSection";
+import { CheckboxRow } from "@/components/consultation/CheckboxRow";
 import { ClinicalTeamNotesSection } from "@/components/consultation/ClinicalTeamNotesSection";
 import { clinicalTeamNotesToAnswers } from "@/lib/clinicalTeamNotes";
+import {
+  INJECTABLE_OCP_COUNSELLING_ACKNOWLEDGEMENT,
+  INJECTABLE_OCP_COUNSELLING_HEADING,
+  INJECTABLE_OCP_COUNSELLING_INTRO,
+  INJECTABLE_OCP_COUNSELLING_POINTS,
+} from "@/lib/injectableContraceptionCounselling";
 import { EvidenceCriteriaList } from "@/components/EvidenceCriteriaList";
 import { DateField } from "@/components/consultation/DateField";
 import {
@@ -92,6 +108,9 @@ import {
   type ConsultationKind,
   resolveEffectiveJourney,
   resolveConsultationKind,
+  WL_HAD_WL_MEDICATION_PAST_6_MONTHS_QUESTION,
+  hadWlMedicationPast6MonthsDisplay,
+  hadWlMedicationPast6MonthsToStored,
   showsContinuationBlock,
   showsTransferMedicationPicker,
   skipsTreatmentPlanPicker,
@@ -108,10 +127,23 @@ import {
   allowedPenIdsForDoses,
   starterDoseFor,
   offeredStarterDosesMg,
-  validateStarterBundle,
+  offeredTransferDosesMg,
+  transferBundleLadderMg,
+  transferBundleMaxOfferedDoseMg,
+  validateTitrationBundle,
+  validateTransferTitrationBundle,
+  selectionHasDoseAbove,
   NEW_STARTER_MAX_BUNDLE_PENS,
+  NEW_STARTER_BUNDLE_INTRO,
+  NEW_STARTER_BUNDLE_RECOMMENDED_NOTE,
+  TRANSFER_BUNDLE_INTRO,
+  BUNDLE_TITRATION_ACK_LABEL,
+  BUNDLE_LADDER_SKIP_MESSAGE,
+  type RestartGapCategory,
+  formatProductDose,
   NEW_STARTER_PREVIOUS_USE_PROMPT,
   NOT_SUITABLE_MESSAGE,
+  type BundleValidation,
   type NewStarterEligibility,
   type RestartDosingResult,
   type WlProduct,
@@ -204,7 +236,7 @@ function isSharedScreeningStepComplete(state: FormState): boolean {
 }
 
 const CONTACT_STEP = 2;
-const FLOW_TOTAL_STEPS = 16;
+const FLOW_TOTAL_STEPS = 17;
 
 function getPatientSession() {
   if (typeof window === "undefined") {
@@ -286,6 +318,10 @@ type PlanRestriction = {
   product: MedicineId;
   allowedPenIds: string[];
   recommendedPenId: string | null;
+  recommendedDoseMg: number | null;
+  maxDoseMg: number | null;
+  allowedDosesMg: number[];
+  restartCategory: RestartGapCategory;
   note: string;
   blockedReason: string | null;
 };
@@ -318,12 +354,17 @@ interface PenOption {
 }
 
 const PEN_OPTIONS: PenOption[] = [
-  { id: "mounjaro-2_5", medicine: "mounjaro", label: "Mounjaro 2.5 mg", dose: "2.5 mg",  weeks: "Weeks 1–4",  pricePerPen: 144.99, originalPerPen: 174.99 },
-  { id: "mounjaro-5",   medicine: "mounjaro", label: "Mounjaro 5 mg",   dose: "5 mg",    weeks: "Weeks 5–8",  pricePerPen: 154.99, originalPerPen: 184.99 },
-  { id: "mounjaro-7_5", medicine: "mounjaro", label: "Mounjaro 7.5 mg", dose: "7.5 mg",  weeks: "Weeks 9–12", pricePerPen: 174.99, originalPerPen: 204.99 },
-  { id: "wegovy-0_25",  medicine: "wegovy",   label: "Wegovy 0.25 mg",  dose: "0.25 mg", weeks: "Weeks 1–4",  pricePerPen:  79.99, originalPerPen: 109.99 },
-  { id: "wegovy-0_5",   medicine: "wegovy",   label: "Wegovy 0.5 mg",   dose: "0.5 mg",  weeks: "Weeks 5–8",  pricePerPen:  89.99, originalPerPen: 119.99 },
-  { id: "wegovy-1_0",   medicine: "wegovy",   label: "Wegovy 1.0 mg",   dose: "1.0 mg",  weeks: "Weeks 9–12", pricePerPen:  99.99, originalPerPen: 129.99 },
+  { id: "mounjaro-2_5", medicine: "mounjaro", label: "Mounjaro 2.5 mg", dose: "2.5 mg",  weeks: "Weeks 1–4",   pricePerPen: 144.99, originalPerPen: 174.99 },
+  { id: "mounjaro-5",   medicine: "mounjaro", label: "Mounjaro 5 mg",   dose: "5 mg",    weeks: "Weeks 5–8",   pricePerPen: 154.99, originalPerPen: 184.99 },
+  { id: "mounjaro-7_5", medicine: "mounjaro", label: "Mounjaro 7.5 mg", dose: "7.5 mg",  weeks: "Weeks 9–12",  pricePerPen: 174.99, originalPerPen: 204.99 },
+  { id: "mounjaro-10",  medicine: "mounjaro", label: "Mounjaro 10 mg",  dose: "10 mg",   weeks: "Weeks 13–16", pricePerPen: 194.99, originalPerPen: 224.99 },
+  { id: "mounjaro-12_5", medicine: "mounjaro", label: "Mounjaro 12.5 mg", dose: "12.5 mg", weeks: "Weeks 17–20", pricePerPen: 214.99, originalPerPen: 244.99 },
+  { id: "mounjaro-15",  medicine: "mounjaro", label: "Mounjaro 15 mg",  dose: "15 mg",   weeks: "Weeks 21–24", pricePerPen: 234.99, originalPerPen: 264.99 },
+  { id: "wegovy-0_25",  medicine: "wegovy",   label: "Wegovy 0.25 mg",  dose: "0.25 mg", weeks: "Weeks 1–4",   pricePerPen:  79.99, originalPerPen: 109.99 },
+  { id: "wegovy-0_5",   medicine: "wegovy",   label: "Wegovy 0.5 mg",   dose: "0.5 mg",  weeks: "Weeks 5–8",   pricePerPen:  89.99, originalPerPen: 119.99 },
+  { id: "wegovy-1_0",   medicine: "wegovy",   label: "Wegovy 1.0 mg",   dose: "1.0 mg",  weeks: "Weeks 9–12",  pricePerPen:  99.99, originalPerPen: 129.99 },
+  { id: "wegovy-1_7",   medicine: "wegovy",   label: "Wegovy 1.7 mg",   dose: "1.7 mg",  weeks: "Weeks 13–16", pricePerPen: 109.99, originalPerPen: 139.99 },
+  { id: "wegovy-2_4",   medicine: "wegovy",   label: "Wegovy 2.4 mg",   dose: "2.4 mg",  weeks: "Weeks 17–20", pricePerPen: 119.99, originalPerPen: 149.99 },
 ];
 
 interface FormState {
@@ -357,7 +398,10 @@ interface FormState {
   ageBracket: YesNo | null;
   pregnant: YesNo | null;
   glp1Allergy: YesNo | null;
-  // Step 7 — Conditions
+  // Step 9 — Additional health screening
+  additionalHealthConditions: YesNo | null;
+  additionalHealthDiagnosed: DiagnosedConditionEntry[];
+  // Step 10 — Medical conditions
   excludingConditions: YesNo | null;
   diagnosedConditions: DiagnosedConditionEntry[];
   diabetesMedsOther: YesNo | null;
@@ -367,6 +411,7 @@ interface FormState {
   otherConditions: YesNo | null;
   otherHealthHistory: OtherHealthEntry[];
   oralContraceptive: YesNo | null;
+  glp1OcpCounsellingAcknowledged: boolean;
   newToInjectables: YesNo | null;
   changingProvider: YesNo | null;
   lastInjectionTiming: LastInjectionTiming | null;
@@ -402,8 +447,10 @@ interface FormState {
   gpConsent: YesNo | null;
   gpName: string;
   gpAddress: string;
-  // Step 11 — Plan
+  // Step 16 — Plan
   selectedPlan: { type: PlanType; medicine: MedicineId; penIds: string[] } | null;
+  /** Required when bundle includes a dose above starter / recommended. */
+  bundleTitrationAcknowledged: boolean;
   // Add-ons
   addOns: Record<AddOnId, number>;
   // Guest portal signup (final step)
@@ -438,13 +485,19 @@ function prescriptionItemsFromPlan(
   });
 }
 
+function pensForPlanType(type: PlanType): number {
+  if (type === "three-pen") return 3;
+  if (type === "two-pen") return 2;
+  return 1;
+}
+
 function isSelectedPlanComplete(
   plan: FormState["selectedPlan"],
+  bundleValidation?: BundleValidation,
 ): boolean {
   if (!plan) return false;
-  const need =
-    plan.type === "single" ? 1 : plan.type === "two-pen" ? 2 : 3;
-  return plan.penIds.length === need;
+  if (bundleValidation && !bundleValidation.ok) return false;
+  return plan.penIds.length === pensForPlanType(plan.type);
 }
 
 const initialState: FormState = {
@@ -472,6 +525,8 @@ const initialState: FormState = {
   ageBracket: null,
   pregnant: null,
   glp1Allergy: null,
+  additionalHealthConditions: null,
+  additionalHealthDiagnosed: [],
   excludingConditions: null,
   diagnosedConditions: [],
   diabetesMedsOther: null,
@@ -480,6 +535,7 @@ const initialState: FormState = {
   otherConditions: null,
   otherHealthHistory: [],
   oralContraceptive: null,
+  glp1OcpCounsellingAcknowledged: false,
   newToInjectables: null,
   changingProvider: null,
   lastInjectionTiming: null,
@@ -512,6 +568,7 @@ const initialState: FormState = {
   gpName: "",
   gpAddress: "",
   selectedPlan: null,
+  bundleTitrationAcknowledged: false,
   addOns: {
     "weight-tracker": 0,
     "sharps-bin": 0,
@@ -945,6 +1002,28 @@ export default function InjectableWeightLossConsultation() {
     ) {
       reasons.push("History of an eating disorder — requires in-person specialist review.");
     }
+    if (
+      state.diagnosedConditions.some(
+        (entry) =>
+          entry.catalogueId === "gallstones_gallbladder" &&
+          entry.hadCholecystectomy === "no",
+      )
+    ) {
+      reasons.push(
+        "Gallbladder issues without cholecystectomy — not suitable for online prescribing.",
+      );
+    }
+    if (
+      state.diagnosedConditions.some(
+        (entry) =>
+          entry.catalogueId === "bariatric_gastric_surgery" &&
+          entry.howLongHad === "less_than_12_months",
+      )
+    ) {
+      reasons.push(
+        "Weight-loss surgery within the last 12 months — not suitable for online prescribing.",
+      );
+    }
     return reasons;
   }, [
     ageYears,
@@ -1032,10 +1111,71 @@ export default function InjectableWeightLossConsultation() {
       product,
       allowedPenIds,
       recommendedPenId,
+      recommendedDoseMg: restartDosing.recommendedDoseMg,
+      maxDoseMg: restartDosing.maxDoseMg,
+      allowedDosesMg: restartDosing.allowedDosesMg,
+      restartCategory: restartDosing.category,
       note: restartDosing.note,
       blockedReason: restartDosing.blocked?.reason ?? null,
     };
   }, [restartDosing]);
+
+  const planBundleValidation = useMemo((): BundleValidation | null => {
+    if (!state.selectedPlan) return null;
+    const medicine = state.selectedPlan.medicine;
+    const dosesFor = state.selectedPlan.penIds.map((id) => penIdDoseMg(id) ?? -1);
+
+    if (consultationType === "new_start") {
+      const eligibleDoseMg = starterDoseFor(medicine);
+      const catalogPens = PEN_OPTIONS.filter((p) => p.medicine === medicine)
+        .map((p) => penIdDoseMg(p.id) ?? 0)
+        .filter((d) => d > 0);
+      const offeredDosesMg = offeredStarterDosesMg(catalogPens, eligibleDoseMg);
+      return validateTitrationBundle({
+        offeredDosesMg,
+        selectedDosesMg: dosesFor,
+        requiredDoseLabel: "your starter dose",
+      });
+    }
+
+    if (consultationType === "transfer" && planRestriction?.recommendedDoseMg != null) {
+      const catalogPens = PEN_OPTIONS.filter((p) => p.medicine === medicine)
+        .map((p) => penIdDoseMg(p.id) ?? 0)
+        .filter((d) => d > 0);
+      const ladderDosesMg = transferBundleLadderMg(
+        catalogPens,
+        planRestriction.allowedDosesMg,
+      );
+      const bundleSize = pensForPlanType(state.selectedPlan.type) as 1 | 2 | 3;
+      const maxOfferedDoseMg = transferBundleMaxOfferedDoseMg(
+        catalogPens,
+        planRestriction.recommendedDoseMg,
+        bundleSize,
+        planRestriction.restartCategory,
+      );
+      return validateTransferTitrationBundle({
+        ladderDosesMg,
+        recommendedDoseMg: planRestriction.recommendedDoseMg,
+        selectedDosesMg: dosesFor,
+        maxPens: bundleSize,
+        maxOfferedDoseMg,
+      });
+    }
+
+    return null;
+  }, [state.selectedPlan, consultationType, planRestriction]);
+
+  const planRequiresTitrationAck = useMemo(() => {
+    if (!state.selectedPlan) return false;
+    const doses = state.selectedPlan.penIds.map((id) => penIdDoseMg(id) ?? -1);
+    if (consultationType === "new_start") {
+      return selectionHasDoseAbove(doses, starterDoseFor(state.selectedPlan.medicine));
+    }
+    if (consultationType === "transfer" && planRestriction?.recommendedDoseMg != null) {
+      return selectionHasDoseAbove(doses, planRestriction.recommendedDoseMg);
+    }
+    return false;
+  }, [state.selectedPlan, consultationType, planRestriction]);
 
   const go = (n: number) => {
     setStep(n);
@@ -1044,13 +1184,13 @@ export default function InjectableWeightLossConsultation() {
   const next = () => {
     // Clinical hard-stops (age, pregnancy, allergy, thyroid, eating disorder) —
     // always block, regardless of journey.
-    if ((step === 8 || step === 9) && clinicalHardStops.length > 0) {
+    if ((step === 8 || step === 10) && clinicalHardStops.length > 0) {
       setRejectionMessage(null);
       go(99); // ineligible screen
       return;
     }
-    // New-starter BMI band logic runs once comorbidity is known (after step 9).
-    if (step === 9 && consultationType === "new_start") {
+    // New-starter BMI band logic runs once comorbidity is known (after step 10).
+    if (step === 10 && consultationType === "new_start") {
       if (newStarterEligibility.status === "reject_low_bmi") {
         setRejectionMessage(newStarterEligibility.message);
         go(99);
@@ -1062,20 +1202,20 @@ export default function InjectableWeightLossConsultation() {
       }
     }
     let n = stepAfter(step, isLoggedIn);
-    // Repeat: medication/plan come from prior order — skip pen picker (step 14).
+    // Repeat: medication/plan come from prior order — skip pen picker (step 16).
     if (
-      n === 15 &&
+      n === 16 &&
       isSelectedPlanComplete(state.selectedPlan) &&
       skipsTreatmentPlanPicker(consultationType)
     ) {
-      n = stepAfter(15, isLoggedIn);
+      n = stepAfter(16, isLoggedIn);
     }
     go(n);
   };
   const back = () => {
     if (step === 99 || step === 98) {
       setRejectionMessage(null);
-      go(9);
+      go(10);
       return;
     }
     if (step > 1) {
@@ -1211,7 +1351,10 @@ export default function InjectableWeightLossConsultation() {
       case 8: {
         const femaleHealthOk =
           !asksFemaleHealthQuestions(state.assignedSex) ||
-          (state.pregnant !== null && state.oralContraceptive !== null);
+          (state.pregnant !== null &&
+            state.oralContraceptive !== null &&
+            (state.oralContraceptive !== "yes" ||
+              state.glp1OcpCounsellingAcknowledged));
         return (
           state.assignedSex !== null &&
           femaleHealthOk &&
@@ -1219,13 +1362,19 @@ export default function InjectableWeightLossConsultation() {
         );
       }
       case 9:
+        return isExcludingConditionsStepComplete(
+          state.additionalHealthConditions,
+          state.additionalHealthDiagnosed,
+          { checkboxOnly: true },
+        );
+      case 10:
         return (
           isExcludingConditionsStepComplete(
             state.excludingConditions,
             state.diagnosedConditions,
           ) && isSharedScreeningStepComplete(state)
         );
-      case 10: {
+      case 11: {
         const continuationOk = isWlContinuationSafetyComplete({
           sideEffects: state.transferSideEffects,
           sideEffectSymptoms: state.transferSideEffectSymptoms,
@@ -1269,9 +1418,9 @@ export default function InjectableWeightLossConsultation() {
 
         return false;
       }
-      case 11:
-        return true;
       case 12:
+        return true;
+      case 13:
         if (isExplicitTransferJourney) {
           return (
             state.agreement === "yes" && state.transferPatientDeclaration
@@ -1284,15 +1433,27 @@ export default function InjectableWeightLossConsultation() {
           );
         }
         return state.agreement === "yes";
-      case 13:
+      case 14:
         return state.gpConsent !== null
           && (state.gpConsent === "no" || (state.gpName.trim().length > 0 && state.gpAddress.trim().length > 0));
-      case 14:
-        return true;
       case 15:
-        return isSelectedPlanComplete(state.selectedPlan);
+        return true;
       case 16: {
-        const planOk = isSelectedPlanComplete(state.selectedPlan);
+        const planOk = isSelectedPlanComplete(
+          state.selectedPlan,
+          planBundleValidation ?? undefined,
+        );
+        if (!planOk) return false;
+        if (planRequiresTitrationAck && !state.bundleTitrationAcknowledged) {
+          return false;
+        }
+        return true;
+      }
+      case 17: {
+        const planOk = isSelectedPlanComplete(
+          state.selectedPlan,
+          planBundleValidation ?? undefined,
+        );
         if (!planOk) return false;
         if (isLoggedIn) return true;
         return (
@@ -1311,6 +1472,8 @@ export default function InjectableWeightLossConsultation() {
     isTransferFlow,
     isExplicitTransferJourney,
     consultationType,
+    planBundleValidation,
+    planRequiresTitrationAck,
   ]);
 
   // ── Submit ─────────────────────────────────────────────────────────────
@@ -1334,15 +1497,46 @@ export default function InjectableWeightLossConsultation() {
           const timingLabel = isWlExcludingConditionCholecystectomyTiming(
             e.catalogueId,
           )
-            ? wlCholecystectomyTimingLabel(e.howLongHad) ?? e.howLongHad.trim()
-            : e.howLongHad.trim();
+            ? e.hadCholecystectomy === "yes"
+              ? wlCholecystectomyTimingLabel(e.howLongHad) ?? e.howLongHad.trim()
+              : ""
+            : isWlExcludingConditionBariatricTiming(e.catalogueId)
+              ? wlCholecystectomyTimingLabel(e.howLongHad) ?? e.howLongHad.trim()
+              : e.howLongHad.trim();
           return {
             catalogue_id: e.catalogueId ?? null,
             condition: e.condition.trim(),
             diagnosed_when: timingLabel,
             how_long_had: timingLabel,
             ...(isWlExcludingConditionCholecystectomyTiming(e.catalogueId)
-              ? { cholecystectomy_timing: e.howLongHad }
+              ? {
+                  had_cholecystectomy: e.hadCholecystectomy ?? null,
+                  ...(e.hadCholecystectomy === "yes"
+                    ? {
+                        cholecystectomy_timing: e.howLongHad,
+                        ...(e.procedureDate?.trim()
+                          ? { procedure_date: e.procedureDate.trim() }
+                          : {}),
+                      }
+                    : {}),
+                }
+              : {}),
+            ...(isWlExcludingConditionBariatricTiming(e.catalogueId)
+              ? {
+                  bariatric_surgery_timing: e.howLongHad,
+                  bariatric_surgery_timing_label:
+                    wlCholecystectomyTimingLabel(e.howLongHad) ?? e.howLongHad,
+                  ...(e.procedureDate?.trim()
+                    ? { procedure_date: e.procedureDate.trim() }
+                    : {}),
+                }
+              : {}),
+            ...(isWlExcludingConditionCancerDetails(e.catalogueId) &&
+            e.conditionDetails?.trim()
+              ? {
+                  condition_details: e.conditionDetails.trim(),
+                  requires_prescriber_review: true,
+                }
               : {}),
             on_medication: e.onMedication,
             medication_names: medNames,
@@ -1409,6 +1603,21 @@ export default function InjectableWeightLossConsultation() {
           state.diagnosedConditions,
           "eating_disorder",
         ),
+        cancer_history: historyAnswerFromExcludingConditions(
+          state.excludingConditions,
+          state.diagnosedConditions,
+          "cancer",
+        ),
+        additional_health_conditions: state.additionalHealthConditions,
+        additional_health_conditions_details:
+          state.additionalHealthConditions === "yes"
+            ? state.additionalHealthDiagnosed
+                .filter((e) => e.condition.trim())
+                .map((e) => ({
+                  catalogue_id: e.catalogueId ?? null,
+                  condition: e.condition.trim(),
+                }))
+            : [],
         excluding_conditions: state.excludingConditions,
         diagnosed_conditions_details: formatDiagnosed,
         diabetes_meds_beyond_metformin: state.diabetesMedsOther,
@@ -1417,6 +1626,10 @@ export default function InjectableWeightLossConsultation() {
         other_health_conditions: null,
         other_health_conditions_details: null,
         oral_contraceptive: state.oralContraceptive,
+        glp1_ocp_counselling_acknowledged:
+          state.oralContraceptive === "yes"
+            ? state.glp1OcpCounsellingAcknowledged
+            : null,
         new_to_injectables: state.newToInjectables,
         changing_from_provider: state.changingProvider,
         last_injection_timing: state.lastInjectionTiming,
@@ -1515,7 +1728,7 @@ export default function InjectableWeightLossConsultation() {
                     null
                   : null,
               transfer_wl_first_treatment_start_date:
-                state.transferWlMedication.firstTreatmentStartDate.trim() ||
+                (state.transferWlMedication.firstTreatmentStartDate ?? "").trim() ||
                 null,
               transfer_current_medications_details: formatTransferMeds,
               last_injection_timing: "exact_date",
@@ -1547,6 +1760,8 @@ export default function InjectableWeightLossConsultation() {
             }
           : {}),
         selected_plan: state.selectedPlan,
+        bundle_titration_acknowledged: state.bundleTitrationAcknowledged,
+        bundle_includes_above_recommended: planRequiresTitrationAck,
         addons: Object.entries(state.addOns).filter(([, q]) => q > 0).map(([id, q]) => ({ id, qty: q })),
         patient_documents: Object.fromEntries(
           Object.entries(patientDocs).filter(([, url]) => Boolean(url)),
@@ -1583,7 +1798,7 @@ export default function InjectableWeightLossConsultation() {
           variant: "destructive",
         });
         setSubmitting(false);
-        go(15);
+        go(16);
         return;
       }
 
@@ -2135,21 +2350,23 @@ export default function InjectableWeightLossConsultation() {
             </StepShell>
           )}
 
-          {/* Step 7 — High-risk medications (all journeys). */}
+          {/* Step 7 — Medications screening (all journeys). */}
           {step === 7 && (
             <StepShell
               step={flowStepNumber(7, isLoggedIn)}
               totalSteps={shellTotal}
               label="Medications"
               icon={<PillIcon className="w-6 h-6" />}
-              title="High-risk medications"
-              subtitle="Some medicines need extra review before we can prescribe weight-loss treatment."
+              title="Medications"
+              subtitle={WL_MEDICATIONS_SCREENING_INTRO}
               onBack={back}
               onContinue={next}
               canContinue={canContinue}
             >
               <SectionCard>
                 <HighRiskMedicationsSection
+                  infoHeading="These are the medicines we ask about:"
+                  infoHeadingWhenNo="For your information, these are the medicines we ask about:"
                   taken={state.transferHighRiskMedsTaken}
                   onTakenChange={(v) =>
                     setState((s) => ({
@@ -2209,7 +2426,11 @@ export default function InjectableWeightLossConsultation() {
                           ...s,
                           assignedSex: val,
                           ...(val === "male"
-                            ? { pregnant: null, oralContraceptive: null }
+                            ? {
+                                pregnant: null,
+                                oralContraceptive: null,
+                                glp1OcpCounsellingAcknowledged: false,
+                              }
                             : {}),
                         }));
                       }}
@@ -2219,40 +2440,122 @@ export default function InjectableWeightLossConsultation() {
                 </div>
               </SectionCard>
 
-              {[
-                ...(asksFemaleHealthQuestions(state.assignedSex)
-                  ? [
-                      {
-                        key: "pregnant",
-                        q: "Are you currently pregnant, breastfeeding, or planning to become pregnant or breastfeed while using this medication? *",
-                      },
-                      {
-                        key: "oralContraceptive",
-                        q: "Are you taking an oral contraceptive? *",
-                      },
-                    ]
-                  : []),
-                {
-                  key: "glp1Allergy",
-                  q: "Have you ever had an allergic reaction to Wegovy, Mounjaro, Ozempic, Saxenda, or other GLP-1 medications? *",
-                },
-              ].map(({ key, q }) => (
-                <SectionCard key={key}>
-                  <p className="font-semibold text-secondary mb-3">{q}</p>
-                  <YesNoChoice
-                    value={state[key as keyof FormState] as YesNo | null}
-                    onChange={(v) => update(key as keyof FormState, v as never)}
-                    testIdPrefix={key}
-                  />
-                </SectionCard>
-              ))}
+              {asksFemaleHealthQuestions(state.assignedSex) && (
+                <>
+                  <SectionCard>
+                    <p className="font-semibold text-secondary mb-3">
+                      Are you currently pregnant, breastfeeding, or planning to
+                      become pregnant or breastfeed while using this medication? *
+                    </p>
+                    <YesNoChoice
+                      value={state.pregnant}
+                      onChange={(v) => update("pregnant", v)}
+                      testIdPrefix="pregnant"
+                    />
+                  </SectionCard>
+                  <SectionCard>
+                    <p className="font-semibold text-secondary mb-3">
+                      Are you taking an oral contraceptive? *
+                    </p>
+                    <YesNoChoice
+                      value={state.oralContraceptive}
+                      onChange={(oralContraceptive) =>
+                        setState((s) => ({
+                          ...s,
+                          oralContraceptive,
+                          glp1OcpCounsellingAcknowledged:
+                            oralContraceptive === "yes"
+                              ? s.glp1OcpCounsellingAcknowledged
+                              : false,
+                        }))
+                      }
+                      testIdPrefix="oralContraceptive"
+                    />
+                  </SectionCard>
+                  {state.oralContraceptive === "yes" && (
+                    <SectionCard>
+                      <div className="rounded-xl border border-amber-200/90 bg-amber-50/80 p-4 mb-4">
+                        <p className="font-semibold text-secondary">
+                          {INJECTABLE_OCP_COUNSELLING_HEADING}
+                        </p>
+                        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                          {INJECTABLE_OCP_COUNSELLING_INTRO}
+                        </p>
+                        <ul className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground list-disc pl-5">
+                          {INJECTABLE_OCP_COUNSELLING_POINTS.map((point) => (
+                            <li key={point}>{point}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <CheckboxRow
+                        checked={state.glp1OcpCounsellingAcknowledged}
+                        onToggle={() =>
+                          update(
+                            "glp1OcpCounsellingAcknowledged",
+                            !state.glp1OcpCounsellingAcknowledged,
+                          )
+                        }
+                        title={INJECTABLE_OCP_COUNSELLING_ACKNOWLEDGEMENT}
+                      />
+                    </SectionCard>
+                  )}
+                </>
+              )}
+              <SectionCard>
+                <p className="font-semibold text-secondary mb-3">
+                  Have you ever had an allergic reaction to Wegovy, Mounjaro,
+                  Ozempic, Saxenda, or other GLP-1 medications? *
+                </p>
+                <YesNoChoice
+                  value={state.glp1Allergy}
+                  onChange={(v) => update("glp1Allergy", v)}
+                  testIdPrefix="glp1Allergy"
+                />
+              </SectionCard>
             </StepShell>
           )}
 
-          {/* ───── Step 9 — Medical Conditions */}
+          {/* ───── Step 9 — Additional health screening */}
           {step === 9 && (
             <StepShell
               step={flowStepNumber(9, isLoggedIn)}
+              totalSteps={shellTotal}
+              label="About your health"
+              icon={<Stethoscope className="w-6 h-6" />}
+              title="About your health"
+              subtitle={WL_ADDITIONAL_HEALTH_STEP_INTRO}
+              onBack={back} onContinue={next} canContinue={canContinue}
+            >
+              <SectionCard>
+                <ExcludingConditionsSection
+                  conditions={WL_ADDITIONAL_HEALTH_CONDITIONS}
+                  gateQuestion={WL_ADDITIONAL_HEALTH_CONDITIONS_GATE_QUESTION}
+                  infoHeading={WL_ADDITIONAL_HEALTH_INFO_HEADING}
+                  infoHeadingWhenNo={WL_ADDITIONAL_HEALTH_INFO_HEADING_WHEN_NO}
+                  selectHint={WL_ADDITIONAL_HEALTH_SELECT_HINT}
+                  checkboxOnly
+                  excludingConditions={state.additionalHealthConditions}
+                  onExcludingConditionsChange={(v) => {
+                    setState((s) => ({
+                      ...s,
+                      additionalHealthConditions: v,
+                      additionalHealthDiagnosed:
+                        v === "no" ? [] : s.additionalHealthDiagnosed,
+                    }));
+                  }}
+                  diagnosedConditions={state.additionalHealthDiagnosed}
+                  onDiagnosedConditionsChange={(additionalHealthDiagnosed) =>
+                    setState((s) => ({ ...s, additionalHealthDiagnosed }))
+                  }
+                />
+              </SectionCard>
+            </StepShell>
+          )}
+
+          {/* ───── Step 10 — Medical Conditions */}
+          {step === 10 && (
+            <StepShell
+              step={flowStepNumber(10, isLoggedIn)}
               totalSteps={shellTotal}
               label="Medical Conditions"
               icon={<ShieldCheck className="w-6 h-6" />}
@@ -2324,9 +2627,9 @@ export default function InjectableWeightLossConsultation() {
           )}
 
           {/* ───── Step 10 — Branch: continuation (transfer/repeat) or new-patient medication */}
-          {step === 10 && (
+          {step === 11 && (
             <StepShell
-              step={flowStepNumber(10, isLoggedIn)}
+              step={flowStepNumber(11, isLoggedIn)}
               totalSteps={shellTotal}
               label="Medication"
               icon={<PillIcon className="w-6 h-6" />}
@@ -2339,7 +2642,7 @@ export default function InjectableWeightLossConsultation() {
                 showsContinuationBlock(consultationType)
                   ? "Since your last review — then confirm your current treatment where needed."
                   : state.journey === "new"
-                    ? "Tell us whether you are new to injectable weight-loss medications."
+                    ? "Tell us if you have had weight-loss medication in the past 6 months."
                     : "Tell us about your current and past medications."
               }
               onBack={back} onContinue={next} canContinue={canContinue}
@@ -2459,15 +2762,19 @@ export default function InjectableWeightLossConsultation() {
                 <>
                   <SectionCard>
                     <p className="font-semibold text-secondary mb-3">
-                      Are you new to using injectable weight-loss medications? *
+                      {WL_HAD_WL_MEDICATION_PAST_6_MONTHS_QUESTION} *
                     </p>
                     <YesNoChoice
-                      value={state.newToInjectables}
+                      value={hadWlMedicationPast6MonthsDisplay(
+                        state.newToInjectables,
+                      )}
                       onChange={(v) => {
+                        const newToInjectables =
+                          hadWlMedicationPast6MonthsToStored(v);
                         setState((s) => ({
                           ...s,
-                          newToInjectables: v,
-                          ...(v === "yes"
+                          newToInjectables,
+                          ...(newToInjectables === "yes"
                             ? {
                                 changingProvider: null,
                                 lastInjectionTiming: null,
@@ -2663,9 +2970,9 @@ export default function InjectableWeightLossConsultation() {
           )}
 
           {/* ───── Step 11 — Clinical team notes */}
-          {step === 11 && (
+          {step === 12 && (
             <StepShell
-              step={flowStepNumber(11, isLoggedIn)}
+              step={flowStepNumber(12, isLoggedIn)}
               totalSteps={shellTotal}
               label="Final details"
               icon={<FileText className="w-6 h-6" />}
@@ -2687,9 +2994,9 @@ export default function InjectableWeightLossConsultation() {
           )}
 
           {/* ───── Step 12 — Agreement */}
-          {step === 12 && (
+          {step === 13 && (
             <StepShell
-              step={flowStepNumber(12, isLoggedIn)}
+              step={flowStepNumber(13, isLoggedIn)}
               totalSteps={shellTotal}
               label="Agreement"
               icon={<CheckCircle2 className="w-6 h-6" />}
@@ -2710,8 +3017,8 @@ export default function InjectableWeightLossConsultation() {
                     "I will store my medicine according to the storage instructions (refrigerate Mounjaro / Wegovy).",
                     "I will dispose of needles and pens in a sharps container, not in household waste.",
                     "I agree to participate in a video, photo or telephone verification (e.g. weighing-scale check) if requested — particularly for first orders, doses higher than starter, or after an 8-week gap.",
-                    "I give permission for PharmaCare to access my NHS Summary Care Record or request medical history from my GP if required.",
-                    "I consent to PharmaCare contacting my GP about this prescription where clinically appropriate. If the SCR is unavailable, I agree to participate in two-way communication (phone, secure message, video) to verify my history. If I do not respond, my order will be cancelled.",
+                    "I give permission for EveryDayMeds to access my NHS Summary Care Record or request medical history from my GP if required.",
+                    "I consent to EveryDayMeds contacting my GP about this prescription where clinically appropriate. If the SCR is unavailable, I agree to participate in two-way communication (phone, secure message, video) to verify my history. If I do not respond, my order will be cancelled.",
                   ].map((line, i) => (
                     <p key={i} className="flex gap-3">
                       <span className="font-bold text-primary tabular-nums shrink-0">{i + 1}</span>
@@ -2761,9 +3068,9 @@ export default function InjectableWeightLossConsultation() {
           )}
 
           {/* ───── Step 13 — GP Details */}
-          {step === 13 && (
+          {step === 14 && (
             <StepShell
-              step={flowStepNumber(13, isLoggedIn)}
+              step={flowStepNumber(14, isLoggedIn)}
               totalSteps={shellTotal}
               label="GP Details"
               icon={<Stethoscope className="w-6 h-6" />}
@@ -2777,7 +3084,7 @@ export default function InjectableWeightLossConsultation() {
               </div>
               <SectionCard>
                 <p className="font-semibold text-secondary mb-3">
-                  I consent to PharmaCare contacting my GP and sharing information about my prescription. *
+                  I consent to EveryDayMeds contacting my GP and sharing information about my prescription. *
                 </p>
                 <YesNoChoice value={state.gpConsent} onChange={(v) => update("gpConsent", v)} testIdPrefix="gpConsent" />
                 {state.gpConsent === "yes" && (
@@ -2810,9 +3117,9 @@ export default function InjectableWeightLossConsultation() {
           )}
 
           {/* ───── Step 14 — Weight verification photo */}
-          {step === 14 && (
+          {step === 15 && (
             <StepShell
-              step={flowStepNumber(14, isLoggedIn)}
+              step={flowStepNumber(15, isLoggedIn)}
               totalSteps={shellTotal}
               label="Verification"
               icon={<Upload className="w-6 h-6" />}
@@ -2949,9 +3256,9 @@ export default function InjectableWeightLossConsultation() {
           )}
 
           {/* ───── Step 15 — Treatment plan (new + transfer pick; repeat uses prior plan) */}
-          {step === 15 && (
+          {step === 16 && (
             <StepShell
-              step={flowStepNumber(15, isLoggedIn)}
+              step={flowStepNumber(16, isLoggedIn)}
               totalSteps={shellTotal}
               label="Treatment"
               icon={<Syringe className="w-6 h-6" />}
@@ -2963,7 +3270,7 @@ export default function InjectableWeightLossConsultation() {
               subtitle={
                 skipsTreatmentPlanPicker(consultationType)
                   ? "Your next supply follows the plan from your previous order."
-                  : "Select your Mounjaro or Wegovy treatment. Select a single pen or bundle that fits your goals."
+                  : "Choose 1–3 pens (one month each). Your first pen must be your recommended dose; higher strengths unlock in titration order."
               }
               onBack={back} onContinue={next} canContinue={canContinue}
               continueLabel="Continue to add-ons"
@@ -3009,6 +3316,10 @@ export default function InjectableWeightLossConsultation() {
                 <PlanSelector
                   value={state.selectedPlan}
                   onChange={(p) => update("selectedPlan", p)}
+                  bundleTitrationAcknowledged={state.bundleTitrationAcknowledged}
+                  onBundleTitrationAcknowledgedChange={(bundleTitrationAcknowledged) =>
+                    update("bundleTitrationAcknowledged", bundleTitrationAcknowledged)
+                  }
                   starterOnly={consultationType === "new_start"}
                   restriction={planRestriction}
                 />
@@ -3017,9 +3328,9 @@ export default function InjectableWeightLossConsultation() {
           )}
 
           {/* ───── Step 16 — Add-ons (post-clinical upsell) */}
-          {step === 16 && (
+          {step === 17 && (
             <StepShell
-              step={flowStepNumber(16, isLoggedIn)}
+              step={flowStepNumber(17, isLoggedIn)}
               totalSteps={shellTotal}
               label="Add-ons"
               icon={<Plus className="w-6 h-6" />}
@@ -3176,7 +3487,7 @@ export default function InjectableWeightLossConsultation() {
                         lastInjectionDate: "",
                         ...emptyTransferQuestionnaireFields(),
                       }));
-                      go(10);
+                      go(11);
                     }}
                     title="Yes — I have taken Mounjaro or Wegovy before"
                     subtitle="We'll continue your treatment and ask for proof of your previous prescription and starting BMI."
@@ -3241,7 +3552,7 @@ export default function InjectableWeightLossConsultation() {
                 </ul>
                 <div className="mt-5 rounded-xl bg-primary/5 border border-primary/15 p-4 text-sm text-foreground/80">
                   <p className="font-semibold text-secondary mb-1.5">What to do next</p>
-                  <p>Please speak to your GP or NHS 111. If you'd like a pharmacist to call you back to discuss alternatives, message our team using the live-help bubble or email <a href="mailto:support@pharmacare.uk" className="text-primary font-semibold underline">support@pharmacare.uk</a>.</p>
+                  <p>Please speak to your GP or NHS 111. If you'd like a pharmacist to call you back to discuss alternatives, message our team using the live-help bubble or email <a href="mailto:support@everydaymeds.uk" className="text-primary font-semibold underline">support@everydaymeds.uk</a>.</p>
                 </div>
               </SectionCard>
               <div className="mt-8 flex flex-col sm:flex-row gap-3">
@@ -3285,63 +3596,365 @@ const MedicineToggle: React.FC<{
   </div>
 );
 
+/** 1 / 2 / 3-month bundle size selector. */
+const BundleSizeToggle: React.FC<{
+  value: 1 | 2 | 3;
+  onChange: (n: 1 | 2 | 3) => void;
+  testIdPrefix: string;
+}> = ({ value, onChange, testIdPrefix }) => (
+  <div className="mb-5">
+    <p className="text-sm font-semibold text-[#0E3D2D] mb-2">Choose your bundle</p>
+    <div
+      className="grid grid-cols-3 gap-1 rounded-xl border border-stone-200 bg-stone-100 p-1"
+      data-testid={`${testIdPrefix}-size-toggle`}
+    >
+      {([1, 2, 3] as const).map((n) => (
+        <button
+          key={n}
+          type="button"
+          onClick={() => onChange(n)}
+          className={cn(
+            "h-11 rounded-lg text-sm font-semibold transition-colors",
+            value === n
+              ? "bg-[#0E3D2D] text-white shadow-sm"
+              : "text-stone-600 hover:bg-stone-200/80",
+          )}
+          data-testid={`${testIdPrefix}-size-${n}`}
+        >
+          {n} bundle
+        </button>
+      ))}
+    </div>
+    <p className="text-xs text-muted-foreground mt-1.5">
+      One pen per month (4-week supply). Select a bundle size, then choose your strengths below.
+    </p>
+  </div>
+);
+
 /**
- * New-starter titration bundle builder.
- *
- * The patient is offered their eligible (lowest) starter dose plus the higher
- * purchasable strengths, and may build a 1–3 pen (≈ 1–3 month) order. Doses
- * must step up one strength at a time — see `validateStarterBundle`.
+ * Titration bundle builder — 1, 2, or 3 pens with ladder step-up rules.
+ * New starters use {@link validateTitrationBundle}; transfer patients use
+ * {@link validateTransferTitrationBundle} (may order below recommended dose).
  */
-const StarterBundlePicker: React.FC<{
+const RecommendedDoseHighlight: React.FC<{ doseLabel: string }> = ({
+  doseLabel,
+}) => (
+  <strong className="font-bold text-[#0A7A45]">{doseLabel}</strong>
+);
+
+const TransferRecommendedDoseNote: React.FC<{
+  product: WlProduct;
+  recommendedDoseMg: number;
+}> = ({ product, recommendedDoseMg }) => (
+  <>
+    Based on the information you have provided, the{" "}
+    <strong className="font-semibold">dose we recommend for you</strong> is{" "}
+    <RecommendedDoseHighlight
+      doseLabel={formatProductDose(product, recommendedDoseMg)}
+    />
+    . You can still order a lower strength if you need to — as a single pen or as
+    part of a bundle.
+  </>
+);
+
+const TransferGapNote: React.FC<{ category: RestartGapCategory }> = ({
+  category,
+}) => {
+  switch (category) {
+    case "le_4_weeks":
+      return (
+        <>
+          Based on the information you have provided, your last injection was
+          within <strong className="font-semibold">4 weeks</strong>.
+        </>
+      );
+    case "gap_4_to_8_weeks":
+      return (
+        <>
+          Based on the information you have provided, you have had a gap of{" "}
+          <strong className="font-semibold">4–8 weeks</strong> since your last
+          injection. After a gap like this, we usually restart one step below your
+          last tolerated dose.
+        </>
+      );
+    case "gap_over_8_weeks":
+      return (
+        <>
+          Based on the information you have provided, you have had a gap of{" "}
+          <strong className="font-semibold">more than 8 weeks</strong> since your
+          last injection.
+        </>
+      );
+    default:
+      return null;
+  }
+};
+
+const TitrationBundlePicker: React.FC<{
+  mode: "starter" | "transfer";
   medicine: MedicineId;
-  onMedChange: (m: MedicineId) => void;
+  onMedChange?: (m: MedicineId) => void;
+  lockMedicine?: boolean;
   value: FormState["selectedPlan"];
   onChange: (p: FormState["selectedPlan"]) => void;
-}> = ({ medicine, onMedChange, value, onChange }) => {
-  const maxPens = NEW_STARTER_MAX_BUNDLE_PENS;
-  const eligibleDoseMg = starterDoseFor(medicine);
+  offeredDosesMg: number[];
+  ladderDosesMg: number[];
+  recommendedDoseMg?: number;
+  restartCategory?: RestartGapCategory;
+  introNote: string;
+  recommendedNote?: React.ReactNode | null;
+  gapNote?: React.ReactNode | null;
+  titrationAcknowledged: boolean;
+  onTitrationAcknowledgedChange: (v: boolean) => void;
+  testIdPrefix?: string;
+}> = ({
+  mode,
+  medicine,
+  onMedChange,
+  lockMedicine = false,
+  value,
+  onChange,
+  offeredDosesMg,
+  ladderDosesMg,
+  recommendedDoseMg,
+  restartCategory,
+  introNote,
+  recommendedNote = null,
+  gapNote = null,
+  titrationAcknowledged,
+  onTitrationAcknowledgedChange,
+  testIdPrefix = "bundle",
+}) => {
+  const penIds = value?.medicine === medicine ? value.penIds : [];
+
+  const [bundleSize, setBundleSize] = useState<1 | 2 | 3>(() => {
+    if (value?.medicine === medicine && value.type) {
+      return pensForPlanType(value.type) as 1 | 2 | 3;
+    }
+    return 1;
+  });
+
+  const catalogDosesMg = PEN_OPTIONS.filter((p) => p.medicine === medicine)
+    .map((p) => penIdDoseMg(p.id) ?? 0)
+    .filter((d) => d > 0)
+    .sort((a, b) => a - b);
+
+  const effectiveOfferedDosesMg = useMemo(() => {
+    if (mode === "transfer" && recommendedDoseMg != null) {
+      return offeredTransferDosesMg(
+        catalogDosesMg,
+        recommendedDoseMg,
+        bundleSize,
+        restartCategory,
+      );
+    }
+    return offeredDosesMg;
+  }, [
+    mode,
+    recommendedDoseMg,
+    catalogDosesMg,
+    bundleSize,
+    restartCategory,
+    offeredDosesMg,
+  ]);
+
+  const maxOfferedDoseMg =
+    mode === "transfer" && recommendedDoseMg != null
+      ? transferBundleMaxOfferedDoseMg(
+          catalogDosesMg,
+          recommendedDoseMg,
+          bundleSize,
+          restartCategory,
+        )
+      : null;
 
   const catalogPens = PEN_OPTIONS.filter((p) => p.medicine === medicine)
     .map((p) => ({ pen: p, mg: penIdDoseMg(p.id) ?? 0 }))
     .sort((a, b) => a.mg - b.mg);
 
-  const offeredDosesMg = offeredStarterDosesMg(
-    catalogPens.map((c) => c.mg),
-    eligibleDoseMg,
-  );
-  const offeredPens = offeredDosesMg
+  const offeredPens = effectiveOfferedDosesMg
     .map((mg) => catalogPens.find((c) => Math.abs(c.mg - mg) < 1e-9))
     .filter((c): c is { pen: PenOption; mg: number } => Boolean(c));
 
-  // One entry per pen — strengths may repeat (e.g. two months at 2.5 mg).
-  const penIds = value?.medicine === medicine ? value.penIds : [];
   const qtyOf = (penId: string) => penIds.filter((id) => id === penId).length;
   const dosesFor = (ids: string[]) => ids.map((id) => penIdDoseMg(id) ?? -1);
-  const isValid = (ids: string[]) =>
-    validateStarterBundle({
+
+  const thresholdMg =
+    mode === "transfer" && recommendedDoseMg != null
+      ? recommendedDoseMg
+      : starterDoseFor(medicine);
+
+  const isValid = (ids: string[], maxPens = bundleSize) => {
+    const selected = dosesFor(ids);
+    if (mode === "transfer" && recommendedDoseMg != null) {
+      return validateTransferTitrationBundle({
+        ladderDosesMg,
+        recommendedDoseMg,
+        selectedDosesMg: selected,
+        maxPens,
+        maxOfferedDoseMg,
+      }).ok;
+    }
+    return validateTitrationBundle({
       offeredDosesMg,
-      selectedDosesMg: dosesFor(ids),
+      selectedDosesMg: selected,
       maxPens,
+      requiredDoseLabel: "your starter dose",
     }).ok;
+  };
 
   const planTypeForCount = (n: number): PlanType =>
     n >= 3 ? "three-pen" : n === 2 ? "two-pen" : "single";
 
   const commit = (nextIds: string[]) => {
     if (nextIds.length === 0) {
-      onChange(null);
+      onChange({ type: planTypeForCount(bundleSize), medicine, penIds: [] });
+      onTitrationAcknowledgedChange(false);
       return;
     }
-    onChange({ type: planTypeForCount(nextIds.length), medicine, penIds: nextIds });
+    if (!selectionHasDoseAbove(dosesFor(nextIds), thresholdMg)) {
+      onTitrationAcknowledgedChange(false);
+    }
+    onChange({
+      type: planTypeForCount(bundleSize),
+      medicine,
+      penIds: nextIds,
+    });
   };
 
-  const canAdd = (penId: string) => isValid([...penIds, penId]);
+  const buildDefaultBundle = (n: 1 | 2 | 3): string[] => {
+    if (offeredPens.length === 0) return [];
+
+    const penIdForMg = (mg: number) =>
+      catalogPens.find((c) => Math.abs(c.mg - mg) < 1e-9)?.pen.id ?? null;
+
+    if (mode === "starter") {
+      const titration = offeredPens.slice(0, n).map((o) => o.pen.id);
+      if (titration.length === n && isValid(titration, n)) return titration;
+      const first = offeredPens[0]!.pen.id;
+      return Array.from({ length: n }, () => first);
+    }
+
+    if (recommendedDoseMg == null) return [];
+
+    const maxMg =
+      transferBundleMaxOfferedDoseMg(
+        catalogDosesMg,
+        recommendedDoseMg,
+        n,
+        restartCategory,
+      ) ?? recommendedDoseMg;
+
+    const recIdx = catalogDosesMg.findIndex(
+      (d) => Math.abs(d - recommendedDoseMg) < 1e-9,
+    );
+    if (recIdx < 0) return [];
+
+    const upwardPenIds: string[] = [];
+    for (let i = recIdx; i < catalogDosesMg.length; i++) {
+      const mg = catalogDosesMg[i]!;
+      if (mg > maxMg + 1e-9) break;
+      const id = penIdForMg(mg);
+      if (id) upwardPenIds.push(id);
+    }
+
+    if (n === 1) {
+      return upwardPenIds[0] ? [upwardPenIds[0]] : [];
+    }
+
+    // Multi-month: recommended dose, then step up (not doses below recommended).
+    const defaults: string[] = [];
+    if (upwardPenIds[0]) defaults.push(upwardPenIds[0]);
+    if (n >= 2) {
+      defaults.push(upwardPenIds[1] ?? upwardPenIds[0]!);
+    }
+    if (n >= 3) {
+      defaults.push(upwardPenIds[2] ?? defaults[defaults.length - 1]!);
+    }
+
+    if (defaults.length === n && isValid(defaults, n)) return defaults;
+
+    const recPen = penIdForMg(recommendedDoseMg);
+    return recPen ? Array.from({ length: n }, () => recPen) : [];
+  };
+
+  const selectBundleSize = (n: 1 | 2 | 3) => {
+    setBundleSize(n);
+    const maxMg =
+      mode === "transfer" && recommendedDoseMg != null
+        ? transferBundleMaxOfferedDoseMg(
+            catalogDosesMg,
+            recommendedDoseMg,
+            n,
+            restartCategory,
+          )
+        : null;
+    let nextIds = penIds;
+    if (maxMg != null) {
+      nextIds = penIds.filter((id) => (penIdDoseMg(id) ?? 0) <= maxMg + 1e-9);
+    }
+    if (nextIds.length > n) nextIds = nextIds.slice(0, n);
+    if (nextIds.length !== penIds.length) {
+      if (nextIds.length === 0) {
+        const defaults = buildDefaultBundle(n);
+        if (defaults.length > 0) commit(defaults);
+      } else {
+        commit(nextIds);
+      }
+      return;
+    }
+    if (penIds.length > n) {
+      commit(penIds.slice(0, n));
+      return;
+    }
+    if (penIds.length === 0) {
+      const defaults = buildDefaultBundle(n);
+      if (defaults.length > 0) commit(defaults);
+      return;
+    }
+    if (penIds.length < n) {
+      onChange({ type: planTypeForCount(n), medicine, penIds });
+      return;
+    }
+    // Same pen count but bundle label changed — keep pens, update plan type only.
+    if (penIds.length === n) {
+      onChange({ type: planTypeForCount(n), medicine, penIds });
+    }
+  };
+
+  const needsTitrationAck =
+    penIds.length > 0 && selectionHasDoseAbove(dosesFor(penIds), thresholdMg);
+
+  const canAdd = (penId: string) =>
+    penIds.length < bundleSize && isValid([...penIds, penId]);
   const canRemove = (penId: string) => {
     if (qtyOf(penId) === 0) return false;
     const idx = penIds.indexOf(penId);
     const next = penIds.filter((_, i) => i !== idx);
     return next.length === 0 || isValid(next);
   };
+  const addBlockReason = (penId: string): string | null => {
+    if (penIds.length >= bundleSize) return null;
+    const next = [...penIds, penId];
+    if (mode === "transfer" && recommendedDoseMg != null) {
+      const result = validateTransferTitrationBundle({
+        ladderDosesMg,
+        recommendedDoseMg,
+        selectedDosesMg: dosesFor(next),
+        maxPens: bundleSize,
+        maxOfferedDoseMg,
+      });
+      return result.ok ? null : result.reason;
+    }
+    const result = validateTitrationBundle({
+      offeredDosesMg: effectiveOfferedDosesMg,
+      selectedDosesMg: dosesFor(next),
+      maxPens: bundleSize,
+      requiredDoseLabel: "your starter dose",
+    });
+    return result.ok ? null : result.reason;
+  };
+
   const add = (penId: string) => {
     if (canAdd(penId)) commit([...penIds, penId]);
   };
@@ -3352,52 +3965,86 @@ const StarterBundlePicker: React.FC<{
   };
 
   const totalPens = penIds.length;
-  const bundleDiscount = totalPens >= 3 ? 0.1 : totalPens === 2 ? 0.05 : 0;
-  const subtotal = penIds.reduce(
+  const total = penIds.reduce(
     (s, id) => s + (PEN_OPTIONS.find((p) => p.id === id)?.pricePerPen ?? 0),
     0,
   );
-  const total = subtotal * (1 - bundleDiscount);
 
   return (
     <>
       <div
         className="mb-4 rounded-xl bg-primary/5 border border-primary/15 px-4 py-3 text-sm text-foreground/80"
-        data-testid="starter-bundle-note"
+        data-testid={`${testIdPrefix}-intro-note`}
       >
-        New starters begin at the lowest starter dose. You can buy up to {maxPens}{" "}
-        months in one order and build a titration bundle — but doses must step up
-        one strength at a time, so a higher strength only unlocks once the one
-        below it is in your bundle.
+        {introNote}
       </div>
 
-      <MedicineToggle value={medicine} onSelect={(m) => { if (m !== medicine) onMedChange(m); }} />
+      {gapNote && (
+        <div
+          className="mb-4 rounded-xl bg-primary/5 border border-primary/15 px-4 py-3 text-sm text-foreground/80"
+          data-testid={`${testIdPrefix}-gap-note`}
+        >
+          {gapNote}
+        </div>
+      )}
 
-      <p className="text-xs text-muted-foreground mb-3">
-        Choose 1–{maxPens} pens — each pen is a 4-week supply at the listed dose.
-      </p>
+      {recommendedNote && (
+        <div
+          className="mb-4 rounded-xl bg-[#D4EFE2]/60 border border-[#0E3D2D]/15 px-4 py-3 text-sm text-[#0E3D2D]"
+          data-testid={`${testIdPrefix}-recommended-note`}
+        >
+          {recommendedNote}
+        </div>
+      )}
+
+      {!lockMedicine && onMedChange && (
+        <MedicineToggle
+          value={medicine}
+          onSelect={(m) => {
+            if (m !== medicine) onMedChange(m);
+          }}
+        />
+      )}
+
+      <BundleSizeToggle
+        value={bundleSize}
+        onChange={selectBundleSize}
+        testIdPrefix={testIdPrefix}
+      />
 
       <div className="space-y-2.5">
-        {offeredPens.map(({ pen }, i) => {
+        {offeredPens.map(({ pen, mg }, i) => {
           const qty = qtyOf(pen.id);
-          const isEligible = i === 0;
+          const isStarterRequired = mode === "starter" && i === 0;
+          const isRecommended =
+            mode === "transfer" &&
+            recommendedDoseMg != null &&
+            Math.abs(mg - recommendedDoseMg) < 1e-9;
           const addDisabled = !canAdd(pen.id);
-          const lockedHint = addDisabled && qty === 0 && !isEligible && totalPens < maxPens;
+          const lockedHint =
+            addDisabled && qty === 0 && totalPens < bundleSize && totalPens > 0
+              ? addBlockReason(pen.id) ?? BUNDLE_LADDER_SKIP_MESSAGE
+              : null;
           return (
             <div
               key={pen.id}
               className={`rounded-2xl border p-4 transition-all ${
                 qty > 0 ? "border-[#0E3D2D] bg-[#F3F9F1]" : "border-stone-200 bg-white"
               }`}
-              data-testid={`bundle-strength-${pen.id}`}
+              data-testid={`${testIdPrefix}-strength-${pen.id}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-bold text-[#0E3D2D] flex items-center gap-2">
                     {pen.label}
-                    {isEligible && (
+                    {isStarterRequired && (
                       <span className="rounded-full bg-[#D4EFE2] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#0E3D2D]">
                         Your starter dose
+                      </span>
+                    )}
+                    {isRecommended && (
+                      <span className="rounded-full bg-[#D4EFE2] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#0E3D2D]">
+                        Recommended dose
                       </span>
                     )}
                   </p>
@@ -3416,14 +4063,14 @@ const StarterBundlePicker: React.FC<{
                 <div className="grid grid-cols-3 items-center gap-1 bg-[#D4EFE2] rounded-xl p-1 w-32">
                   <button type="button" onClick={() => remove(pen.id)} disabled={!canRemove(pen.id)}
                     className="h-9 rounded-lg bg-white text-[#0E3D2D] font-bold flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
-                    data-testid={`bundle-dec-${pen.id}`}
+                    data-testid={`${testIdPrefix}-dec-${pen.id}`}
                   >
                     <Minus className="w-4 h-4" />
                   </button>
-                  <span className="text-center font-bold text-[#0E3D2D] tabular-nums" data-testid={`bundle-qty-${pen.id}`}>{qty}</span>
+                  <span className="text-center font-bold text-[#0E3D2D] tabular-nums" data-testid={`${testIdPrefix}-qty-${pen.id}`}>{qty}</span>
                   <button type="button" onClick={() => add(pen.id)} disabled={addDisabled}
                     className="h-9 rounded-lg bg-white text-[#0E3D2D] font-bold flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
-                    data-testid={`bundle-inc-${pen.id}`}
+                    data-testid={`${testIdPrefix}-inc-${pen.id}`}
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -3431,8 +4078,8 @@ const StarterBundlePicker: React.FC<{
               </div>
 
               {lockedHint && (
-                <p className="mt-2 text-[11px] text-muted-foreground" data-testid={`bundle-locked-${pen.id}`}>
-                  Add {offeredPens[i - 1]?.pen.label} to your bundle first — strengths must be added in order.
+                <p className="mt-2 text-[11px] text-amber-900 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-2" data-testid={`${testIdPrefix}-locked-${pen.id}`}>
+                  {lockedHint}
                 </p>
               )}
             </div>
@@ -3440,19 +4087,39 @@ const StarterBundlePicker: React.FC<{
         })}
       </div>
 
+      {needsTitrationAck && (
+        <div
+          className="mt-4 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 space-y-3"
+          data-testid={`${testIdPrefix}-titration-ack`}
+        >
+          <p className="text-sm text-amber-950">{BUNDLE_TITRATION_ACK_LABEL}</p>
+          <CheckboxRow
+            checked={titrationAcknowledged}
+            onToggle={() => onTitrationAcknowledgedChange(!titrationAcknowledged)}
+            title="I understand and wish to continue with a higher dose in my bundle"
+          />
+        </div>
+      )}
+
+      {totalPens > 0 && totalPens < bundleSize && (
+        <p
+          className="mt-4 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5"
+          data-testid={`${testIdPrefix}-incomplete-bundle`}
+        >
+          Add {bundleSize - totalPens} more pen
+          {bundleSize - totalPens === 1 ? "" : "s"} to complete your {bundleSize}-month
+          bundle.
+        </p>
+      )}
+
       {totalPens > 0 && (
         <div className="mt-5 rounded-xl bg-secondary/5 border border-secondary/20 p-4 flex items-center justify-between">
           <div>
             <p className="text-xs text-muted-foreground">Plan total</p>
             <p className="text-2xl font-extrabold text-secondary">£{total.toFixed(2)}</p>
-            {bundleDiscount > 0 && (
-              <p className="text-xs text-emerald-600 font-semibold">
-                Includes {Math.round(bundleDiscount * 100)}% bundle saving
-              </p>
-            )}
           </div>
           <span className="text-xs text-muted-foreground">
-            {totalPens} / {maxPens} pens selected
+            {totalPens} / {bundleSize} pens selected
           </span>
         </div>
       )}
@@ -3463,66 +4130,47 @@ const StarterBundlePicker: React.FC<{
 const PlanSelector: React.FC<{
   value: FormState["selectedPlan"];
   onChange: (p: FormState["selectedPlan"]) => void;
+  bundleTitrationAcknowledged: boolean;
+  onBundleTitrationAcknowledgedChange: (v: boolean) => void;
   /** New starters: titration bundle starting at the eligible starter dose. */
   starterOnly?: boolean;
   /** Restart / gap-dosing restriction (transfer journey). */
   restriction?: PlanRestriction | null;
-}> = ({ value, onChange, starterOnly = false, restriction = null }) => {
-  // Restart restriction locks the medicine to the product being continued.
+}> = ({
+  value,
+  onChange,
+  bundleTitrationAcknowledged,
+  onBundleTitrationAcknowledgedChange,
+  starterOnly = false,
+  restriction = null,
+}) => {
   const lockedMed = restriction?.product ?? null;
-  const [tab, setTab] = useState<PlanType>("single");
   const [med, setMed] = useState<MedicineId>(lockedMed ?? "mounjaro");
-
-  const effectiveTab: PlanType = tab;
   const effectiveMed: MedicineId = lockedMed ?? med;
 
-  // Allowed pen ids for the current restriction (null = no restriction).
-  const allowedIds: Set<string> | null = restriction
-    ? new Set(restriction.allowedPenIds)
-    : null;
+  const catalogDosesMg = PEN_OPTIONS.filter((p) => p.medicine === effectiveMed)
+    .map((p) => penIdDoseMg(p.id) ?? 0)
+    .filter((d) => d > 0);
 
-  const pens = PEN_OPTIONS.filter(
-    (p) =>
-      p.medicine === effectiveMed && (allowedIds ? allowedIds.has(p.id) : true),
+  const starterOfferedDosesMg = offeredStarterDosesMg(
+    catalogDosesMg,
+    starterDoseFor(effectiveMed),
   );
-  const requiredCount =
-    effectiveTab === "single" ? 1 : effectiveTab === "two-pen" ? 2 : 3;
 
-  const availableTabs: [PlanType, string][] = [
-    ["single", "Single Pens"],
-    ["two-pen", "2-Pen Bundles"],
-    ["three-pen", "3-Pen Bundles"],
-  ];
+  const starterLadderMg = transferBundleLadderMg(
+    catalogDosesMg,
+    starterOfferedDosesMg,
+  );
 
-  const togglePen = (id: string) => {
-    const current =
-      value?.type === effectiveTab && value.medicine === effectiveMed
-        ? value.penIds
-        : [];
-    if (current.includes(id)) {
-      onChange({
-        type: effectiveTab,
-        medicine: effectiveMed,
-        penIds: current.filter((x) => x !== id),
-      });
-    } else if (current.length < requiredCount) {
-      onChange({
-        type: effectiveTab,
-        medicine: effectiveMed,
-        penIds: [...current, id],
-      });
-    }
-  };
-
-  const bundleDiscount =
-    effectiveTab === "two-pen" ? 0.05 : effectiveTab === "three-pen" ? 0.1 : 0;
-  const selectedPens =
-    value?.type === effectiveTab && value.medicine === effectiveMed
-      ? pens.filter((p) => value.penIds.includes(p.id))
+  const transferLadderMg =
+    restriction != null
+      ? transferBundleLadderMg(catalogDosesMg, catalogDosesMg)
       : [];
-  const total = selectedPens.reduce((s, p) => s + p.pricePerPen, 0) * (1 - bundleDiscount);
 
-  const restrictionNote = restriction?.note ?? null;
+  const starterDoseLabel = formatProductDose(
+    effectiveMed,
+    starterDoseFor(effectiveMed),
+  );
 
   return (
     <>
@@ -3553,98 +4201,56 @@ const PlanSelector: React.FC<{
         <p className="font-semibold text-[#0E3D2D] mb-3">Select your plan</p>
 
         {starterOnly ? (
-          <StarterBundlePicker
+          <TitrationBundlePicker
+            mode="starter"
             medicine={effectiveMed}
-            onMedChange={(m) => { setMed(m); onChange(null); }}
+            onMedChange={(m) => {
+              setMed(m);
+              onChange(null);
+              onBundleTitrationAcknowledgedChange(false);
+            }}
             value={value}
             onChange={onChange}
+            offeredDosesMg={starterOfferedDosesMg}
+            ladderDosesMg={starterLadderMg}
+            introNote={NEW_STARTER_BUNDLE_INTRO}
+            recommendedNote={
+              <>
+                {NEW_STARTER_BUNDLE_RECOMMENDED_NOTE} Your{" "}
+                <strong className="font-semibold">starter dose</strong> is{" "}
+                <RecommendedDoseHighlight doseLabel={starterDoseLabel} />.
+              </>
+            }
+            titrationAcknowledged={bundleTitrationAcknowledged}
+            onTitrationAcknowledgedChange={onBundleTitrationAcknowledgedChange}
+            testIdPrefix="starter-bundle"
           />
-        ) : (
-          <>
-            {restrictionNote && (
-              <div
-                className="mb-4 rounded-xl bg-primary/5 border border-primary/15 px-4 py-3 text-sm text-foreground/80"
-                data-testid="plan-restriction-note"
-              >
-                {restrictionNote}
-              </div>
-            )}
-
-            <div className="flex gap-1.5 p-1 bg-stone-100 rounded-xl mb-4">
-              {availableTabs.map(([id, label]) => (
-                <button
-                  key={id} type="button"
-                  onClick={() => { setTab(id); onChange(null); }}
-                  className={`flex-1 h-9 rounded-lg text-xs font-semibold transition-colors ${
-                    effectiveTab === id ? "bg-[#0E3D2D] text-white" : "text-stone-600 hover:text-[#0E3D2D]"
-                  }`}
-                  data-testid={`plan-tab-${id}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {!lockedMed && (
-              <MedicineToggle value={effectiveMed} onSelect={(m) => { setMed(m); onChange(null); }} />
-            )}
-
-            <p className="text-xs text-muted-foreground mb-3">
-              Select {requiredCount} pen{requiredCount > 1 ? "s" : ""} — each pen is a 4-week supply at the listed dose.
-            </p>
-
-            <div className="space-y-2.5">
-              {pens.map((p) => {
-                const selected = value?.type === effectiveTab && value.medicine === effectiveMed && value.penIds.includes(p.id);
-                const isRecommended = restriction?.recommendedPenId === p.id;
-                return (
-                  <button key={p.id} type="button"
-                    onClick={() => togglePen(p.id)}
-                    className={`w-full text-left rounded-2xl border p-4 transition-all ${
-                      selected ? "border-[#0E3D2D] bg-[#F3F9F1]" : "border-stone-200 bg-white hover:border-stone-400"
-                    }`}
-                    data-testid={`plan-pen-${p.id}`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-bold text-[#0E3D2D] flex items-center gap-2">
-                          {p.label}
-                          {isRecommended && (
-                            <span className="rounded-full bg-[#D4EFE2] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#0E3D2D]">
-                              Recommended
-                            </span>
-                          )}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{p.weeks}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-muted-foreground line-through">£{p.originalPerPen.toFixed(2)}</p>
-                        <p className="text-lg font-extrabold text-[#0E3D2D]">£{p.pricePerPen.toFixed(2)}</p>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {selectedPens.length > 0 && (
-              <div className="mt-5 rounded-xl bg-secondary/5 border border-secondary/20 p-4 flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Plan total</p>
-                  <p className="text-2xl font-extrabold text-secondary">£{total.toFixed(2)}</p>
-                  {bundleDiscount > 0 && (
-                    <p className="text-xs text-emerald-600 font-semibold">
-                      Includes {Math.round(bundleDiscount * 100)}% bundle saving
-                    </p>
-                  )}
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {selectedPens.length} / {requiredCount} pens selected
-                </span>
-              </div>
-            )}
-          </>
-        )}
+        ) : restriction?.recommendedDoseMg != null ? (
+          <TitrationBundlePicker
+            mode="transfer"
+            medicine={effectiveMed}
+            lockMedicine={Boolean(lockedMed)}
+            value={value}
+            onChange={onChange}
+            offeredDosesMg={[]}
+            ladderDosesMg={transferLadderMg}
+            recommendedDoseMg={restriction.recommendedDoseMg}
+            restartCategory={restriction.restartCategory}
+            introNote={TRANSFER_BUNDLE_INTRO}
+            recommendedNote={
+              <TransferRecommendedDoseNote
+                product={effectiveMed}
+                recommendedDoseMg={restriction.recommendedDoseMg}
+              />
+            }
+            gapNote={
+              <TransferGapNote category={restriction.restartCategory} />
+            }
+            titrationAcknowledged={bundleTitrationAcknowledged}
+            onTitrationAcknowledgedChange={onBundleTitrationAcknowledgedChange}
+            testIdPrefix="transfer-bundle"
+          />
+        ) : null}
       </SectionCard>
     </>
   );

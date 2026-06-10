@@ -49,7 +49,7 @@ export default function CookieBanner() {
             <div className="min-w-0">
               <h3 className="text-white font-semibold text-base mb-1">We value your privacy</h3>
               <p className="text-secondary-foreground/80 text-sm leading-relaxed">
-                We use essential cookies to keep PharmaCare secure, and optional analytics cookies to improve our service.
+                We use essential cookies to keep EveryDayMeds secure, and optional analytics cookies to improve our service.
                 See our{" "}
                 <Link href="/legal/cookies" className="text-primary hover:underline font-medium">
                   Cookie Policy

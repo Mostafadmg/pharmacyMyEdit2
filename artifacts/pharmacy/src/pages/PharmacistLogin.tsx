@@ -45,7 +45,7 @@ export default function PharmacistLogin() {
       >
         <ArrowLeft className="w-4 h-4" />
         <Home className="w-4 h-4" />
-        <span>Back to PharmaCare</span>
+        <span>Back to EveryDayMeds</span>
       </Link>
       <div className="w-full max-w-md">
         <div className="flex items-center gap-4 mb-10">

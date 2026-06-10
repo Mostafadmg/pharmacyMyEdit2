@@ -8,7 +8,7 @@ export default function PrivacyPolicy() {
       subtitle="How we collect, use, store, and protect your personal and health information."
     >
       <p>
-        PharmaCare Pharmacy Ltd ("we", "us", "our") is registered with the Information Commissioner's
+        EveryDayMeds Pharmacy Ltd ("we", "us", "our") is registered with the Information Commissioner's
         Office (ICO) as a data controller (registration <strong>ZA1234567</strong>). We process your
         personal data in line with the UK GDPR and the Data Protection Act 2018, and follow guidance
         issued by the General Pharmaceutical Council (GPhC).
@@ -73,7 +73,7 @@ export default function PrivacyPolicy() {
       <p>
         If you have any questions about how we use your data, or you wish to exercise any of your
         rights, please contact our DPO at{" "}
-        <a href="mailto:dpo@pharmacare.example.uk">dpo@pharmacare.example.uk</a> or write to the
+        <a href="mailto:dpo@everydaymeds.example.uk">dpo@everydaymeds.example.uk</a> or write to the
         registered pharmacy address shown in the footer of this site.
       </p>
     </LegalPage>

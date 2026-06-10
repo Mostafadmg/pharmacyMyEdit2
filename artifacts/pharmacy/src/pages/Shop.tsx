@@ -81,7 +81,7 @@ export default function Shop() {
   useSeo({
     title: "Pharmacy Shop · UK pharmacy products with free delivery",
     description:
-      "Shop UK pharmacy medicines, vitamins and skincare from PharmaCare. Free tracked next-day delivery on orders over £25, dispatched same-day from a GPhC-registered pharmacy.",
+      "Shop UK pharmacy medicines, vitamins and skincare from EveryDayMeds. Free tracked next-day delivery on orders over £25, dispatched same-day from a GPhC-registered pharmacy.",
     canonicalPath: "/shop",
   });
   const [products, setProducts] = useState<Product[] | null>(null);

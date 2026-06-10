@@ -1,6 +1,6 @@
-# PharmaCare Digital Pharmacy Platform
+# EveryDayMeds Digital Pharmacy Platform
 
-PharmaCare is a full-stack digital pharmacy system built as a `pnpm` monorepo. It includes a patient-facing pharmacy website, an Rx prescriber portal, a pharmacist mobile app, a shared Express API, and a PostgreSQL database schema powered by Drizzle ORM.
+EveryDayMeds is a full-stack digital pharmacy system built as a `pnpm` monorepo. It includes a patient-facing pharmacy website, an Rx prescriber portal, a pharmacist mobile app, a shared Express API, and a PostgreSQL database schema powered by Drizzle ORM.
 
 The project is designed for online consultations, prescription review workflows, patient messaging, document checks, order handling, and pharmacist-led clinical decisions.
 
@@ -293,7 +293,7 @@ Typical push flow:
 
 ```bash
 git add .
-git commit -m "Update PharmaCare app and documentation"
+git commit -m "Update EveryDayMeds app and documentation"
 git push origin main
 ```
 
@@ -306,4 +306,4 @@ git push pharmacyMyEdit main
 
 ## License
 
-This repository is currently private application code for the PharmaCare platform.
+This repository is currently private application code for the EveryDayMeds platform.

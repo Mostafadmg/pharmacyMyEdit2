@@ -340,7 +340,7 @@ export default function OrderConfirmation() {
             <CardContent className="p-5 flex items-center gap-3">
               <CheckCircle2 className="w-6 h-6 text-emerald-700 flex-shrink-0" />
               <div className="flex-1">
-                <p className="font-bold text-emerald-900">Welcome to PharmaCare!</p>
+                <p className="font-bold text-emerald-900">Welcome to EveryDayMeds!</p>
                 <p className="text-sm text-emerald-800">Your account is ready. Find this order anytime in Your Account.</p>
               </div>
               <Button onClick={() => navigate("/account")} className="rounded-full bg-emerald-700 hover:bg-emerald-800">Go to account</Button>

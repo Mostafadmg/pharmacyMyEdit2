@@ -315,7 +315,7 @@ export default function Checkout() {
                   ? (stripeEnabled ? "Redirecting to Stripe…" : "Placing order…")
                   : (stripeEnabled ? "Pay securely" : "Place order")}
               </Button>
-              <p className="text-xs text-muted-foreground text-center">Order processed by PharmaCare Pharmacy, GPhC 9011677</p>
+              <p className="text-xs text-muted-foreground text-center">Order processed by EveryDayMeds Pharmacy, GPhC 9011677</p>
             </CardContent>
           </Card>
         </form>

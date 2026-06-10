@@ -58,11 +58,21 @@ export function oralExcludingConditionsToAnswers(
         ? slice.diagnosedConditions.map((e) => ({
             catalogue_id: e.catalogueId ?? null,
             condition: e.condition.trim(),
-            ...(e.catalogueId === "cholecystectomy"
+            ...(e.catalogueId === "gallstones_gallbladder" ||
+            e.catalogueId === "cholecystectomy"
               ? {
-                  cholecystectomy_timing: e.howLongHad,
-                  cholecystectomy_timing_label:
-                    wlCholecystectomyTimingLabel(e.howLongHad) ?? e.howLongHad,
+                  had_cholecystectomy: e.hadCholecystectomy ?? null,
+                  ...(e.hadCholecystectomy === "yes"
+                    ? {
+                        cholecystectomy_timing: e.howLongHad,
+                        cholecystectomy_timing_label:
+                          wlCholecystectomyTimingLabel(e.howLongHad) ??
+                          e.howLongHad,
+                        ...(e.procedureDate?.trim()
+                          ? { procedure_date: e.procedureDate.trim() }
+                          : {}),
+                      }
+                    : {}),
                 }
               : {}),
           }))
@@ -71,6 +81,7 @@ export function oralExcludingConditionsToAnswers(
     weight_gain_hormonal_or_medical: conditionAnswer(
       "weight_gain_hormonal_or_medical",
     ),
+    gallstones_gallbladder: conditionAnswer("gallstones_gallbladder"),
     cholecystectomy: conditionAnswer("cholecystectomy"),
   };
 }

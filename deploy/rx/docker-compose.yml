@@ -1,4 +1,4 @@
-# PharmaCare Rx stack — API + PostgreSQL + prescriber portal
+# EveryDayMeds Rx stack — API + PostgreSQL + prescriber portal
 # Usage (from repo root):
 #   docker compose -f deploy/rx/docker-compose.yml up -d --build
 #   docker compose -f deploy/rx/docker-compose.yml run --rm db-init

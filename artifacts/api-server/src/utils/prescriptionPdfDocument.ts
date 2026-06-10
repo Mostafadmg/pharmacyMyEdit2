@@ -13,14 +13,14 @@ export const RX_BRAND = {
 } as const;
 
 export const PHARMACY_DETAILS = {
-  name: "PharmaCare Pharmacy Ltd",
+  name: "EveryDayMeds Pharmacy Ltd",
   tagline: "UK-registered pharmacy · GPhC independent prescribing",
   address: "14 Harley Street, London W1G 9PB, United Kingdom",
   phone: "0800 020 9090",
-  email: "care@pharmacare.example.uk",
+  email: "care@everydaymeds.example.uk",
   gphcPremises: "9012345",
   registeredOffice:
-    "PharmaCare Pharmacy Ltd, 14 Harley Street, London, United Kingdom, W1G 9PB",
+    "EveryDayMeds Pharmacy Ltd, 14 Harley Street, London, United Kingdom, W1G 9PB",
   defaultPrescriber: "Dr Aisha Patel MPharm IP",
   defaultPrescriberRole: "Pharmacist Independent Prescriber",
   defaultPrescriberGphc: "2098765",
@@ -240,7 +240,7 @@ function drawMedicationTable(
   return cy + 4;
 }
 
-/** Render a single-page private prescription PDF (PharmaCare brand). */
+/** Render a single-page private prescription PDF (EveryDayMeds brand). */
 export function renderPrescriptionPdf(
   doc: PDFDocument,
   row: ConsultationPrescriptionSource,
@@ -273,7 +273,7 @@ export function renderPrescriptionPdf(
     .fillColor(RX_BRAND.white)
     .font("Helvetica-Bold")
     .fontSize(20)
-    .text("PharmaCare", margin + 52, bandH / 2 - 18);
+    .text("EveryDayMeds", margin + 52, bandH / 2 - 18);
   doc
     .font("Helvetica")
     .fontSize(8.5)

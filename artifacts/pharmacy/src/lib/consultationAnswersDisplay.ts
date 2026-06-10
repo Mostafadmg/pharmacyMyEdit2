@@ -69,6 +69,8 @@ const FULL_QUESTION_LABELS: Record<string, string> = {
   other_health_conditions:
     "Do you have any previous or current health conditions?",
   oral_contraceptive: "Are you taking an oral contraceptive?",
+  glp1_ocp_counselling_acknowledged:
+    "Mounjaro / Wegovy contraception counselling — acknowledged",
   orlistat_ocp_counselling_acknowledged:
     "Orlistat and oral contraception — counselling acknowledged",
   weight_gain_hormonal_or_medical:
@@ -76,12 +78,12 @@ const FULL_QUESTION_LABELS: Record<string, string> = {
   cholecystectomy: "Have you had your gallbladder removed (cholecystectomy)?",
   clinical_team_notes: "Additional information for the clinical team",
   new_to_injectables:
-    "Are you new to using injectable weight loss medications?",
+    "Have you had weight loss medication in the past 6 months?",
   changing_from_provider: "Are you changing from a different provider?",
   last_injection_timing: "When was your last injection?",
   consent_agreement: "By proceeding, I confirm and agree to the following",
   gp_consent:
-    "I consent to PharmaCare contacting my GP and share information about my prescription.",
+    "I consent to EveryDayMeds contacting my GP and share information about my prescription.",
   weight_today: "What is your current weight today?",
   changes_since_last_order:
     "Since your last order, have there been any changes in your medical history?",

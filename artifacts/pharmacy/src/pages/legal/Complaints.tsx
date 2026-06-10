@@ -21,9 +21,9 @@ export default function Complaints() {
         Superintendent Pharmacist.
       </p>
       <p>
-        Alternatively, write to: <strong>The Superintendent Pharmacist, PharmaCare Pharmacy Ltd,
+        Alternatively, write to: <strong>The Superintendent Pharmacist, EveryDayMeds Pharmacy Ltd,
         14&nbsp;Harley Street, London W1G&nbsp;9PB</strong>, email{" "}
-        <a href="mailto:complaints@pharmacare.example.uk">complaints@pharmacare.example.uk</a>, or call
+        <a href="mailto:complaints@everydaymeds.example.uk">complaints@everydaymeds.example.uk</a>, or call
         0800&nbsp;020&nbsp;9090.
       </p>
 

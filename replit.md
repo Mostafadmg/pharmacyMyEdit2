@@ -1,8 +1,8 @@
-# PharmaCare Digital Pharmacy
+# EveryDayMeds Digital Pharmacy
 
 ## Overview
 
-PharmaCare is a full-stack UK digital pharmacy platform designed to provide online minor ailment consultations reviewed by pharmacist prescribers. It aims to meet clinical standards and GPhC compliance requirements, similar to established platforms like Pharmacy2U and MedExpress. The project encompasses a patient-facing platform for consultations and e-commerce, a pharmacist dashboard, and a mobile pharmacist app, alongside administrative functionalities. Key capabilities include condition-specific consultations, eligibility screening, patient-pharmacist messaging, order management, and prescription generation. The platform seeks to expand its catalogue of treatable conditions and integrate real-world delivery and payment solutions.
+EveryDayMeds is a full-stack UK digital pharmacy platform designed to provide online minor ailment consultations reviewed by pharmacist prescribers. It aims to meet clinical standards and GPhC compliance requirements, similar to established platforms like Pharmacy2U and MedExpress. The project encompasses a patient-facing platform for consultations and e-commerce, a pharmacist dashboard, and a mobile pharmacist app, alongside administrative functionalities. Key capabilities include condition-specific consultations, eligibility screening, patient-pharmacist messaging, order management, and prescription generation. The platform seeks to expand its catalogue of treatable conditions and integrate real-world delivery and payment solutions.
 
 ## User Preferences
 

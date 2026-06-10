@@ -43,7 +43,7 @@ type Delivery = {
   events: Array<{ ts: string; status: string; message: string }>;
 };
 
-const CARRIER_PRESETS = ["PharmaCare Express", "Royal Mail", "DPD", "Evri"];
+const CARRIER_PRESETS = ["EveryDayMeds Express", "Royal Mail", "DPD", "Evri"];
 
 const ORDER_STATUSES = ["pending_payment", "paid", "preparing", "shipped", "delivered", "cancelled", "refunded"];
 const DELIVERY_STAGES = ["preparing", "shipped", "out_for_delivery", "delivered"];

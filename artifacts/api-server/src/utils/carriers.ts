@@ -26,7 +26,7 @@ const CARRIERS: Record<CarrierKey, CarrierMeta> = {
   },
   pharmacare_express: {
     key: "pharmacare_express",
-    label: "PharmaCare Express",
+    label: "EveryDayMeds Express",
     // Internal courier — link the patient back to our own tracking timeline.
     // Falls back to the generic /my-orders page if we somehow lack an orderId.
     trackingUrl: (_t, orderId) =>

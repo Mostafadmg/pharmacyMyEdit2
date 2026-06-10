@@ -72,7 +72,7 @@ export function DispensingLabels() {
                     data-testid={`label-${i}`}
                   >
                     <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                      PharmaCare Pharmacy · GPhC 9011223
+                      EveryDayMeds Pharmacy · GPhC 9011223
                     </div>
                     <div className="font-semibold mt-1">
                       {it.name} {it.strength} {it.form}

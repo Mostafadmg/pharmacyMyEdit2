@@ -105,7 +105,7 @@ function buildEmailHtml(data: ConsultationEmailData): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PharmaCare — Consultation Update</title>
+  <title>EveryDayMeds — Consultation Update</title>
 </head>
 <body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background-color:#F0F4F8;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F0F4F8;padding:40px 20px;">
@@ -120,7 +120,7 @@ function buildEmailHtml(data: ConsultationEmailData): string {
                 <tr>
                   <td align="center">
                     <div style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:50%;width:56px;height:56px;line-height:56px;text-align:center;font-size:28px;margin-bottom:16px;">+</div>
-                    <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:800;letter-spacing:-0.5px;">PharmaCare</h1>
+                    <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:800;letter-spacing:-0.5px;">EveryDayMeds</h1>
                     <p style="margin:4px 0 0;color:rgba(255,255,255,0.75);font-size:13px;letter-spacing:1px;text-transform:uppercase;">Clinical Pharmacy Service</p>
                   </td>
                 </tr>
@@ -233,11 +233,11 @@ function buildEmailHtml(data: ConsultationEmailData): string {
               </div>
               <p style="margin:0 0 8px;font-size:13px;color:#718096;line-height:1.6;">
                 Registered with the General Pharmaceutical Council (GPhC) · Registration No. 1234567<br>
-                PharmaCare Ltd · 100 Harley Street · London · W1G 7JA
+                EveryDayMeds Ltd · 100 Harley Street · London · W1G 7JA
               </p>
               <p style="margin:16px 0 0;font-size:12px;color:#A0AEC0;">
                 This email was sent to you because you submitted a consultation request.<br>
-                <a href="${appUrl}/my-consultations" style="color:#0A7EA4;text-decoration:none;">Manage your account</a> · <a href="mailto:support@pharmacare.co.uk" style="color:#0A7EA4;text-decoration:none;">Contact support</a>
+                <a href="${appUrl}/my-consultations" style="color:#0A7EA4;text-decoration:none;">Manage your account</a> · <a href="mailto:support@everydaymeds.co.uk" style="color:#0A7EA4;text-decoration:none;">Contact support</a>
               </p>
             </td>
           </tr>
@@ -277,7 +277,7 @@ function buildDispatchHtml(d: DispatchEmailData): string {
   const internalUrl = `${appUrl}/order-confirmation/${d.orderId}`;
 
   return `<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><title>Your PharmaCare order is on its way</title></head>
+<html lang="en"><head><meta charset="UTF-8"><title>Your EveryDayMeds order is on its way</title></head>
 <body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#F0F4F8;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#F0F4F8;padding:40px 20px;"><tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
@@ -289,7 +289,7 @@ function buildDispatchHtml(d: DispatchEmailData): string {
   <tr><td style="background:#fff;padding:36px 48px;border-left:1px solid #E2E8F0;border-right:1px solid #E2E8F0;">
     <p style="margin:0 0 20px;font-size:16px;color:#1A202C;">Hi <strong>${d.patientName}</strong>,</p>
     <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#4A5568;">
-      Good news — your PharmaCare order has just been dispatched and is now with our delivery partner. You can track it in real time using the link below.
+      Good news — your EveryDayMeds order has just been dispatched and is now with our delivery partner. You can track it in real time using the link below.
     </p>
     <div style="background:#F7FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:20px;margin-bottom:24px;">
       <table width="100%" cellpadding="0" cellspacing="0">
@@ -312,10 +312,10 @@ function buildDispatchHtml(d: DispatchEmailData): string {
     </div>
   </td></tr>
   <tr><td style="background:#FFFBEB;border:1px solid #FDE68A;border-left:1px solid #E2E8F0;border-right:1px solid #E2E8F0;padding:18px 48px;font-size:13px;color:#92400E;line-height:1.6;">
-    <strong>Need help?</strong> Reply to this email or message your pharmacist via your PharmaCare account. For medical emergencies, call <strong>999</strong> or NHS 111.
+    <strong>Need help?</strong> Reply to this email or message your pharmacist via your EveryDayMeds account. For medical emergencies, call <strong>999</strong> or NHS 111.
   </td></tr>
   <tr><td style="background:#F7FAFC;border:1px solid #E2E8F0;border-top:0;border-radius:0 0 16px 16px;padding:24px 48px;text-align:center;font-size:12px;color:#718096;">
-    PharmaCare Ltd · Registered with the GPhC<br>
+    EveryDayMeds Ltd · Registered with the GPhC<br>
     <a href="${appUrl}/my-orders" style="color:#0A7EA4;">Manage your orders</a>
   </td></tr>
 </table></td></tr></table></body></html>`;
@@ -325,13 +325,13 @@ export async function sendDispatchEmail(d: DispatchEmailData): Promise<void> {
   const appUrl = process.env.APP_URL || "https://pharmacare.replit.app";
   const fullTrackingUrl = d.trackingUrl.startsWith("http") ? d.trackingUrl : `${appUrl}${d.trackingUrl}`;
   const html = buildDispatchHtml(d);
-  const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@pharmacare.co.uk";
-  const subject = `📦 Your PharmaCare order ${d.orderNumber} has been dispatched`;
-  const text = `Hi ${d.patientName},\n\nYour PharmaCare order ${d.orderNumber} has been dispatched.\n\nCarrier: ${d.carrier}\nTracking number: ${d.trackingNumber}\nTrack your delivery: ${fullTrackingUrl}\n\nOrder details (sign in to your portal): ${appUrl}/order-confirmation/${d.orderId}\n\nPharmaCare Team`;
+  const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@everydaymeds.co.uk";
+  const subject = `📦 Your EveryDayMeds order ${d.orderNumber} has been dispatched`;
+  const text = `Hi ${d.patientName},\n\nYour EveryDayMeds order ${d.orderNumber} has been dispatched.\n\nCarrier: ${d.carrier}\nTracking number: ${d.trackingNumber}\nTrack your delivery: ${fullTrackingUrl}\n\nOrder details (sign in to your portal): ${appUrl}/order-confirmation/${d.orderId}\n\nEveryDayMeds Team`;
 
   if (process.env.RESEND_API_KEY) {
     await sendViaResend({
-      from: `PharmaCare <${fromAddress}>`,
+      from: `EveryDayMeds <${fromAddress}>`,
       to: d.patientEmail,
       subject,
       html,
@@ -349,7 +349,7 @@ export async function sendDispatchEmail(d: DispatchEmailData): Promise<void> {
       auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
     });
     await transporter.sendMail({
-      from: `"PharmaCare" <${fromAddress}>`,
+      from: `"EveryDayMeds" <${fromAddress}>`,
       to: d.patientEmail,
       subject,
       html,
@@ -389,7 +389,7 @@ function buildDocumentReuploadHtml(d: DocumentReuploadEmailData): string {
 <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
   <tr><td style="background:linear-gradient(135deg,#0F3460,#0A7EA4);border-radius:16px 16px 0 0;padding:32px 40px;text-align:center;color:#fff;">
     <h1 style="margin:0;font-size:24px;font-weight:800;">New document needed</h1>
-    <p style="margin:8px 0 0;font-size:13px;opacity:0.85;">PharmaCare clinical review</p>
+    <p style="margin:8px 0 0;font-size:13px;opacity:0.85;">EveryDayMeds clinical review</p>
   </td></tr>
   <tr><td style="background:#FEF3C7;padding:20px 40px;border-left:1px solid #E2E8F0;border-right:1px solid #E2E8F0;text-align:center;">
     <p style="margin:0;font-size:15px;font-weight:600;color:#92400E;">We could not accept your <strong>${d.docTitle}</strong></p>
@@ -408,7 +408,7 @@ function buildDocumentReuploadHtml(d: DocumentReuploadEmailData): string {
     </p>
   </td></tr>
   <tr><td style="background:#F7FAFC;border:1px solid #E2E8F0;border-top:0;border-radius:0 0 16px 16px;padding:24px 40px;text-align:center;font-size:12px;color:#718096;">
-    Reference: ${d.consultationId.slice(0, 8).toUpperCase()} · PharmaCare
+    Reference: ${d.consultationId.slice(0, 8).toUpperCase()} · EveryDayMeds
   </td></tr>
 </table></td></tr></table></body></html>`;
 }
@@ -420,11 +420,11 @@ async function dispatchEmail(data: {
   text: string;
 }): Promise<boolean> {
   const fromAddress =
-    process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@pharmacare.co.uk";
+    process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@everydaymeds.co.uk";
 
   if (process.env.RESEND_API_KEY) {
     await sendViaResend({
-      from: `PharmaCare <${fromAddress}>`,
+      from: `EveryDayMeds <${fromAddress}>`,
       to: data.to,
       subject: data.subject,
       html: data.html,
@@ -441,7 +441,7 @@ async function dispatchEmail(data: {
       auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
     });
     await transporter.sendMail({
-      from: `"PharmaCare" <${fromAddress}>`,
+      from: `"EveryDayMeds" <${fromAddress}>`,
       to: data.to,
       subject: data.subject,
       html: data.html,
@@ -463,8 +463,8 @@ export async function sendDocumentReuploadEmail(
   const html = buildDocumentReuploadHtml(d);
   const subject =
     d.emailSubject?.trim() ||
-    `Action required: upload a new ${d.docTitle} — PharmaCare`;
-  const text = `Hi ${d.patientName},\n\nWe need a new ${d.docTitle} for your ${d.conditionName} order.\n\nUpload here: ${d.uploadUrl}\n\nOr message your pharmacist via My consultations.\n\nPharmaCare`;
+    `Action required: upload a new ${d.docTitle} — EveryDayMeds`;
+  const text = `Hi ${d.patientName},\n\nWe need a new ${d.docTitle} for your ${d.conditionName} order.\n\nUpload here: ${d.uploadUrl}\n\nOr message your pharmacist via My consultations.\n\nEveryDayMeds`;
 
   const sent = await dispatchEmail({
     to: d.patientEmail,
@@ -484,15 +484,15 @@ export async function sendConsultationOutcomeEmail(data: ConsultationEmailData):
   const { patientEmail, patientName, conditionName, status, consultationId } = data;
   const statusInfo = getStatusInfo(status);
   const html = buildEmailHtml(data);
-  const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@pharmacare.co.uk";
-  const subject = `${statusInfo.icon} Your PharmaCare consultation update — ${conditionName}`;
+  const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@everydaymeds.co.uk";
+  const subject = `${statusInfo.icon} Your EveryDayMeds consultation update — ${conditionName}`;
   const appUrlPlain = process.env.APP_URL || "https://pharmacare.replit.app";
-  const text = `Dear ${patientName},\n\nYour consultation for ${conditionName} has been ${statusInfo.label}.\n\n${data.pharmacistNote ? `Pharmacist note: ${data.pharmacistNote}\n\n` : ""}${data.prescription ? `Prescription: ${data.prescription}\n\nDownload your prescription PDF: ${appUrlPlain}/api/consultations/${consultationId}/prescription.pdf\n\n` : ""}${data.referralInfo ? `Referral: ${data.referralInfo}\n\n` : ""}Track your consultation at: ${appUrlPlain}/my-consultations\n\nPharmaCare Team\n\nIf this is a medical emergency, call 999. For urgent advice, call NHS 111.`;
+  const text = `Dear ${patientName},\n\nYour consultation for ${conditionName} has been ${statusInfo.label}.\n\n${data.pharmacistNote ? `Pharmacist note: ${data.pharmacistNote}\n\n` : ""}${data.prescription ? `Prescription: ${data.prescription}\n\nDownload your prescription PDF: ${appUrlPlain}/api/consultations/${consultationId}/prescription.pdf\n\n` : ""}${data.referralInfo ? `Referral: ${data.referralInfo}\n\n` : ""}Track your consultation at: ${appUrlPlain}/my-consultations\n\nEveryDayMeds Team\n\nIf this is a medical emergency, call 999. For urgent advice, call NHS 111.`;
 
   // Try Resend first (no SMTP setup required, free tier available)
   if (process.env.RESEND_API_KEY) {
     await sendViaResend({
-      from: `PharmaCare <${fromAddress}>`,
+      from: `EveryDayMeds <${fromAddress}>`,
       to: patientEmail,
       subject,
       html,
@@ -514,7 +514,7 @@ export async function sendConsultationOutcomeEmail(data: ConsultationEmailData):
       },
     });
     await transporter.sendMail({
-      from: `"PharmaCare" <${fromAddress}>`,
+      from: `"EveryDayMeds" <${fromAddress}>`,
       to: patientEmail,
       subject,
       html,

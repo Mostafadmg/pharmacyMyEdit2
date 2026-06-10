@@ -82,8 +82,8 @@ export default function Header() {
               <Plus className="w-6 h-6 text-white" strokeWidth={3} />
             </div>
             <span className="text-xl sm:text-2xl tracking-tight whitespace-nowrap">
-              <span className="font-extrabold text-secondary">Pharma</span>
-              <span className="font-semibold text-primary">Care</span>
+              <span className="font-extrabold text-secondary">EveryDay</span>
+              <span className="font-semibold text-primary">Meds</span>
             </span>
           </Link>
 

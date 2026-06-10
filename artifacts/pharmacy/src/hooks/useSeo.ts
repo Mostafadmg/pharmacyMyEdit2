@@ -9,9 +9,9 @@ type SeoOptions = {
   jsonLd?: Record<string, unknown> | Array<Record<string, unknown>>;
 };
 
-const SITE_NAME = "PharmaCare";
+const SITE_NAME = "EveryDayMeds";
 const DEFAULT_DESCRIPTION =
-  "PharmaCare is a UK-registered online pharmacy. Get private prescriptions and pharmacy products with free next-day delivery, reviewed by GPhC-registered pharmacist independent prescribers.";
+  "EveryDayMeds is a UK-registered online pharmacy. Get private prescriptions and pharmacy products with free next-day delivery, reviewed by GPhC-registered pharmacist independent prescribers.";
 
 const upsertMeta = (selector: string, attrs: Record<string, string>) => {
   let el = document.head.querySelector<HTMLMetaElement>(selector);

@@ -8,7 +8,7 @@ export default function Safeguarding() {
       subtitle="Protecting children, young people and adults at risk who use our service."
     >
       <p>
-        PharmaCare follows the multi-agency statutory guidance <em>Working Together to Safeguard
+        EveryDayMeds follows the multi-agency statutory guidance <em>Working Together to Safeguard
         Children</em> (DfE) and the Care Act 2014 in protecting adults at risk. All staff are trained
         to recognise and act on safeguarding concerns.
       </p>
@@ -38,7 +38,7 @@ export default function Safeguarding() {
       <h2>Raising a concern</h2>
       <p>
         Email{" "}
-        <a href="mailto:safeguarding@pharmacare.example.uk">safeguarding@pharmacare.example.uk</a>{" "}
+        <a href="mailto:safeguarding@everydaymeds.example.uk">safeguarding@everydaymeds.example.uk</a>{" "}
         — our Safeguarding Lead (the Superintendent Pharmacist) reviews all reports.
       </p>
     </LegalPage>

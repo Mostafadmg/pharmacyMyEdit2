@@ -86,7 +86,7 @@ export default function DataAndPrivacy() {
     <AccountSubPage
       parents={PARENTS}
       title="Data & privacy"
-      intro="Download a copy of your personal data, or close your PharmaCare account. We follow UK GDPR — your records are kept only as long as the law requires for safe prescribing."
+      intro="Download a copy of your personal data, or close your EveryDayMeds account. We follow UK GDPR — your records are kept only as long as the law requires for safe prescribing."
     >
       <div className="space-y-4 max-w-2xl">
         {/* Download */}

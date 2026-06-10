@@ -6,6 +6,10 @@
 export const WL_HIGH_RISK_GATE_QUESTION =
   "Are you currently taking any of the following medications?";
 
+/** Patient-facing intro on the medications screening step (injectable WL). */
+export const WL_MEDICATIONS_SCREENING_INTRO =
+  "For your safety, tell us if you take any of these medicines. Our prescribers use this information to decide if this medication is safe and suitable for you.";
+
 export const WL_HIGH_RISK_STOPPED_PAST_THREE_MONTHS_QUESTION =
   "Have you been on any of these medications and stopped them in the past three months?";
 

@@ -9,12 +9,12 @@ export default function Regulatory() {
     >
       <h2>Registered pharmacy</h2>
       <ul>
-        <li><strong>Pharmacy name:</strong> PharmaCare Pharmacy Ltd</li>
+        <li><strong>Pharmacy name:</strong> EveryDayMeds Pharmacy Ltd</li>
         <li><strong>Address (where medicines are prepared, assembled, dispensed and labelled):</strong> 14 Harley Street, London W1G 9PB, United Kingdom</li>
         <li><strong>Telephone:</strong> 0800 020 9090</li>
-        <li><strong>Email:</strong> care@pharmacare.example.uk</li>
+        <li><strong>Email:</strong> care@everydaymeds.example.uk</li>
         <li><strong>GPhC premises registration number:</strong> 9012345</li>
-        <li><strong>Owner:</strong> PharmaCare Pharmacy Ltd (Companies House: 01234567)</li>
+        <li><strong>Owner:</strong> EveryDayMeds Pharmacy Ltd (Companies House: 01234567)</li>
         <li><strong>Superintendent Pharmacist:</strong> Dr Aisha Patel MPharm IP — GPhC 2098765</li>
       </ul>
       <p>

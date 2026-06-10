@@ -156,7 +156,7 @@ export function RxLayout({ children }: { children: ReactNode }) {
           </div>
           <div className="leading-tight">
             <div className="font-serif font-semibold text-[15px] text-primary tracking-tight">
-              PharmaCare
+              EveryDayMeds
             </div>
             <div className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground -mt-0.5 font-semibold">
               Rx Portal
@@ -359,7 +359,7 @@ export function RxLayout({ children }: { children: ReactNode }) {
                 </div>
                 <div>
                   <div className="font-serif font-semibold text-[15px] text-primary">
-                    PharmaCare
+                    EveryDayMeds
                   </div>
                   <div className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground font-semibold">
                     Rx Portal

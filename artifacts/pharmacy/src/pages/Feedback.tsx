@@ -81,7 +81,7 @@ export default function Feedback() {
             <CardContent className="p-6 space-y-3 text-sm text-slate-700">
               <p className="flex items-start gap-2"><AlertCircle className="w-4 h-4 text-primary mt-0.5 shrink-0" /> You will receive an acknowledgement at <strong>{email}</strong> within 2 working days.</p>
               <p className="flex items-start gap-2"><ShieldCheck className="w-4 h-4 text-primary mt-0.5 shrink-0" /> Our Superintendent Pharmacist will lead the response and aim to reply fully within 20 working days.</p>
-              <p className="flex items-start gap-2"><MessageSquare className="w-4 h-4 text-primary mt-0.5 shrink-0" /> If you do not hear from us, please email <a href="mailto:complaints@pharmacare.example.uk" className="text-primary font-semibold">complaints@pharmacare.example.uk</a>.</p>
+              <p className="flex items-start gap-2"><MessageSquare className="w-4 h-4 text-primary mt-0.5 shrink-0" /> If you do not hear from us, please email <a href="mailto:complaints@everydaymeds.example.uk" className="text-primary font-semibold">complaints@everydaymeds.example.uk</a>.</p>
             </CardContent>
           </Card>
           <div className="mt-8">

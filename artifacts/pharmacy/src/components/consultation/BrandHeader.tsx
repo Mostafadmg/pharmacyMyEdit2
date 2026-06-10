@@ -15,7 +15,7 @@ export function BrandHeader({ showLogo = true, className }: BrandHeaderProps) {
         </div>
       )}
       <h1 className="font-serif text-2xl font-semibold text-primary tracking-tight">
-        PharmaCare
+        EveryDayMeds
       </h1>
       <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
         Everyday care. Expertly delivered.

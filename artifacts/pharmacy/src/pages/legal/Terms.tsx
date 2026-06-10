@@ -9,7 +9,7 @@ export default function Terms() {
     >
       <h2>1. Who we are</h2>
       <p>
-        PharmaCare Pharmacy Ltd is a pharmacy registered with the General Pharmaceutical Council (GPhC)
+        EveryDayMeds Pharmacy Ltd is a pharmacy registered with the General Pharmaceutical Council (GPhC)
         — premises registration number <strong>9012345</strong>. Our Superintendent Pharmacist is
         Dr Aisha Patel MPharm IP (GPhC 2098765).
       </p>

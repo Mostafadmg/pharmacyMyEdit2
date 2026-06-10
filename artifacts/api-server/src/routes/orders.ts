@@ -216,7 +216,7 @@ router.post("/orders", async (req, res): Promise<void> => {
 
   // Create delivery
   const trackingNumber = generateTrackingNumber();
-  const carrier = "PharmaCare Express";
+  const carrier = "EveryDayMeds Express";
   const eta = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
   await db.insert(deliveriesTable).values({
     id: randomUUID(),
