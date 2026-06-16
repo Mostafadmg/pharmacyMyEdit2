@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import PromoBanner from "@/components/PromoBanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,9 +16,9 @@ const CONTACT_DETAILS = [
   {
     icon: <Phone className="w-5 h-5" />,
     label: "Telephone",
-    value: "0800 123 4567",
-    sub: "Mon–Fri 8am–8pm, Sat 9am–5pm",
-    href: "tel:08001234567",
+    value: "0333 2070 413",
+    sub: "Mon–Fri 9am–5pm (closed Fri 12:30–2:30pm)",
+    href: "tel:03332070413",
     color: "text-blue-600",
     bg: "bg-blue-50",
   },
@@ -105,6 +106,7 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans">
+      <PromoBanner />
       <Header />
 
       {/* Hero */}

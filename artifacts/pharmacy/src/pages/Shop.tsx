@@ -25,6 +25,12 @@ import { apiFetch } from "@/lib/api";
 import { useCart, formatGbp } from "@/hooks/useCart";
 import WishlistButton from "@/components/WishlistButton";
 import ShopCategoryBar from "@/components/ShopCategoryBar";
+import PromoBanner from "@/components/PromoBanner";
+import CategoryCardGrid from "@/components/marketing/CategoryCardGrid";
+import GphcTrustSection from "@/components/marketing/GphcTrustSection";
+import HowItWorksSection from "@/components/marketing/HowItWorksSection";
+import HomeFAQ from "@/components/HomeFAQ";
+import { SHOP_CATEGORY_CARDS } from "@/data/everydaymedsSite";
 import { useSeo } from "@/hooks/useSeo";
 
 type Product = {
@@ -229,39 +235,48 @@ export default function Shop() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF7F2]">
+      <PromoBanner />
       <Header />
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-[#0E3D2D] to-[#0E5A52] text-white py-16">
-        <div className="max-w-7xl mx-auto px-6">
+      <section className="border-b border-border/50 bg-gradient-to-b from-white to-muted/20 py-14">
+        <div className="max-w-7xl mx-auto px-6 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-3xl"
+            className="max-w-3xl mx-auto"
           >
-            <Badge className="bg-white/20 text-white border-0 mb-4">
-              UK Registered Pharmacy · GPhC 9011677
-            </Badge>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Pharmacy Shop
+            <h1 className="text-3xl md:text-5xl font-serif font-bold text-secondary mb-4">
+              How can we assist you today?
             </h1>
-            <p className="text-lg text-white/90 mb-6">
-              Trusted UK pharmacy products, dispatched same-day from our
-              Manchester pharmacy. Free standard delivery on orders over £25.
+            <p className="text-lg text-muted-foreground mb-8">
+              Discover all your healthcare essentials, conveniently organised into categories for easy browsing and shopping.
             </p>
-            <div className="relative max-w-xl">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#0E3D2D]" />
+            <div className="relative max-w-xl mx-auto">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 placeholder="Search paracetamol, hayfever, vitamins..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-12 h-14 rounded-full bg-white text-foreground border-0 shadow-lg focus-visible:ring-2 focus-visible:ring-white/50 placeholder:text-muted-foreground"
+                className="pl-12 h-14 rounded-full bg-white text-foreground border border-border shadow-sm focus-visible:ring-2 focus-visible:ring-primary/20 placeholder:text-muted-foreground"
                 data-testid="input-shop-search"
               />
             </div>
           </motion.div>
         </div>
       </section>
+
+      {activeCategory === "all" && !search.trim() ? (
+        <section className="bg-white py-12 border-b border-border/40">
+          <div className="max-w-7xl mx-auto px-6">
+            <CategoryCardGrid
+              items={SHOP_CATEGORY_CARDS}
+              columns={3}
+              testIdPrefix="shop-category"
+            />
+          </div>
+        </section>
+      ) : null}
 
       {/* Trust strip */}
       <section className="bg-white border-b border-border/40">
@@ -503,6 +518,14 @@ export default function Shop() {
           )}
         </div>
       </div>
+
+      {activeCategory === "all" && !search.trim() ? (
+        <>
+          <GphcTrustSection />
+          <HowItWorksSection />
+          <HomeFAQ variant="live" />
+        </>
+      ) : null}
 
       <Footer />
     </div>

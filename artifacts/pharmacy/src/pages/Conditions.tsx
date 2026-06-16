@@ -34,6 +34,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import PromoBanner from "@/components/PromoBanner";
+import CategoryCardGrid from "@/components/marketing/CategoryCardGrid";
+import { CLINIC_CATEGORY_CARDS } from "@/data/everydaymedsSite";
 
 const categoryStyles: Record<string, { bg: string; text: string; border: string; icon: React.ElementType }> = {
   skin: { bg: "bg-[#FF6B6B]/10", text: "text-[#FF6B6B]", border: "border-[#FF6B6B]", icon: Droplets },
@@ -110,6 +113,7 @@ export default function Conditions() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-sans">
+      <PromoBanner />
       <Header />
       
       <main className="flex-1 w-full">
@@ -124,7 +128,7 @@ export default function Conditions() {
               animate={{ opacity: 1, y: 0 }}
               className="text-4xl md:text-6xl font-serif font-bold mb-6 tracking-tight"
             >
-              Treatments & Conditions
+              Let&apos;s find the right treatment for you
             </motion.h1>
             <motion.p 
               initial={{ opacity: 0, y: 20 }}
@@ -132,7 +136,7 @@ export default function Conditions() {
               transition={{ delay: 0.1 }}
               className="text-lg md:text-xl text-primary-foreground/90 max-w-2xl mx-auto mb-10 leading-relaxed"
             >
-              Browse our range of treatments. Our UK-qualified pharmacists can prescribe medication for over 25 conditions.
+              Choose an option or search what you&apos;re looking for below.
             </motion.p>
             
             <motion.div 
@@ -157,6 +161,15 @@ export default function Conditions() {
         </section>
 
         <div className="max-w-7xl mx-auto px-6 py-12">
+          <div className="mb-12">
+            <CategoryCardGrid
+              items={CLINIC_CATEGORY_CARDS}
+              columns={3}
+              showDescription
+              testIdPrefix="clinic-category"
+            />
+          </div>
+
           {/* Category filter dropdown */}
           {!isLoading && categories.length > 0 && (
             <div className="mb-8 max-w-xs sm:max-w-sm">

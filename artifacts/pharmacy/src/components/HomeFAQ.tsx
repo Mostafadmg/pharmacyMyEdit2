@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { LIVE_SITE_FAQS } from "@/data/everydaymedsSite";
 
-const faqs = [
+const defaultFaqs = [
   {
     q: "Is EveryDayMeds a real UK pharmacy?",
     a: "Yes. EveryDayMeds Pharmacy Ltd is registered with the General Pharmaceutical Council (GPhC Premises Reg 9012345). Our Superintendent Pharmacist is Dr Aisha Patel MPharm IP. You can verify us on the official GPhC register at any time.",
@@ -36,21 +37,33 @@ const faqs = [
   },
 ];
 
-export default function HomeFAQ() {
+type HomeFAQProps = {
+  variant?: "default" | "live";
+};
+
+export default function HomeFAQ({ variant = "default" }: HomeFAQProps) {
+  const faqs = variant === "live" ? [...LIVE_SITE_FAQS] : defaultFaqs;
   const [open, setOpen] = useState<number | null>(0);
+  const isLive = variant === "live";
 
   return (
-    <section className="py-24 bg-white" data-testid="home-faq">
+    <section className="py-16 bg-muted/20" data-testid="home-faq">
       <div className="max-w-4xl mx-auto px-6">
-        <div className="text-center mb-12">
-          <span className="inline-block text-xs font-bold uppercase tracking-[0.2em] text-primary bg-primary/10 px-3 py-1.5 rounded-full mb-4">
-            Frequently asked
-          </span>
-          <h2 className="text-4xl md:text-5xl font-serif font-bold text-secondary mb-4">
-            The things people <em className="text-primary italic">really</em> want to know
+        <div className="text-center mb-10">
+          {!isLive ? (
+            <span className="inline-block text-xs font-bold uppercase tracking-[0.2em] text-primary bg-primary/10 px-3 py-1.5 rounded-full mb-4">
+              Frequently asked
+            </span>
+          ) : null}
+          <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-3">
+            {isLive ? "FAQs" : (
+              <>The things people <em className="text-primary italic">really</em> want to know</>
+            )}
           </h2>
           <p className="text-muted-foreground">
-            Can't find what you're looking for? <a href="/contact" className="text-primary font-semibold hover:underline">Talk to our team</a>.
+            {isLive
+              ? "Everything you need to know about the product and billing."
+              : <>Can't find what you're looking for? <a href="/contact" className="text-primary font-semibold hover:underline">Talk to our team</a>.</>}
           </p>
         </div>
 
@@ -59,7 +72,7 @@ export default function HomeFAQ() {
             const isOpen = open === i;
             return (
               <div
-                key={i}
+                key={f.q}
                 className={`border border-border rounded-2xl overflow-hidden bg-white transition-shadow ${
                   isOpen ? "shadow-md" : ""
                 }`}
@@ -70,7 +83,7 @@ export default function HomeFAQ() {
                   className="w-full px-6 py-5 flex items-center justify-between gap-4 text-left hover:bg-muted/30 transition-colors"
                   data-testid={`faq-toggle-${i}`}
                 >
-                  <span className="font-semibold text-secondary text-lg">{f.q}</span>
+                  <span className="font-semibold text-secondary text-base md:text-lg">{f.q}</span>
                   <ChevronDown
                     className={`w-5 h-5 text-muted-foreground shrink-0 transition-transform ${
                       isOpen ? "rotate-180 text-primary" : ""
