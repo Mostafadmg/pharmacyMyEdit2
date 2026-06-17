@@ -96,12 +96,12 @@ export default function LiveHelpFAB() {
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-label={open ? "Close help" : "Open help"}
-        className="fixed z-[60] bottom-5 right-4 sm:right-6 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-2xl shadow-primary/30 flex items-center justify-center hover:bg-primary/90 transition-all hover:scale-105 active:scale-95"
+        className="fixed z-[60] bottom-5 right-4 sm:right-6 w-14 h-14 rounded-full bg-[#314a40] text-white shadow-2xl flex items-center justify-center hover:bg-[#2a4038] transition-all hover:scale-105 active:scale-95"
         data-testid="live-help-fab"
       >
         {open ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
         {!open && (
-          <span className="absolute top-0 right-0 w-3.5 h-3.5 rounded-full bg-accent border-2 border-white animate-pulse" />
+          <span className="absolute top-0 right-0 w-3.5 h-3.5 rounded-full bg-[#b8dcc8] border-2 border-white" />
         )}
       </button>
     </>

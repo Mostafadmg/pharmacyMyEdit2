@@ -17,4 +17,5 @@ export const ConsultationStatus = {
   referred: "referred",
   red_flag: "red_flag",
   patient_responded: "patient_responded",
+  cancelled: "cancelled",
 } as const;

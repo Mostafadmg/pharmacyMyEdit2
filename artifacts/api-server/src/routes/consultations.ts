@@ -503,6 +503,7 @@ router.post(
       referRecipientType,
       referRecipientName,
       referUrgency,
+      rxClinicalCheckComplete,
     } = parsed.data;
 
     // Build a human-readable prescription string from structured items if provided.
@@ -669,6 +670,11 @@ router.post(
     // Atomic write: status + audit + chat message + notification all succeed together,
     // or none of them apply.
     let updated: typeof consultationsTable.$inferSelect | undefined;
+    const rxChecked =
+      action === "approve" && rxClinicalCheckComplete === true;
+    const initialPmrStatus =
+      action === "approve" ? (rxChecked ? "pick" : "inbox") : undefined;
+    const pmrNow = action === "approve" ? new Date() : undefined;
     try {
       updated = await db.transaction(async (tx) => {
         const [row] = await tx
@@ -681,6 +687,17 @@ router.post(
             referralInfo: composedReferralInfo,
             reviewedAt: new Date(),
             reviewedBy: req.authActor?.name ?? null,
+            ...(action === "approve"
+              ? {
+                  rxClinicalCheckComplete: rxChecked,
+                  rxClinicalCheckAt: rxChecked ? pmrNow : null,
+                  rxClinicalCheckBy: rxChecked
+                    ? (req.authActor?.name ?? null)
+                    : null,
+                  pmrWorkflowStatus: initialPmrStatus,
+                  pmrWorkflowUpdatedAt: pmrNow,
+                }
+              : {}),
           })
           .where(eq(consultationsTable.id, params.data.id))
           .returning();

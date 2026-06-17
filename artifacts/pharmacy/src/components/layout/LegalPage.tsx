@@ -1,7 +1,5 @@
 import React from "react";
-import Header from "./Header";
-import Footer from "./Footer";
-import { ShieldCheck } from "lucide-react";
+import SiteLayout from "@/components/layout/SiteLayout";
 
 interface LegalPageProps {
   title: string;
@@ -10,36 +8,19 @@ interface LegalPageProps {
   children: React.ReactNode;
 }
 
-export default function LegalPage({ title, subtitle, lastUpdated = "April 2026", children }: LegalPageProps) {
+export default function LegalPage({ title, subtitle, lastUpdated = "May 2025", children }: LegalPageProps) {
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans">
-      <Header />
+    <SiteLayout className="min-h-screen flex flex-col bg-white edm-site">
       <main className="flex-1">
-        {/* Hero */}
-        <div className="bg-gradient-to-br from-secondary to-secondary/80 text-white py-16 px-6">
-          <div className="max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full text-sm font-semibold mb-4 backdrop-blur-sm">
-              <ShieldCheck className="w-4 h-4" /> GPhC-aligned policy
-            </div>
-            <h1 className="text-4xl md:text-5xl font-serif font-bold mb-3">{title}</h1>
-            {subtitle && <p className="text-lg text-white/80 max-w-2xl">{subtitle}</p>}
-            <p className="text-sm text-white/60 mt-6">Last updated: {lastUpdated}</p>
-          </div>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
+          <h1 className="text-3xl sm:text-4xl font-bold text-[#314a40] mb-2">{title}</h1>
+          {subtitle ? <p className="text-gray-600 mb-2">{subtitle}</p> : null}
+          <p className="text-xs text-gray-400 mb-8">Last updated: {lastUpdated}</p>
+          <article className="space-y-6 text-[15px] leading-relaxed text-gray-700 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-[#314a40] [&_h2]:mt-8 [&_h2]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-2 [&_a]:text-[#314a40] [&_a]:underline">
+            {children}
+          </article>
         </div>
-
-        {/* Content */}
-        <article className="max-w-4xl mx-auto py-14 px-6 prose prose-slate max-w-none
-          prose-headings:font-serif prose-headings:text-secondary
-          prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-5 prose-h2:font-bold
-          prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3 prose-h3:font-bold
-          prose-p:text-slate-700 prose-p:leading-relaxed prose-p:text-base
-          prose-li:text-slate-700 prose-li:leading-relaxed
-          prose-a:text-primary prose-a:font-semibold prose-a:no-underline hover:prose-a:underline
-          prose-strong:text-secondary prose-strong:font-bold">
-          {children}
-        </article>
       </main>
-      <Footer />
-    </div>
+    </SiteLayout>
   );
 }

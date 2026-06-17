@@ -26,6 +26,8 @@ import auditLogRouter from "./audit-log";
 import pharmacistSettingsRouter from "./pharmacist-settings";
 import gpPracticesRouter from "./gp-practices";
 import postcodesRouter from "./postcodes";
+import pmrScanRouter from "./pmr-scan";
+import pmrWorkflowRouter from "./pmr-workflow";
 
 const router: IRouter = Router();
 
@@ -56,5 +58,7 @@ router.use(auditLogRouter);
 router.use(pharmacistSettingsRouter);
 router.use(gpPracticesRouter);
 router.use(postcodesRouter);
+router.use(pmrScanRouter);
+router.use(pmrWorkflowRouter);
 
 export default router;

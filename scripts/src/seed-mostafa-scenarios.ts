@@ -61,6 +61,8 @@ type OrderStatus =
 
 type CustomerType = "new_start" | "transfer" | "simple_repeat";
 
+type PmrBoardStatus = "inbox" | "pick" | "parked" | "dispatched";
+
 type ScenarioOrder = {
   id: string;
   daysAgo: number;
@@ -76,7 +78,37 @@ type ScenarioOrder = {
   dispatched?: boolean;
   docMode: "all_verified" | "rejected_scale" | "uploaded_pending_review";
   previousProvider?: string;
+  /** PMR board column for approved Rx (defaults: dispatched if flagged, else inbox) */
+  pmrStatus?: PmrBoardStatus;
 };
+
+const MOSTAFA_DELIVERY = {
+  deliveryAddress: "109 Coleman Road, Leicester LE5 4LE",
+  preferredDeliveryMethod: "tracked_48",
+  gpName: "Dr Sarah Mitchell",
+  gpSurgery: "Leicester City Health Centre",
+  gpAddress: "12 Granby Street, Leicester LE1 6FD",
+  gpPhone: "0116 123 4567",
+  consentShareWithGp: true,
+  identityVerificationMethod: "video",
+  identityVerificationRef: "IDV-MOSTAFA",
+  clinicalDecisionRationale:
+    "Approved following clinical review in Rx portal.",
+} as const;
+
+function consultationNumber(createdAt: Date, seq: number): string {
+  const y = createdAt.getFullYear();
+  const m = String(createdAt.getMonth() + 1).padStart(2, "0");
+  const d = String(createdAt.getDate()).padStart(2, "0");
+  return `CON-${y}${m}${d}-${String(seq).padStart(4, "0")}`;
+}
+
+function resolvePmrStatus(order: ScenarioOrder): PmrBoardStatus | null {
+  if (order.status !== "approved") return null;
+  if (order.pmrStatus) return order.pmrStatus;
+  if (order.dispatched) return "dispatched";
+  return "inbox";
+}
 
 const DEMO_DOC = (label: string) =>
   `data:image/svg+xml,${encodeURIComponent(
@@ -206,6 +238,7 @@ const ORDERS: ScenarioOrder[] = [
     customerType: "new_start",
     weightKg: 100,
     docMode: "all_verified",
+    pmrStatus: "dispatched",
   },
   {
     id: `${ID_PREFIX}wt-loss-current`,
@@ -229,6 +262,7 @@ const ORDERS: ScenarioOrder[] = [
     customerType: "simple_repeat",
     weightKg: 90,
     docMode: "all_verified",
+    pmrStatus: "dispatched",
   },
   {
     id: `${ID_PREFIX}wt-gain-current`,
@@ -251,6 +285,7 @@ const ORDERS: ScenarioOrder[] = [
     customerType: "simple_repeat",
     weightKg: 94,
     docMode: "all_verified",
+    pmrStatus: "dispatched",
   },
   {
     id: `${ID_PREFIX}transfer-current`,
@@ -362,7 +397,8 @@ const ORDERS: ScenarioOrder[] = [
   },
   {
     id: `${ID_PREFIX}clinical-check`,
-    daysAgo: 14,
+    daysAgo: 1,
+    hoursAgo: 10,
     dose: "5mg",
     med: "Mounjaro",
     status: "approved",
@@ -370,6 +406,34 @@ const ORDERS: ScenarioOrder[] = [
     previousId: `${ID_PREFIX}transfer-prior`,
     weightKg: 89,
     docMode: "all_verified",
+    pmrStatus: "inbox",
+    pharmacistNote: "Repeat supply — counsel on injection site rotation.",
+  },
+  {
+    id: `${ID_PREFIX}inbox-today`,
+    daysAgo: 0,
+    hoursAgo: 3,
+    dose: "7.5mg",
+    med: "Mounjaro",
+    status: "approved",
+    customerType: "simple_repeat",
+    previousId: `${ID_PREFIX}wt-loss-prior`,
+    weightKg: 86,
+    docMode: "all_verified",
+    pmrStatus: "inbox",
+  },
+  {
+    id: `${ID_PREFIX}inbox-wegovy`,
+    daysAgo: 0,
+    hoursAgo: 8,
+    dose: "0.5mg",
+    med: "Wegovy",
+    status: "approved",
+    customerType: "new_start",
+    weightKg: 94,
+    docMode: "all_verified",
+    pmrStatus: "inbox",
+    pharmacistNote: "First Wegovy supply — starter counselling completed in Rx.",
   },
   {
     id: `${ID_PREFIX}urgent-dispatch`,
@@ -381,6 +445,7 @@ const ORDERS: ScenarioOrder[] = [
     weightKg: 98,
     dispatched: true,
     docMode: "all_verified",
+    pmrStatus: "dispatched",
   },
   {
     id: `${ID_PREFIX}more-info-docs`,
@@ -454,7 +519,7 @@ async function ensureMostafaAccount() {
   console.log(`Created patient account: ${email} (password: ${PASSWORD})`);
 }
 
-async function seedOrder(order: ScenarioOrder, repeatIndex: number) {
+async function seedOrder(order: ScenarioOrder, repeatIndex: number, seq: number) {
   const cond =
     order.med === "Wegovy" ? CONDITION_WEGOVY : CONDITION_MOUNJARO;
   const createdAt = ts(order.daysAgo, order.hoursAgo ?? 0);
@@ -468,9 +533,13 @@ async function seedOrder(order: ScenarioOrder, repeatIndex: number) {
   const dispatchedAt = order.dispatched
     ? new Date(createdAt.getTime() + 48 * 60 * 60 * 1000)
     : null;
+  const pmrStatus = resolvePmrStatus(order);
+  const pmrUpdatedAt = pmrStatus ? reviewedAt ?? createdAt : null;
+  const isApproved = order.status === "approved";
 
   await db.insert(consultationsTable).values({
     id: order.id,
+    consultationNumber: isApproved ? consultationNumber(createdAt, seq) : null,
     patientName: PATIENT_NAME,
     patientEmail: PATIENT_EMAIL.toLowerCase(),
     patientAge: PATIENT_AGE,
@@ -495,11 +564,11 @@ async function seedOrder(order: ScenarioOrder, repeatIndex: number) {
     photoUrls: docs.photoUrls as string[],
     pharmacistNote: order.pharmacistNote ?? null,
     prescription:
-      order.status === "approved"
+      isApproved
         ? `${order.med} ${order.dose} — once weekly for 4 weeks`
         : null,
     prescriptionItems:
-      order.status === "approved"
+      isApproved
         ? prescriptionItems(order.med, order.dose)
         : [],
     allergies: "None known",
@@ -515,6 +584,10 @@ async function seedOrder(order: ScenarioOrder, repeatIndex: number) {
     consentToDelivery: true,
     consentDataProcessing: true,
     hasRegularGp: true,
+    ...MOSTAFA_DELIVERY,
+    rxClinicalCheckComplete: false,
+    pmrWorkflowStatus: pmrStatus,
+    pmrWorkflowUpdatedAt: pmrUpdatedAt,
     dispatchedAt,
     deliveryCarrier: order.dispatched ? "royal_mail" : null,
     deliveryTrackingNumber: order.dispatched ? "RM987654321GB" : null,
@@ -541,11 +614,17 @@ async function main() {
   await ensureMostafaAccount();
 
   let repeatIndex = 0;
+  let consultSeq = 1;
   for (const order of ORDERS) {
     if (order.customerType === "new_start" && !order.previousId) repeatIndex = 0;
     else if (order.previousId) repeatIndex += 1;
-    await seedOrder(order, repeatIndex);
+    await seedOrder(order, repeatIndex, consultSeq);
+    if (order.status === "approved") consultSeq += 1;
   }
+
+  const inboxIds = ORDERS.filter(
+    (o) => o.status === "approved" && resolvePmrStatus(o) === "inbox",
+  ).map((o) => o.id);
 
   const count = await db
     .select({ id: consultationsTable.id })
@@ -557,6 +636,10 @@ async function main() {
   );
   console.log("Rx portal queue: filter by patient email or open Orders tab.");
   console.log(`Patient portal login: ${PATIENT_EMAIL} / ${PASSWORD}`);
+  console.log("\nPMR inbox (approved, pmrWorkflowStatus=inbox):");
+  for (const id of inboxIds) {
+    console.log(`  • ${id}`);
+  }
   console.log("\nScenario IDs:");
   for (const o of ORDERS) {
     console.log(`  • ${o.id} — ${o.med} ${o.dose} (${o.status})`);

@@ -1,36 +1,43 @@
-import React, { useState } from "react";
-import { Copy, Check } from "lucide-react";
-import { PROMO_COPY } from "@/data/everydaymedsSite";
-import { toast } from "sonner";
-
-export default function PromoBanner() {
-  const [copied, setCopied] = useState(false);
-
-  const copyCode = async () => {
-    try {
-      await navigator.clipboard.writeText(PROMO_COPY.couponCode);
-      setCopied(true);
-      toast.success("Coupon code copied!");
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("Could not copy code");
-    }
-  };
-
-  return (
-    <div className="bg-primary text-primary-foreground text-center text-sm sm:text-base py-2.5 px-4">
-      <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-        <span className="font-medium">{PROMO_COPY.headline}</span>
-        <button
-          type="button"
-          onClick={copyCode}
-          className="inline-flex items-center gap-1.5 rounded-full bg-white/15 hover:bg-white/25 px-3 py-1 text-xs sm:text-sm font-semibold transition-colors"
-          data-testid="btn-copy-promo-code"
-        >
-          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-          Code: {PROMO_COPY.couponCode}
-        </button>
-      </div>
-    </div>
-  );
-}
+import React from "react";
+import { Link } from "wouter";
+import { Copy } from "lucide-react";
+import { PROMO_COPY } from "@/data/everydaymedsSite";
+import { toast } from "sonner";
+
+function CouponBox({ code, label }: { code: string; label: string }) {
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      toast.success(`Copied ${code}`);
+    } catch {
+      toast.message(code);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      className="inline-flex items-center gap-2 rounded-md border border-dashed border-white/35 bg-white/10 px-2.5 py-1 hover:bg-white/15 transition-colors"
+      title={`Copy code ${code}`}
+    >
+      <span className="font-bold tracking-wide">{code}</span>
+      <span className="text-white/75 normal-case">{label}</span>
+      <Copy className="h-3 w-3 opacity-70" />
+    </button>
+  );
+}
+
+export default function PromoBanner() {
+  return (
+    <div className="edm-section-dark text-white text-xs sm:text-sm">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
+        <p className="font-medium">{PROMO_COPY.headline}</p>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <CouponBox code={PROMO_COPY.couponCode} label="New Customers" />
+          <CouponBox code={PROMO_COPY.repeatCode} label="Returning" />
+        </div>
+      </div>
+    </div>
+  );
+}

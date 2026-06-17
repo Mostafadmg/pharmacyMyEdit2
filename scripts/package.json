@@ -18,16 +18,22 @@
     "tip-fetch-images": "tsx ./src/extract-tip-paths.ts && tsx ./src/fetch-tip-product-images.ts",
     "tip-update-images": "tsx ./src/update-tip-product-images.ts",
     "sync-db-schema": "tsx ./src/sync-db-schema.ts",
+    "trud:sync-dmd": "tsx ./src/sync-db-schema.ts && tsx ./src/trud-sync-dmd.ts",
     "seed-test-patients": "tsx ./src/sync-db-schema.ts && tsx ./src/seed-conditions.ts && tsx ./src/seed-demo-consultations.ts",
     "seed-mostafa-scenarios": "tsx ./src/sync-db-schema.ts && tsx ./src/seed-mostafa-scenarios.ts",
+    "seed-pmr-inbox": "tsx ./src/sync-db-schema.ts && tsx ./src/seed-pmr-inbox.ts",
+    "ensure-mostafa-patient": "tsx ./src/sync-db-schema.ts && tsx ./src/ensure-mostafa-patient.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@workspace/db": "workspace:*",
+    "adm-zip": "^0.5.16",
     "bcryptjs": "^3.0.3",
-    "drizzle-orm": "catalog:"
+    "drizzle-orm": "catalog:",
+    "fast-xml-parser": "^5.2.5"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.7",
     "@types/node": "catalog:",
     "tsx": "catalog:"
   }

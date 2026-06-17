@@ -1,20 +1,36 @@
 import React from "react";
-import { ShieldCheck } from "lucide-react";
+import { EDM_ASSETS } from "@/data/everydaymedsAssets";
+import { COMPANY } from "@/data/everydaymedsSite";
 
 export default function GphcTrustSection() {
   return (
-    <section className="bg-muted/30 py-16" data-testid="gphc-trust-section">
-      <div className="mx-auto max-w-4xl px-6 text-center">
-        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <ShieldCheck className="h-8 w-8" />
+    <section className="px-4 sm:px-6 py-10 sm:py-14" data-testid="gphc-trust-section">
+      <div className="max-w-[1400px] mx-auto rounded-[28px] bg-[#eceae6] p-6 sm:p-10 grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-bold text-[#314a40] mb-6">Safe and Secure</h2>
+          <img
+            src={EDM_ASSETS.safeSecureIllustration}
+            alt="Registered UK Pharmacy, Fully Licensed and Regulated Service, Approved UK-sourced treatments"
+            className="w-full max-w-md h-auto"
+            loading="lazy"
+          />
         </div>
-        <p className="text-sm font-semibold uppercase tracking-wider text-primary">Safe and Secure</p>
-        <h2 className="mt-2 text-3xl font-serif font-bold text-secondary">General Pharmaceutical Council</h2>
-        <p className="mt-3 text-lg font-semibold text-secondary">GPhC Registered Pharmacy: 9012878</p>
-        <p className="mx-auto mt-4 max-w-2xl text-muted-foreground leading-relaxed">
-          The GPhC is the official body that regulates and inspects all pharmacies in the UK.
-          They ensure we prioritise your safety and meet the highest standards.
-        </p>
+        <div className="rounded-[24px] bg-white p-6 sm:p-10 text-center shadow-sm border border-gray-100">
+          <img
+            src={EDM_ASSETS.gphcLogo}
+            alt="General Pharmaceutical Council"
+            className="mx-auto mb-4 h-16 sm:h-20 w-auto object-contain"
+            loading="lazy"
+          />
+          <h3 className="text-xl font-bold text-[#314a40]">General Pharmaceutical Council</h3>
+          <p className="mt-3 text-base sm:text-lg font-semibold text-[#314a40]">
+            GPhC Registered Pharmacy : {COMPANY.gphcNumber}
+          </p>
+          <p className="mt-4 text-sm text-gray-600 leading-relaxed max-w-md mx-auto">
+            The GPhC is the official body that regulates and inspects all pharmacies in the UK.
+            They ensure we prioritise your safety and meet the highest standards.
+          </p>
+        </div>
       </div>
     </section>
   );

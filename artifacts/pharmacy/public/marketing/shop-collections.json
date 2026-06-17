@@ -1,0 +1,34 @@
+{
+  "mainCategories": [
+    { "label": "Medicines & Treatments", "slug": "medicines-treatments", "reference": "/marketing/medicines-treatments-reference.png" },
+    { "label": "Vitamins & Supplements", "slug": "vitamins-supplements", "reference": "/marketing/vitamins-supplements-reference.png" },
+    { "label": "Beauty & Personal Care", "slug": "beauty-personal-care" },
+    { "label": "Baby & Child", "slug": "baby-child" },
+    { "label": "Health & Wellbeing", "slug": "health-wellbeing" },
+    { "label": "Mobility & Daily Living Aids", "slug": "mobility-daily-living-aids" },
+    { "label": "Weight Management", "slug": "weight-management" },
+    { "label": "Medical Devices & Diagnostics", "slug": "medical-devices-diagnostics" },
+    { "label": "Toiletries", "slug": "toiletries" },
+    { "label": "Pet care", "slug": "pet-care" },
+    { "label": "Foot care", "slug": "foot-care" }
+  ],
+  "medicineSubcategories": [
+    "allergy-hay-fever",
+    "childrens-medicines",
+    "cough-cold-flu",
+    "eyecare-earcare",
+    "footcare",
+    "mouth-oral-care",
+    "pain-relief",
+    "skin-conditions",
+    "specialist-hair-care",
+    "stomach-bowel",
+    "travel-medicines",
+    "womens-health",
+    "sleeping-aids",
+    "mens-sexual-health",
+    "heart-conditions"
+  ],
+  "localRoutes": "/collections/:slug",
+  "liveBase": "https://everydaymeds.co.uk/collections/"
+}

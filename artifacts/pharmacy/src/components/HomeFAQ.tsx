@@ -47,51 +47,44 @@ export default function HomeFAQ({ variant = "default" }: HomeFAQProps) {
   const isLive = variant === "live";
 
   return (
-    <section className="py-16 bg-muted/20" data-testid="home-faq">
-      <div className="max-w-4xl mx-auto px-6">
-        <div className="text-center mb-10">
-          {!isLive ? (
-            <span className="inline-block text-xs font-bold uppercase tracking-[0.2em] text-primary bg-primary/10 px-3 py-1.5 rounded-full mb-4">
-              Frequently asked
-            </span>
-          ) : null}
-          <h2 className="text-3xl md:text-4xl font-serif font-bold text-secondary mb-3">
+    <section id="faqs" className={`py-12 sm:py-16 ${isLive ? "bg-[#faf6f3]" : "bg-muted/20"}`} data-testid="home-faq">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6">
+        <div className="text-center mb-8">
+          <h2 className={`text-2xl sm:text-3xl font-bold mb-2 ${isLive ? "text-[#314a40]" : "text-secondary font-serif"}`}>
             {isLive ? "FAQs" : (
               <>The things people <em className="text-primary italic">really</em> want to know</>
             )}
           </h2>
-          <p className="text-muted-foreground">
+          <p className={isLive ? "text-gray-600 text-sm" : "text-muted-foreground"}>
             {isLive
               ? "Everything you need to know about the product and billing."
               : <>Can't find what you're looking for? <a href="/contact" className="text-primary font-semibold hover:underline">Talk to our team</a>.</>}
           </p>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           {faqs.map((f, i) => {
             const isOpen = open === i;
             return (
               <div
                 key={f.q}
-                className={`border border-border rounded-2xl overflow-hidden bg-white transition-shadow ${
-                  isOpen ? "shadow-md" : ""
-                }`}
+                className="border border-gray-200 rounded-xl overflow-hidden bg-white"
               >
                 <button
                   type="button"
                   onClick={() => setOpen(isOpen ? null : i)}
-                  className="w-full px-6 py-5 flex items-center justify-between gap-4 text-left hover:bg-muted/30 transition-colors"
+                  className="w-full px-5 py-4 flex items-center justify-between gap-4 text-left hover:bg-gray-50 transition-colors"
                   data-testid={`faq-toggle-${i}`}
                 >
-                  <span className="font-semibold text-secondary text-base md:text-lg">{f.q}</span>
+                  <span className={`font-semibold text-sm sm:text-base ${isLive ? "text-[#314a40]" : "text-secondary"}`}>{f.q}</span>
                   <ChevronDown
-                    className={`w-5 h-5 text-muted-foreground shrink-0 transition-transform ${
-                      isOpen ? "rotate-180 text-primary" : ""
+                    className={`w-5 h-5 shrink-0 transition-transform ${
+                      isOpen ? "rotate-180 text-[#314a40]" : "text-gray-400"
                     }`}
                   />
                 </button>
                 {isOpen && (
-                  <div className="px-6 pb-6 -mt-1 text-muted-foreground leading-relaxed border-t border-border/50 pt-4">
+                  <div className="px-5 pb-5 text-sm text-gray-600 leading-relaxed border-t border-gray-100 pt-3">
                     {f.a}
                   </div>
                 )}

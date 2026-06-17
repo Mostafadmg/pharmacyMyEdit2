@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useListConditions } from "@workspace/api-client-react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+import SiteLayout from "@/components/layout/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,7 +33,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import PromoBanner from "@/components/PromoBanner";
 import CategoryCardGrid from "@/components/marketing/CategoryCardGrid";
 import { CLINIC_CATEGORY_CARDS } from "@/data/everydaymedsSite";
 
@@ -112,10 +110,7 @@ export default function Conditions() {
   }, [activeCategory, searchTerm, groupedConditions]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background font-sans">
-      <PromoBanner />
-      <Header />
-      
+    <SiteLayout className="min-h-screen flex flex-col bg-[#faf6f3] edm-site">
       <main className="flex-1 w-full">
         {/* Hero Section */}
         <section className="bg-gradient-to-br from-primary via-primary/90 to-secondary text-white py-20 relative overflow-hidden">
@@ -363,8 +358,6 @@ export default function Conditions() {
           )}
         </div>
       </main>
-      
-      <Footer />
-    </div>
+    </SiteLayout>
   );
 }

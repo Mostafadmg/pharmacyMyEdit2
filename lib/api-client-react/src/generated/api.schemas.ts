@@ -65,9 +65,23 @@ export const ConsultationStatus = {
   referred: "referred",
   red_flag: "red_flag",
   patient_responded: "patient_responded",
+  cancelled: "cancelled",
 } as const;
 
 export type ConsultationAnswers = { [key: string]: unknown };
+
+export type ConsultationPmrWorkflowStatus =
+  | (typeof ConsultationPmrWorkflowStatus)[keyof typeof ConsultationPmrWorkflowStatus]
+  | null;
+
+export const ConsultationPmrWorkflowStatus = {
+  inbox: "inbox",
+  pick: "pick",
+  parked: "parked",
+  labelling: "labelling",
+  pack: "pack",
+  dispatched: "dispatched",
+} as const;
 
 export interface PrescriptionItem {
   name: string;
@@ -77,6 +91,15 @@ export interface PrescriptionItem {
   sig: string;
   duration: string;
   notes?: string | null;
+}
+
+export interface PickVerifiedItem {
+  itemIndex: number;
+  barcode: string;
+  productName: string;
+  batch?: string | null;
+  expiry?: string | null;
+  verifiedAt: string;
 }
 
 export interface Consultation {
@@ -135,6 +158,16 @@ export interface Consultation {
   dispatchedAt?: string | null;
   /** ID of the previous consultation this one is a repeat / follow-up of. */
   previousConsultationId?: string | null;
+  consultationNumber?: string | null;
+  rxClinicalCheckComplete?: boolean | null;
+  rxClinicalCheckAt?: string | null;
+  rxClinicalCheckBy?: string | null;
+  pmrWorkflowStatus?: ConsultationPmrWorkflowStatus;
+  pmrClinicalCheckAt?: string | null;
+  pmrClinicalCheckBy?: string | null;
+  pickingLabelCode?: string | null;
+  pickVerifiedItems?: PickVerifiedItem[] | null;
+  pmrWorkflowUpdatedAt?: string | null;
 }
 
 export type NewConsultationInputPatientSex =
@@ -188,6 +221,61 @@ export interface ConsultationReviewInput {
   referRecipientName?: string | null;
   /** routine | soon | urgent | emergency */
   referUrgency?: string | null;
+  /** When true on approve, Rx skips PMR clinical check and lands in Pick. */
+  rxClinicalCheckComplete?: boolean | null;
+}
+
+export type PmrWorkflowStatus =
+  (typeof PmrWorkflowStatus)[keyof typeof PmrWorkflowStatus];
+
+export const PmrWorkflowStatus = {
+  inbox: "inbox",
+  pick: "pick",
+  parked: "parked",
+  labelling: "labelling",
+  pack: "pack",
+  dispatched: "dispatched",
+} as const;
+
+export interface PmrWorkflowPatchInput {
+  status: PmrWorkflowStatus;
+}
+
+export type PmrClinicalCheckInputAction =
+  (typeof PmrClinicalCheckInputAction)[keyof typeof PmrClinicalCheckInputAction];
+
+export const PmrClinicalCheckInputAction = {
+  accept: "accept",
+  do_not_dispense: "do_not_dispense",
+} as const;
+
+export interface PmrClinicalCheckInput {
+  action: PmrClinicalCheckInputAction;
+  note?: string | null;
+}
+
+export interface PmrVerifyItemInput {
+  barcode: string;
+  itemIndex?: number | null;
+}
+
+export interface PmrVerifyItemResponse {
+  match: boolean;
+  itemIndex?: number | null;
+  expectedProduct?: string | null;
+  scannedProduct?: string | null;
+  pickVerifiedItems: PickVerifiedItem[];
+  allVerified: boolean;
+}
+
+export interface PmrPickingLabelResponse {
+  pickingLabelCode: string;
+  html: string;
+  consultation: Consultation;
+}
+
+export interface ListPmrConsultationsResponse {
+  consultations: Consultation[];
 }
 
 export interface ConsultationMessage {
@@ -293,6 +381,26 @@ export interface PharmacistUnreadCounts {
   patientResponded: number;
 }
 
+export type PmrScanLookupResponseSource =
+  (typeof PmrScanLookupResponseSource)[keyof typeof PmrScanLookupResponseSource];
+
+export const PmrScanLookupResponseSource = {
+  dmd: "dmd",
+  demo: "demo",
+} as const;
+
+export interface PmrScanLookupResponse {
+  gtin: string;
+  amppId: string;
+  vmpId?: string | null;
+  name: string;
+  strength?: string | null;
+  form?: string | null;
+  supplier?: string | null;
+  discontinued: boolean;
+  source: PmrScanLookupResponseSource;
+}
+
 export type ListConsultationsParams = {
   status?: ListConsultationsStatus;
   limit?: number;
@@ -310,6 +418,7 @@ export const ListConsultationsStatus = {
   referred: "referred",
   red_flag: "red_flag",
   patient_responded: "patient_responded",
+  cancelled: "cancelled",
 } as const;
 
 export type ListConsultations200 = {
@@ -320,6 +429,11 @@ export type ListConsultations200 = {
 export type ListConsultationMessages200 = {
   messages: ConsultationMessage[];
   actions: ConsultationAction[];
+};
+
+export type ListPmrConsultationsParams = {
+  pmrWorkflowStatus?: PmrWorkflowStatus;
+  limit?: number;
 };
 
 export type ListNotificationsParams = {
@@ -342,4 +456,11 @@ export type GetPatientConsultations200 = {
 
 export type GetRecentConsultationsParams = {
   limit?: number;
+};
+
+export type PmrScanLookupParams = {
+  /**
+   * GTIN from barcode scan (13 or 14 digits)
+   */
+  gtin: string;
 };

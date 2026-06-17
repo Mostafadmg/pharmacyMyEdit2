@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import Home from "./pages/Home";
 import Conditions from "./pages/Conditions";
 import WeightLoss from "./pages/WeightLoss";
+import WeightLossChoose from "./pages/WeightLossChoose";
 import InjectableWeightLoss from "./pages/InjectableWeightLoss";
 import InjectableWeightLossConsultation from "./pages/InjectableWeightLossConsultation";
 import OralWeightLossConsultation from "./pages/OralWeightLossConsultation";
@@ -29,6 +30,7 @@ import MyConsultations from "./pages/MyConsultations";
 import PatientMessages from "./pages/PatientMessages";
 import UploadDocuments from "./pages/UploadDocuments";
 import Shop from "./pages/Shop";
+import ShopCollection from "./pages/ShopCollection";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
@@ -45,6 +47,9 @@ import Notifications from "./pages/account/Notifications";
 import Prescriptions from "./pages/account/Prescriptions";
 import Preferences from "./pages/account/Preferences";
 import DataAndPrivacy from "./pages/account/DataAndPrivacy";
+import PatientUploadDocumentsHub from "./pages/account/PatientUploadDocumentsHub";
+import PatientAccountProfile from "./pages/account/PatientAccountProfile";
+import MyTasks from "./pages/MyTasks";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import AdminOrders from "./pages/AdminOrders";
 import AdminOrderDetail from "./pages/AdminOrderDetail";
@@ -67,6 +72,11 @@ import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
 import CookiePolicy from "./pages/legal/CookiePolicy";
 import Safeguarding from "./pages/legal/Safeguarding";
 import Complaints from "./pages/legal/Complaints";
+import ReturnsPolicy from "./pages/legal/ReturnsPolicy";
+import DeliveryPolicy from "./pages/legal/DeliveryPolicy";
+import PrescribingPolicy from "./pages/legal/PrescribingPolicy";
+import PaymentPolicy from "./pages/legal/PaymentPolicy";
+import RefundRequest from "./pages/legal/RefundRequest";
 import CookieBanner from "@/components/CookieBanner";
 import LiveHelpFAB from "@/components/LiveHelpFAB";
 
@@ -114,6 +124,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/conditions" component={Conditions} />
       <Route path="/treatments/weight-loss" component={WeightLoss} />
+      <Route path="/treatments/weight-loss/choose" component={WeightLossChoose} />
       <Route path="/injectable-weight-loss" component={InjectableWeightLoss} />
       <Route path="/treatments/weight-loss/injectable" component={InjectableWeightLossConsultation} />
       <Route path="/consultation/weight-loss-injectable" component={InjectableWeightLossConsultation} />
@@ -148,10 +159,18 @@ function Router() {
       <Route path="/my-messages" component={PatientMessages} />
       <Route path="/upload-documents/:id" component={UploadDocuments} />
       <Route path="/shop" component={Shop} />
+      <Route path="/collections/:slug" component={ShopCollection} />
       <Route path="/product/:id" component={ProductDetail} />
       <Route path="/cart" component={Cart} />
       <Route path="/checkout" component={Checkout} />
       <Route path="/my-orders" component={MyOrders} />
+      <Route path="/my-tasks" component={MyTasks} />
+      <Route path="/account/profile" component={PatientAccountProfile} />
+      <Route path="/account/upload-documents" component={PatientUploadDocumentsHub} />
+      <Route path="/pages/my-orders" component={MyOrders} />
+      <Route path="/pages/upload-documents" component={PatientUploadDocumentsHub} />
+      <Route path="/pages/my-account" component={PatientAccountProfile} />
+      <Route path="/pages/my-tasks" component={MyTasks} />
       <Route path="/account" component={AccountHub} />
       <Route path="/account/details" component={YourDetails} />
       <Route path="/account/details/payments" component={MyPayments} />
@@ -187,6 +206,11 @@ function Router() {
       <Route path="/legal/cookies" component={CookiePolicy} />
       <Route path="/legal/safeguarding" component={Safeguarding} />
       <Route path="/legal/complaints" component={Complaints} />
+      <Route path="/legal/returns" component={ReturnsPolicy} />
+      <Route path="/legal/prescribing" component={PrescribingPolicy} />
+      <Route path="/legal/delivery" component={DeliveryPolicy} />
+      <Route path="/legal/payment" component={PaymentPolicy} />
+      <Route path="/legal/refund-request" component={RefundRequest} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -24,6 +24,17 @@ The web dashboard **pharmacist prescribers** use to review consultations, approv
 - Layout / sidebar: `src/components/RxLayout.tsx`
 - Run it: `pnpm --filter @workspace/pharmacist-rx run dev`
 
+### `artifacts/pharmacist-pmr/` — PMR dispensing system (Windows desktop)
+The **dispensing workstation** for approved prescriptions — clinical check, barcode scan verification, label printing, and dispense workflow.
+
+- Stack: React + Vite + **Electron** + Tailwind + shadcn/ui
+- Desktop: `electron/main.cjs` — silent thermal label print, printer picker
+- Key pages: `ScanDispense.tsx`, `Labels.tsx`, `ClinicalCheck.tsx`, `DispensingDetail.tsx`, `Patients.tsx`
+- Barcode: `src/hooks/useBarcodeScanner.ts`, `src/lib/medicationCatalog.ts`
+- Run desktop app: `pnpm --filter @workspace/pharmacist-pmr run dev:desktop`
+- Web-only fallback: `pnpm --filter @workspace/pharmacist-pmr run dev` → `http://localhost:5175`
+- Build Windows installer: `pnpm --filter @workspace/pharmacist-pmr run build:desktop`
+
 ### `artifacts/pharmacist-app/` — Pharmacist mobile app
 The **iOS + Android app** for pharmacists on the go. Same review actions as the web Rx portal plus a fulfilment "Orders" tab and patient profile screens.
 
@@ -90,6 +101,11 @@ These are imported by the apps above. You rarely edit them directly — most cha
 2. Register it in `artifacts/pharmacist-rx/src/App.tsx`
 3. Add a nav entry in `artifacts/pharmacist-rx/src/components/RxLayout.tsx`
 
+**Add a new page to the PMR dispensing system**
+1. Create `artifacts/pharmacist-pmr/src/pages/MyPage.tsx`
+2. Register it in `artifacts/pharmacist-pmr/src/App.tsx`
+3. Add a nav entry in `artifacts/pharmacist-pmr/src/components/PmrLayout.tsx`
+
 **Add a new screen to the pharmacist mobile app**
 1. Create a file under `artifacts/pharmacist-app/app/` — expo-router picks it up by filename
 
@@ -111,6 +127,7 @@ pnpm --filter @workspace/db run push-force
 pnpm --filter @workspace/api-server      run dev   # backend (required by all)
 pnpm --filter @workspace/pharmacy        run dev   # patient web
 pnpm --filter @workspace/pharmacist-rx   run dev   # prescriber web
+pnpm --filter @workspace/pharmacist-pmr  run dev   # PMR dispensing
 pnpm --filter @workspace/pharmacist-app  run dev   # pharmacist mobile (Expo)
 ```
 

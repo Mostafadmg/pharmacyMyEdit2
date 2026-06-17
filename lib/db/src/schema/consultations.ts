@@ -79,6 +79,19 @@ export const consultationsTable = pgTable("consultations", {
   // (de novo) consultations.
   previousConsultationId: text("previous_consultation_id"),
 
+  // ─── PMR dispensing workflow (Titan-style) ───
+  /** Rx portal prescriber completed clinical checklist before approval */
+  rxClinicalCheckComplete: boolean("rx_clinical_check_complete").notNull().default(false),
+  rxClinicalCheckAt: timestamp("rx_clinical_check_at", { withTimezone: true }),
+  rxClinicalCheckBy: text("rx_clinical_check_by"),
+  /** PMR board column: inbox | pick | parked | labelling | pack | dispatched */
+  pmrWorkflowStatus: text("pmr_workflow_status"),
+  pmrClinicalCheckAt: timestamp("pmr_clinical_check_at", { withTimezone: true }),
+  pmrClinicalCheckBy: text("pmr_clinical_check_by"),
+  pickingLabelCode: text("picking_label_code").unique(),
+  pickVerifiedItems: jsonb("pick_verified_items").notNull().default([]),
+  pmrWorkflowUpdatedAt: timestamp("pmr_workflow_updated_at", { withTimezone: true }),
+
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
   reviewedAt: timestamp("reviewed_at", { withTimezone: true }),

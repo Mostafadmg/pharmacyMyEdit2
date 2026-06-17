@@ -1,0 +1,318 @@
+/* EverydayMeds storefront visual tokens — matched to everydaymeds.co.uk homepage */
+
+@font-face {
+
+  font-family: "Sofia Pro";
+
+  src: url("https://cdn.shopify.com/s/files/1/0935/0479/9065/files/Sofia_Pro_Semi_Bold_Az_e52b1180-e4bb-4fa0-bb23-ef8d2423f588.woff?v=1755691475")
+
+    format("woff");
+
+  font-display: swap;
+
+  font-weight: 600;
+
+  font-style: normal;
+
+}
+
+
+
+:root {
+
+  --edm-dark: #314a40;
+
+  --edm-dark-deep: #2a4038;
+
+  --edm-mint: #cfe8d6;
+
+  --edm-mint-btn: #b8dcc8;
+
+  --edm-cream: #faf6f3;
+
+  --edm-card: #fff7f5;
+
+  --edm-hero-start: #2b0f55;
+
+  --edm-hero-end: #f1efff;
+
+  --edm-trust-bg: #d9ede3;
+
+  --edm-pink-step: #fdf3f1;
+
+  --edm-text: #1f2937;
+
+  --edm-muted: #6b7280;
+
+  --edm-weight-loss: #3d9a8b;
+
+}
+
+
+
+.edm-hero-gradient {
+
+  background: linear-gradient(90deg, var(--edm-hero-start) 0%, var(--edm-hero-end) 100%);
+
+}
+
+
+
+.edm-section-dark {
+
+  background: var(--edm-dark);
+
+}
+
+
+
+.edm-trust-bar {
+
+  background: var(--edm-trust-bg);
+
+}
+
+
+
+/* Trust bar marquee — matches everydaymeds.co.uk */
+
+.edm-trust-marquee {
+
+  background: #e5f4cf;
+
+  color: #1a1a1a;
+
+  padding: 0;
+
+}
+
+
+
+.marquee {
+
+  overflow: hidden;
+
+  position: relative;
+
+  width: 100%;
+
+}
+
+
+
+.marquee__mask {
+
+  display: flex;
+
+  gap: var(--marquee-gap, 48px);
+
+  width: max-content;
+
+  animation: marquee-slide var(--marquee-speed, 25s) linear infinite;
+
+}
+
+
+
+.marquee--pauseable:hover .marquee__mask {
+
+  animation-play-state: paused;
+
+}
+
+
+
+@keyframes marquee-slide {
+
+  0% {
+
+    transform: translateX(0);
+
+  }
+
+  100% {
+
+    transform: translateX(calc(-50% - var(--marquee-gap, 48px) / 2));
+
+  }
+
+}
+
+
+
+.marquee__track {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: var(--marquee-gap, 48px);
+
+  white-space: nowrap;
+
+  flex: 0 0 auto;
+
+  width: max-content;
+
+}
+
+
+
+.marquee-item {
+
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  padding: var(--item-pad, 10px) 0;
+
+  line-height: 1;
+
+  position: relative;
+
+}
+
+
+
+.marquee-item__icon {
+
+  width: var(--icon-size, 28px);
+
+  height: var(--icon-size, 28px);
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex: 0 0 var(--icon-size, 28px);
+
+}
+
+
+
+.marquee-item__icon img {
+
+  width: 100%;
+
+  height: 100%;
+
+  object-fit: contain;
+
+  display: block;
+
+}
+
+
+
+.marquee-item__text {
+
+  font-size: 13px;
+
+  font-weight: 500;
+
+  letter-spacing: 0.02em;
+
+  white-space: nowrap;
+
+  color: #314a40;
+
+}
+
+
+
+.marquee-item::after {
+
+  content: "";
+
+  width: 1px;
+
+  height: 18px;
+
+  background: currentColor;
+
+  opacity: var(--divider-opacity, 0.2);
+
+  margin-left: calc(var(--marquee-gap, 48px) / 2);
+
+}
+
+
+
+@media (max-width: 640px) {
+
+  .marquee-item__text {
+
+    font-size: 11px;
+
+  }
+
+}
+
+
+
+@media (prefers-reduced-motion: reduce) {
+
+  .marquee__mask {
+
+    animation: none;
+
+  }
+
+}
+
+
+
+.edm-mobile-drawer {
+
+  animation: edm-drawer-in 0.28s ease-out;
+
+}
+
+
+
+@keyframes edm-drawer-in {
+
+  from {
+
+    transform: translateX(-100%);
+
+  }
+
+  to {
+
+    transform: translateX(0);
+
+  }
+
+}
+
+
+
+.scrollbar-hide {
+
+  -ms-overflow-style: none;
+
+  scrollbar-width: none;
+
+}
+
+
+
+.scrollbar-hide::-webkit-scrollbar {
+
+  display: none;
+
+}
+
+
+
+.edm-site {
+
+  font-family: "Sofia Pro", "Open Sans", system-ui, sans-serif;
+
+}
+

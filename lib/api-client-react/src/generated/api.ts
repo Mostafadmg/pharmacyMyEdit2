@@ -31,6 +31,8 @@ import type {
   ListConsultationsParams,
   ListNotifications200,
   ListNotificationsParams,
+  ListPmrConsultationsParams,
+  ListPmrConsultationsResponse,
   MarkAllNotificationsRead200,
   NewConsultationInput,
   Notification,
@@ -40,6 +42,13 @@ import type {
   PharmacistAuthResponse,
   PharmacistLoginInput,
   PharmacistUnreadCounts,
+  PmrClinicalCheckInput,
+  PmrPickingLabelResponse,
+  PmrScanLookupParams,
+  PmrScanLookupResponse,
+  PmrVerifyItemInput,
+  PmrVerifyItemResponse,
+  PmrWorkflowPatchInput,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -825,6 +834,630 @@ export const usePostConsultationMessage = <
 > => {
   return useMutation(getPostConsultationMessageMutationOptions(options));
 };
+
+/**
+ * @summary List approved consultations for PMR dispensing board
+ */
+export const getListPmrConsultationsUrl = (
+  params?: ListPmrConsultationsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/pmr/consultations?${stringifiedParams}`
+    : `/api/pmr/consultations`;
+};
+
+export const listPmrConsultations = async (
+  params?: ListPmrConsultationsParams,
+  options?: RequestInit,
+): Promise<ListPmrConsultationsResponse> => {
+  return customFetch<ListPmrConsultationsResponse>(
+    getListPmrConsultationsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListPmrConsultationsQueryKey = (
+  params?: ListPmrConsultationsParams,
+) => {
+  return [`/api/pmr/consultations`, ...(params ? [params] : [])] as const;
+};
+
+export const getListPmrConsultationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPmrConsultations>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListPmrConsultationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listPmrConsultations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListPmrConsultationsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listPmrConsultations>>
+  > = ({ signal }) =>
+    listPmrConsultations(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listPmrConsultations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListPmrConsultationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPmrConsultations>>
+>;
+export type ListPmrConsultationsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List approved consultations for PMR dispensing board
+ */
+
+export function useListPmrConsultations<
+  TData = Awaited<ReturnType<typeof listPmrConsultations>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListPmrConsultationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listPmrConsultations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListPmrConsultationsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Move consultation on PMR board
+ */
+export const getPatchPmrWorkflowUrl = (id: string) => {
+  return `/api/pmr/consultations/${id}/workflow`;
+};
+
+export const patchPmrWorkflow = async (
+  id: string,
+  pmrWorkflowPatchInput: PmrWorkflowPatchInput,
+  options?: RequestInit,
+): Promise<Consultation> => {
+  return customFetch<Consultation>(getPatchPmrWorkflowUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(pmrWorkflowPatchInput),
+  });
+};
+
+export const getPatchPmrWorkflowMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof patchPmrWorkflow>>,
+    TError,
+    { id: string; data: BodyType<PmrWorkflowPatchInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof patchPmrWorkflow>>,
+  TError,
+  { id: string; data: BodyType<PmrWorkflowPatchInput> },
+  TContext
+> => {
+  const mutationKey = ["patchPmrWorkflow"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof patchPmrWorkflow>>,
+    { id: string; data: BodyType<PmrWorkflowPatchInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return patchPmrWorkflow(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PatchPmrWorkflowMutationResult = NonNullable<
+  Awaited<ReturnType<typeof patchPmrWorkflow>>
+>;
+export type PatchPmrWorkflowMutationBody = BodyType<PmrWorkflowPatchInput>;
+export type PatchPmrWorkflowMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Move consultation on PMR board
+ */
+export const usePatchPmrWorkflow = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof patchPmrWorkflow>>,
+    TError,
+    { id: string; data: BodyType<PmrWorkflowPatchInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof patchPmrWorkflow>>,
+  TError,
+  { id: string; data: BodyType<PmrWorkflowPatchInput> },
+  TContext
+> => {
+  return useMutation(getPatchPmrWorkflowMutationOptions(options));
+};
+
+/**
+ * @summary Complete PMR clinical check
+ */
+export const getPostPmrClinicalCheckUrl = (id: string) => {
+  return `/api/pmr/consultations/${id}/clinical-check`;
+};
+
+export const postPmrClinicalCheck = async (
+  id: string,
+  pmrClinicalCheckInput: PmrClinicalCheckInput,
+  options?: RequestInit,
+): Promise<Consultation> => {
+  return customFetch<Consultation>(getPostPmrClinicalCheckUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(pmrClinicalCheckInput),
+  });
+};
+
+export const getPostPmrClinicalCheckMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postPmrClinicalCheck>>,
+    TError,
+    { id: string; data: BodyType<PmrClinicalCheckInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof postPmrClinicalCheck>>,
+  TError,
+  { id: string; data: BodyType<PmrClinicalCheckInput> },
+  TContext
+> => {
+  const mutationKey = ["postPmrClinicalCheck"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof postPmrClinicalCheck>>,
+    { id: string; data: BodyType<PmrClinicalCheckInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return postPmrClinicalCheck(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PostPmrClinicalCheckMutationResult = NonNullable<
+  Awaited<ReturnType<typeof postPmrClinicalCheck>>
+>;
+export type PostPmrClinicalCheckMutationBody = BodyType<PmrClinicalCheckInput>;
+export type PostPmrClinicalCheckMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Complete PMR clinical check
+ */
+export const usePostPmrClinicalCheck = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postPmrClinicalCheck>>,
+    TError,
+    { id: string; data: BodyType<PmrClinicalCheckInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof postPmrClinicalCheck>>,
+  TError,
+  { id: string; data: BodyType<PmrClinicalCheckInput> },
+  TContext
+> => {
+  return useMutation(getPostPmrClinicalCheckMutationOptions(options));
+};
+
+/**
+ * @summary Generate picking label code and printable HTML
+ */
+export const getPostPmrPickingLabelUrl = (id: string) => {
+  return `/api/pmr/consultations/${id}/picking-label`;
+};
+
+export const postPmrPickingLabel = async (
+  id: string,
+  options?: RequestInit,
+): Promise<PmrPickingLabelResponse> => {
+  return customFetch<PmrPickingLabelResponse>(getPostPmrPickingLabelUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getPostPmrPickingLabelMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postPmrPickingLabel>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof postPmrPickingLabel>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["postPmrPickingLabel"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof postPmrPickingLabel>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return postPmrPickingLabel(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PostPmrPickingLabelMutationResult = NonNullable<
+  Awaited<ReturnType<typeof postPmrPickingLabel>>
+>;
+
+export type PostPmrPickingLabelMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Generate picking label code and printable HTML
+ */
+export const usePostPmrPickingLabel = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postPmrPickingLabel>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof postPmrPickingLabel>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getPostPmrPickingLabelMutationOptions(options));
+};
+
+/**
+ * @summary Verify product barcode scan during labelling
+ */
+export const getPostPmrVerifyItemUrl = (id: string) => {
+  return `/api/pmr/consultations/${id}/verify-item`;
+};
+
+export const postPmrVerifyItem = async (
+  id: string,
+  pmrVerifyItemInput: PmrVerifyItemInput,
+  options?: RequestInit,
+): Promise<PmrVerifyItemResponse> => {
+  return customFetch<PmrVerifyItemResponse>(getPostPmrVerifyItemUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(pmrVerifyItemInput),
+  });
+};
+
+export const getPostPmrVerifyItemMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postPmrVerifyItem>>,
+    TError,
+    { id: string; data: BodyType<PmrVerifyItemInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof postPmrVerifyItem>>,
+  TError,
+  { id: string; data: BodyType<PmrVerifyItemInput> },
+  TContext
+> => {
+  const mutationKey = ["postPmrVerifyItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof postPmrVerifyItem>>,
+    { id: string; data: BodyType<PmrVerifyItemInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return postPmrVerifyItem(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PostPmrVerifyItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof postPmrVerifyItem>>
+>;
+export type PostPmrVerifyItemMutationBody = BodyType<PmrVerifyItemInput>;
+export type PostPmrVerifyItemMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Verify product barcode scan during labelling
+ */
+export const usePostPmrVerifyItem = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postPmrVerifyItem>>,
+    TError,
+    { id: string; data: BodyType<PmrVerifyItemInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof postPmrVerifyItem>>,
+  TError,
+  { id: string; data: BodyType<PmrVerifyItemInput> },
+  TContext
+> => {
+  return useMutation(getPostPmrVerifyItemMutationOptions(options));
+};
+
+/**
+ * @summary Mark consultation dispatched from PMR
+ */
+export const getPostPmrDispatchUrl = (id: string) => {
+  return `/api/pmr/consultations/${id}/dispatch`;
+};
+
+export const postPmrDispatch = async (
+  id: string,
+  options?: RequestInit,
+): Promise<Consultation> => {
+  return customFetch<Consultation>(getPostPmrDispatchUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getPostPmrDispatchMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postPmrDispatch>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof postPmrDispatch>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["postPmrDispatch"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof postPmrDispatch>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return postPmrDispatch(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PostPmrDispatchMutationResult = NonNullable<
+  Awaited<ReturnType<typeof postPmrDispatch>>
+>;
+
+export type PostPmrDispatchMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mark consultation dispatched from PMR
+ */
+export const usePostPmrDispatch = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postPmrDispatch>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof postPmrDispatch>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getPostPmrDispatchMutationOptions(options));
+};
+
+/**
+ * @summary Resolve consultation from picking label barcode
+ */
+export const getGetPmrConsultationByPickCodeUrl = (code: string) => {
+  return `/api/pmr/consultations/by-pick-code/${code}`;
+};
+
+export const getPmrConsultationByPickCode = async (
+  code: string,
+  options?: RequestInit,
+): Promise<Consultation> => {
+  return customFetch<Consultation>(getGetPmrConsultationByPickCodeUrl(code), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPmrConsultationByPickCodeQueryKey = (code: string) => {
+  return [`/api/pmr/consultations/by-pick-code/${code}`] as const;
+};
+
+export const getGetPmrConsultationByPickCodeQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPmrConsultationByPickCode>>,
+  TError = ErrorType<unknown>,
+>(
+  code: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPmrConsultationByPickCode>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPmrConsultationByPickCodeQueryKey(code);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPmrConsultationByPickCode>>
+  > = ({ signal }) =>
+    getPmrConsultationByPickCode(code, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!code,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPmrConsultationByPickCode>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPmrConsultationByPickCodeQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPmrConsultationByPickCode>>
+>;
+export type GetPmrConsultationByPickCodeQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Resolve consultation from picking label barcode
+ */
+
+export function useGetPmrConsultationByPickCode<
+  TData = Awaited<ReturnType<typeof getPmrConsultationByPickCode>>,
+  TError = ErrorType<unknown>,
+>(
+  code: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPmrConsultationByPickCode>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPmrConsultationByPickCodeQueryOptions(
+    code,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary List notifications for the authenticated user (patient or pharmacist)
@@ -1674,6 +2307,100 @@ export function useGetPharmacistUnreadCounts<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetPharmacistUnreadCountsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Look up a medicine pack by GTIN (dm+d catalogue synced from TRUD)
+ */
+export const getPmrScanLookupUrl = (params: PmrScanLookupParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/pmr/scan-lookup?${stringifiedParams}`
+    : `/api/pmr/scan-lookup`;
+};
+
+export const pmrScanLookup = async (
+  params: PmrScanLookupParams,
+  options?: RequestInit,
+): Promise<PmrScanLookupResponse> => {
+  return customFetch<PmrScanLookupResponse>(getPmrScanLookupUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getPmrScanLookupQueryKey = (params?: PmrScanLookupParams) => {
+  return [`/api/pmr/scan-lookup`, ...(params ? [params] : [])] as const;
+};
+
+export const getPmrScanLookupQueryOptions = <
+  TData = Awaited<ReturnType<typeof pmrScanLookup>>,
+  TError = ErrorType<void>,
+>(
+  params: PmrScanLookupParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof pmrScanLookup>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getPmrScanLookupQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof pmrScanLookup>>> = ({
+    signal,
+  }) => pmrScanLookup(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof pmrScanLookup>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type PmrScanLookupQueryResult = NonNullable<
+  Awaited<ReturnType<typeof pmrScanLookup>>
+>;
+export type PmrScanLookupQueryError = ErrorType<void>;
+
+/**
+ * @summary Look up a medicine pack by GTIN (dm+d catalogue synced from TRUD)
+ */
+
+export function usePmrScanLookup<
+  TData = Awaited<ReturnType<typeof pmrScanLookup>>,
+  TError = ErrorType<void>,
+>(
+  params: PmrScanLookupParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof pmrScanLookup>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getPmrScanLookupQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

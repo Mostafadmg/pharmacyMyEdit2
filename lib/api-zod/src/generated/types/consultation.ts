@@ -7,7 +7,9 @@
  */
 import type { ConsultationAnswers } from "./consultationAnswers";
 import type { ConsultationPatientSex } from "./consultationPatientSex";
+import type { ConsultationPmrWorkflowStatus } from "./consultationPmrWorkflowStatus";
 import type { ConsultationStatus } from "./consultationStatus";
+import type { PickVerifiedItem } from "./pickVerifiedItem";
 import type { PrescriptionItem } from "./prescriptionItem";
 
 export interface Consultation {
@@ -66,4 +68,14 @@ export interface Consultation {
   dispatchedAt?: Date | null;
   /** ID of the previous consultation this one is a repeat / follow-up of. */
   previousConsultationId?: string | null;
+  consultationNumber?: string | null;
+  rxClinicalCheckComplete?: boolean | null;
+  rxClinicalCheckAt?: Date | null;
+  rxClinicalCheckBy?: string | null;
+  pmrWorkflowStatus?: ConsultationPmrWorkflowStatus;
+  pmrClinicalCheckAt?: Date | null;
+  pmrClinicalCheckBy?: string | null;
+  pickingLabelCode?: string | null;
+  pickVerifiedItems?: PickVerifiedItem[] | null;
+  pmrWorkflowUpdatedAt?: Date | null;
 }

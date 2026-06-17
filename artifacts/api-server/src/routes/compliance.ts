@@ -284,7 +284,11 @@ router.put("/compliance/consultations/:id/delivery", requirePharmacist, async (r
 
   // Accept either status shorthand or explicit fields
   const status = (b.status as string | undefined)?.toLowerCase();
-  if (status === "dispatched") set.dispatchedAt = new Date();
+  if (status === "dispatched") {
+    set.dispatchedAt = new Date();
+    set.pmrWorkflowStatus = "dispatched";
+    set.pmrWorkflowUpdatedAt = new Date();
+  }
   if (status === "delivered") {
     set.deliveredAt = new Date();
     if (!set.dispatchedAt) set.dispatchedAt = new Date();
@@ -294,6 +298,8 @@ router.put("/compliance/consultations/:id/delivery", requirePharmacist, async (r
   if (b.deliveryTrackingNumber !== undefined) set.deliveryTrackingNumber = b.deliveryTrackingNumber;
   if (b.dispatched === true || b.dispatchedAt) {
     set.dispatchedAt = b.dispatchedAt ? new Date(b.dispatchedAt) : new Date();
+    set.pmrWorkflowStatus = "dispatched";
+    set.pmrWorkflowUpdatedAt = new Date();
   }
   if (b.delivered === true || b.deliveredAt) {
     set.deliveredAt = b.deliveredAt ? new Date(b.deliveredAt) : new Date();

@@ -1,19 +1,32 @@
 import React from "react";
-import { HOW_IT_WORKS_STEPS } from "@/data/everydaymedsSite";
+import { EDM_ASSETS } from "@/data/everydaymedsAssets";
+
+const STEPS = [
+  { n: 1, title: "Choose your treatment", image: EDM_ASSETS.howItWorksStep1 },
+  { n: 2, title: "Answer quick questions", image: EDM_ASSETS.howItWorksStep2 },
+  { n: 3, title: "Get it delivered fast", image: EDM_ASSETS.howItWorksStep3 },
+];
 
 export default function HowItWorksSection() {
   return (
-    <section className="bg-white py-16" data-testid="how-it-works-section">
-      <div className="mx-auto max-w-7xl px-6">
-        <h2 className="text-center text-3xl font-serif font-bold text-secondary mb-12">How it Works?</h2>
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
-          {HOW_IT_WORKS_STEPS.map((step, index) => (
-            <div key={step.title} className="text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
-                {index + 1}
+    <section className="px-4 sm:px-6 py-10 sm:py-14 bg-white" data-testid="how-it-works-section">
+      <div className="max-w-[1400px] mx-auto">
+        <h2 className="text-2xl sm:text-3xl font-bold text-[#314a40] mb-8 sm:mb-10">How it Works?</h2>
+        <div className="grid md:grid-cols-3 gap-5 sm:gap-6">
+          {STEPS.map((step) => (
+            <div
+              key={step.n}
+              className="relative rounded-[24px] bg-[#fdf3f1] overflow-hidden border border-[#f5e4e0]"
+            >
+              <span className="absolute top-4 right-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-[#314a40] text-white text-sm font-bold">
+                {step.n}
+              </span>
+              <div className="aspect-[4/3] bg-[#fdf3f1] overflow-hidden">
+                <img src={step.image} alt={step.title} className="w-full h-full object-cover object-center" loading="lazy" />
               </div>
-              <h3 className="text-lg font-bold text-secondary mb-2">{step.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
+              <div className="p-5 sm:p-6">
+                <h3 className="text-base sm:text-lg font-bold text-[#314a40]">{step.title}</h3>
+              </div>
             </div>
           ))}
         </div>

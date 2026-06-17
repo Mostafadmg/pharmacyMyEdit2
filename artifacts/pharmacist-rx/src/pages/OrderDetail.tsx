@@ -4776,7 +4776,12 @@ function DecisionPanel({
           action: actionMap[open],
           pharmacistNote: noteForAction,
           rejectReason: open === "reject" ? "other" : undefined,
-          ...(open === "approve" ? { prescriptionItems } : {}),
+          ...(open === "approve"
+            ? {
+                prescriptionItems,
+                rxClinicalCheckComplete: checklistComplete,
+              }
+            : {}),
         },
       });
       // -- Log the action to the activity feed ------------------------------

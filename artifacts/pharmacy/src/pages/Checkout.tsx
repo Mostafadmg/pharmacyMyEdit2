@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Lock, CreditCard, ShieldCheck, Tag, Wallet, Loader2, X } from "lucide-react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+import SiteLayout from "@/components/layout/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -150,20 +149,17 @@ export default function Checkout() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col bg-[#FAF7F2]">
-        <Header />
+      <SiteLayout className="min-h-screen flex flex-col bg-[#faf6f3] edm-site">
         <div className="max-w-2xl mx-auto px-6 py-16 w-full flex-1 text-center">
           <p className="text-lg mb-4">Your basket is empty.</p>
-          <Button asChild className="rounded-full bg-[#0E3D2D] hover:bg-[#0E5A52]"><Link href="/shop">Back to shop</Link></Button>
+          <Button asChild className="rounded-full bg-[#314a40] hover:bg-[#2a4038]"><Link href="/shop">Back to shop</Link></Button>
         </div>
-        <Footer />
-      </div>
+      </SiteLayout>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF7F2]">
-      <Header />
+    <SiteLayout className="min-h-screen flex flex-col bg-[#faf6f3] edm-site">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 w-full flex-1">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">Checkout</h1>
         <p className="text-muted-foreground mb-6 sm:mb-8 flex items-center gap-1.5 text-sm">
@@ -320,7 +316,6 @@ export default function Checkout() {
           </Card>
         </form>
       </div>
-      <Footer />
-    </div>
+    </SiteLayout>
   );
 }

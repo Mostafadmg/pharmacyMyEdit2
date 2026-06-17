@@ -13,8 +13,7 @@ import {
   Check,
   ImageIcon,
 } from "lucide-react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+import SiteLayout from "@/components/layout/SiteLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +24,6 @@ import { apiFetch } from "@/lib/api";
 import { useCart, formatGbp } from "@/hooks/useCart";
 import WishlistButton from "@/components/WishlistButton";
 import ShopCategoryBar from "@/components/ShopCategoryBar";
-import PromoBanner from "@/components/PromoBanner";
 import CategoryCardGrid from "@/components/marketing/CategoryCardGrid";
 import GphcTrustSection from "@/components/marketing/GphcTrustSection";
 import HowItWorksSection from "@/components/marketing/HowItWorksSection";
@@ -234,9 +232,7 @@ export default function Shop() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF7F2]">
-      <PromoBanner />
-      <Header />
+    <SiteLayout className="min-h-screen flex flex-col bg-[#faf6f3] edm-site">
 
       {/* Hero */}
       <section className="border-b border-border/50 bg-gradient-to-b from-white to-muted/20 py-14">
@@ -271,7 +267,8 @@ export default function Shop() {
           <div className="max-w-7xl mx-auto px-6">
             <CategoryCardGrid
               items={SHOP_CATEGORY_CARDS}
-              columns={3}
+              columns={5}
+              showImages
               testIdPrefix="shop-category"
             />
           </div>
@@ -526,8 +523,6 @@ export default function Shop() {
           <HomeFAQ variant="live" />
         </>
       ) : null}
-
-      <Footer />
-    </div>
+    </SiteLayout>
   );
 }

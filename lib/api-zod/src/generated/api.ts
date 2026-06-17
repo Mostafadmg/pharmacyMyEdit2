@@ -104,6 +104,7 @@ export const ListConsultationsQueryParams = zod.object({
       "referred",
       "red_flag",
       "patient_responded",
+      "cancelled",
     ])
     .optional(),
   limit: zod.coerce.number().default(listConsultationsQueryLimitDefault),
@@ -128,6 +129,7 @@ export const ListConsultationsResponse = zod.object({
         "referred",
         "red_flag",
         "patient_responded",
+        "cancelled",
       ]),
       answers: zod.record(zod.string(), zod.unknown()),
       hasRedFlag: zod.boolean(),
@@ -192,6 +194,29 @@ export const ListConsultationsResponse = zod.object({
         .describe(
           "ID of the previous consultation this one is a repeat \/ follow-up of.",
         ),
+      consultationNumber: zod.string().nullish(),
+      rxClinicalCheckComplete: zod.boolean().nullish(),
+      rxClinicalCheckAt: zod.coerce.date().nullish(),
+      rxClinicalCheckBy: zod.string().nullish(),
+      pmrWorkflowStatus: zod
+        .enum(["inbox", "pick", "parked", "labelling", "pack", "dispatched"])
+        .nullish(),
+      pmrClinicalCheckAt: zod.coerce.date().nullish(),
+      pmrClinicalCheckBy: zod.string().nullish(),
+      pickingLabelCode: zod.string().nullish(),
+      pickVerifiedItems: zod
+        .array(
+          zod.object({
+            itemIndex: zod.number(),
+            barcode: zod.string(),
+            productName: zod.string(),
+            batch: zod.string().nullish(),
+            expiry: zod.string().nullish(),
+            verifiedAt: zod.coerce.date(),
+          }),
+        )
+        .nullish(),
+      pmrWorkflowUpdatedAt: zod.coerce.date().nullish(),
     }),
   ),
   total: zod.number(),
@@ -244,6 +269,7 @@ export const GetConsultationResponse = zod.object({
     "referred",
     "red_flag",
     "patient_responded",
+    "cancelled",
   ]),
   answers: zod.record(zod.string(), zod.unknown()),
   hasRedFlag: zod.boolean(),
@@ -308,6 +334,29 @@ export const GetConsultationResponse = zod.object({
     .describe(
       "ID of the previous consultation this one is a repeat \/ follow-up of.",
     ),
+  consultationNumber: zod.string().nullish(),
+  rxClinicalCheckComplete: zod.boolean().nullish(),
+  rxClinicalCheckAt: zod.coerce.date().nullish(),
+  rxClinicalCheckBy: zod.string().nullish(),
+  pmrWorkflowStatus: zod
+    .enum(["inbox", "pick", "parked", "labelling", "pack", "dispatched"])
+    .nullish(),
+  pmrClinicalCheckAt: zod.coerce.date().nullish(),
+  pmrClinicalCheckBy: zod.string().nullish(),
+  pickingLabelCode: zod.string().nullish(),
+  pickVerifiedItems: zod
+    .array(
+      zod.object({
+        itemIndex: zod.number(),
+        barcode: zod.string(),
+        productName: zod.string(),
+        batch: zod.string().nullish(),
+        expiry: zod.string().nullish(),
+        verifiedAt: zod.coerce.date(),
+      }),
+    )
+    .nullish(),
+  pmrWorkflowUpdatedAt: zod.coerce.date().nullish(),
 });
 
 /**
@@ -352,6 +401,12 @@ export const ReviewConsultationBody = zod.object({
     .string()
     .nullish()
     .describe("routine | soon | urgent | emergency"),
+  rxClinicalCheckComplete: zod
+    .boolean()
+    .nullish()
+    .describe(
+      "When true on approve, Rx skips PMR clinical check and lands in Pick.",
+    ),
 });
 
 export const ReviewConsultationResponse = zod.object({
@@ -370,6 +425,7 @@ export const ReviewConsultationResponse = zod.object({
     "referred",
     "red_flag",
     "patient_responded",
+    "cancelled",
   ]),
   answers: zod.record(zod.string(), zod.unknown()),
   hasRedFlag: zod.boolean(),
@@ -434,6 +490,29 @@ export const ReviewConsultationResponse = zod.object({
     .describe(
       "ID of the previous consultation this one is a repeat \/ follow-up of.",
     ),
+  consultationNumber: zod.string().nullish(),
+  rxClinicalCheckComplete: zod.boolean().nullish(),
+  rxClinicalCheckAt: zod.coerce.date().nullish(),
+  rxClinicalCheckBy: zod.string().nullish(),
+  pmrWorkflowStatus: zod
+    .enum(["inbox", "pick", "parked", "labelling", "pack", "dispatched"])
+    .nullish(),
+  pmrClinicalCheckAt: zod.coerce.date().nullish(),
+  pmrClinicalCheckBy: zod.string().nullish(),
+  pickingLabelCode: zod.string().nullish(),
+  pickVerifiedItems: zod
+    .array(
+      zod.object({
+        itemIndex: zod.number(),
+        barcode: zod.string(),
+        productName: zod.string(),
+        batch: zod.string().nullish(),
+        expiry: zod.string().nullish(),
+        verifiedAt: zod.coerce.date(),
+      }),
+    )
+    .nullish(),
+  pmrWorkflowUpdatedAt: zod.coerce.date().nullish(),
 });
 
 /**
@@ -483,6 +562,743 @@ export const PostConsultationMessageParams = zod.object({
 export const PostConsultationMessageBody = zod.object({
   body: zod.string(),
   kind: zod.string().nullish(),
+});
+
+/**
+ * @summary List approved consultations for PMR dispensing board
+ */
+export const listPmrConsultationsQueryLimitDefault = 200;
+
+export const ListPmrConsultationsQueryParams = zod.object({
+  pmrWorkflowStatus: zod
+    .enum(["inbox", "pick", "parked", "labelling", "pack", "dispatched"])
+    .optional(),
+  limit: zod.coerce.number().default(listPmrConsultationsQueryLimitDefault),
+});
+
+export const ListPmrConsultationsResponse = zod.object({
+  consultations: zod.array(
+    zod.object({
+      id: zod.string(),
+      patientName: zod.string(),
+      patientEmail: zod.string(),
+      patientAge: zod.number(),
+      patientSex: zod.enum(["male", "female", "other"]),
+      conditionId: zod.string(),
+      conditionName: zod.string(),
+      status: zod.enum([
+        "pending",
+        "approved",
+        "rejected",
+        "more_info_needed",
+        "referred",
+        "red_flag",
+        "patient_responded",
+        "cancelled",
+      ]),
+      answers: zod.record(zod.string(), zod.unknown()),
+      hasRedFlag: zod.boolean(),
+      hasPhoto: zod.boolean(),
+      photoUrls: zod.array(zod.string()).optional(),
+      pharmacistNote: zod.string().nullish(),
+      prescription: zod.string().nullish(),
+      prescriptionItems: zod
+        .array(
+          zod.object({
+            name: zod.string(),
+            strength: zod.string(),
+            form: zod.string(),
+            quantity: zod.string(),
+            sig: zod.string(),
+            duration: zod.string(),
+            notes: zod.string().nullish(),
+          }),
+        )
+        .nullish(),
+      referralInfo: zod.string().nullish(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+      reviewedAt: zod.coerce.date().nullish(),
+      gpName: zod.string().nullish(),
+      gpSurgery: zod.string().nullish(),
+      gpAddress: zod.string().nullish(),
+      gpPhone: zod.string().nullish(),
+      hasRegularGp: zod.boolean().nullish(),
+      consentShareWithGp: zod.boolean().nullish(),
+      consentToTreatment: zod.boolean().nullish(),
+      consentToDelivery: zod.boolean().nullish(),
+      consentDataProcessing: zod.boolean().nullish(),
+      identityVerificationMethod: zod.string().nullish(),
+      identityVerificationRef: zod.string().nullish(),
+      deliveryAddress: zod.string().nullish(),
+      deliveryAddressLine1: zod.string().nullish(),
+      deliveryAddressLine2: zod.string().nullish(),
+      deliveryCity: zod.string().nullish(),
+      deliveryPostcode: zod.string().nullish(),
+      preferredDeliveryMethod: zod.string().nullish(),
+      allergies: zod.string().nullish(),
+      currentMedications: zod.string().nullish(),
+      medicalHistory: zod.string().nullish(),
+      isPregnant: zod.boolean().nullish(),
+      bmi: zod.number().nullish(),
+      verifiedHeightCm: zod.number().nullish(),
+      verifiedWeightKg: zod.number().nullish(),
+      heightCm: zod.number().nullish(),
+      weightKg: zod.number().nullish(),
+      riskFlags: zod.array(zod.string()).nullish(),
+      riskCategory: zod.string().nullish(),
+      clinicalDecisionRationale: zod.string().nullish(),
+      reviewedBy: zod.string().nullish(),
+      deliveryCarrier: zod.string().nullish(),
+      deliveryTrackingNumber: zod.string().nullish(),
+      deliveredAt: zod.coerce.date().nullish(),
+      dispatchedAt: zod.coerce.date().nullish(),
+      previousConsultationId: zod
+        .string()
+        .nullish()
+        .describe(
+          "ID of the previous consultation this one is a repeat \/ follow-up of.",
+        ),
+      consultationNumber: zod.string().nullish(),
+      rxClinicalCheckComplete: zod.boolean().nullish(),
+      rxClinicalCheckAt: zod.coerce.date().nullish(),
+      rxClinicalCheckBy: zod.string().nullish(),
+      pmrWorkflowStatus: zod
+        .enum(["inbox", "pick", "parked", "labelling", "pack", "dispatched"])
+        .nullish(),
+      pmrClinicalCheckAt: zod.coerce.date().nullish(),
+      pmrClinicalCheckBy: zod.string().nullish(),
+      pickingLabelCode: zod.string().nullish(),
+      pickVerifiedItems: zod
+        .array(
+          zod.object({
+            itemIndex: zod.number(),
+            barcode: zod.string(),
+            productName: zod.string(),
+            batch: zod.string().nullish(),
+            expiry: zod.string().nullish(),
+            verifiedAt: zod.coerce.date(),
+          }),
+        )
+        .nullish(),
+      pmrWorkflowUpdatedAt: zod.coerce.date().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Move consultation on PMR board
+ */
+export const PatchPmrWorkflowParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const PatchPmrWorkflowBody = zod.object({
+  status: zod.enum([
+    "inbox",
+    "pick",
+    "parked",
+    "labelling",
+    "pack",
+    "dispatched",
+  ]),
+});
+
+export const PatchPmrWorkflowResponse = zod.object({
+  id: zod.string(),
+  patientName: zod.string(),
+  patientEmail: zod.string(),
+  patientAge: zod.number(),
+  patientSex: zod.enum(["male", "female", "other"]),
+  conditionId: zod.string(),
+  conditionName: zod.string(),
+  status: zod.enum([
+    "pending",
+    "approved",
+    "rejected",
+    "more_info_needed",
+    "referred",
+    "red_flag",
+    "patient_responded",
+    "cancelled",
+  ]),
+  answers: zod.record(zod.string(), zod.unknown()),
+  hasRedFlag: zod.boolean(),
+  hasPhoto: zod.boolean(),
+  photoUrls: zod.array(zod.string()).optional(),
+  pharmacistNote: zod.string().nullish(),
+  prescription: zod.string().nullish(),
+  prescriptionItems: zod
+    .array(
+      zod.object({
+        name: zod.string(),
+        strength: zod.string(),
+        form: zod.string(),
+        quantity: zod.string(),
+        sig: zod.string(),
+        duration: zod.string(),
+        notes: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  referralInfo: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+  reviewedAt: zod.coerce.date().nullish(),
+  gpName: zod.string().nullish(),
+  gpSurgery: zod.string().nullish(),
+  gpAddress: zod.string().nullish(),
+  gpPhone: zod.string().nullish(),
+  hasRegularGp: zod.boolean().nullish(),
+  consentShareWithGp: zod.boolean().nullish(),
+  consentToTreatment: zod.boolean().nullish(),
+  consentToDelivery: zod.boolean().nullish(),
+  consentDataProcessing: zod.boolean().nullish(),
+  identityVerificationMethod: zod.string().nullish(),
+  identityVerificationRef: zod.string().nullish(),
+  deliveryAddress: zod.string().nullish(),
+  deliveryAddressLine1: zod.string().nullish(),
+  deliveryAddressLine2: zod.string().nullish(),
+  deliveryCity: zod.string().nullish(),
+  deliveryPostcode: zod.string().nullish(),
+  preferredDeliveryMethod: zod.string().nullish(),
+  allergies: zod.string().nullish(),
+  currentMedications: zod.string().nullish(),
+  medicalHistory: zod.string().nullish(),
+  isPregnant: zod.boolean().nullish(),
+  bmi: zod.number().nullish(),
+  verifiedHeightCm: zod.number().nullish(),
+  verifiedWeightKg: zod.number().nullish(),
+  heightCm: zod.number().nullish(),
+  weightKg: zod.number().nullish(),
+  riskFlags: zod.array(zod.string()).nullish(),
+  riskCategory: zod.string().nullish(),
+  clinicalDecisionRationale: zod.string().nullish(),
+  reviewedBy: zod.string().nullish(),
+  deliveryCarrier: zod.string().nullish(),
+  deliveryTrackingNumber: zod.string().nullish(),
+  deliveredAt: zod.coerce.date().nullish(),
+  dispatchedAt: zod.coerce.date().nullish(),
+  previousConsultationId: zod
+    .string()
+    .nullish()
+    .describe(
+      "ID of the previous consultation this one is a repeat \/ follow-up of.",
+    ),
+  consultationNumber: zod.string().nullish(),
+  rxClinicalCheckComplete: zod.boolean().nullish(),
+  rxClinicalCheckAt: zod.coerce.date().nullish(),
+  rxClinicalCheckBy: zod.string().nullish(),
+  pmrWorkflowStatus: zod
+    .enum(["inbox", "pick", "parked", "labelling", "pack", "dispatched"])
+    .nullish(),
+  pmrClinicalCheckAt: zod.coerce.date().nullish(),
+  pmrClinicalCheckBy: zod.string().nullish(),
+  pickingLabelCode: zod.string().nullish(),
+  pickVerifiedItems: zod
+    .array(
+      zod.object({
+        itemIndex: zod.number(),
+        barcode: zod.string(),
+        productName: zod.string(),
+        batch: zod.string().nullish(),
+        expiry: zod.string().nullish(),
+        verifiedAt: zod.coerce.date(),
+      }),
+    )
+    .nullish(),
+  pmrWorkflowUpdatedAt: zod.coerce.date().nullish(),
+});
+
+/**
+ * @summary Complete PMR clinical check
+ */
+export const PostPmrClinicalCheckParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const PostPmrClinicalCheckBody = zod.object({
+  action: zod.enum(["accept", "do_not_dispense"]),
+  note: zod.string().nullish(),
+});
+
+export const PostPmrClinicalCheckResponse = zod.object({
+  id: zod.string(),
+  patientName: zod.string(),
+  patientEmail: zod.string(),
+  patientAge: zod.number(),
+  patientSex: zod.enum(["male", "female", "other"]),
+  conditionId: zod.string(),
+  conditionName: zod.string(),
+  status: zod.enum([
+    "pending",
+    "approved",
+    "rejected",
+    "more_info_needed",
+    "referred",
+    "red_flag",
+    "patient_responded",
+    "cancelled",
+  ]),
+  answers: zod.record(zod.string(), zod.unknown()),
+  hasRedFlag: zod.boolean(),
+  hasPhoto: zod.boolean(),
+  photoUrls: zod.array(zod.string()).optional(),
+  pharmacistNote: zod.string().nullish(),
+  prescription: zod.string().nullish(),
+  prescriptionItems: zod
+    .array(
+      zod.object({
+        name: zod.string(),
+        strength: zod.string(),
+        form: zod.string(),
+        quantity: zod.string(),
+        sig: zod.string(),
+        duration: zod.string(),
+        notes: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  referralInfo: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+  reviewedAt: zod.coerce.date().nullish(),
+  gpName: zod.string().nullish(),
+  gpSurgery: zod.string().nullish(),
+  gpAddress: zod.string().nullish(),
+  gpPhone: zod.string().nullish(),
+  hasRegularGp: zod.boolean().nullish(),
+  consentShareWithGp: zod.boolean().nullish(),
+  consentToTreatment: zod.boolean().nullish(),
+  consentToDelivery: zod.boolean().nullish(),
+  consentDataProcessing: zod.boolean().nullish(),
+  identityVerificationMethod: zod.string().nullish(),
+  identityVerificationRef: zod.string().nullish(),
+  deliveryAddress: zod.string().nullish(),
+  deliveryAddressLine1: zod.string().nullish(),
+  deliveryAddressLine2: zod.string().nullish(),
+  deliveryCity: zod.string().nullish(),
+  deliveryPostcode: zod.string().nullish(),
+  preferredDeliveryMethod: zod.string().nullish(),
+  allergies: zod.string().nullish(),
+  currentMedications: zod.string().nullish(),
+  medicalHistory: zod.string().nullish(),
+  isPregnant: zod.boolean().nullish(),
+  bmi: zod.number().nullish(),
+  verifiedHeightCm: zod.number().nullish(),
+  verifiedWeightKg: zod.number().nullish(),
+  heightCm: zod.number().nullish(),
+  weightKg: zod.number().nullish(),
+  riskFlags: zod.array(zod.string()).nullish(),
+  riskCategory: zod.string().nullish(),
+  clinicalDecisionRationale: zod.string().nullish(),
+  reviewedBy: zod.string().nullish(),
+  deliveryCarrier: zod.string().nullish(),
+  deliveryTrackingNumber: zod.string().nullish(),
+  deliveredAt: zod.coerce.date().nullish(),
+  dispatchedAt: zod.coerce.date().nullish(),
+  previousConsultationId: zod
+    .string()
+    .nullish()
+    .describe(
+      "ID of the previous consultation this one is a repeat \/ follow-up of.",
+    ),
+  consultationNumber: zod.string().nullish(),
+  rxClinicalCheckComplete: zod.boolean().nullish(),
+  rxClinicalCheckAt: zod.coerce.date().nullish(),
+  rxClinicalCheckBy: zod.string().nullish(),
+  pmrWorkflowStatus: zod
+    .enum(["inbox", "pick", "parked", "labelling", "pack", "dispatched"])
+    .nullish(),
+  pmrClinicalCheckAt: zod.coerce.date().nullish(),
+  pmrClinicalCheckBy: zod.string().nullish(),
+  pickingLabelCode: zod.string().nullish(),
+  pickVerifiedItems: zod
+    .array(
+      zod.object({
+        itemIndex: zod.number(),
+        barcode: zod.string(),
+        productName: zod.string(),
+        batch: zod.string().nullish(),
+        expiry: zod.string().nullish(),
+        verifiedAt: zod.coerce.date(),
+      }),
+    )
+    .nullish(),
+  pmrWorkflowUpdatedAt: zod.coerce.date().nullish(),
+});
+
+/**
+ * @summary Generate picking label code and printable HTML
+ */
+export const PostPmrPickingLabelParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const PostPmrPickingLabelResponse = zod.object({
+  pickingLabelCode: zod.string(),
+  html: zod.string(),
+  consultation: zod.object({
+    id: zod.string(),
+    patientName: zod.string(),
+    patientEmail: zod.string(),
+    patientAge: zod.number(),
+    patientSex: zod.enum(["male", "female", "other"]),
+    conditionId: zod.string(),
+    conditionName: zod.string(),
+    status: zod.enum([
+      "pending",
+      "approved",
+      "rejected",
+      "more_info_needed",
+      "referred",
+      "red_flag",
+      "patient_responded",
+      "cancelled",
+    ]),
+    answers: zod.record(zod.string(), zod.unknown()),
+    hasRedFlag: zod.boolean(),
+    hasPhoto: zod.boolean(),
+    photoUrls: zod.array(zod.string()).optional(),
+    pharmacistNote: zod.string().nullish(),
+    prescription: zod.string().nullish(),
+    prescriptionItems: zod
+      .array(
+        zod.object({
+          name: zod.string(),
+          strength: zod.string(),
+          form: zod.string(),
+          quantity: zod.string(),
+          sig: zod.string(),
+          duration: zod.string(),
+          notes: zod.string().nullish(),
+        }),
+      )
+      .nullish(),
+    referralInfo: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+    reviewedAt: zod.coerce.date().nullish(),
+    gpName: zod.string().nullish(),
+    gpSurgery: zod.string().nullish(),
+    gpAddress: zod.string().nullish(),
+    gpPhone: zod.string().nullish(),
+    hasRegularGp: zod.boolean().nullish(),
+    consentShareWithGp: zod.boolean().nullish(),
+    consentToTreatment: zod.boolean().nullish(),
+    consentToDelivery: zod.boolean().nullish(),
+    consentDataProcessing: zod.boolean().nullish(),
+    identityVerificationMethod: zod.string().nullish(),
+    identityVerificationRef: zod.string().nullish(),
+    deliveryAddress: zod.string().nullish(),
+    deliveryAddressLine1: zod.string().nullish(),
+    deliveryAddressLine2: zod.string().nullish(),
+    deliveryCity: zod.string().nullish(),
+    deliveryPostcode: zod.string().nullish(),
+    preferredDeliveryMethod: zod.string().nullish(),
+    allergies: zod.string().nullish(),
+    currentMedications: zod.string().nullish(),
+    medicalHistory: zod.string().nullish(),
+    isPregnant: zod.boolean().nullish(),
+    bmi: zod.number().nullish(),
+    verifiedHeightCm: zod.number().nullish(),
+    verifiedWeightKg: zod.number().nullish(),
+    heightCm: zod.number().nullish(),
+    weightKg: zod.number().nullish(),
+    riskFlags: zod.array(zod.string()).nullish(),
+    riskCategory: zod.string().nullish(),
+    clinicalDecisionRationale: zod.string().nullish(),
+    reviewedBy: zod.string().nullish(),
+    deliveryCarrier: zod.string().nullish(),
+    deliveryTrackingNumber: zod.string().nullish(),
+    deliveredAt: zod.coerce.date().nullish(),
+    dispatchedAt: zod.coerce.date().nullish(),
+    previousConsultationId: zod
+      .string()
+      .nullish()
+      .describe(
+        "ID of the previous consultation this one is a repeat \/ follow-up of.",
+      ),
+    consultationNumber: zod.string().nullish(),
+    rxClinicalCheckComplete: zod.boolean().nullish(),
+    rxClinicalCheckAt: zod.coerce.date().nullish(),
+    rxClinicalCheckBy: zod.string().nullish(),
+    pmrWorkflowStatus: zod
+      .enum(["inbox", "pick", "parked", "labelling", "pack", "dispatched"])
+      .nullish(),
+    pmrClinicalCheckAt: zod.coerce.date().nullish(),
+    pmrClinicalCheckBy: zod.string().nullish(),
+    pickingLabelCode: zod.string().nullish(),
+    pickVerifiedItems: zod
+      .array(
+        zod.object({
+          itemIndex: zod.number(),
+          barcode: zod.string(),
+          productName: zod.string(),
+          batch: zod.string().nullish(),
+          expiry: zod.string().nullish(),
+          verifiedAt: zod.coerce.date(),
+        }),
+      )
+      .nullish(),
+    pmrWorkflowUpdatedAt: zod.coerce.date().nullish(),
+  }),
+});
+
+/**
+ * @summary Verify product barcode scan during labelling
+ */
+export const PostPmrVerifyItemParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const PostPmrVerifyItemBody = zod.object({
+  barcode: zod.string(),
+  itemIndex: zod.number().nullish(),
+});
+
+export const PostPmrVerifyItemResponse = zod.object({
+  match: zod.boolean(),
+  itemIndex: zod.number().nullish(),
+  expectedProduct: zod.string().nullish(),
+  scannedProduct: zod.string().nullish(),
+  pickVerifiedItems: zod.array(
+    zod.object({
+      itemIndex: zod.number(),
+      barcode: zod.string(),
+      productName: zod.string(),
+      batch: zod.string().nullish(),
+      expiry: zod.string().nullish(),
+      verifiedAt: zod.coerce.date(),
+    }),
+  ),
+  allVerified: zod.boolean(),
+});
+
+/**
+ * @summary Mark consultation dispatched from PMR
+ */
+export const PostPmrDispatchParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const PostPmrDispatchResponse = zod.object({
+  id: zod.string(),
+  patientName: zod.string(),
+  patientEmail: zod.string(),
+  patientAge: zod.number(),
+  patientSex: zod.enum(["male", "female", "other"]),
+  conditionId: zod.string(),
+  conditionName: zod.string(),
+  status: zod.enum([
+    "pending",
+    "approved",
+    "rejected",
+    "more_info_needed",
+    "referred",
+    "red_flag",
+    "patient_responded",
+    "cancelled",
+  ]),
+  answers: zod.record(zod.string(), zod.unknown()),
+  hasRedFlag: zod.boolean(),
+  hasPhoto: zod.boolean(),
+  photoUrls: zod.array(zod.string()).optional(),
+  pharmacistNote: zod.string().nullish(),
+  prescription: zod.string().nullish(),
+  prescriptionItems: zod
+    .array(
+      zod.object({
+        name: zod.string(),
+        strength: zod.string(),
+        form: zod.string(),
+        quantity: zod.string(),
+        sig: zod.string(),
+        duration: zod.string(),
+        notes: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  referralInfo: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+  reviewedAt: zod.coerce.date().nullish(),
+  gpName: zod.string().nullish(),
+  gpSurgery: zod.string().nullish(),
+  gpAddress: zod.string().nullish(),
+  gpPhone: zod.string().nullish(),
+  hasRegularGp: zod.boolean().nullish(),
+  consentShareWithGp: zod.boolean().nullish(),
+  consentToTreatment: zod.boolean().nullish(),
+  consentToDelivery: zod.boolean().nullish(),
+  consentDataProcessing: zod.boolean().nullish(),
+  identityVerificationMethod: zod.string().nullish(),
+  identityVerificationRef: zod.string().nullish(),
+  deliveryAddress: zod.string().nullish(),
+  deliveryAddressLine1: zod.string().nullish(),
+  deliveryAddressLine2: zod.string().nullish(),
+  deliveryCity: zod.string().nullish(),
+  deliveryPostcode: zod.string().nullish(),
+  preferredDeliveryMethod: zod.string().nullish(),
+  allergies: zod.string().nullish(),
+  currentMedications: zod.string().nullish(),
+  medicalHistory: zod.string().nullish(),
+  isPregnant: zod.boolean().nullish(),
+  bmi: zod.number().nullish(),
+  verifiedHeightCm: zod.number().nullish(),
+  verifiedWeightKg: zod.number().nullish(),
+  heightCm: zod.number().nullish(),
+  weightKg: zod.number().nullish(),
+  riskFlags: zod.array(zod.string()).nullish(),
+  riskCategory: zod.string().nullish(),
+  clinicalDecisionRationale: zod.string().nullish(),
+  reviewedBy: zod.string().nullish(),
+  deliveryCarrier: zod.string().nullish(),
+  deliveryTrackingNumber: zod.string().nullish(),
+  deliveredAt: zod.coerce.date().nullish(),
+  dispatchedAt: zod.coerce.date().nullish(),
+  previousConsultationId: zod
+    .string()
+    .nullish()
+    .describe(
+      "ID of the previous consultation this one is a repeat \/ follow-up of.",
+    ),
+  consultationNumber: zod.string().nullish(),
+  rxClinicalCheckComplete: zod.boolean().nullish(),
+  rxClinicalCheckAt: zod.coerce.date().nullish(),
+  rxClinicalCheckBy: zod.string().nullish(),
+  pmrWorkflowStatus: zod
+    .enum(["inbox", "pick", "parked", "labelling", "pack", "dispatched"])
+    .nullish(),
+  pmrClinicalCheckAt: zod.coerce.date().nullish(),
+  pmrClinicalCheckBy: zod.string().nullish(),
+  pickingLabelCode: zod.string().nullish(),
+  pickVerifiedItems: zod
+    .array(
+      zod.object({
+        itemIndex: zod.number(),
+        barcode: zod.string(),
+        productName: zod.string(),
+        batch: zod.string().nullish(),
+        expiry: zod.string().nullish(),
+        verifiedAt: zod.coerce.date(),
+      }),
+    )
+    .nullish(),
+  pmrWorkflowUpdatedAt: zod.coerce.date().nullish(),
+});
+
+/**
+ * @summary Resolve consultation from picking label barcode
+ */
+export const GetPmrConsultationByPickCodeParams = zod.object({
+  code: zod.coerce.string(),
+});
+
+export const GetPmrConsultationByPickCodeResponse = zod.object({
+  id: zod.string(),
+  patientName: zod.string(),
+  patientEmail: zod.string(),
+  patientAge: zod.number(),
+  patientSex: zod.enum(["male", "female", "other"]),
+  conditionId: zod.string(),
+  conditionName: zod.string(),
+  status: zod.enum([
+    "pending",
+    "approved",
+    "rejected",
+    "more_info_needed",
+    "referred",
+    "red_flag",
+    "patient_responded",
+    "cancelled",
+  ]),
+  answers: zod.record(zod.string(), zod.unknown()),
+  hasRedFlag: zod.boolean(),
+  hasPhoto: zod.boolean(),
+  photoUrls: zod.array(zod.string()).optional(),
+  pharmacistNote: zod.string().nullish(),
+  prescription: zod.string().nullish(),
+  prescriptionItems: zod
+    .array(
+      zod.object({
+        name: zod.string(),
+        strength: zod.string(),
+        form: zod.string(),
+        quantity: zod.string(),
+        sig: zod.string(),
+        duration: zod.string(),
+        notes: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  referralInfo: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+  reviewedAt: zod.coerce.date().nullish(),
+  gpName: zod.string().nullish(),
+  gpSurgery: zod.string().nullish(),
+  gpAddress: zod.string().nullish(),
+  gpPhone: zod.string().nullish(),
+  hasRegularGp: zod.boolean().nullish(),
+  consentShareWithGp: zod.boolean().nullish(),
+  consentToTreatment: zod.boolean().nullish(),
+  consentToDelivery: zod.boolean().nullish(),
+  consentDataProcessing: zod.boolean().nullish(),
+  identityVerificationMethod: zod.string().nullish(),
+  identityVerificationRef: zod.string().nullish(),
+  deliveryAddress: zod.string().nullish(),
+  deliveryAddressLine1: zod.string().nullish(),
+  deliveryAddressLine2: zod.string().nullish(),
+  deliveryCity: zod.string().nullish(),
+  deliveryPostcode: zod.string().nullish(),
+  preferredDeliveryMethod: zod.string().nullish(),
+  allergies: zod.string().nullish(),
+  currentMedications: zod.string().nullish(),
+  medicalHistory: zod.string().nullish(),
+  isPregnant: zod.boolean().nullish(),
+  bmi: zod.number().nullish(),
+  verifiedHeightCm: zod.number().nullish(),
+  verifiedWeightKg: zod.number().nullish(),
+  heightCm: zod.number().nullish(),
+  weightKg: zod.number().nullish(),
+  riskFlags: zod.array(zod.string()).nullish(),
+  riskCategory: zod.string().nullish(),
+  clinicalDecisionRationale: zod.string().nullish(),
+  reviewedBy: zod.string().nullish(),
+  deliveryCarrier: zod.string().nullish(),
+  deliveryTrackingNumber: zod.string().nullish(),
+  deliveredAt: zod.coerce.date().nullish(),
+  dispatchedAt: zod.coerce.date().nullish(),
+  previousConsultationId: zod
+    .string()
+    .nullish()
+    .describe(
+      "ID of the previous consultation this one is a repeat \/ follow-up of.",
+    ),
+  consultationNumber: zod.string().nullish(),
+  rxClinicalCheckComplete: zod.boolean().nullish(),
+  rxClinicalCheckAt: zod.coerce.date().nullish(),
+  rxClinicalCheckBy: zod.string().nullish(),
+  pmrWorkflowStatus: zod
+    .enum(["inbox", "pick", "parked", "labelling", "pack", "dispatched"])
+    .nullish(),
+  pmrClinicalCheckAt: zod.coerce.date().nullish(),
+  pmrClinicalCheckBy: zod.string().nullish(),
+  pickingLabelCode: zod.string().nullish(),
+  pickVerifiedItems: zod
+    .array(
+      zod.object({
+        itemIndex: zod.number(),
+        barcode: zod.string(),
+        productName: zod.string(),
+        batch: zod.string().nullish(),
+        expiry: zod.string().nullish(),
+        verifiedAt: zod.coerce.date(),
+      }),
+    )
+    .nullish(),
+  pmrWorkflowUpdatedAt: zod.coerce.date().nullish(),
 });
 
 /**
@@ -604,6 +1420,7 @@ export const GetPatientConsultationsResponse = zod.object({
         "referred",
         "red_flag",
         "patient_responded",
+        "cancelled",
       ]),
       answers: zod.record(zod.string(), zod.unknown()),
       hasRedFlag: zod.boolean(),
@@ -668,6 +1485,29 @@ export const GetPatientConsultationsResponse = zod.object({
         .describe(
           "ID of the previous consultation this one is a repeat \/ follow-up of.",
         ),
+      consultationNumber: zod.string().nullish(),
+      rxClinicalCheckComplete: zod.boolean().nullish(),
+      rxClinicalCheckAt: zod.coerce.date().nullish(),
+      rxClinicalCheckBy: zod.string().nullish(),
+      pmrWorkflowStatus: zod
+        .enum(["inbox", "pick", "parked", "labelling", "pack", "dispatched"])
+        .nullish(),
+      pmrClinicalCheckAt: zod.coerce.date().nullish(),
+      pmrClinicalCheckBy: zod.string().nullish(),
+      pickingLabelCode: zod.string().nullish(),
+      pickVerifiedItems: zod
+        .array(
+          zod.object({
+            itemIndex: zod.number(),
+            barcode: zod.string(),
+            productName: zod.string(),
+            batch: zod.string().nullish(),
+            expiry: zod.string().nullish(),
+            verifiedAt: zod.coerce.date(),
+          }),
+        )
+        .nullish(),
+      pmrWorkflowUpdatedAt: zod.coerce.date().nullish(),
     }),
   ),
 });
@@ -720,6 +1560,7 @@ export const GetRecentConsultationsResponseItem = zod.object({
     "referred",
     "red_flag",
     "patient_responded",
+    "cancelled",
   ]),
   answers: zod.record(zod.string(), zod.unknown()),
   hasRedFlag: zod.boolean(),
@@ -784,6 +1625,29 @@ export const GetRecentConsultationsResponseItem = zod.object({
     .describe(
       "ID of the previous consultation this one is a repeat \/ follow-up of.",
     ),
+  consultationNumber: zod.string().nullish(),
+  rxClinicalCheckComplete: zod.boolean().nullish(),
+  rxClinicalCheckAt: zod.coerce.date().nullish(),
+  rxClinicalCheckBy: zod.string().nullish(),
+  pmrWorkflowStatus: zod
+    .enum(["inbox", "pick", "parked", "labelling", "pack", "dispatched"])
+    .nullish(),
+  pmrClinicalCheckAt: zod.coerce.date().nullish(),
+  pmrClinicalCheckBy: zod.string().nullish(),
+  pickingLabelCode: zod.string().nullish(),
+  pickVerifiedItems: zod
+    .array(
+      zod.object({
+        itemIndex: zod.number(),
+        barcode: zod.string(),
+        productName: zod.string(),
+        batch: zod.string().nullish(),
+        expiry: zod.string().nullish(),
+        verifiedAt: zod.coerce.date(),
+      }),
+    )
+    .nullish(),
+  pmrWorkflowUpdatedAt: zod.coerce.date().nullish(),
 });
 export const GetRecentConsultationsResponse = zod.array(
   GetRecentConsultationsResponseItem,
@@ -801,4 +1665,25 @@ export const GetPharmacistUnreadCountsResponse = zod.object({
   patientResponded: zod
     .number()
     .describe("Consultations currently in the `patient_responded` status"),
+});
+
+/**
+ * @summary Look up a medicine pack by GTIN (dm+d catalogue synced from TRUD)
+ */
+export const PmrScanLookupQueryParams = zod.object({
+  gtin: zod.coerce
+    .string()
+    .describe("GTIN from barcode scan (13 or 14 digits)"),
+});
+
+export const PmrScanLookupResponse = zod.object({
+  gtin: zod.string(),
+  amppId: zod.string(),
+  vmpId: zod.string().nullish(),
+  name: zod.string(),
+  strength: zod.string().nullish(),
+  form: zod.string().nullish(),
+  supplier: zod.string().nullish(),
+  discontinued: zod.boolean(),
+  source: zod.enum(["dmd", "demo"]),
 });

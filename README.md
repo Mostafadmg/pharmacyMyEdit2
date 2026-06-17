@@ -10,6 +10,7 @@ The project is designed for online consultations, prescription review workflows,
 | --- | --- | --- | --- |
 | Patient Pharmacy Website | `artifacts/pharmacy` | Patient shop, consultations, checkout, orders, and messages | `http://localhost:5173` |
 | Rx Prescriber Portal | `artifacts/pharmacist-rx` | Pharmacist/prescriber dashboard for reviewing consultations and prescriptions | `http://localhost:5174` |
+| PMR Dispensing System | `artifacts/pharmacist-pmr` | Windows desktop PMR — scan barcodes, print labels, dispense | `pnpm dev:desktop` or `http://localhost:5175` |
 | Pharmacist Mobile App | `artifacts/pharmacist-app` | Expo mobile app for pharmacist review, orders, inbox, and patient records | Expo on `8081` |
 | API Server | `artifacts/api-server` | Express API for auth, consultations, orders, messages, prescriptions, and pharmacist tools | `http://localhost:5000` |
 | Database Library | `lib/db` | Drizzle schema and database connection | PostgreSQL |
@@ -119,6 +120,26 @@ Open:
 
 ```text
 http://localhost:5174
+```
+
+Run the PMR dispensing system (Windows desktop — recommended):
+
+```bash
+pnpm --filter @workspace/pharmacist-pmr run dev:desktop
+```
+
+This opens the EveryDayMeds PMR as a native Windows app with barcode scanning and silent label printing.
+
+Web-only mode (browser, no Electron):
+
+```bash
+pnpm --filter @workspace/pharmacist-pmr run dev
+```
+
+Open in browser:
+
+```text
+http://localhost:5175
 ```
 
 Useful Rx portal routes:

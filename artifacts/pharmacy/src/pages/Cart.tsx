@@ -2,8 +2,7 @@ import React from "react";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingBag, Trash2, Plus, Minus, ArrowRight } from "lucide-react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+import SiteLayout from "@/components/layout/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useCart, formatGbp } from "@/hooks/useCart";
@@ -13,8 +12,7 @@ export default function Cart() {
   const { items, updateQty, removeItem, itemsTotal, itemsTotalAfterDiscount, discounts, discountTotal, shipping, total } = useCart();
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF7F2]">
-      <Header />
+    <SiteLayout className="min-h-screen flex flex-col bg-[#faf6f3] edm-site">
       <div className="max-w-5xl mx-auto px-6 py-10 w-full flex-1">
         <h1 className="text-3xl md:text-4xl font-bold mb-2">Your basket</h1>
         <p className="text-muted-foreground mb-8">{items.length === 0 ? "Your basket is empty." : `${items.length} ${items.length === 1 ? "item" : "items"}`}</p>
@@ -111,7 +109,6 @@ export default function Cart() {
           </div>
         )}
       </div>
-      <Footer />
-    </div>
+    </SiteLayout>
   );
 }

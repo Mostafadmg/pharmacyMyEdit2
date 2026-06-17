@@ -21,4 +21,6 @@ export interface ConsultationReviewInput {
   referRecipientName?: string | null;
   /** routine | soon | urgent | emergency */
   referUrgency?: string | null;
+  /** When true on approve, Rx skips PMR clinical check and lands in Pick. */
+  rxClinicalCheckComplete?: boolean | null;
 }

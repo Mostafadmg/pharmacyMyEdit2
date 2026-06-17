@@ -2,8 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useRoute, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { ArrowLeft, Plus, Minus, ShoppingBag, ShieldCheck, Truck, Check, AlertTriangle } from "lucide-react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+import SiteLayout from "@/components/layout/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -118,8 +117,7 @@ export default function ProductDetail() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF7F2]">
-      <Header />
+    <SiteLayout className="min-h-screen flex flex-col bg-[#faf6f3] edm-site">
       <div className="max-w-7xl mx-auto px-6 py-8 w-full flex-1">
         <Link href="/shop" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft className="w-4 h-4" /> Back to shop
@@ -321,7 +319,6 @@ export default function ProductDetail() {
         )}
       </div>
       <RecentlyViewedStrip excludeProductId={product?.id} />
-      <Footer />
-    </div>
+    </SiteLayout>
   );
 }

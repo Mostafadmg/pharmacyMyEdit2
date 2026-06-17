@@ -1,177 +1,212 @@
 import { Link } from "wouter";
-import { ExternalLink } from "lucide-react";
-import NewsletterSignup from "@/components/NewsletterSignup";
 
-const LINK_GROUPS = [
-  {
-    title: "Shop & care",
-    links: [
-      { href: "/shop", label: "Pharmacy shop" },
-      { href: "/conditions", label: "Treatments" },
-      { href: "/my-consultations", label: "My consultations" },
-      { href: "/contact", label: "Contact" },
-    ],
-  },
-  {
-    title: "About",
-    links: [
-      { href: "/about/our-service", label: "Our service" },
-      { href: "/about/regulatory", label: "Regulatory info" },
-      { href: "/about/safeguarding", label: "Safe prescribing" },
-      { href: "/feedback", label: "Feedback" },
-    ],
-  },
-  {
-    title: "Legal",
-    links: [
-      { href: "/legal/terms", label: "Terms" },
-      { href: "/legal/privacy", label: "Privacy" },
-      { href: "/legal/cookies", label: "Cookies" },
-      { href: "/legal/complaints", label: "Complaints" },
-    ],
-  },
-] as const;
+import { Facebook, Instagram } from "lucide-react";
 
-const TRUST_ITEMS = [
-  "GPhC registered",
-  "Secure payments",
-  "Discreet delivery",
-] as const;
+import { COMPANY } from "@/data/everydaymedsSite";
 
-function FooterLinkGroup({
-  title,
-  links,
-}: {
-  title: string;
-  links: readonly { href: string; label: string }[];
-}) {
+import {
+
+  EDM_ASSETS,
+
+  FOOTER_COMPANY_LINKS,
+
+  INDEPENDENT_PRESCRIBERS,
+
+} from "@/data/everydaymedsAssets";
+
+
+
+function TikTokIcon({ className }: { className?: string }) {
+
   return (
-    <div>
-      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-white/90">
-        {title}
-      </h3>
-      <ul className="space-y-2 text-sm text-white/65">
-        {links.map((item) => (
-          <li key={item.href}>
-            <Link
-              href={item.href}
-              className="transition-colors hover:text-white"
-            >
-              {item.label}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
+
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.76a4.85 4.85 0 0 1-1.01-.07z" />
+
+    </svg>
+
   );
+
 }
+
+
 
 export default function Footer() {
+
   const year = new Date().getFullYear();
 
+
+
   return (
-    <footer className="mt-auto border-t border-white/10 bg-secondary text-secondary-foreground">
-      <div className="mx-auto max-w-6xl px-6 py-10 md:py-12">
-        <div className="grid gap-10 md:grid-cols-12 md:gap-8">
-          <div className="md:col-span-4 lg:col-span-5">
-            <Link href="/" className="inline-flex items-center gap-2.5">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
-                +
-              </span>
-              <span className="font-serif text-xl font-bold text-white">
-                EveryDayMeds
-              </span>
+
+    <footer className="mt-auto edm-section-dark text-white rounded-t-[28px]">
+
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-12 sm:py-14">
+
+        <div className="grid gap-10 lg:grid-cols-[1.1fr_1fr_1fr]">
+
+          <div>
+
+            <Link href="/" className="inline-flex items-center gap-3">
+
+              <img src={EDM_ASSETS.logo} alt="EveryDayMeds" className="h-10 w-auto brightness-0 invert" />
+
             </Link>
-            <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/60">
-              UK-registered pharmacy. Online consultations reviewed by GPhC
-              pharmacist independent prescribers.
-            </p>
-            <dl className="mt-4 space-y-1.5 text-sm text-white/55">
-              <div>
-                <dt className="sr-only">Address</dt>
-                <dd>14 Harley Street, London W1G 9PB</dd>
-              </div>
-              <div className="flex flex-wrap gap-x-3 gap-y-1">
-                <dd>
-                  <a
-                    href="tel:08000209090"
-                    className="hover:text-white transition-colors"
-                  >
-                    0800 020 9090
-                  </a>
-                </dd>
-                <span className="text-white/30" aria-hidden>
-                  ·
-                </span>
-                <dd>
-                  <a
-                    href="mailto:care@everydaymeds.example.uk"
-                    className="hover:text-white transition-colors"
-                  >
-                    care@everydaymeds.example.uk
-                  </a>
-                </dd>
-              </div>
-              <div className="text-xs text-white/45">
-                GPhC premises 9012345 · Superintendent: Dr Aisha Patel MPharm
-                IP (2098765)
-              </div>
-            </dl>
-            <a
-              href="https://www.pharmacyregulation.org/registers/pharmacy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-white transition-colors"
-            >
-              Verify on GPhC register
-              <ExternalLink className="h-3 w-3" />
-            </a>
+
+            <div className="mt-6 space-y-3 text-sm text-white/75 leading-relaxed max-w-sm">
+
+              <p className="font-semibold text-white">
+
+                {COMPANY.legalName} (trading as {COMPANY.brandName} © {year})
+
+              </p>
+
+              <p>
+
+                <span className="font-semibold text-white/90">Registered Address:</span>
+
+                <br />
+
+                109 Coleman Road, Leicester, LE5 4LE, United Kingdom
+
+              </p>
+
+              <p>
+
+                <span className="font-semibold text-white/90">Support:</span>{" "}
+
+                <a href={`mailto:${COMPANY.email}`} className="hover:text-white underline-offset-2 hover:underline">
+
+                  {COMPANY.email}
+
+                </a>
+
+                {" | "}
+
+                <span className="font-semibold text-white/90">Tel:</span>{" "}
+
+                <a href={COMPANY.phoneHref} className="hover:text-white underline-offset-2 hover:underline">
+
+                  {COMPANY.phoneDisplay}
+
+                </a>
+
+              </p>
+
+            </div>
+
+
+
+            <div className="mt-6">
+
+              <p className="text-sm font-bold text-white mb-3">Our Independent Prescribers</p>
+
+              <ul className="space-y-2 text-sm text-white/75">
+
+                {INDEPENDENT_PRESCRIBERS.map((p) => (
+
+                  <li key={p.gphc}>
+
+                    {p.name}
+
+                    <br />
+
+                    {p.gphc}
+
+                  </li>
+
+                ))}
+
+              </ul>
+
+            </div>
+
           </div>
 
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:col-span-8 lg:col-span-7">
-            {LINK_GROUPS.map((group) => (
-              <FooterLinkGroup key={group.title} {...group} />
-            ))}
+
+
+          <div className="lg:col-span-2">
+
+            <h3 className="text-sm font-bold mb-4">Company</h3>
+
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2.5 text-sm text-white/75">
+
+              {FOOTER_COMPANY_LINKS.map((link) => (
+
+                <li key={link.href + link.label}>
+
+                  <Link href={link.href} className="hover:text-white transition-colors">
+
+                    {link.label}
+
+                  </Link>
+
+                </li>
+
+              ))}
+
+            </ul>
+
           </div>
+
         </div>
 
-        <div className="mt-10 flex flex-col gap-6 border-t border-white/10 pt-8 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0 flex-1 lg:max-w-md">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/80">
-              Newsletter
-            </p>
-            <NewsletterSignup compact />
-          </div>
-          <p className="max-w-xs text-sm leading-relaxed text-white/55 lg:text-right">
-            <span className="font-medium text-white/80">Need help?</span>{" "}
-            Mon–Fri 8am–8pm, Sat 9am–5pm on{" "}
-            <a
-              href="tel:08000209090"
-              className="font-medium text-primary hover:text-white"
-            >
-              0800 020 9090
-            </a>
+
+
+        <div className="mt-10 pt-6 border-t border-white/10 flex flex-col lg:flex-row items-center justify-between gap-5">
+
+          <p className="text-xs text-white/50 order-3 lg:order-1">
+
+            © {year} {COMPANY.brandName}. All rights reserved.
+
           </p>
+
+
+
+          <div className="flex items-center gap-4 text-white/70 order-1 lg:order-2">
+
+            <a href="https://www.tiktok.com" aria-label="TikTok" className="hover:text-white transition-colors">
+
+              <TikTokIcon className="h-5 w-5" />
+
+            </a>
+
+            <a href="https://instagram.com" aria-label="Instagram" className="hover:text-white transition-colors">
+
+              <Instagram className="h-5 w-5" />
+
+            </a>
+
+            <a href="https://facebook.com" aria-label="Facebook" className="hover:text-white transition-colors">
+
+              <Facebook className="h-5 w-5" />
+
+            </a>
+
+          </div>
+
+
+
+          <img
+
+            src={EDM_ASSETS.payments}
+
+            alt="Accepted payment methods"
+
+            className="h-7 sm:h-8 w-auto order-2 lg:order-3 brightness-0 invert opacity-80"
+
+            loading="lazy"
+
+          />
+
         </div>
 
-        <div className="mt-8 flex flex-wrap items-center gap-2 border-t border-white/10 pt-6">
-          {TRUST_ITEMS.map((label) => (
-            <span
-              key={label}
-              className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-white/55"
-            >
-              {label}
-            </span>
-          ))}
-        </div>
-
-        <div className="mt-6 flex flex-col gap-2 text-[11px] leading-relaxed text-white/40 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <p>© {year} EveryDayMeds Pharmacy Ltd. All rights reserved.</p>
-          <p className="sm:max-w-md sm:text-right">
-            Regulated by the General Pharmaceutical Council (GPhC).
-          </p>
-        </div>
       </div>
+
     </footer>
+
   );
+
 }
+
