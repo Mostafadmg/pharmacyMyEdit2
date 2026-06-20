@@ -50,6 +50,7 @@ import DataAndPrivacy from "./pages/account/DataAndPrivacy";
 import PatientUploadDocumentsHub from "./pages/account/PatientUploadDocumentsHub";
 import PatientAccountProfile from "./pages/account/PatientAccountProfile";
 import MyTasks from "./pages/MyTasks";
+import QuarterlyProgressReviews from "./pages/QuarterlyProgressReviews";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import AdminOrders from "./pages/AdminOrders";
 import AdminOrderDetail from "./pages/AdminOrderDetail";
@@ -122,6 +123,10 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/pages/about-us">{() => <RedirectTo href="/about/our-service" />}</Route>
+      <Route path="/pages/contact">{() => <RedirectTo href="/contact" />}</Route>
+      <Route path="/pages/weight-loss">{() => <RedirectTo href="/treatments/weight-loss" />}</Route>
+      <Route path="/pages/wishlist">{() => <RedirectTo href="/wishlist" />}</Route>
       <Route path="/conditions" component={Conditions} />
       <Route path="/treatments/weight-loss" component={WeightLoss} />
       <Route path="/treatments/weight-loss/choose" component={WeightLossChoose} />
@@ -157,6 +162,7 @@ function Router() {
       <Route path="/my-account/register" component={PatientRegister} />
       <Route path="/my-consultations" component={MyConsultations} />
       <Route path="/my-messages" component={PatientMessages} />
+      <Route path="/pages/customer-message" component={PatientMessages} />
       <Route path="/upload-documents/:id" component={UploadDocuments} />
       <Route path="/shop" component={Shop} />
       <Route path="/collections/:slug" component={ShopCollection} />
@@ -171,10 +177,12 @@ function Router() {
       <Route path="/pages/upload-documents" component={PatientUploadDocumentsHub} />
       <Route path="/pages/my-account" component={PatientAccountProfile} />
       <Route path="/pages/my-tasks" component={MyTasks} />
+      <Route path="/pages/quarterly-video-verification" component={QuarterlyProgressReviews} />
       <Route path="/account" component={AccountHub} />
       <Route path="/account/details" component={YourDetails} />
       <Route path="/account/details/payments" component={MyPayments} />
       <Route path="/account/details/password" component={ChangePassword} />
+      <Route path="/pages/change-password" component={ChangePassword} />
       <Route path="/account/details/gp" component={GPDetails} />
       <Route path="/account/subscriptions" component={MySubscriptions} />
       <Route path="/account/refer" component={ReferFriend} />

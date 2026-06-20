@@ -1,43 +1,271 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Package, Check, RotateCcw, ChevronLeft, ChevronRight } from "lucide-react";
 import PatientAccountLayout from "@/components/layout/PatientAccountLayout";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
 import { formatGbp } from "@/hooks/useCart";
 import { ORDER_PROGRESS_STEPS } from "@/data/patientAccountNav";
-import { cn } from "@/lib/utils";
+import { buildConsultationDocumentFocusPath } from "@/lib/consultationDocumentFocus";
+import {
+  displayConsultationNumber,
+  medicationLabelFromOrder,
+} from "@/lib/patientOrderContext";
+import DevTestCredentialsHint from "@/components/dev/DevTestCredentialsHint";
+import {
+  nextDoseRecommendation,
+  productImageForCondition,
+  progressForConsultation,
+  progressForShopOrder,
+  stepVisualStates,
+  type OrderProgressState,
+} from "@/lib/patientOrderProgress";
 
-type Order = {
+type PrescriptionItem = {
+  name?: string;
+  strength?: string;
+  form?: string;
+  quantity?: string;
+};
+
+type ConsultationRow = {
+  id: string;
+  consultationNumber?: string | null;
+  conditionId: string;
+  conditionName: string;
+  status: string;
+  createdAt: string;
+  dispatchedAt?: string | null;
+  documentsNeedAttention?: boolean;
+  prescriptionItems?: PrescriptionItem[];
+  answers?: Record<string, unknown>;
+};
+
+type ShopOrderLine = {
+  productName: string;
+  imageUrl: string | null;
+  quantity: number;
+};
+
+type ShopOrder = {
   id: string;
   orderNumber: string;
   totalGbp: number;
   status: string;
   paymentStatus: string;
   consultationId: string | null;
-  prescriptionItems: Array<{ name: string; strength: string; form: string }> | null;
+  prescriptionItems: PrescriptionItem[] | null;
   createdAt: string;
+  items?: ShopOrderLine[];
 };
 
-function progressForStatus(status: string): { step: number; statusLabel: string; badge: string } {
-  switch (status) {
-    case "delivered":
-      return { step: 5, statusLabel: "Sent", badge: "Fulfilled" };
-    case "shipped":
-      return { step: 4, statusLabel: "Dispatched", badge: "Fulfilled" };
-    case "preparing":
-      return { step: 3, statusLabel: "Approved", badge: "Fulfilled" };
-    case "paid":
-      return { step: 2, statusLabel: "Under Review", badge: "Pending" };
-    case "pending":
-      return { step: 1, statusLabel: "Waiting for Documents", badge: "Pending" };
-    case "cancelled":
-      return { step: 0, statusLabel: "Cancelled", badge: "Cancelled" };
-    default:
-      return { step: 2, statusLabel: "Under Review", badge: "Pending" };
+type OrderItemRow = {
+  name: string;
+  subtitle?: string;
+  imageUrl: string | null;
+  quantity: number;
+};
+
+type UnifiedOrder = {
+  id: string;
+  kind: "consultation" | "shop";
+  orderLabel: string;
+  createdAt: string;
+  progress: OrderProgressState;
+  items: OrderItemRow[];
+  totalGbp: number | null;
+  paymentStatus?: string;
+  consultationId: string | null;
+  conditionId?: string;
+  conditionName?: string;
+  currentDose?: string;
+};
+
+function formatOrderDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+function doseFromConsultation(c: ConsultationRow): string | undefined {
+  const fromRx = c.prescriptionItems?.[0]?.strength?.trim();
+  if (fromRx) return fromRx;
+  const answers = c.answers ?? {};
+  const pick = answers.selectedDose ?? answers.dose ?? answers.currentDose;
+  return typeof pick === "string" ? pick : undefined;
+}
+
+function itemsFromConsultation(c: ConsultationRow): OrderItemRow[] {
+  const rx = c.prescriptionItems ?? [];
+  if (rx.length > 0) {
+    return rx.map((item) => ({
+      name: item.name?.trim() || c.conditionName,
+      subtitle: item.strength?.trim(),
+      imageUrl: productImageForCondition(c.conditionId, item.name),
+      quantity: 1,
+    }));
   }
+  const med = medicationLabelFromOrder({
+    id: c.id,
+    conditionName: c.conditionName,
+    status: c.status,
+    createdAt: c.createdAt,
+    prescriptionItems: c.prescriptionItems,
+  });
+  return [
+    {
+      name: med,
+      imageUrl: productImageForCondition(c.conditionId),
+      quantity: 1,
+    },
+  ];
+}
+
+function variantSubtitleFromName(name: string): string | undefined {
+  const weeksMatch = name.match(/\((Weeks?\s[\d–\-+]+)\)/i);
+  const doseMatch = name.match(/([\d.]+\s*mg)/i);
+  if (doseMatch && weeksMatch) return `${doseMatch[1]} ${weeksMatch[1]}`;
+  if (weeksMatch) return weeksMatch[1];
+  const parts = name.split(" - ");
+  if (parts.length > 1) {
+    const tail = parts[parts.length - 1]?.trim();
+    if (tail && tail.length < 80) return tail;
+  }
+  return undefined;
+}
+
+function itemsFromShopOrder(o: ShopOrder, c?: ConsultationRow): OrderItemRow[] {
+  if (o.items && o.items.length > 0) {
+    return o.items.map((it) => ({
+      name: it.productName,
+      subtitle: variantSubtitleFromName(it.productName),
+      imageUrl: it.imageUrl ?? productImageForCondition(c?.conditionId, it.productName),
+      quantity: it.quantity,
+    }));
+  }
+  const rx = o.prescriptionItems ?? [];
+  if (rx.length > 0) {
+    return rx.map((item) => ({
+      name: item.name?.trim() || "Product",
+      subtitle: item.strength?.trim(),
+      imageUrl: productImageForCondition(c?.conditionId, item.name),
+      quantity: 1,
+    }));
+  }
+  if (c) return itemsFromConsultation(c);
+  return [{ name: "Order", imageUrl: null, quantity: 1 }];
+}
+
+function displayShopOrderNumber(orderNumber: string): string {
+  return orderNumber.replace(/^PC-?/i, "") || orderNumber;
+}
+
+function unifyOrders(
+  consultations: ConsultationRow[],
+  shopOrders: ShopOrder[],
+): UnifiedOrder[] {
+  const consultById = new Map(consultations.map((c) => [c.id, c]));
+  const linkedConsultIds = new Set(
+    shopOrders.map((o) => o.consultationId).filter((id): id is string => Boolean(id)),
+  );
+
+  const fromShop: UnifiedOrder[] = shopOrders.map((o) => {
+    const c = o.consultationId ? consultById.get(o.consultationId) : undefined;
+    const progress = c ? progressForConsultation(c) : progressForShopOrder(o.status);
+
+    return {
+      id: o.id,
+      kind: "shop",
+      orderLabel: `Order #${displayShopOrderNumber(o.orderNumber)}`,
+      createdAt: o.createdAt,
+      progress,
+      items: itemsFromShopOrder(o, c),
+      totalGbp: o.totalGbp,
+      paymentStatus: o.paymentStatus,
+      consultationId: o.consultationId,
+      conditionId: c?.conditionId,
+      conditionName: c?.conditionName,
+      currentDose: c ? doseFromConsultation(c) : undefined,
+    };
+  });
+
+  const fromConsultOnly: UnifiedOrder[] = consultations
+    .filter((c) => !linkedConsultIds.has(c.id))
+    .map((c) => ({
+      id: c.id,
+      kind: "consultation",
+      orderLabel: `Order #${displayConsultationNumber(c.consultationNumber, c.id)}`,
+      createdAt: c.createdAt,
+      progress: progressForConsultation(c),
+      items: itemsFromConsultation(c),
+      totalGbp: null,
+      consultationId: c.id,
+      conditionId: c.conditionId,
+      conditionName: c.conditionName,
+      currentDose: doseFromConsultation(c),
+    }));
+
+  return [...fromShop, ...fromConsultOnly].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+}
+
+function statusPillClass(badge: string): string {
+  if (badge === "Cancelled") return "cancelled";
+  return "pending";
+}
+
+function ProgressStepper({ progress }: { progress: OrderProgressState }) {
+  const states = stepVisualStates(progress);
+  const stepNumber = progress.allComplete ? 6 : progress.activeStep + 1;
+
+  return (
+    <div className="em-progress-section">
+      <div className="em-progress-header">
+        <span className="em-progress-stage">
+          <i className="ti ti-clock-hour-4" aria-hidden />
+          {progress.statusLabel}
+        </span>
+        <span className="em-progress-count">Step {stepNumber} of 6</span>
+      </div>
+
+      <div className="em-progress-mobile">
+        <div className="em-mobile-track">
+          <div
+            className="em-mobile-fill"
+            style={{ width: `${progress.fillPercent}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="em-stepper" aria-label="Order progress">
+        {ORDER_PROGRESS_STEPS.map((label, i) => {
+          const state = states[i];
+          return (
+            <React.Fragment key={label}>
+              <div className={`em-step ${state}`}>
+                <span className={`em-dot ${state}`} title={label}>
+                  {state === "done" ? (
+                    <i className="ti ti-check" aria-hidden />
+                  ) : state === "active" ? (
+                    <span className="em-dot-inner" />
+                  ) : null}
+                </span>
+                <span className="em-step-label" title={label}>
+                  {label}
+                </span>
+              </div>
+              {i < ORDER_PROGRESS_STEPS.length - 1 ? (
+                <div className={`em-bar ${states[i] === "done" ? "filled" : ""}`} />
+              ) : null}
+            </React.Fragment>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function OrderCard({
@@ -45,129 +273,119 @@ function OrderCard({
   onRepeat,
   repeatLoading,
 }: {
-  order: Order;
-  onRepeat: (id: string) => void;
+  order: UnifiedOrder;
+  onRepeat: (consultationId: string) => void;
   repeatLoading: boolean;
 }) {
-  const { step, statusLabel, badge } = progressForStatus(order.status);
-  const items = order.prescriptionItems ?? [];
-  const product = items[0];
-  const productName = product
-    ? `${product.name}${product.strength ? ` — ${product.strength}` : ""}`
-    : "Treatment order";
-  const orderDate = new Date(order.createdAt).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-  const fulfilled = badge === "Fulfilled";
+  const { progress } = order;
+  const primaryItem = order.items[0];
+  const medName = primaryItem?.name ?? "Treatment";
+  const nextDose =
+    order.conditionId === "weight-loss" && order.currentDose
+      ? nextDoseRecommendation(order.currentDose, medName, order.conditionName)
+      : null;
+
+  const detailsHref =
+    order.kind === "shop"
+      ? `/order-confirmation/${order.id}`
+      : order.consultationId
+        ? buildConsultationDocumentFocusPath(order.consultationId)
+        : `/order-confirmation/${order.id}`;
+
+  const showReorder =
+    Boolean(order.consultationId) && order.conditionId === "weight-loss";
 
   return (
-    <article className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-gray-100">
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#d9ede3] text-[#314a40]">
-            <Package className="h-4 w-4" />
-          </span>
-          <div className="min-w-0">
-            <p className="font-bold text-gray-900 truncate">Order #{order.orderNumber}</p>
-            <p className="text-xs text-gray-500">{orderDate}</p>
+    <div className="em-order-card">
+      <div className="em-card-head">
+        <div className="em-head-left">
+          <div className="em-head-icon">
+            <i className="ti ti-package" aria-hidden />
+          </div>
+          <div className="em-head-meta">
+            <p className="em-order-id">{order.orderLabel}</p>
+            <p className="em-order-date">
+              <i className="ti ti-calendar" aria-hidden />
+              Ordered on {formatOrderDate(order.createdAt)}
+            </p>
           </div>
         </div>
-        <span
-          className={cn(
-            "rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide",
-            fulfilled ? "bg-[#314a40] text-white" : "bg-[#fef3c7] text-[#92400e]",
-          )}
-        >
-          {badge}
-        </span>
-      </div>
-
-      <div className="px-5 py-5 border-b border-gray-100">
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-          <p className="text-sm font-semibold text-[#314a40]">{statusLabel}</p>
-          <p className="text-xs text-gray-500">
-            Step {Math.min(step + 1, 6)} of 6
-          </p>
-        </div>
-        <div className="flex items-center gap-1 overflow-x-auto pb-1">
-          {ORDER_PROGRESS_STEPS.map((label, i) => {
-            const done = i <= step;
-            return (
-              <React.Fragment key={label}>
-                <div className="flex flex-col items-center min-w-[52px]">
-                  <div
-                    className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold",
-                      done
-                        ? "border-[#314a40] bg-[#314a40] text-white"
-                        : "border-gray-200 bg-white text-gray-400",
-                    )}
-                  >
-                    {done ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : i + 1}
-                  </div>
-                  <span className={cn("mt-1 text-[10px] text-center leading-tight", done ? "text-gray-800 font-medium" : "text-gray-400")}>
-                    {label}
-                  </span>
-                </div>
-                {i < ORDER_PROGRESS_STEPS.length - 1 ? (
-                  <div className={cn("h-0.5 w-4 sm:w-6 mb-5 shrink-0", i < step ? "bg-[#314a40]" : "bg-gray-200")} />
-                ) : null}
-              </React.Fragment>
-            );
-          })}
+        <div className={`em-status-pill ${statusPillClass(progress.badge)}`}>
+          <span className="em-status-dot" />
+          {progress.badge}
         </div>
       </div>
 
-      <div className="px-5 py-4 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3 min-w-0 flex-1">
-          <div className="h-14 w-14 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
-            <Package className="h-6 w-6 text-[#314a40]/60" />
-          </div>
-          <div className="min-w-0">
-            <p className="font-semibold text-sm text-gray-900 line-clamp-2">{productName}</p>
-            <p className="text-xs text-gray-500 mt-0.5">Qty: 1</p>
-          </div>
+      <ProgressStepper progress={progress} />
+
+      <div className="em-body">
+        <div className="em-items">
+          {order.items.map((item, idx) => (
+            <div key={idx} className="em-item">
+              <div className="em-item-img">
+                {item.imageUrl ? (
+                  <img src={item.imageUrl} alt={item.name} />
+                ) : (
+                  <i className="ti ti-package" aria-hidden style={{ fontSize: 28, opacity: 0.35 }} />
+                )}
+              </div>
+              <div className="em-item-info">
+                <h4>{item.name}</h4>
+                {item.subtitle ? <p>{item.subtitle}</p> : null}
+                <span className="em-qty-chip">Qty: {item.quantity}</span>
+              </div>
+            </div>
+          ))}
         </div>
-        {order.consultationId ? (
-          <div className="rounded-xl bg-[#ecfdf3] border border-[#b8f0c8] px-3 py-2 text-xs text-[#1f3d32] max-w-xs">
-            Next recommended dose shown after clinical review
+
+        {nextDose ? (
+          <div className="em-dose-col">
+            <div className="em-dose-card">
+              <span className="em-dose-badge">Next recommended dose</span>
+              <p className="em-dose-title">{nextDose.title}</p>
+              <p className="em-dose-date">
+                <i className="ti ti-calendar-event" aria-hidden />
+                Reorder by {nextDose.reorderBy}
+              </p>
+            </div>
           </div>
         ) : null}
       </div>
 
-      <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-gray-600">
-          TOTAL{" "}
-          <span className="font-bold text-lg text-[#314a40] ml-1">
-            {order.paymentStatus === "rx_internal" ? "NHS Rx" : formatGbp(order.totalGbp)}
-          </span>
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {order.consultationId ? (
-            <Button
-              size="sm"
+      <div className="em-footer">
+        <div className="em-total">
+          <span className="em-total-label">Total</span>
+          <p className="em-total-value">
+            {order.paymentStatus === "rx_internal"
+              ? "NHS Rx"
+              : order.totalGbp != null
+                ? formatGbp(order.totalGbp)
+                : "—"}
+          </p>
+        </div>
+        <div className="em-actions">
+          {showReorder ? (
+            <button
+              type="button"
+              className="em-btn em-btn-primary reorder-button"
               disabled={repeatLoading}
-              className="rounded-full bg-[#314a40] hover:bg-[#2a4038] text-white"
               onClick={() => order.consultationId && onRepeat(order.consultationId)}
             >
-              <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-              Reorder
-            </Button>
+              <i className="ti ti-refresh" aria-hidden /> Reorder
+            </button>
           ) : null}
-          <Button asChild size="sm" variant="outline" className="rounded-full border-[#314a40] text-[#314a40]">
-            <Link href={`/order-confirmation/${order.id}`}>View details</Link>
-          </Button>
+          <Link href={detailsHref} className="em-btn em-btn-ghost view-details-button">
+            <i className="ti ti-eye" aria-hidden /> View details
+          </Link>
         </div>
       </div>
-    </article>
+    </div>
   );
 }
 
 export default function MyOrders() {
   const [, navigate] = useLocation();
-  const [orders, setOrders] = useState<Order[] | null>(null);
+  const [orders, setOrders] = useState<UnifiedOrder[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [repeatLoadingId, setRepeatLoadingId] = useState<string | null>(null);
   const [page, setPage] = useState(0);
@@ -198,13 +416,26 @@ export default function MyOrders() {
       navigate("/my-account/login");
       return;
     }
-    apiFetch<{ orders: Order[] }>("/api/orders", { auth: "patient" })
-      .then((d) => setOrders(d.orders))
+    Promise.all([
+      apiFetch<{ consultations: ConsultationRow[] }>("/api/patient/consultations", {
+        auth: "patient",
+      }),
+      apiFetch<{ orders: ShopOrder[] }>("/api/orders", { auth: "patient" }).catch(() => ({
+        orders: [],
+      })),
+    ])
+      .then(([consultData, orderData]) => {
+        setOrders(unifyOrders(consultData.consultations, orderData.orders));
+      })
       .catch((e) => toast.error(e instanceof Error ? e.message : "Couldn't load orders."))
       .finally(() => setLoading(false));
   }, [navigate]);
 
-  const activeCount = orders?.filter((o) => !["delivered", "cancelled"].includes(o.status)).length ?? 0;
+  const activeCount = useMemo(
+    () => orders?.filter((o) => o.progress.badge !== "Cancelled").length ?? 0,
+    [orders],
+  );
+
   const pageOrders = orders?.slice(page * pageSize, (page + 1) * pageSize) ?? [];
   const totalPages = orders ? Math.ceil(orders.length / pageSize) : 0;
 
@@ -212,62 +443,75 @@ export default function MyOrders() {
     <PatientAccountLayout
       title="My Orders"
       subtitle="Track your orders, manage doses and reorder anytime."
-      badge={activeCount > 0 ? `Active ${activeCount} orders` : undefined}
-      icon={<Package className="h-5 w-5" />}
+      statsChip={
+        orders && orders.length > 0
+          ? { label: "Active", value: `${activeCount} order${activeCount === 1 ? "" : "s"}` }
+          : undefined
+      }
+      icon={
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M9 3V2h6v1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <path
+            d="M9 9h6M9 13h6M9 17h4"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+        </svg>
+      }
     >
-      {loading ? (
-        <div className="space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-64 rounded-2xl" />
-          ))}
-        </div>
-      ) : orders && orders.length > 0 ? (
-        <>
+      <DevTestCredentialsHint role="patient" variant="light" className="mb-1" compact />
+
+      <div className="em-orders main-area-for-customer-portal">
+        {loading ? (
           <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} className="h-72 rounded-2xl" />
+            ))}
+          </div>
+        ) : orders && orders.length > 0 ? (
+          <>
             {pageOrders.map((o) => (
               <OrderCard
-                key={o.id}
+                key={`${o.kind}-${o.id}`}
                 order={o}
                 onRepeat={startRepeat}
                 repeatLoading={repeatLoadingId === o.consultationId}
               />
             ))}
+
+            {totalPages > 1 ? (
+              <div className="em-pagination pagination-controls">
+                <button
+                  type="button"
+                  className="em-page-btn pagination-btn"
+                  disabled={page === 0}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  <i className="ti ti-arrow-left" aria-hidden /> Previous
+                </button>
+                <button
+                  type="button"
+                  className="em-page-btn next-page-btn pagination-btn"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next <i className="ti ti-arrow-right" aria-hidden />
+                </button>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <div className="em-empty">
+            <i className="ti ti-package" aria-hidden />
+            <p>No orders yet</p>
+            <Link href="/shop" className="em-btn em-btn-primary" style={{ marginTop: 16 }}>
+              Browse shop
+            </Link>
           </div>
-          {totalPages > 1 ? (
-            <div className="flex items-center justify-center gap-4 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="rounded-full"
-                disabled={page === 0}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" /> Previous
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="rounded-full"
-                disabled={page >= totalPages - 1}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Next <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          ) : null}
-        </>
-      ) : (
-        <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center">
-          <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <p className="text-lg font-semibold text-gray-800">No orders yet</p>
-          <p className="text-sm text-gray-500 mt-2 mb-6">Browse treatments or shop products to get started.</p>
-          <Button asChild className="rounded-full bg-[#314a40] hover:bg-[#2a4038]">
-            <Link href="/shop">Browse shop</Link>
-          </Button>
-        </div>
-      )}
+        )}
+      </div>
     </PatientAccountLayout>
   );
 }

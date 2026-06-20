@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/api";
+import DevTestCredentialsHint from "@/components/dev/DevTestCredentialsHint";
+import type { DevCredential } from "@/lib/devTestCredentials";
 
 const schema = z.object({
   email: z.string().email("Valid email address required"),
@@ -22,21 +25,27 @@ export default function PatientLogin() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
+
+  function useTestAccount(account: DevCredential) {
+    setValue("email", account.username, { shouldValidate: true });
+    setValue("password", account.password, { shouldValidate: true });
+  }
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
-      const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-      const res = await fetch(`${base}/api/auth/patient-login`, {
+      const json = await apiFetch<{
+        token: string;
+        patientId: string;
+        name: string;
+        email: string;
+      }>("/api/auth/patient-login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Login failed");
 
       localStorage.setItem("patient_token", json.token);
       localStorage.setItem("patient_name", json.name);
@@ -138,6 +147,13 @@ export default function PatientLogin() {
               Create one free
             </Link>
           </p>
+
+          <DevTestCredentialsHint
+            role="patient"
+            variant="dark"
+            className="mt-6"
+            onUseAccount={useTestAccount}
+          />
         </div>
 
         <p className="text-center text-white/30 text-xs mt-6">

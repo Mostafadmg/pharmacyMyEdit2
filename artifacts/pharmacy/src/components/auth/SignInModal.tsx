@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/api";
+import DevTestCredentialsHint from "@/components/dev/DevTestCredentialsHint";
+import type { DevCredential } from "@/lib/devTestCredentials";
 
 type SignInModalProps = {
   open: boolean;
@@ -20,19 +23,25 @@ export default function SignInModal({ open, onClose }: SignInModalProps) {
 
   if (!open) return null;
 
+  function useTestAccount(account: DevCredential) {
+    setEmail(account.username);
+    setPassword(account.password);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim() || !password) return;
     setLoading(true);
     try {
-      const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-      const res = await fetch(`${base}/api/auth/patient-login`, {
+      const json = await apiFetch<{
+        token: string;
+        patientId: string;
+        name: string;
+        email: string;
+      }>("/api/auth/patient-login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Login failed");
 
       localStorage.setItem("patient_token", json.token);
       localStorage.setItem("patient_name", json.name);
@@ -41,7 +50,7 @@ export default function SignInModal({ open, onClose }: SignInModalProps) {
 
       toast.success(`Welcome back, ${json.name.split(" ")[0]}!`);
       onClose();
-      navigate("/my-orders");
+      navigate("/pages/my-orders");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -141,6 +150,14 @@ export default function SignInModal({ open, onClose }: SignInModalProps) {
               </Link>
             </Button>
           </form>
+
+          <DevTestCredentialsHint
+            role="patient"
+            variant="light"
+            className="mt-6"
+            onUseAccount={useTestAccount}
+            compact
+          />
         </div>
       </div>
     </div>

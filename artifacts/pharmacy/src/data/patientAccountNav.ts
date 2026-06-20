@@ -19,13 +19,13 @@ export type PatientNavItem = {
 
 /** Sidebar links — matches everydaymeds.co.uk patient account. */
 export const PATIENT_ACCOUNT_NAV: PatientNavItem[] = [
-  { label: "Home", href: "/", icon: Home },
-  { label: "My Orders", href: "/my-orders", icon: Package },
-  { label: "My Account", href: "/account/profile", icon: User },
+  { label: "Home", href: "/pages/my-tasks", icon: Home },
+  { label: "My Orders", href: "/pages/my-orders", icon: Package },
+  { label: "My Account", href: "/pages/my-account", icon: User },
   { label: "Upload Documents", href: "/pages/upload-documents", icon: Upload },
-  { label: "Progress Reviews", href: "/pages/my-tasks", icon: LineChart },
-  { label: "Messages", href: "/my-messages", icon: MessageSquare },
-  { label: "Change Password", href: "/account/details/password", icon: KeyRound },
+  { label: "Progress Reviews", href: "/pages/quarterly-video-verification", icon: LineChart },
+  { label: "Messages", href: "/pages/customer-message", icon: MessageSquare },
+  { label: "Change Password", href: "/pages/change-password", icon: KeyRound },
   { label: "Log out", href: "/", icon: LogOut, logout: true },
 ];
 

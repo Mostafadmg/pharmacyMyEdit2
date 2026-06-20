@@ -1,0 +1,2531 @@
+.parent-mycustomer-portal-area .fluid_container {
+    /* background: white; */
+    padding: 20px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 30px;
+}
+.parent-mycustomer-portal-area {
+    padding: 20px;
+    
+}
+.child-mycustomer-portal-area.left-sidebar-area {
+    width: 20%;
+    background: transparent;
+    min-height: 300px;
+    border-radius: 10px;
+}
+.child-mycustomer-portal-area.right-sidebar-area {
+    background: transparent;
+    width: 80%;
+    border-radius: 10px;
+}
+.heading_area_for_portal {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    background: #F9FCF1;
+    padding: 30px 20px;
+    border-radius: 10px;
+    justify-content: space-between;
+}
+.main-area-for-customer-portal {
+    background: transparent;
+    margin-top: 20px;
+    border-radius: 10px;
+}
+.footer__middle.section.pt-min.pb-min.remove_spacing {
+    display: none;
+} 
+.text-area-for-heading h2 {
+    font-size: 26px;
+    margin: 0;
+    font-family: 'Sofia Pro Light' !important;
+    font-weight: 600;
+    color: #0a4131;
+}
+
+/*sidebar*/
+
+nav.sidebar-nav-cls a:hover {
+    background: #B3E99E;
+}
+nav.sidebar-nav-cls a {
+    text-decoration: none;
+    padding: 5px 10px;
+    border-radius: 10PX;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    align-content: center;
+    gap: 10px;
+    transition: 0.3s ease all;
+        font-family: 'Sofia Pro Medium' !important;
+    font-weight: 700;
+    color: #0b4131;
+}
+nav.sidebar-nav-cls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px;
+}
+
+.main-orders-area-cls {
+    background: #F7FAF3;
+    padding: 40px 40px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+.heading-area-for-orders {
+    display: flex
+;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+.heading-area-for-orders p {
+    margin: 0;
+}
+p.id-for-order {
+    font-family: 'Sofia Pro Regular' !important;
+    font-weight: 600;
+    font-size: 16px;
+    color: #0B4131;
+}
+p.date-of-order {
+    font-family: Sofia Pro Regular !important;
+    color: #777 !important;
+}
+p.status-of-order {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+    background: #DFEFB9;
+    padding: 4px 15px;
+    border-radius: 22px;
+    color: #0B4131;
+     font-family: Sofia Pro SemiBold !important;
+}
+.heading-for-order-items p {
+    margin: 0;
+    font-family: Sofia Pro Regular !important;
+    font-size: 14px;
+    color: #0B4131;
+}
+.heading-for-order-items {
+    margin-top: 10px;
+}
+.item-list-for-orders {
+    display: flex
+;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+.child-order-list {
+    display: flex
+;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 15px;
+}
+.image-area-of-product {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    border: solid 1px #E2E8F0;
+    max-height: 200px;
+    min-height: 111px;
+    display: flex
+;
+    flex-direction: column;
+    justify-content: center;
+}
+.product-data h4 {
+    margin: 0;
+    font-size: 16px;
+    color: #0B4131;
+    font-family: Sofia Pro Regular !important;
+    font-weight: 400;
+}
+.product-data p {
+    margin: 0;
+    font-size: 13px;
+    color: #777777 ! IMPORTANT;
+}
+.product-data span {
+    font-size: 12px;
+    font-family: Sofia Pro Regular !important;
+     color: #777777 ! IMPORTANT;
+}
+.child-order-list-tags p {
+    margin: 0;
+    text-align: right;
+}
+.next-dose-area p {
+    background: #DFEFB9;
+    width: 210px;
+    text-align: center;
+    padding: 4px 12px;
+    border-radius: 15px;
+    font-family: 'Sofia Pro SemiBold' !important;
+    color: #0B4131;
+}
+.child-order-list-tags {
+    display: flex
+;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+}
+.next-dose-variation {
+    font-family: Sofia Pro Regular !important;
+    color: #777 !important;
+    font-size: 14px;
+        font-weight: 600;
+}
+.next-dose-data{
+    font-family: Sofia Pro Regular !important;
+    color: #777 !important;
+    font-size: 14px;
+        font-weight: 600;
+}
+.seperator-cls-for-orders {
+    background: #DAE0E7;
+    padding: 0;
+    height: 1px;
+    margin-top: 20px;
+    border: solid 1px #DAE0E7;
+}
+.pricing-button-area-for-orders {
+    display: flex
+;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+.total-amount-area p {
+    font-family: Sofia Pro SemiBold !important;
+    color: #0B4131 !important;
+    font-size: 18px;
+}
+button.reorder-button, button.view-details-button {
+    display: flex
+;
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 20px;
+    background: white;
+    border: 0;
+    border-radius: 7px;
+    gap: 10px;
+    font-family: 'Sofia Pro Regular' !important;
+    border: solid 1px #DAE0E7;
+}
+.button-area-for-orders {
+    display: flex
+;
+    gap: 10px;
+}
+.image-area-of-product img {
+    height: 100px;
+}
+
+.reorder-product-main-area {
+    background: #f9fcf1;
+    padding: 20px;
+    border-radius: 10px;
+    display: flex
+;
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+}
+.img-product-area {
+    width: 50%;
+    background: white;
+    display: flex
+;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: solid 1px #E2E8F0;
+}
+
+.img-product-area img {
+    height: 250px;
+}
+.previous-product-area h4 {
+    margin: 0;
+    font-size: 18px;
+    color: #0B4131;
+    font-family: Sofia Pro SemiBold !important;
+}
+p.previous-class {
+    margin: 0;
+    color: #777777;
+    margin-top: 10px;
+}
+.child-last-order-block {
+    display: flex
+;
+    flex-direction: column;
+    justify-content: flex-start;
+    width: 100%;
+    border: solid 1px #f4f9e5;
+    background: #B3E99E;
+    padding: 20PX 20PX;
+    border-radius: 10px;
+    gap: 20px;
+}
+.inner-child-order-block {
+    display: flex
+;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 10px;
+}
+.previous-product-area {
+    width: 50%;
+}
+.title-area-for-reorder p {
+    font-weight: 700;
+    font-family: 'Sofia Pro Regular' !important;
+}
+.inner-child-order-block p {
+    margin: 0;
+    color: #0a4131;
+}
+.recomdeded-dose p {
+    font-size: 14px;
+    background: #d3f3c7;
+    padding: 3px 10px;
+    border-radius: 25px;
+    font-family: 'Sofia Pro Regular' !important;
+    color: #0b4233;
+}
+
+.recomdeded-dose {
+    display: flex
+;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.reorder-form-area {
+    margin-top: 20px;
+    /* background: #f9fcf1; */
+    border-radius: 10px;
+    display: flex
+;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 20px;
+}
+.bmi-count-area {
+    width: 50%;
+    border: solid 1px #E2E8F0;
+    padding: 20px;
+    margin-bottom: 20px;
+    background: #f9fcf1;
+    border-radius: 10px;
+}
+.bmi-count-area h5 {
+    font-size: 18px;
+    color: #0B4131;
+    font-family: 'Sofia Pro Regular' !important;
+    font-weight: 600;
+    margin: 0;
+    margin-bottom: 10px;
+}
+.parent-input-area input {
+    border: solid 1px #E2E8F0;
+    border-radius: 10px;
+    background: white;
+    font-size: 18px;
+    font-family: 'Sofia Pro Regular' !important;
+    color: #0b4133;
+}
+
+.parent-input-area {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.parent-input-area label {
+    font-size: 12px;
+    font-weight: 600;
+    color:#0B4131;
+    font-family: 'Sofia Pro Regular' !important;
+}
+.bmi-result-area p {
+    font-size: 18px;
+    font-weight: 800;
+    color: #0a4131;
+    margin: 0;
+}
+
+.bmi-result-area {
+    display: flex
+;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    background: white;
+    border-radius: 10px;
+    margin-top: 20px;
+    border:solid 1px #E2E8F0;
+}
+.bmi-result-area span {
+    font-size: 26px;
+    font-weight: 700;
+    font-family: Sofia Pro SemiBold !important;
+    color: #0a4030;
+}
+.dosage-area {
+    width: 50%;
+    background: #b3e99e;
+    padding: 20px;
+    border-radius: 10px;
+}
+.dosage-area label {
+    color: #0B4131;
+    font-weight: 700;
+}
+.variation-area select {
+    background: white;
+    border-radius: 10px;
+}
+
+.variation-area {
+    display: flex
+;
+    flex-direction: column;
+    gap: 10px;
+}
+.addon-area select
+ {
+    background: white;
+    border-radius: 10px;
+}
+
+.addon-area {
+    display: flex
+;
+    flex-direction: column;
+    margin-top: 10px;
+}
+.total-price-area {
+    display: flex
+;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    /* padding: 10px; */
+    border-radius: 10px;
+    /* background: #bfdf72; */
+    margin-top: 10px;
+    color: #0a4030;
+}
+.total-price-area p {
+    font-size: 20px;
+    font-weight: 700;
+}
+.total-price-area span {
+    font-size: 28px;
+    font-family: Sofia Pro Regular !important;
+}
+button.reorder-now-button:hover {
+    background: #ffffff !important;
+    color: #0a4030;
+}
+button.reorder-now-button {
+    width: 100%;
+    padding: 15px;
+    border-radius: 10px;
+    border: 0;
+    background: #0a4030;
+    font-size: 20px;
+    color: white;
+    font-family: Sofia Pro SemiBold !important;
+    transition: 0.3s ease all;
+}
+.parent-upload-boxes-area-cls {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start !important;
+    gap: 10px;
+}
+.upload-box {
+    width: 100%;
+    padding: 10px;
+}
+
+.uploaded-image-preview {
+    min-height: 100px !important;
+    object-fit: contain !important;
+}
+
+.child-upload-boxes-area-cls h3 {
+    font-size: 13px !important;
+    text-align: left;
+    width: 100%;
+    margin: 0;
+    margin-bottom: 20px;
+    font-family: Sofia Pro Regular !important;
+    font-weight: 500;
+}
+.child-upload-boxes-area-cls h3:before {
+    content: url(data:image/svg+xml,%3Csvg%20width%3D%2225%22%20height%3D%2226%22%20viewBox%3D%220%200%2025%2026%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20x%3D%220.520833%22%20y%3D%221.02083%22%20width%3D%2223.9583%22%20height%3D%2223.9583%22%20rx%3D%223.64583%22%20stroke%3D%22%23777777%22%20stroke-opacity%3D%220.466667%22%20stroke-width%3D%221.04167%22%2F%3E%3Cpath%20d%3D%22M14.5827%2017.1663L10.416%2012.9997L14.5827%208.83301%22%20stroke%3D%22%230B4131%22%20stroke-width%3D%222.08333%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E);
+    position: relative;
+    top: 1px;
+    left: -3px;
+}
+.upload-box {
+    background: white;
+    padding: 20px;
+    display: flex
+;
+    flex-direction: column;
+    align-items: center;
+    border-radius: 10px;
+    border: dashed 1px #D9D9D9;
+    text-align: center;
+}
+.uploaded-image-preview {
+  position: relative;
+  display: inline-block;
+}
+
+button.delete-upload {
+    /* position: absolute; */
+    /* top: -15px; */
+    /* right: -16px; */
+    background: #215434;
+    color: white;
+    border: none;
+    width: auto;
+    border-radius: 5px;
+    cursor: pointer;
+    line-height: 26px;
+    text-align: center;
+    font-size: 16px;
+    padding: 4px 20px;
+}
+
+.icon img {
+    height: 40px;
+}
+div#uploadPlaceholder p {
+    margin: 0 !important;
+}
+.parent-product-area-details {
+    display: flex
+;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: 30px;
+}
+.product-data-area-details h4, .product-data-area-details p {
+    font-size: 16px;
+    margin: 0;
+}
+.product-data-area-details h4 {
+    font-family: 'Sofia Pro Regular' !important;
+    font-weight: 400 !important;
+}
+
+.parent-my-account-area {
+    display: flex
+;
+    flex-direction: column;
+}
+.child-account-area-profile {
+    display: flex
+;
+    flex-direction: column;
+    background: #f9fcf1;
+    padding: 25px;
+    border-radius: 10px;
+}
+.child-my-account-heading-area h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #0B4131;
+}
+.child-my-account-input-area label {
+    color: #0B4131;
+    font-size: 14px;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+.child-my-account-input-area {
+    width: 49%;
+    display: flex
+;
+    flex-direction: column;
+}
+.parent-my-account-input-area {
+    display: flex
+;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+.child-my-account-input-area input {
+    background: #ffffff;
+    border-radius: 10px;
+    border: solid 1px #E2E8F0;
+}
+.update-profile {
+    background: #0d4030;
+    padding: 10px 25px;
+    font-size: 16px;
+    border-radius: 10px;
+    color: #bede71;
+    border: 0;
+    font-weight: 700;
+}
+.update-button-area {
+    width: 100%;
+    margin-top: 20px;
+    display: flex
+;
+    flex-direction: column;
+    align-items: flex-end;
+}
+.child-account-area-address {
+    margin-top: 20px;
+    background: #f9fcf1;
+    padding: 25px;
+    border-radius: 10px;
+}
+.child-account-area-alladdress {
+    padding: 25px;
+    background: #f9fcf1;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+.child-all-address-area {
+    display: flex
+;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    /* background: white; */
+    /* padding: 10px; */
+    /* border-radius: 10px; */
+    border-bottom: solid 1px #e3e3e3;
+}
+.inner-all-address-area {
+    margin-top: 10px;
+}
+.inner-all-address-area p {
+    margin: 0;
+    color: #0d4334 !important;
+}
+button.edit-address-button {
+    padding: 10px 25px;
+    background: #0c4131;
+    color: #bee074;
+    border: 0;
+    border-radius: 5px;
+    font-weight: 700;
+    margin-right: 5px;
+}
+button.delete-address-button {
+    background: #bddf72;
+    padding: 10px 20px;
+    border-radius: 5px;
+    border: 0;
+    font-weight: 700;
+    color: #0b4133;
+}
+button.set-default-address-button {
+    /* background: red; */
+    /* padding: 20px; */
+    padding: 10px 25px;
+    background: #0c4131;
+    color: #bee074;
+    border: 0;
+    border-radius: 5px;
+    font-weight: 700;
+    margin-right: 5px;
+}
+p.address-type-cls.default-address {
+    background: #bfdf72;
+    padding: 2px 10px;
+    text-align: left;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    width: 130px;
+}
+.parent-change-password-area {
+    display: flex
+;
+    flex-direction: column;
+    background: #f9fcf1;
+    padding: 25px;
+    border-radius: 10px;
+    min-height: 500px;
+}
+
+.child-change-password-input-area label {
+    font-size: 14px;
+    font-weight: 800;
+    color: #0a4131;
+}
+
+.child-change-password-input-area input {
+    background: white;
+    border-radius: 5px;
+    width: 100%;
+}
+.child-change-password-input-area {
+    display: flex
+;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 20px;
+}
+.child-my-task-area {
+    display: flex
+;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+.parent-product-my-task p {
+    margin: 0;
+}
+
+.parent-product-my-task {
+    display: flex
+;
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+}
+.child-my-task-area {
+    display: flex
+;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    background: #f9fcf1;
+    padding: 25px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+}
+.product-image-area {
+    padding: 10px;
+    background: white;
+    border-radius: 10px;
+    border: solid 1px #f0f0f0;
+}
+p.product-title-for-task {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0c4233;
+}
+
+a.btn-upload {
+    padding: 10px 20px;
+    background: #0a4030;
+    text-decoration: none;
+    color: #bfdf73;
+    border-radius: 10px;
+    font-weight: 700 !important;
+}
+a.btn-upload:hover {
+    background: #bfdf72;
+    color: #0a4131;
+}
+
+.product-details-area-for-task p {
+    color: #777 !important;
+}
+
+.product-details-area-for-task h4 {
+    font-size: 18px;
+    color: #0e4131;
+}
+.product-details-area-for-task h4, .product-details-area-for-task p {
+    margin: 0;
+}
+.product-details-area-for-task svg {
+    height: 30px;
+}
+@media only screen and (max-width: 600px) {
+
+
+mobile-navigation-bar.mobile-navigation-bar.transition.flex.invisible.algin-center.hidden-md.fixed.bottom-0.inset-x-0.z-10.bg-white.shadow.px-15.py-13.color-default.show {
+    display: none !important;
+}
+
+}
+
+
+
+.upload-layout {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 30px;
+    margin-top: 20px;
+}
+
+.upload-left,
+.upload-right {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.camera-box {
+    border: 2px dashed #dcdcdc;
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+}
+
+.camera-box img {
+    width: 60px;
+    margin-bottom: 10px;
+}
+
+.uploadbtn {
+    margin-top: 15px;
+    background: #000;
+    color: #fff;
+    border-radius: 6px;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 15px;
+}
+
+.gallery-item {
+    position: relative;
+}
+
+.gallery-item img {
+    width: 100%;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.remove-photo {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+}
+.uploaded-multi-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 10px;
+  margin-top: 15px;
+  width: 100%;
+}
+
+.uploaded-multi-gallery img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #eee;
+}
+
+.parent-instruction-heading h4 {
+    font-size: 19px;
+    text-align: center;
+    font-weight: 500;
+}
+p.heading-inst {
+    font-weight: 800;
+    color: black;
+}
+.instruction-text-area ul li:before {
+    content: " ";
+    padding: 10px 13px;
+    background: url(https://mycustomer.everydaymeds.co.uk/images/chck.svg);
+    background-repeat: no-repeat;
+    margin-top: 12px;
+    position: relative;
+    top: 7px;
+    background-size: 20px;
+}
+.instruction-text-area ul li {
+    margin-bottom: 14px;
+}
+.photoforinstruction img {
+    width: 100%;
+}
+.instruction-text-area ul {
+    list-style: none !important;
+    padding: 0;
+}
+@media(max-width: 768px) {
+    .upload-layout {
+        grid-template-columns: 1fr;
+    }
+}
+/* ════════════════════════════════════════════════════════════
+   EVERYDAYMEDS — MY ORDERS (scoped under .em-orders)
+   Append to panel.css. No conflicts with existing rules.
+   ════════════════════════════════════════════════════════════ */
+
+.em-orders {
+    --em-green:      #0B4131;
+    --em-green-dk:   #0a3527;
+    --em-lime:       #cdeeab;
+    --em-lime-soft:  #e7f4d6;
+    --em-surface:    #ffffff;
+    --em-tint:       #f3faec;
+    --em-tint-2:     #fafcf7;
+    --em-line:       #e7eee0;
+    --em-line-soft:  #f1f5ec;
+    --em-muted:      #8a948f;
+    --em-track:      #e2e8e0;
+
+    background: transparent;
+    margin-top: 20px;
+}
+
+.em-orders * { box-sizing: border-box; }
+
+/* ── Card shell ── */
+.em-orders .em-order-card {
+    background: var(--em-surface);
+    border: 1px solid var(--em-line);
+    border-radius: 18px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 2px rgba(11,65,49,.04), 0 10px 30px rgba(11,65,49,.05);
+    transition: box-shadow .3s ease, transform .3s ease;
+}
+.em-orders .em-order-card:hover {
+    box-shadow: 0 2px 4px rgba(11,65,49,.06), 0 16px 40px rgba(11,65,49,.08);
+}
+.em-orders .em-order-card.is-cancelled { opacity: .92; }
+
+/* ════════════════════════════════════
+   HEADER BAND
+   ════════════════════════════════════ */
+.em-orders .em-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 18px 24px;
+    background: linear-gradient(180deg, #f8fbf3, #ffffff);
+    border-bottom: 1px solid var(--em-line-soft);
+    flex-wrap: wrap;
+}
+.em-orders .em-head-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+.em-orders .em-head-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: var(--em-green);
+    color: var(--em-lime);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.em-orders .em-head-icon i { font-size: 22px; }
+.em-orders .em-head-meta { min-width: 0; }
+.em-orders .em-order-id {
+    margin: 0;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-weight: 700;
+    font-size: 17px;
+    color: var(--em-green);
+    letter-spacing: .2px;
+}
+.em-orders .em-order-date {
+    margin: 3px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 12.5px;
+    color: var(--em-muted);
+}
+.em-orders .em-order-date i { font-size: 14px; }
+
+/* Status pill */
+.em-orders .em-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 16px;
+    border-radius: 999px;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.em-orders .em-status-pill.pending {
+    background: var(--em-lime-soft);
+    color: #27500a;
+}
+.em-orders .em-status-pill.cancelled {
+    background: #fdecec;
+    color: #b23b3b;
+}
+.em-orders .em-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+}
+
+/* ════════════════════════════════════
+   PROGRESS
+   ════════════════════════════════════ */
+.em-orders .em-progress-section {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--em-line-soft);
+}
+.em-orders .em-progress-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+.em-orders .em-progress-stage {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-size: 13.5px;
+    color: var(--em-green);
+}
+.em-orders .em-progress-stage i { font-size: 15px; color: #639922; }
+.em-orders .em-progress-count {
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 12px;
+    color: var(--em-muted);
+    background: #f1f6ec;
+    padding: 4px 11px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+/* Desktop stepper */
+.em-orders .em-stepper {
+    display: flex;
+    align-items: flex-start;
+    width: 100%;
+}
+.em-orders .em-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    text-align: center;
+    width: 30px;
+}
+.em-orders .em-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border: 2px solid #d7e0d4;
+    flex-shrink: 0;
+    transition: all .3s ease;
+}
+.em-orders .em-dot.done {
+    background: var(--em-green);
+    border-color: var(--em-green);
+    color: #fff;
+}
+.em-orders .em-dot.done i { font-size: 13px; }
+.em-orders .em-dot.active {
+    background: var(--em-green);
+    border-color: var(--em-green);
+    box-shadow: 0 0 0 4px rgba(11,65,49,.15);
+}
+.em-orders .em-dot-inner {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #fff;
+}
+.em-orders .em-step-label {
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 11px;
+    line-height: 1.3;
+    color: #9aa39d;
+    white-space: nowrap;
+}
+.em-orders .em-step.done .em-step-label,
+.em-orders .em-step.active .em-step-label {
+    color: var(--em-green);
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+}
+.em-orders .em-bar {
+    flex: 1 1 auto;
+    height: 3px;
+    background: var(--em-track);
+    border-radius: 3px;
+    margin: 11px 3px 0;
+    min-width: 12px;
+    transition: background .3s ease;
+}
+.em-orders .em-bar.filled { background: var(--em-green); }
+
+/* Mobile compact bar (hidden on desktop) */
+.em-orders .em-progress-mobile { display: none; }
+.em-orders .em-mobile-track {
+    width: 100%;
+    height: 7px;
+    background: #e7ede3;
+    border-radius: 999px;
+    overflow: hidden;
+}
+.em-orders .em-mobile-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--em-green), #2f7a52);
+    border-radius: 999px;
+    transition: width .4s ease;
+}
+
+/* ════════════════════════════════════
+   BODY — ITEMS + DOSE
+   ════════════════════════════════════ */
+.em-orders .em-body {
+    padding: 22px 24px;
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+.em-orders .em-items {
+    flex: 1 1 10px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.em-orders .em-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.em-orders .em-item-img {
+    width: 88px;
+    height: 88px;
+    border-radius: 14px;
+    background: #f7faf3;
+    border: 1px solid var(--em-line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 10px;
+}
+.em-orders .em-item-img img {
+    max-height: 68px;
+    max-width: 100%;
+    width: auto;
+    object-fit: contain;
+}
+.em-orders .em-item-info { min-width: 0; }
+.em-orders .em-item-info h4 {
+    margin: 0;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-weight: 600;
+    font-size: 14.5px;
+    line-height: 1.4;
+    color: var(--em-green);
+}
+.em-orders .em-item-info p {
+    margin: 4px 0 0;
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 12.5px;
+    color: var(--em-muted);
+}
+.em-orders .em-qty-chip {
+    display: inline-block;
+    margin-top: 8px;
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 11.5px;
+    color: #5F5E5A;
+    background: #f1efe8;
+    padding: 3px 10px;
+    border-radius: 6px;
+}
+
+/* Next dose */
+.em-orders .em-dose-col {
+    flex: 0 0 auto;
+    width: 250px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.em-orders .em-dose-card {
+    background: var(--em-tint);
+    border: 1px solid #e3f0d2;
+    border-radius: 14px;
+    padding: 14px 16px;
+}
+.em-orders .em-dose-badge {
+    display: inline-block;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-size: 11px;
+    font-weight: 600;
+    color: #27500a;
+    background: var(--em-lime);
+    padding: 4px 12px;
+    border-radius: 999px;
+    margin-bottom: 8px;
+}
+.em-orders .em-dose-title {
+    margin: 0;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-weight: 600;
+    font-size: 13.5px;
+    color: var(--em-green);
+}
+.em-orders .em-dose-date {
+    margin: 6px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 12px;
+    color: var(--em-muted);
+}
+.em-orders .em-dose-date i { font-size: 14px; }
+
+/* ════════════════════════════════════
+   FOOTER BAND
+   ════════════════════════════════════ */
+.em-orders .em-footer {
+    padding: 18px 24px;
+    background: var(--em-tint-2);
+    border-top: 1px solid var(--em-line-soft);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+.em-orders .em-total-label {
+    display: block;
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 11px;
+    color: var(--em-muted);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+}
+.em-orders .em-total-value {
+    margin: 2px 0 0;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-weight: 700;
+    font-size: 23px;
+    color: var(--em-green);
+}
+.em-orders .em-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.em-orders .em-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 11px 22px;
+    border-radius: 11px;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    line-height: 1;
+    transition: all .25s ease;
+    border: 1px solid transparent;
+}
+.em-orders .em-btn i { font-size: 16px; }
+.em-orders .em-btn-primary {
+    background: var(--em-green);
+    color: #fff;
+    border-color: var(--em-green);
+}
+.em-orders .em-btn-primary:hover {
+    background: var(--em-green-dk);
+    transform: translateY(-1px);
+}
+.em-orders .em-btn-ghost {
+    background: #fff;
+    color: var(--em-green);
+    border-color: #d7e0d4;
+}
+.em-orders .em-btn-ghost:hover {
+    background: var(--em-tint);
+    border-color: var(--em-green);
+}
+
+/* ── Empty + pagination ── */
+.em-orders .em-empty {
+    padding: 56px 20px;
+    text-align: center;
+    color: var(--em-muted);
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+}
+.em-orders .em-empty i { font-size: 40px; opacity: .5; display: block; margin-bottom: 10px; }
+.em-orders .em-empty p { margin: 0; }
+
+.em-orders .em-pagination {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+.em-orders .em-page-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border-radius: 11px;
+    border: 1px solid #d7e0d4;
+    background: #fff;
+    color: var(--em-green);
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all .25s ease;
+}
+.em-orders .em-page-btn:hover:not([disabled]) {
+    background: var(--em-green);
+    color: #fff;
+    border-color: var(--em-green);
+}
+.em-orders .em-page-btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+/* ════════════════════════════════════
+   RESPONSIVE — TABLET
+   ════════════════════════════════════ */
+@media (max-width: 1024px) {
+    .em-orders .em-body { flex-direction: column; }
+    .em-orders .em-dose-col { width: 100%; }
+}
+
+/* ════════════════════════════════════
+   RESPONSIVE — MOBILE (the overflow fix)
+   ════════════════════════════════════ */
+@media (max-width: 768px) {
+    .em-orders .em-card-head { padding: 16px 16px; }
+    .em-orders .em-head-icon { width: 40px; height: 40px; }
+    .em-orders .em-head-icon i { font-size: 19px; }
+    .em-orders .em-order-id { font-size: 15.5px; }
+
+    .em-orders .em-progress-section { padding: 16px 16px; }
+    /* Swap progress UIs */
+    .em-orders .em-stepper { display: none; }
+    .em-orders .em-progress-mobile { display: block; }
+
+    .em-orders .em-body { padding: 18px 16px; gap: 16px; }
+    .em-orders .em-item-img { width: 72px; height: 72px; padding: 8px; }
+    .em-orders .em-item-img img { max-height: 54px; }
+    .em-orders .em-item-info h4 { font-size: 14px; }
+
+    .em-orders .em-footer { padding: 16px; flex-direction: column; align-items: stretch; }
+    .em-orders .em-actions { width: 100%; }
+    .em-orders .em-btn { flex: 1 1 0; padding: 12px 16px; }
+}
+
+@media (max-width: 400px) {
+    .em-orders .em-actions { flex-direction: column; }
+    .em-orders .em-btn { width: 100%; }
+    .em-orders .em-status-pill { font-size: 12px; padding: 6px 13px; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   EVERYDAYMEDS — SIDEBAR + HEADER HERO
+   Append to panel.css. Scoped to avoid conflicts.
+   ════════════════════════════════════════════════════════════ */
+
+/* ════════════════════════════════════
+   SIDEBAR
+   ════════════════════════════════════ */
+.em-sidebar {
+    --em-green:     #0B4131;
+    --em-lime:      #cdeeab;
+    --em-lime-soft: #dff3c9;
+    --em-muted:     #8a948f;
+    --em-line:      #f1f5ec;
+
+    display: block;
+    background: #fff;
+    border: 1px solid #e7eee0;
+    border-radius: 16px;
+    padding: 14px;
+    box-shadow: 0 8px 24px rgba(11,65,49,.05);
+}
+
+/* Profile header */
+.em-sidebar .em-side-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px 14px;
+    border-bottom: 1px solid var(--em-line);
+    margin-bottom: 10px;
+}
+.em-sidebar .em-side-avatar {
+    width: 38px; height: 38px;
+    border-radius: 11px;
+    background: var(--em-green);
+    color: var(--em-lime);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.em-sidebar .em-side-profile-text { display: flex; flex-direction: column; line-height: 1.3; }
+.em-sidebar .em-side-welcome {
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-weight: 600; font-size: 13.5px; color: var(--em-green);
+}
+.em-sidebar .em-side-sub {
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 11.5px; color: var(--em-muted);
+}
+
+/* Nav list */
+.em-sidebar .em-side-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 0;
+}
+.em-sidebar .em-side-nav a {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 11px 13px;
+    border-radius: 11px;
+    text-decoration: none;
+    font-family: 'Sofia Pro Medium', sans-serif !important;
+    font-size: 14px;
+    color: #3a4540;
+    transition: background .25s ease, color .25s ease;
+}
+.em-sidebar .em-side-nav a .em-nav-ic {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--em-green);
+    flex-shrink: 0;
+    transition: color .25s ease;
+}
+.em-sidebar .em-side-nav a:hover {
+    background: #f3faec;
+    color: var(--em-green);
+}
+/* Active item */
+.em-sidebar .em-side-nav a.active {
+    background: var(--em-lime-soft);
+    color: var(--em-green);
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-weight: 600;
+}
+.em-sidebar .em-side-nav a.active::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 9px; bottom: 9px;
+    width: 3px;
+    border-radius: 3px;
+    background: var(--em-green);
+}
+.em-sidebar .em-side-divider {
+    height: 1px;
+    background: var(--em-line);
+    margin: 8px 6px;
+}
+/* Log out */
+.em-sidebar .em-side-nav a.em-logout { color: #b23b3b; }
+.em-sidebar .em-side-nav a.em-logout .em-nav-ic { color: #b23b3b; }
+.em-sidebar .em-side-nav a.em-logout:hover { background: #fdecec; color: #9a2f2f; }
+
+/* ════════════════════════════════════
+   HEADER HERO
+   ════════════════════════════════════ */
+.em-hero {
+    position: relative;
+    overflow: hidden;
+    background: #0B4131;
+    border-radius: 16px;
+    padding: 26px 28px;
+}
+.em-hero-blob {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+}
+.em-hero-blob-1 {
+    right: -30px; top: -30px;
+    width: 160px; height: 160px;
+    background: rgba(205,238,171,.12);
+}
+.em-hero-blob-2 {
+    right: 40px; bottom: -50px;
+    width: 120px; height: 120px;
+    background: rgba(205,238,171,.08);
+}
+.em-hero-content { position: relative; z-index: 1; }
+.em-hero-title-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 6px;
+}
+.em-hero-icon { color: #cdeeab; display: inline-flex; }
+.em-hero-h {
+    margin: 0;
+    font-family: 'Sofia Pro Light', sans-serif !important;
+    font-weight: 600;
+    font-size: 24px;
+    color: #fff;
+}
+.em-hero-sub {
+    margin: 0;
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 13.5px;
+    color: #bcd8c8;
+}
+.em-hero-stats {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+}
+.em-hero-chip {
+    background: rgba(255,255,255,.1);
+    border-radius: 11px;
+    padding: 10px 16px;
+}
+.em-chip-label {
+    display: block;
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 11px;
+    color: #bcd8c8;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+.em-chip-value {
+    display: block;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-weight: 600;
+    font-size: 19px;
+    color: #fff;
+    margin-top: 2px;
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   MOBILE LAYOUT FIX — parent portal containers
+   Append to the END of panel.css (after everything else).
+   This is what was missing: the row layout + fixed widths
+   never collapsed on mobile, squeezing the sidebar.
+   ════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════
+   IMPROVED MOBILE SIDEBAR — replace the sidebar rules inside
+   your @media (max-width: 768px) block with these.
+   Smoother scroll, snap, fade hint, consistent pill sizing.
+   ════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+    .em-sidebar {
+        width: 100%;
+        margin: 10px auto;
+        padding: 8px;
+        border-radius: 14px;
+        /* subtle right-edge fade so users know it scrolls */
+        position: relative;
+    }
+    .em-sidebar .em-side-profile { display: none; }
+
+    .em-sidebar .em-side-nav {
+        flex-direction: row;
+        gap: 8px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        scroll-snap-type: x proximity;
+        scroll-padding-left: 8px;
+        padding: 2px;
+    }
+    .em-sidebar .em-side-nav::-webkit-scrollbar { display: none; }
+
+    .em-sidebar .em-side-nav a {
+        flex-direction: column;
+        gap: 6px;
+        padding: 11px 10px !important;
+        width: 78px;
+        min-width: 78px;
+        max-width: 100px;
+        text-align: center;
+        flex-shrink: 0;
+        font-size: 10.5px;
+        line-height: 1.25;
+        border-radius: 13px;
+        scroll-snap-align: start;
+        background: #f5faee;
+        white-space: normal;
+        word-break: break-word;
+        transition: background .2s ease, transform .15s ease;
+    }
+    .em-sidebar .em-side-nav a:active { transform: scale(.95); }
+
+    .em-sidebar .em-side-nav a .em-nav-ic svg { width: 22px; height: 22px; }
+    .em-sidebar .em-side-nav a .em-nav-label {
+        display: block;
+        font-family: 'Sofia Pro Medium', sans-serif !important;
+    }
+
+    .em-sidebar .em-side-nav a.active::before { display: none; }
+    .em-sidebar .em-side-nav a.active {
+        background: var(--em-green);
+        color: #fff;
+    }
+    .em-sidebar .em-side-nav a.active .em-nav-ic { color: var(--em-lime); }
+
+    .em-sidebar .em-side-divider { display: none; }
+
+    .em-sidebar .em-side-nav a.em-logout {
+        background: #fdeeee;
+        color: #b23b3b;
+    }
+    .em-sidebar .em-side-nav a.em-logout .em-nav-ic { color: #b23b3b; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   EVERYDAYMEDS — TASKS / HOME (scoped under .em-tasks)
+   Append to panel.css. Reuses .em-hero + .em-btn from My Orders.
+   ════════════════════════════════════════════════════════════ */
+.em-tasks {
+    --em-green:     #0B4131;
+    --em-green-dk:  #0a3527;
+    --em-lime:      #cdeeab;
+    --em-tint:      #f3faec;
+    --em-line:      #e7eee0;
+    --em-line-soft: #f1f5ec;
+    --em-muted:     #8a948f;
+
+    margin-top: 20px;
+}
+.em-tasks * { box-sizing: border-box; }
+
+/* Section header */
+.em-tasks .em-tasks-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.em-tasks .em-tasks-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--em-green);
+}
+.em-tasks .em-tasks-ic {
+    display: inline-flex;
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    background: var(--em-tint);
+    border: 1px solid #e3f0d2;
+    align-items: center;
+    justify-content: center;
+    color: var(--em-green);
+}
+.em-tasks .em-tasks-badge {
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-size: 12px;
+    font-weight: 600;
+    color: #854f0b;
+    background: #faeeda;
+    padding: 5px 13px;
+    border-radius: 999px;
+}
+
+/* Task card */
+.em-tasks .em-task-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    background: #fff;
+    border: 1px solid var(--em-line);
+    border-radius: 16px;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 2px rgba(11,65,49,.04), 0 8px 24px rgba(11,65,49,.04);
+    transition: box-shadow .3s ease, transform .3s ease;
+    flex-wrap: wrap;
+}
+.em-tasks .em-task-card:hover {
+    box-shadow: 0 2px 4px rgba(11,65,49,.06), 0 14px 34px rgba(11,65,49,.07);
+}
+.em-tasks .em-task-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1 1 280px;
+    min-width: 0;
+}
+.em-tasks .em-task-img {
+    width: 84px; height: 84px;
+    border-radius: 13px;
+    background: #f7faf3;
+    border: 1px solid var(--em-line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 8px;
+    overflow: hidden;
+}
+.em-tasks .em-task-img img {
+    max-width: 100%;
+    max-height: 68px;
+    width: auto;
+    object-fit: contain;
+}
+.em-tasks .em-task-img-fallback { color: #b4c4a8; display: inline-flex; }
+
+.em-tasks .em-task-info { min-width: 0; }
+.em-tasks .em-task-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-size: 11px;
+    font-weight: 600;
+    color: #854f0b;
+    background: #faeeda;
+    padding: 4px 10px;
+    border-radius: 999px;
+    margin-bottom: 8px;
+}
+.em-tasks .em-task-name {
+    margin: 0;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 1.4;
+    color: var(--em-green);
+}
+.em-tasks .em-task-variant {
+    margin: 4px 0 0;
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 12.5px;
+    color: var(--em-muted);
+}
+.em-tasks .em-task-date {
+    margin: 6px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 12px;
+    color: var(--em-muted);
+}
+
+/* Action button — reuse .em-btn look but ensure it works as <a> */
+.em-tasks .em-task-action { flex-shrink: 0; }
+.em-tasks .em-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 11px 22px;
+    border-radius: 11px;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    line-height: 1;
+    text-decoration: none !important;
+    transition: all .25s ease;
+    border: 1px solid transparent;
+}
+.em-tasks .em-btn-primary {
+    background: var(--em-green);
+    color: #fff !important;
+    border-color: var(--em-green);
+}
+.em-tasks .em-btn-primary:hover {
+    background: var(--em-green-dk);
+    color: #fff !important;
+    transform: translateY(-1px);
+}
+
+/* All-clear empty state */
+.em-tasks .em-task-empty {
+    background: linear-gradient(180deg, #f8fbf3, #ffffff);
+    border: 1px solid var(--em-line);
+    border-radius: 16px;
+    padding: 48px 24px;
+    text-align: center;
+}
+.em-tasks .em-empty-ic {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: var(--em-tint);
+    border: 1px solid #e3f0d2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #157f60;
+    margin-bottom: 14px;
+}
+.em-tasks .em-empty-title {
+    margin: 0;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--em-green);
+}
+.em-tasks .em-empty-sub {
+    margin: 6px auto 0;
+    max-width: 380px;
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 13.5px;
+    color: var(--em-muted);
+    line-height: 1.5;
+}
+
+/* ════════════════════════════════════
+   RESPONSIVE — MOBILE
+   ════════════════════════════════════ */
+@media (max-width: 768px) {
+    .em-tasks .em-task-card {
+        padding: 16px;
+        gap: 14px;
+    }
+    .em-tasks .em-task-img { width: 64px; height: 64px; }
+    .em-tasks .em-task-img img { max-height: 50px; }
+    .em-tasks .em-task-name { font-size: 14px; }
+    .em-tasks .em-task-action { width: 100%; }
+    .em-tasks .em-btn { width: 100%; padding: 12px 16px; }
+    .em-tasks .em-task-empty { padding: 36px 18px; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   EVERYDAYMEDS — MY ACCOUNT (scoped under .em-account)
+   Append to panel.css. Reuses .em-hero + .em-btn.
+   ════════════════════════════════════════════════════════════ */
+.em-account {
+    --em-green:     #0B4131;
+    --em-green-dk:  #0a3527;
+    --em-lime:      #cdeeab;
+    --em-tint:      #f3faec;
+    --em-line:      #e7eee0;
+    --em-line-soft: #f1f5ec;
+    --em-muted:     #8a948f;
+    --em-input:     #d7e0d4;
+
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+.em-account * { box-sizing: border-box; }
+
+/* Card */
+.em-account .em-acc-card {
+    background: #fff;
+    border: 1px solid var(--em-line);
+    border-radius: 16px;
+    padding: 24px 26px;
+    box-shadow: 0 1px 2px rgba(11,65,49,.04), 0 8px 24px rgba(11,65,49,.04);
+}
+
+/* Card header */
+.em-account .em-acc-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--em-line-soft);
+}
+.em-account .em-acc-ic {
+    display: inline-flex;
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    background: var(--em-tint);
+    border: 1px solid #e3f0d2;
+    align-items: center;
+    justify-content: center;
+    color: var(--em-green);
+    flex-shrink: 0;
+}
+.em-account .em-acc-title {
+    margin: 0;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-weight: 600;
+    font-size: 17px;
+    color: var(--em-green);
+}
+
+/* Field grid */
+.em-account .em-acc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+.em-account .em-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+}
+.em-account .em-field-full { grid-column: 1 / -1; }
+.em-account .em-field label {
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--em-green);
+}
+.em-account .em-field input {
+    width: 100%;
+    background: #fff;
+    border: 1px solid var(--em-input);
+    border-radius: 10px;
+    padding: 11px 14px;
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 14px;
+    color: #0b4133;
+    transition: border-color .2s ease, box-shadow .2s ease;
+}
+.em-account .em-field input::placeholder { color: #b4b2a9; }
+.em-account .em-field input:focus {
+    outline: none;
+    border-color: var(--em-green);
+    box-shadow: 0 0 0 3px rgba(11,65,49,.1);
+}
+.em-account .em-field input:disabled {
+    background: #f5f7f2;
+    color: #8a948f;
+    cursor: not-allowed;
+}
+
+/* Actions */
+.em-account .em-acc-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+.em-account .em-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 11px 24px;
+    border-radius: 11px;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    line-height: 1;
+    transition: all .25s ease;
+    border: 1px solid transparent;
+}
+.em-account .em-btn-primary {
+    background: var(--em-green);
+    color: #fff;
+    border-color: var(--em-green);
+}
+.em-account .em-btn-primary:hover {
+    background: var(--em-green-dk);
+    transform: translateY(-1px);
+}
+.em-account .em-btn-ghost {
+    background: #fff;
+    color: var(--em-green);
+    border-color: var(--em-input);
+}
+.em-account .em-btn-ghost:hover {
+    background: var(--em-tint);
+    border-color: var(--em-green);
+}
+
+/* ── Address list ── */
+.em-account .em-address-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.em-account .em-address-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    background: #fafcf7;
+    border: 1px solid var(--em-line);
+    border-radius: 14px;
+    padding: 18px 20px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--em-line); /* override old rule */
+}
+.em-account .em-address-card.is-default {
+    background: var(--em-tint);
+    border-color: #cfe6b3;
+}
+.em-account .em-address-info { margin: 0; min-width: 0; }
+.em-account .em-address-info p { margin: 0; }
+.em-account .em-address-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-size: 11px;
+    font-weight: 600;
+    color: #5F5E5A;
+    background: #eef0ea;
+    padding: 4px 12px;
+    border-radius: 999px;
+    margin-bottom: 10px !important;
+    width: auto;
+    text-align: left;
+}
+.em-account .em-address-badge.default-address {
+    color: #27500a;
+    background: var(--em-lime);
+}
+.em-account .em-address-line {
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-weight: 600;
+    font-size: 14.5px;
+    color: var(--em-green) !important;
+    margin-bottom: 4px !important;
+}
+.em-account .em-address-meta {
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 13px;
+    color: #6c756f !important;
+    line-height: 1.5;
+}
+
+/* Address action buttons */
+.em-account .em-address-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 0;
+    flex-shrink: 0;
+}
+.em-account .em-addr-btn {
+    padding: 9px 16px;
+    border-radius: 9px;
+    border: 1px solid transparent;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s ease;
+    margin: 0;
+}
+.em-account .em-addr-btn-solid {
+    background: var(--em-green);
+    color: #fff;
+    border-color: var(--em-green);
+}
+.em-account .em-addr-btn-solid:hover { background: var(--em-green-dk); }
+.em-account .em-addr-btn-soft {
+    background: #fff;
+    color: #b23b3b;
+    border-color: #f0d0d0;
+}
+.em-account .em-addr-btn-soft:hover { background: #fdecec; border-color: #e0a8a8; }
+
+/* Address empty */
+.em-account .em-address-empty {
+    text-align: center;
+    padding: 36px 20px;
+    color: var(--em-muted);
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+}
+.em-account .em-address-empty svg { color: #b4c4a8; margin-bottom: 8px; }
+.em-account .em-address-empty p { margin: 0; }
+
+/* ════════════════════════════════════
+   RESPONSIVE — MOBILE
+   ════════════════════════════════════ */
+@media (max-width: 768px) {
+    .em-account .em-acc-card { padding: 18px 16px; }
+    .em-account .em-acc-grid { grid-template-columns: 1fr; gap: 14px; }
+    .em-account .em-acc-actions { margin-top: 16px; }
+    .em-account .em-btn { width: 100%; }
+
+    .em-account .em-address-card { padding: 16px; }
+    .em-account .em-address-actions { width: 100%; }
+    .em-account .em-addr-btn { flex: 1 1 0; text-align: center; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   HERO PROGRESS — for Upload Documents page.
+   Append to panel.css (under your existing .em-hero rules).
+   White-on-green progress meter that lives inside the hero.
+   ════════════════════════════════════════════════════════════ */
+.em-hero-progress {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 18px;
+    background: rgba(255,255,255,.1);
+    border-radius: 12px;
+    padding: 12px 16px;
+}
+.em-hero-progress-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+    flex-shrink: 0;
+}
+.em-hero-progress-count {
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-weight: 600;
+    font-size: 22px;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+}
+.em-hero-progress-count span { color: #8fb39f; font-weight: 500; }
+.em-hero-progress-label {
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 10.5px;
+    color: #bcd8c8;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-top: 3px;
+}
+.em-hero-progress-bar {
+    flex: 1;
+    height: 6px;
+    background: rgba(255,255,255,.18);
+    border-radius: 999px;
+    overflow: hidden;
+    min-width: 100px;
+}
+.em-hero-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #bede73, #cdeeab);
+    border-radius: 999px;
+    transition: width .6s cubic-bezier(.4,0,.2,1);
+}
+
+@media (max-width: 720px) {
+    .em-hero-progress { margin-top: 14px; padding: 10px 14px; gap: 12px; }
+    .em-hero-progress-count { font-size: 19px; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   CHANGE PASSWORD — extends .em-account (already in panel.css).
+   Append to panel.css. Only adds the password-specific pieces.
+   ════════════════════════════════════════════════════════════ */
+.em-password .em-pw-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+.em-password .em-pw-wrap {
+    position: relative;
+}
+.em-password .em-pw-wrap input {
+    width: 100%;
+    background: #fff;
+    border: 1px solid #d7e0d4;
+    border-radius: 10px;
+    padding: 11px 44px 11px 14px;
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 14px;
+    color: #0b4133;
+    transition: border-color .2s ease, box-shadow .2s ease;
+}
+.em-password .em-pw-wrap input:focus {
+    outline: none;
+    border-color: #0B4131;
+    box-shadow: 0 0 0 3px rgba(11,65,49,.1);
+}
+.em-password .em-pw-toggle {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    color: #8a948f;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+    transition: color .2s ease, background .2s ease;
+}
+.em-password .em-pw-toggle:hover { color: #0B4131; background: #f3faec; }
+
+/* Match hint */
+.em-password .em-pw-match {
+    display: block;
+    margin-top: 6px;
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 12px;
+    min-height: 16px;
+}
+.em-password .em-pw-match.is-ok  { color: #15803d; }
+.em-password .em-pw-match.is-bad { color: #b23b3b; }
+
+/* Tips strip */
+.em-password .em-pw-tips {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 18px;
+    padding: 12px 14px;
+    background: #f3faec;
+    border: 1px solid #e3f0d2;
+    border-radius: 10px;
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 12.5px;
+    color: #4a5a4f;
+    line-height: 1.45;
+}
+.em-password .em-pw-tips svg { color: #639922; flex-shrink: 0; margin-top: 1px; }
+
+@media (max-width: 768px) {
+    .em-password .em-pw-grid { grid-template-columns: 1fr; }
+}
+/* ════════════════════════════════════════════════════════════
+   EVERYDAYMEDS — ORDER DETAIL (self-contained, scoped .em-detail)
+   Append to panel.css. Does NOT depend on .em-acc-card existing.
+   ════════════════════════════════════════════════════════════ */
+.em-detail {
+    --em-green:     #0B4131;
+    --em-green-dk:  #0a3527;
+    --em-lime:      #cdeeab;
+    --em-tile:      #e3f0d2;   /* requested box color */
+    --em-tint:      #f3faec;
+    --em-line:      #e7eee0;
+    --em-line-soft: #f1f5ec;
+    --em-muted:     #8a948f;
+
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+.em-detail * { box-sizing: border-box; }
+
+/* ── CARD (self-contained, no reliance on .em-acc-card) ── */
+.em-detail .em-acc-card {
+    background: #fff;
+    border: 1px solid var(--em-line);
+    border-radius: 16px;
+    padding: 24px 26px;
+    box-shadow: 0 1px 2px rgba(11,65,49,.04), 0 8px 24px rgba(11,65,49,.04);
+}
+.em-detail .em-acc-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--em-line-soft);
+}
+.em-detail .em-acc-ic {
+    display: inline-flex;
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: var(--em-tile);          /* #e3f0d2 */
+    border: 1px solid #d2e6bb;
+    align-items: center;
+    justify-content: center;
+    color: var(--em-green);
+    flex-shrink: 0;
+}
+.em-detail .em-acc-ic svg { width: 18px; height: 18px; display: block; }
+.em-detail .em-acc-title {
+    margin: 0;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-weight: 600;
+    font-size: 17px !important;
+    color: var(--em-green);
+    line-height: 1.2;
+}
+
+/* ── Hero topline (title + back button) ── */
+.em-hero-topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+.em-hero-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,.12);
+    color: #fff !important;
+    text-decoration: none !important;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 16px;
+    border-radius: 10px;
+    transition: background .2s ease;
+}
+.em-hero-back:hover { background: rgba(255,255,255,.2); }
+.em-chip-value-sm { font-size: 14px !important; }
+
+/* ── Items ── */
+.em-detail .em-detail-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--em-line-soft);
+    flex-wrap: wrap;
+}
+.em-detail .em-detail-item:last-child { border-bottom: 0; padding-bottom: 0; }
+.em-detail .em-detail-item-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1 1 260px;
+    min-width: 0;
+}
+.em-detail .em-detail-item-img {
+    width: 84px; height: 84px;
+    border-radius: 13px;
+    background: var(--em-tint);
+    border: 1px solid var(--em-tile);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 8px;
+    overflow: hidden;
+}
+.em-detail .em-detail-item-img img {
+    max-width: 100%;
+    max-height: 68px;
+    width: auto;
+    object-fit: contain;
+}
+.em-detail .em-detail-item-info { min-width: 0; }
+.em-detail .em-detail-item-info h4 {
+    margin: 0;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-weight: 600;
+    font-size: 15px !important;
+    line-height: 1.4;
+    color: var(--em-green);
+}
+.em-detail .em-detail-item-info p {
+    margin: 4px 0 0;
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 12.5px;
+    color: var(--em-muted);
+}
+.em-detail .em-qty-chip {
+    display: inline-block;
+    margin-top: 8px;
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 11.5px;
+    color: #5F5E5A;
+    background: #f1efe8;
+    padding: 3px 10px;
+    border-radius: 6px;
+}
+
+/* Reorder button (ghost) */
+.em-detail .em-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 10px 20px;
+    border-radius: 11px;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    line-height: 1;
+    transition: all .25s ease;
+    border: 1px solid transparent;
+    flex-shrink: 0;
+}
+.em-detail .em-btn-ghost {
+    background: #fff;
+    color: var(--em-green);
+    border-color: #d2e6bb;
+}
+.em-detail .em-btn-ghost:hover { background: var(--em-tile); border-color: var(--em-green); }
+
+/* ── Address grid ── */
+.em-detail .em-detail-addr-grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 18px;
+}
+.em-detail .em-detail-field { margin-bottom: 16px; }
+.em-detail .em-detail-field:last-child { margin-bottom: 0; }
+.em-detail .em-detail-label {
+    display: block;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--em-muted);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin-bottom: 5px;
+}
+.em-detail .em-detail-value {
+    margin: 0;
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 14px;
+    color: #2c352f;
+    line-height: 1.6;
+}
+.em-detail .em-detail-tel {
+    color: var(--em-green);
+    text-decoration: none;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+}
+.em-detail .em-detail-tel:hover { text-decoration: underline; }
+
+/* ── Consultation Q&A ── */
+.em-detail .em-qa-gp {
+    background: var(--em-tile);          /* #e3f0d2 */
+    border: 1px solid #d2e6bb;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.em-detail .em-qa-gp-item { display: flex; flex-direction: column; gap: 2px; }
+.em-detail .em-qa-gp-k {
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-size: 11px;
+    font-weight: 600;
+    color: #27500a;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+.em-detail .em-qa-gp-v {
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 14px;
+    color: var(--em-green);
+}
+
+.em-detail .em-qa-list { display: flex; flex-direction: column; }
+.em-detail .em-qa-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--em-line-soft);
+}
+.em-detail .em-qa-row:last-child { border-bottom: 0; }
+.em-detail .em-qa-q {
+    font-family: 'Sofia Pro Regular', sans-serif !important;
+    font-size: 13.5px;
+    color: #3a4540;
+    line-height: 1.5;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.em-detail .em-qa-a { flex-shrink: 0; text-align: right; max-width: 50%; }
+.em-detail .em-qa-text {
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-size: 13.5px;
+    color: var(--em-green);
+}
+.em-detail .em-qa-badge {
+    display: inline-flex;
+    align-items: center;
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 14px;
+    border-radius: 999px;
+}
+.em-detail .em-qa-badge.yes { background: #dcfce7; color: #15803d; }
+.em-detail .em-qa-badge.no  { background: #fdecec; color: #b23b3b; }
+.em-detail .em-qa-link {
+    font-family: 'Sofia Pro SemiBold', sans-serif !important;
+    font-size: 13.5px;
+    color: var(--em-green);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/* ════════════════════════════════════
+   RESPONSIVE
+   ════════════════════════════════════ */
+@media (max-width: 1024px) {
+    .em-detail .em-detail-addr-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+    .em-detail .em-acc-card { padding: 18px 16px; }
+    .em-hero-topline { align-items: flex-start; }
+    .em-detail .em-detail-item-img { width: 64px; height: 64px; }
+    .em-detail .em-detail-item-img img { max-height: 48px; }
+    .em-detail .em-detail-item-left { flex: 1 1 100%; }
+    .em-detail .em-btn { width: 100%; }
+    .em-detail .em-qa-row { flex-direction: column; gap: 4px; }
+    .em-detail .em-qa-a { text-align: left; max-width: 100%; }
+}

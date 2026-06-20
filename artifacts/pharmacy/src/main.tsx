@@ -4,6 +4,7 @@ import { setBaseUrl } from "@workspace/api-client-react";
 import App from "./App";
 import "./index.css";
 import "./styles/everydaymeds.css";
+import "./styles/patient-portal-overrides.css";
 
 // Empty VITE_API_BASE_URL → same-origin /api (Vite proxy in dev, nginx in production).
 const apiBase = import.meta.env.VITE_API_BASE_URL;

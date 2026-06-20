@@ -1,0 +1,200 @@
+/* Portal shell — match SiteLayout page tint (#f3f5f4); cards supply their own surfaces */
+.parent-mycustomer-portal-area .fluid_container,
+.child-mycustomer-portal-area.left-sidebar-area,
+.child-mycustomer-portal-area.right-sidebar-area,
+.main-area-for-customer-portal {
+  background: transparent;
+}
+
+/* Upload hub — card grid sits on page tint, not inside a white shell */
+.ud-cards-container {
+  background: transparent;
+}
+
+/* Mobile portal layout — complements panel.css */
+.em-orders a.em-btn {
+  text-decoration: none;
+}
+
+@media (max-width: 768px) {
+  .parent-mycustomer-portal-area .fluid_container {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .child-mycustomer-portal-area.left-sidebar-area,
+  .child-mycustomer-portal-area.right-sidebar-area {
+    width: 100%;
+    min-height: 0;
+  }
+}
+
+/* Promo offer bar — matches everydaymeds.co.uk */
+@keyframes promo-gradient-move {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.promo-offer-bar {
+  color: #fff;
+  background: linear-gradient(90deg, #1a4d2e, #2d5f3f, #1a4d2e);
+  background-size: 300% 300%;
+  animation: promo-gradient-move 8s ease infinite;
+  font-weight: 400;
+}
+
+.promo-bar-inner {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  padding: 5px 2rem;
+  gap: 20px;
+  font-size: 14px;
+  flex-direction: row;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.promo-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  flex-direction: row;
+}
+
+.promo-main-text {
+  white-space: nowrap;
+}
+
+.promo-highlight {
+  color: #e4ed64;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.promo-text {
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.promo-buttons {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.promo-code-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  padding: 3px 16px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.promo-code-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.promo-code-btn .code-label {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.promo-code-btn .code-value {
+  font-weight: 700;
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.promo-code-btn .copy-icon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.7;
+}
+
+.btn-area-p {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+
+@media (max-width: 768px) {
+  .promo-bar-inner {
+    flex-direction: column;
+    padding: 5px 5px 12px !important;
+    gap: 3px;
+    text-align: center;
+  }
+
+  .promo-left {
+    flex-direction: column;
+    gap: 4px;
+    text-align: center;
+    align-items: center;
+  }
+
+  .promo-main-text,
+  .promo-text {
+    white-space: normal;
+  }
+
+  span.promo-text {
+    display: none;
+  }
+
+  .promo-main-text {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .promo-highlight {
+    font-size: 20px;
+  }
+
+  .promo-buttons {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .promo-code-btn {
+    flex: 1;
+    justify-content: center;
+    max-width: 200px;
+  }
+
+  .btn-area-p {
+    flex-direction: row-reverse;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .promo-code-btn .code-label {
+    font-size: 16px;
+  }
+
+  .promo-code-btn .code-value {
+    font-size: 9px;
+    position: relative;
+    top: -2px;
+  }
+}
