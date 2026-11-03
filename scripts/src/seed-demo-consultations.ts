@@ -612,10 +612,8 @@ async function wipeDemoConsultations() {
     .from(consultationsTable)
     .where(
       or(
-        ilike(consultationsTable.patientName, "%mostafa%"),
-        ilike(consultationsTable.patientName, "%mustafa%"),
-        ilike(consultationsTable.patientEmail, "%mostafa%"),
-        ilike(consultationsTable.patientEmail, "%mustafa%"),
+        ilike(consultationsTable.patientName, "%test patient one%"),
+        ilike(consultationsTable.patientEmail, "test.patient.one@example.com"),
         ilike(consultationsTable.patientEmail, "phototest%"),
         ilike(consultationsTable.patientEmail, "%compliance-%test%"),
         ilike(consultationsTable.patientEmail, "e2e-test%"),
