@@ -9,8 +9,8 @@ export type DevCredential = {
 
 export const DEV_PATIENT_ACCOUNTS: DevCredential[] = [
   {
-    label: "Mostafa (test account)",
-    username: "mostafa.damghani.md@gmail.com",
+    label: "Test Patient One",
+    username: "test.patient.one@example.com",
     password: "test123",
     note: "Seed with: npx tsx scripts/src/ensure-mostafa-patient.ts",
   },

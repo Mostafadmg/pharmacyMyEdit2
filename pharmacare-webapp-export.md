@@ -3622,7 +3622,7 @@ export default function Consultation() {
                       <span className="text-xs font-normal text-muted-foreground ml-1">(optional)</span>
                     </Label>
                     <p className="text-xs text-muted-foreground -mt-2">If you have your NHS number, passport, or driving licence to hand, you can add it now to speed up review. Otherwise, our pharmacist will ask you for it later if needed.</p>
-                    <Input value={identityRef} onChange={e => { setIdentityRef(e.target.value); setGpErrors(p => ({ ...p, identityRef: "" })); }} placeholder="e.g. NHS 943 476 5919 (optional)" className="h-12 rounded-xl bg-muted/20" />
+                    <Input value={identityRef} onChange={e => { setIdentityRef(e.target.value); setGpErrors(p => ({ ...p, identityRef: "" })); }} placeholder="e.g. NHS 999 000 0001 (optional)" className="h-12 rounded-xl bg-muted/20" />
                   </div>
 
                   <div className="pt-4 border-t border-border/50 flex flex-col-reverse sm:flex-row justify-between gap-3">

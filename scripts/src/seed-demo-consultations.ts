@@ -151,14 +151,14 @@ const LAST_NAMES = [
 ];
 
 const GP_SURGERIES = [
-  ["North London Medical Centre", "42 Holloway Road, London N7 8JG"],
-  ["Islington Central Practice", "15 Upper Street, London N1 0PQ"],
-  ["Hackney Road Surgery", "220 Hackney Road, London E2 7SJ"],
-  ["Camden Town Medical Centre", "110 Camden High Street, London NW1 0LU"],
-  ["Finsbury Park Practice", "8 Stroud Green Road, London N4 2DQ"],
-  ["Bethnal Green Health Centre", "50 Nelson Gardens, London E2 6QA"],
-  ["Brixton Health Centre", "36 Acre Lane, London SW2 5SE"],
-  ["Peckham Road Group Practice", "144 Peckham Road, London SE5 8QA"],
+  ["Test Surgery One", "1 Fictional Road, Testville ZZ99 3BA"],
+  ["Test Surgery Two", "2 Fictional Road, Testville ZZ99 3BB"],
+  ["Test Surgery Three", "3 Fictional Road, Testville ZZ99 3BC"],
+  ["Test Surgery Four", "4 Fictional Road, Testville ZZ99 3BD"],
+  ["Test Surgery Five", "5 Fictional Road, Testville ZZ99 3BE"],
+  ["Test Surgery Six", "6 Fictional Road, Testville ZZ99 3BF"],
+  ["Test Surgery Seven", "7 Fictional Road, Testville ZZ99 3BG"],
+  ["Test Surgery Eight", "8 Fictional Road, Testville ZZ99 3BH"],
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -612,10 +612,8 @@ async function wipeDemoConsultations() {
     .from(consultationsTable)
     .where(
       or(
-        ilike(consultationsTable.patientName, "%mostafa%"),
-        ilike(consultationsTable.patientName, "%mustafa%"),
-        ilike(consultationsTable.patientEmail, "%mostafa%"),
-        ilike(consultationsTable.patientEmail, "%mustafa%"),
+        ilike(consultationsTable.patientName, "%test patient one%"),
+        ilike(consultationsTable.patientEmail, "%test.patient.one%"),
         ilike(consultationsTable.patientEmail, "phototest%"),
         ilike(consultationsTable.patientEmail, "%compliance-%test%"),
         ilike(consultationsTable.patientEmail, "e2e-test%"),
