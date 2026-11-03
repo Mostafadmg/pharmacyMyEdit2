@@ -1,5 +1,5 @@
 /**
- * Wipes all consultations/orders, then seeds GLP-1 scenario orders for Mostafa Damghani only.
+ * Wipes all consultations/orders, then seeds GLP-1 scenario orders for Test Patient One only.
  *
  *   pnpm --filter @workspace/scripts run sync-db-schema
  *   pnpm --filter @workspace/scripts run seed-mostafa-scenarios
@@ -22,11 +22,11 @@ import {
 import { eq, ne } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
-const PATIENT_EMAIL = "mostafa.damghani.md@gmail.com";
-const PATIENT_NAME = "Mostafa Damghani";
+const PATIENT_EMAIL = "test.patient.one@example.com";
+const PATIENT_NAME = "Test Patient One";
 const PATIENT_AGE = 34;
 const PATIENT_SEX = "male";
-const PATIENT_DOB = "1991-06-15";
+const PATIENT_DOB = "1992-01-01";
 const PASSWORD = "Pharmacy1!";
 const ID_PREFIX = "mostafa-mj-";
 const HEIGHT_CM = 178;
@@ -83,15 +83,15 @@ type ScenarioOrder = {
 };
 
 const MOSTAFA_DELIVERY = {
-  deliveryAddress: "109 Coleman Road, Leicester LE5 4LE",
+  deliveryAddress: "1 Fictional Close, Testville ZZ99 3AA",
   preferredDeliveryMethod: "tracked_48",
   gpName: "Dr Sarah Mitchell",
-  gpSurgery: "Leicester City Health Centre",
-  gpAddress: "12 Granby Street, Leicester LE1 6FD",
+  gpSurgery: "Testville Medical Centre",
+  gpAddress: "1 Fictional Road, Testville ZZ99 3WZ",
   gpPhone: "0116 123 4567",
   consentShareWithGp: true,
   identityVerificationMethod: "video",
-  identityVerificationRef: "IDV-MOSTAFA",
+  identityVerificationRef: "IDV-TEST-0001",
   clinicalDecisionRationale:
     "Approved following clinical review in Rx portal.",
 } as const;
@@ -150,8 +150,8 @@ function glpAnswers(opts: {
     new_to_injectable: opts.customerType === "new_start" ? "Yes" : "No",
     consent_confirm: "Yes",
     consent_gp_share: "Yes",
-    gp_name: "North London Medical Centre",
-    gp_address: "42 Holloway Road, London N7 8JG",
+    gp_name: "Test Surgery One",
+    gp_address: "1 Fictional Road, Testville ZZ99 3BA",
     requested_medication: opts.med,
     consultation_type: opts.customerType,
     current_dose: `${opts.med} ${opts.dose}`,
@@ -476,7 +476,7 @@ async function wipeDatabase() {
   await db.delete(patientAccountsTable).where(
     ne(patientAccountsTable.email, PATIENT_EMAIL.toLowerCase()),
   );
-  console.log("Database cleared (only Mostafa patient account retained).");
+  console.log("Database cleared (only Test Patient One account retained).");
 }
 
 async function ensureMostafaAccount() {
@@ -495,9 +495,9 @@ async function ensureMostafaAccount() {
         dateOfBirth: PATIENT_DOB,
         sex: PATIENT_SEX,
         phone: "07700900123",
-        addressLine1: "42 Harley Street",
-        city: "London",
-        postcode: "W1G 9PB",
+        addressLine1: "1 Fictional Close",
+        city: "Testville",
+        postcode: "ZZ99 3AA",
       })
       .where(eq(patientAccountsTable.email, email));
     console.log(`Updated patient account: ${email}`);
@@ -512,9 +512,9 @@ async function ensureMostafaAccount() {
     dateOfBirth: PATIENT_DOB,
     sex: PATIENT_SEX,
     phone: "07700900123",
-    addressLine1: "42 Harley Street",
-    city: "London",
-    postcode: "W1G 9PB",
+    addressLine1: "1 Fictional Close",
+    city: "Testville",
+    postcode: "ZZ99 3AA",
   });
   console.log(`Created patient account: ${email} (password: ${PASSWORD})`);
 }
@@ -601,7 +601,7 @@ async function seedOrder(order: ScenarioOrder, repeatIndex: number, seq: number)
     patientEmail: PATIENT_EMAIL.toLowerCase(),
     senderRole: "pharmacist",
     senderName: REVIEWER,
-    body: `Hi Mostafa — we've received your ${order.med} ${order.dose} order.`,
+    body: `Hi ${PATIENT_NAME} — we've received your ${order.med} ${order.dose} order.`,
     kind: "message",
     readByPatient: false,
     readByPharmacist: true,

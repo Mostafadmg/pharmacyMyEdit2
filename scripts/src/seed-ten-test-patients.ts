@@ -427,8 +427,8 @@ function glpAnswers(
     new_to_injectable: order.customerType === "new_start" ? "Yes" : "No",
     consent_confirm: "Yes",
     consent_gp_share: "Yes",
-    gp_name: "Islington Central Practice",
-    gp_address: "15 Upper Street, London N1 0PQ",
+    gp_name: "Test Surgery Two",
+    gp_address: "2 Fictional Road, Testville ZZ99 3BB",
     requested_medication: order.med,
     consultation_type: order.customerType,
     current_dose: `${order.med} ${order.dose}`,
@@ -528,7 +528,7 @@ async function ensurePatientAccount(p: PatientSeed, index: number) {
       phone: `07700${String(900300 + index).slice(-6)}`,
       addressLine1: `${20 + index} Test Patient Lane`,
       city: "London",
-      postcode: "N1 9GU",
+      postcode: "ZZ99 3AJ",
       pmrNumber: pmr,
     } as never)
     .onConflictDoUpdate({
@@ -541,7 +541,7 @@ async function ensurePatientAccount(p: PatientSeed, index: number) {
         phone: `07700${String(900300 + index).slice(-6)}`,
         addressLine1: `${20 + index} Test Patient Lane`,
         city: "London",
-        postcode: "N1 9GU",
+        postcode: "ZZ99 3AJ",
         pmrNumber: pmr,
       },
     });
