@@ -16,9 +16,9 @@ const API_INBOX_SEED_KEY = "everydaymeds:pmr-api-inbox-v2";
 
 /** Approved DB consultation IDs seeded with pmrWorkflowStatus=inbox (PDF via API). */
 export const API_SEED_INBOX_IDS = [
-  "mostafa-mj-clinical-check",
-  "mostafa-mj-inbox-today",
-  "mostafa-mj-inbox-wegovy",
+  "test-pt-one-clinical-check",
+  "test-pt-one-inbox-today",
+  "test-pt-one-inbox-wegovy",
   "pmr-inbox-shore-diabetes",
   "pmr-inbox-foster-mounjaro",
   "pmr-inbox-mensah-wegovy",
@@ -110,17 +110,17 @@ export const BOARD_DEMO_CONSULTATIONS: BoardDemoConsultation[] = [
   baseConsultation({
     id: "demo-board-check-1",
     consultationNumber: "CON-20260617-0001",
-    patientName: "Mr Mostafa Damghani",
-    patientEmail: "mostafa.damghani.md@gmail.com",
-    patientAge: 34,
+    patientName: "Mr Test Patient One",
+    patientEmail: "test.patient.one@example.com",
+    patientAge: 36,
     patientSex: "male",
     conditionId: "weight-loss",
     conditionName: "Mounjaro (Tirzepatide) — Weight Management",
     reviewedAt: isoAt(0, 9, 15),
-    deliveryAddressLine1: "109 Coleman Road",
-    deliveryCity: "Leicester",
-    deliveryPostcode: "LE5 4LE",
-    deliveryAddress: "109 Coleman Road, Leicester LE5 4LE",
+    deliveryAddressLine1: "1 Test Street",
+    deliveryCity: "Testville",
+    deliveryPostcode: "ZZ99 3AA",
+    deliveryAddress: "1 Test Street, Testville ZZ99 3AA",
     preferredDeliveryMethod: "tracked_48",
     prescriptionItems: items([
       {

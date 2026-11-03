@@ -1,5 +1,5 @@
 /**
- * Seeds demo consultations for mostafa.damghani.md@gmail.com across every condition.
+ * Seeds demo consultations for test.patient.one@example.com across every condition.
  * Run after seed-all-conditions:
  *   pnpm --filter @workspace/scripts run seed-all-conditions
  *   pnpm --filter @workspace/scripts run seed-patient-mostafa
@@ -14,12 +14,12 @@ import { eq, and, like } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { allConditionDbSeeds } from "../../artifacts/pharmacy/src/data/newConditionsData.ts";
 
-const PATIENT_EMAIL = "mostafa.damghani.md@gmail.com";
-const PATIENT_NAME = "Mostafa Damghani";
-const PATIENT_AGE = 34;
+const PATIENT_EMAIL = "test.patient.one@example.com";
+const PATIENT_NAME = "Test Patient One";
+const PATIENT_AGE = 36;
 const PATIENT_SEX = "male";
 const DEFAULT_PASSWORD = "Pharmacy1!";
-const ID_PREFIX = "seed-mostafa-";
+const ID_PREFIX = "seed-test-pt-one-";
 
 const STATUSES = [
   "pending",
@@ -63,19 +63,19 @@ async function ensurePatientAccount(): Promise<string> {
   }
 
   const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, 12);
-  const id = `patient-mostafa-demo`;
+  const id = `patient-test-one-demo`;
 
   await db.insert(patientAccountsTable).values({
     id,
     name: PATIENT_NAME,
     email,
     passwordHash,
-    dateOfBirth: "1991-06-15",
+    dateOfBirth: "1990-01-01",
     sex: PATIENT_SEX,
     phone: "07700900123",
-    addressLine1: "42 Demo Street",
-    city: "London",
-    postcode: "SW1A 1AA",
+    addressLine1: "1 Test Street",
+    city: "Testville",
+    postcode: "ZZ99 3AA",
   });
 
   console.log(`Created patient account: ${email} (password: ${DEFAULT_PASSWORD})`);

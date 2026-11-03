@@ -1,6 +1,6 @@
 /**
  * Ten GLP-1 test patients × 4 orders each (40 consultations) + portal accounts.
- * Does not remove Mostafa or other seeds — only replaces demo-tp10-* rows.
+ * Does not remove the primary test patient or other seeds — only replaces demo-tp10-* rows.
  *
  *   pnpm --filter @workspace/scripts run sync-db-schema
  *   pnpm --filter @workspace/scripts run seed-ten-test-patients
